@@ -91,7 +91,6 @@ interface MoveWithDetails extends BaseMove {
 interface MoveButtonProps {
     move: MoveWithDetails;
     isExpanded: boolean;
-    onToggle: () => void;
     opensUpward: boolean;
 }
 
@@ -142,8 +141,7 @@ interface PokeApiEffectEntry {
 
 // --- Data Stub from Backend ---
 // This is a sample data structure that mimics what a backend might provide.
-const backendData: BackendData = {"player_name": "John", "play_time": {"hours": 45, "minutes": 36, "seconds": 40}, "active_slot": 14, "sector_map": {"2": 31, "3": 16, "4": 17, "5": 18, "6": 19, "7": 20, "8": 21, "9": 22, "10": 23, "11": 24, "12": 25, "13": 26, "14": 27, "15": 28, "0": 29, "1": 30}, "party_pokemon": [{"personality": 228, "otId": 3563855882, "nickname": "Steelix", "otName": "John", "currentHp": 131, "speciesId": 208, "item": 472, "move1": 446, "move2": 157, "move3": 91, "move4": 423, "pp1": 32, "pp2": 16, "pp3": 16, "pp4": 24, "hpEV": 76, "atkEV": 92, "defEV": 8, "speEV": 252, "spaEV": 60, "spdEV": 20, "ivs": [8, 9, 8, 11, 1, 9], "level": 44, "maxHp": 131, "attack": 102, "defense": 185, "speed": 63, "spAttack": 54, "spDefense": 68, "moves": {"move1": {"name": "Stealth Rock", "id": 446, "pp": 32}, "move2": {"name": "Rock Slide", "id": 157, "pp": 16}, "move3": {"name": "Dig", "id": 91, "pp": 16}, "move4": {"name": "Ice Fang", "id": 423, "pp": 24}}, "evs": [76, 92, 8, 252, 60, 20]}, {"personality": 531, "otId": 3563855882, "nickname": "Breloom", "otName": "John", "currentHp": 126, "speciesId": 286, "item": 0, "move1": 402, "move2": 92, "move3": 280, "move4": 73, "pp1": 24, "pp2": 16, "pp3": 24, "pp4": 16, "hpEV": 36, "atkEV": 124, "defEV": 132, "speEV": 148, "spaEV": 32, "spdEV": 36, "ivs": [30, 9, 3, 4, 2, 17], "level": 45, "maxHp": 126, "attack": 140, "defense": 93, "speed": 86, "spAttack": 69, "spDefense": 63, "moves": {"move1": {"name": "Seed Bomb", "id": 402, "pp": 24}, "move2": {"name": "Toxic", "id": 92, "pp": 16}, "move3": {"name": "Brick Break", "id": 280, "pp": 24}, "move4": {"name": "Leech Seed", "id": 73, "pp": 16}}, "evs": [36, 124, 132, 148, 32, 36]}, {"personality": 745, "otId": 3563855882, "nickname": "Snorlax", "otName": "John", "currentHp": 248, "speciesId": 143, "item": 472, "move1": 34, "move2": 104, "move3": 214, "move4": 156, "pp1": 24, "pp2": 24, "pp3": 16, "pp4": 8, "hpEV": 224, "atkEV": 48, "defEV": 204, "speEV": 0, "spaEV": 32, "spdEV": 0, "ivs": [31, 31, 31, 0, 0, 31], "level": 47, "maxHp": 248, "attack": 128, "defense": 114, "speed": 33, "spAttack": 62, "spDefense": 122, "moves": {"move1": {"name": "Body Slam", "id": 34, "pp": 24}, "move2": {"name": "Double Team", "id": 104, "pp": 24}, "move3": {"name": "Sleep Talk", "id": 214, "pp": 16}, "move4": {"name": "Rest", "id": 156, "pp": 8}}, "evs": [224, 48, 204, 0, 32, 0]}, {"personality": 11, "otId": 3563855882, "nickname": "Ludicolo", "otName": "John", "currentHp": 135, "speciesId": 272, "item": 472, "move1": 240, "move2": 75, "move3": 72, "move4": 61, "pp1": 8, "pp2": 40, "pp3": 24, "pp4": 32, "hpEV": 44, "atkEV": 116, "defEV": 148, "speEV": 120, "spaEV": 52, "spdEV": 28, "ivs": [7, 24, 24, 25, 6, 21], "level": 45, "maxHp": 135, "attack": 91, "defense": 85, "speed": 101, "spAttack": 94, "spDefense": 107, "moves": {"move1": {"name": "Rain Dance", "id": 240, "pp": 8}, "move2": {"name": "Razor Leaf", "id": 75, "pp": 40}, "move3": {"name": "Mega Drain", "id": 72, "pp": 24}, "move4": {"name": "Bubble Beam", "id": 61, "pp": 32}}, "evs": [44, 116, 148, 120, 52, 28]}, {"personality": 247, "otId": 3563855882, "nickname": "Rayquaza", "otName": "John", "currentHp": 132, "speciesId": 6, "item": 466, "move1": 403, "move2": 225, "move3": 53, "move4": 108, "pp1": 24, "pp2": 32, "pp3": 24, "pp4": 32, "hpEV": 48, "atkEV": 120, "defEV": 112, "speEV": 156, "spaEV": 48, "spdEV": 24, "ivs": [30, 11, 17, 18, 23, 20], "level": 41, "maxHp": 132, "attack": 90, "defense": 87, "speed": 99, "spAttack": 108, "spDefense": 93, "moves": {"move1": {"name": "Air Slash", "id": 403, "pp": 24}, "move2": {"name": "Dragon Breath", "id": 225, "pp": 32}, "move3": {"name": "Flamethrower", "id": 53, "pp": 24}, "move4": {"name": "Smokescreen", "id": 108, "pp": 32}}, "evs": [48, 120, 112, 156, 48, 24]}, {"personality": 230, "otId": 3563855882, "nickname": "Sigilyph", "otName": "John", "currentHp": 114, "speciesId": 561, "item": 0, "move1": 403, "move2": 60, "move3": 314, "move4": 95, "pp1": 24, "pp2": 32, "pp3": 40, "pp4": 32, "hpEV": 60, "atkEV": 136, "defEV": 4, "speEV": 248, "spaEV": 36, "spdEV": 24, "ivs": [23, 25, 16, 22, 3, 4], "level": 37, "maxHp": 114, "attack": 62, "defense": 77, "speed": 107, "spAttack": 85, "spDefense": 67, "moves": {"move1": {"name": "Air Slash", "id": 403, "pp": 24}, "move2": {"name": "Psybeam", "id": 60, "pp": 32}, "move3": {"name": "Air Cutter", "id": 314, "pp": 40}, "move4": {"name": "Hypnosis", "id": 95, "pp": 32}}, "evs": [60, 136, 4, 248, 36, 24]}]};
-
+const backendData: BackendData = {"player_name": "DRACULA", "play_time": {"hours": 46, "minutes": 54, "seconds": 19}, "active_slot": 14, "sector_map": {"12": 31, "13": 16, "14": 17, "15": 18, "0": 19, "1": 20, "2": 21, "3": 22, "4": 23, "5": 24, "6": 25, "7": 26, "8": 27, "9": 28, "10": 29, "11": 30}, "party_pokemon": [{"personality": 240, "otId": 1364199219, "nickname": "Bayleef", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 141, "unknown_25": [0, 0, 4], "speciesId": 153, "item": 0, "unknown_2C": [220, 224, 1, 0, 255, 27, 1, 0], "move1": 202, "move2": 219, "move3": 73, "move4": 77, "pp1": 16, "pp2": 40, "pp3": 16, "pp4": 56, "hpEV": 48, "atkEV": 128, "defEV": 116, "speEV": 128, "spaEV": 36, "spdEV": 52, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 64], "level": 50, "unknown_59": 255, "maxHp": 141, "attack": 88, "defense": 115, "speed": 96, "spAttack": 96, "spDefense": 107, "unknown_66": [34, 50], "displayOtId": "01843", "displayNature": "Modest", "moves": {"move1": {"name": "Giga Drain", "id": 202, "pp": 16}, "move2": {"name": "Safeguard", "id": 219, "pp": 40}, "move3": {"name": "Leech Seed", "id": 73, "pp": 16}, "move4": {"name": "Poison Powder", "id": 77, "pp": 56}}, "evs": [48, 128, 116, 128, 36, 52], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}, {"personality": 249, "otId": 1364199219, "nickname": "Flaaffy", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 94, "unknown_25": [0, 0, 4], "speciesId": 180, "item": 0, "unknown_2C": [148, 82, 0, 0, 255, 90, 1, 0], "move1": 486, "move2": 86, "move3": 84, "move4": 268, "pp1": 16, "pp2": 32, "pp3": 48, "pp4": 32, "hpEV": 76, "atkEV": 96, "defEV": 56, "speEV": 132, "spaEV": 56, "spdEV": 28, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 64], "level": 29, "unknown_59": 255, "maxHp": 94, "attack": 52, "defense": 49, "speed": 49, "spAttack": 64, "spDefense": 50, "unknown_66": [0, 0], "displayOtId": "01843", "displayNature": "Quirky", "moves": {"move1": {"name": "Electro Ball", "id": 486, "pp": 16}, "move2": {"name": "Thunder Wave", "id": 86, "pp": 32}, "move3": {"name": "Thunder Shock", "id": 84, "pp": 48}, "move4": {"name": "Charge", "id": 268, "pp": 32}}, "evs": [76, 96, 56, 132, 56, 28], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 444, "totalIvs": 186}, {"personality": 241, "otId": 1364199219, "nickname": "Noivern", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 139, "unknown_25": [0, 0, 4], "speciesId": 715, "item": 0, "unknown_2C": [224, 20, 1, 0, 255, 35, 1, 0], "move1": 162, "move2": 403, "move3": 44, "move4": 406, "pp1": 16, "pp2": 24, "pp3": 40, "pp4": 16, "hpEV": 32, "atkEV": 192, "defEV": 108, "speEV": 96, "spaEV": 44, "spdEV": 36, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 80], "level": 42, "unknown_59": 255, "maxHp": 139, "attack": 96, "defense": 86, "speed": 131, "spAttack": 114, "spDefense": 89, "unknown_66": [34, 50], "displayOtId": "01843", "displayNature": "Mild", "moves": {"move1": {"name": "Super Fang", "id": 162, "pp": 16}, "move2": {"name": "Air Slash", "id": 403, "pp": 24}, "move3": {"name": "Bite", "id": 44, "pp": 40}, "move4": {"name": "Dragon Pulse", "id": 406, "pp": 16}}, "evs": [32, 192, 108, 96, 44, 36], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}, {"personality": 235, "otId": 1364199219, "nickname": "Eevee", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 115, "unknown_25": [0, 0, 4], "speciesId": 133, "item": 463, "unknown_2C": [162, 42, 1, 0, 255, 33, 1, 0], "move1": 129, "move2": 98, "move3": 44, "move4": 28, "pp1": 32, "pp2": 48, "pp3": 40, "pp4": 24, "hpEV": 20, "atkEV": 244, "defEV": 116, "speEV": 56, "spaEV": 48, "spdEV": 24, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 80], "level": 43, "unknown_59": 255, "maxHp": 115, "attack": 81, "defense": 73, "speed": 78, "spAttack": 62, "spDefense": 76, "unknown_66": [17, 17], "displayOtId": "01843", "displayNature": "Timid", "moves": {"move1": {"name": "Swift", "id": 129, "pp": 32}, "move2": {"name": "Quick Attack", "id": 98, "pp": 48}, "move3": {"name": "Bite", "id": 44, "pp": 40}, "move4": {"name": "Sand Attack", "id": 28, "pp": 24}}, "evs": [20, 244, 116, 56, 48, 24], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}, {"personality": 1, "otId": 1364199219, "nickname": "Tinkaton", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 150, "unknown_25": [0, 0, 4], "speciesId": 1288, "item": 459, "unknown_2C": [110, 24, 1, 0, 255, 29, 1, 0], "move1": 577, "move2": 819, "move3": 583, "move4": 430, "pp1": 16, "pp2": 8, "pp3": 16, "pp4": 16, "hpEV": 132, "atkEV": 112, "defEV": 40, "speEV": 120, "spaEV": 76, "spdEV": 28, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 64], "level": 42, "unknown_59": 255, "maxHp": 150, "attack": 101, "defense": 77, "speed": 109, "spAttack": 84, "spDefense": 109, "unknown_66": [34, 50], "displayOtId": "01843", "displayNature": "Lonely", "moves": {"move1": {"name": "Draining Kiss", "id": 577, "pp": 16}, "move2": {"name": "Gigaton Hammer", "id": 819, "pp": 8}, "move3": {"name": "Play Rough", "id": 583, "pp": 16}, "move4": {"name": "Flash Cannon", "id": 430, "pp": 16}}, "evs": [132, 112, 40, 120, 76, 28], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}, {"personality": 23, "otId": 1364199219, "nickname": "Gligar", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 124, "unknown_25": [0, 0, 4], "speciesId": 207, "item": 0, "unknown_2C": [28, 26, 1, 0, 255, 31, 1, 0], "move1": 404, "move2": 369, "move3": 342, "move4": 512, "pp1": 24, "pp2": 32, "pp3": 40, "pp4": 24, "hpEV": 20, "atkEV": 252, "defEV": 112, "speEV": 64, "spaEV": 32, "spdEV": 28, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 80], "level": 43, "unknown_59": 255, "maxHp": 124, "attack": 109, "defense": 120, "speed": 98, "spAttack": 45, "spDefense": 84, "unknown_66": [34, 50], "displayOtId": "01843", "displayNature": "Careful", "moves": {"move1": {"name": "X Scissor", "id": 404, "pp": 24}, "move2": {"name": "U-turn", "id": 369, "pp": 32}, "move3": {"name": "Poison Tail", "id": 342, "pp": 40}, "move4": {"name": "Acrobatics", "id": 512, "pp": 24}}, "evs": [20, 252, 112, 64, 32, 28], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}]}
 // --- UI Components ---
 
 // Helper to map type names to colors and icons
@@ -199,22 +197,22 @@ const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive }) => {
 };
 
 // Component for a single move in the list
-const MoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, onToggle, opensUpward }) => {
+const MoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward }) => {
     const popoverDirectionClass = opensUpward ? "bottom-full mb-1" : "top-full mt-1";
     const animationY = opensUpward ? 10 : -10;
 
     return (
         <motion.div layout className={`relative ${isExpanded ? 'z-20' : 'z-0'}`}>
-            <button onClick={onToggle} className="w-full text-left p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200 group cursor-pointer">
+            <div className="w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200">
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-white group-hover:text-cyan-300 transition-colors">{move.name}</span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                    <span className="text-sm text-white">{move.name}</span>
+                    {/* <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /> */}
                 </div>
                 <div className="flex items-center justify-between mt-2">
                     {move.type ? <TypeBadge type={move.type} /> : <div className="h-[22px] w-16 bg-slate-700 rounded-md animate-pulse"></div>}
                     <span className="text-xs text-slate-300">{move.pp}/{move.pp}</span>
                 </div>
-            </button>
+            </div>
             <AnimatePresence>
                 {isExpanded && (
                     <motion.div
@@ -223,17 +221,75 @@ const MoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, onToggle, ope
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: animationY }}
                         transition={{ type: "spring", stiffness: 400, damping: 40 }}
-                        className={`absolute ${popoverDirectionClass} left-0 right-0 z-50 p-3 bg-slate-900 backdrop-blur-md border border-slate-700 rounded-lg shadow-xl text-xs`}
+                        className={`absolute ${popoverDirectionClass} left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-700 rounded-lg shadow-xl text-xs`}
                     >
                         <div className="flex justify-between text-slate-400 mb-2 pb-2 border-b border-slate-700/50">
-                            <span>Power: <span className="text-white">{move.power ?? '—'}</span></span>
-                            <span>Accuracy: <span className="text-white">{move.accuracy ? `${move.accuracy}%` : '—'}</span></span>
+                            <div>Power: <div className="text-white">{move.power ?? '—'}</div></div>
+                            <div>Accuracy: <div className="text-white">{move.accuracy ? `${move.accuracy}%` : '—'}</div></div>
                         </div>
-                        <p className="leading-relaxed text-slate-300 text-[8px]">{move.description || 'Loading description...'}</p>
+                        <ScrollableContainer className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-slate-400 leading-relaxed text-[8px]">
+                          {move.description || 'Loading description...'}
+                        </ScrollableContainer>
                     </motion.div>
                 )}
             </AnimatePresence>
         </motion.div>
+    );
+};
+
+// Reusable component for a scrollable container with dynamic fade effects
+const ScrollableContainer: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => {
+    const [scrollState, setScrollState] = useState('none');
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const checkScroll = () => {
+            const el = containerRef.current;
+            if (!el) return;
+
+            const isScrollable = el.scrollHeight > el.clientHeight;
+            if (!isScrollable) {
+                setScrollState('none');
+                return;
+            }
+
+            const atTop = el.scrollTop === 0;
+            const atBottom = Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) < 1; // More robust check
+
+            if (atTop && !atBottom) {
+                setScrollState('bottom');
+            } else if (!atTop && atBottom) {
+                setScrollState('top');
+            } else if (!atTop && !atBottom) {
+                setScrollState('both');
+            } else {
+                setScrollState('none');
+            }
+        };
+
+        const el = containerRef.current;
+        checkScroll(); // Initial check
+
+        el?.addEventListener('scroll', checkScroll);
+        window.addEventListener('resize', checkScroll); // Re-check on resize
+
+        return () => {
+            el?.removeEventListener('scroll', checkScroll);
+            window.removeEventListener('resize', checkScroll);
+        };
+    }, [children]); // Re-run effect if children change
+
+    const fadeClass = {
+        top: 'scroll-fade-top',
+        bottom: 'scroll-fade-bottom',
+        both: 'scroll-fade-both',
+        none: ''
+    }[scrollState];
+
+    return (
+        <div ref={containerRef} className={`scroll-container ${className} ${fadeClass}`}>
+            {children}
+        </div>
     );
 };
 
@@ -335,21 +391,8 @@ export default function App() {
     const [isRenaming, setIsRenaming] = useState<boolean>(false);
     const [renameInput, setRenameInput] = useState<string>('');
     const [expandedMoveName, setExpandedMoveName] = useState<string | null>(null);
-    const movesContainerRef = useRef<HTMLDivElement>(null);
 
     const activePokemon = useMemo(() => partyList.find(p => p.id === activePokemonId), [partyList, activePokemonId]);
-
-    // Effect to handle clicks outside of the moves container to close the popover
-    useEffect(() => {
-      if (!expandedMoveName) return;
-      const handleClick = (e: MouseEvent) => {
-        if (movesContainerRef.current && !movesContainerRef.current.contains(e.target as Node)) {
-          setExpandedMoveName(null);
-        }
-      };
-      document.addEventListener('mousedown', handleClick);
-      return () => document.removeEventListener('mousedown', handleClick);
-    }, [expandedMoveName]);
 
     // Effect to fetch detailed data for the active Pokémon.
     useEffect(() => {
@@ -506,15 +549,20 @@ export default function App() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div ref={movesContainerRef} className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {activePokemonDetails.moves.map((move, index) => 
-                                            <MoveButton 
+                                            <div 
                                                 key={move.name} 
-                                                move={move} 
-                                                isExpanded={expandedMoveName === move.name}
-                                                onToggle={() => setExpandedMoveName(prev => prev === move.name ? null : move.name)}
-                                                opensUpward={index < 2}
-                                            />
+                                                className="group cursor-pointer"
+                                                onMouseEnter={() => setExpandedMoveName(move.name)}
+                                                onMouseLeave={() => setExpandedMoveName(null)}
+                                            >
+                                                <MoveButton 
+                                                    move={move} 
+                                                    isExpanded={expandedMoveName === move.name}
+                                                    opensUpward={index < 2}
+                                                />
+                                            </div>
                                         )}
                                     </div>
                                 </section>
@@ -529,9 +577,9 @@ export default function App() {
                                          </div>
                                      </div>
                                     <div className="relative flex-1 min-h-0">
-                                        <p className="absolute inset-0 text-slate-400 leading-relaxed overflow-y-auto custom-scrollbar p-4 text-[8px]">
+                                        <ScrollableContainer className="absolute inset-0 text-slate-400 leading-relaxed overflow-y-auto custom-scrollbar p-4 text-[8px]">
                                             {activePokemonDetails.ability.description}
-                                        </p>
+                                        </ScrollableContainer>
                                     </div>
                                 </section>
                              </>

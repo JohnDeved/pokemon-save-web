@@ -22,3 +22,28 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #5a6a82;
 }
+
+.scroll-container {
+    transition: -webkit-mask-image 0.2s ease, mask-image 0.2s ease;
+}
+
+.scroll-fade-bottom {
+    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+    -webkit-mask-composite: add;
+    mask-image: linear-gradient(to bottom, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+    mask-composite: add;
+}
+
+.scroll-fade-top {
+    -webkit-mask-image: linear-gradient(to top, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+    -webkit-mask-composite: add;
+    mask-image: linear-gradient(to top, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+    mask-composite: add;
+}
+
+.scroll-fade-both {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+    -webkit-mask-composite: add;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+    mask-composite: add;
+}
