@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Hash, Pencil, ChevronDown, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShaderBackground } from './components/ShaderBackground';
@@ -205,7 +205,7 @@ const MoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, onToggle, ope
 
     return (
         <motion.div layout className={`relative ${isExpanded ? 'z-20' : 'z-0'}`}>
-            <button onClick={onToggle} className="w-full text-left p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200 group">
+            <button onClick={onToggle} className="w-full text-left p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200 group cursor-pointer">
                 <div className="flex items-center justify-between">
                     <span className="text-sm text-white group-hover:text-cyan-300 transition-colors">{move.name}</span>
                     <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -335,8 +335,21 @@ export default function App() {
     const [isRenaming, setIsRenaming] = useState<boolean>(false);
     const [renameInput, setRenameInput] = useState<string>('');
     const [expandedMoveName, setExpandedMoveName] = useState<string | null>(null);
+    const movesContainerRef = useRef<HTMLDivElement>(null);
 
     const activePokemon = useMemo(() => partyList.find(p => p.id === activePokemonId), [partyList, activePokemonId]);
+
+    // Effect to handle clicks outside of the moves container to close the popover
+    useEffect(() => {
+      if (!expandedMoveName) return;
+      const handleClick = (e: MouseEvent) => {
+        if (movesContainerRef.current && !movesContainerRef.current.contains(e.target as Node)) {
+          setExpandedMoveName(null);
+        }
+      };
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }, [expandedMoveName]);
 
     // Effect to fetch detailed data for the active Pokémon.
     useEffect(() => {
@@ -493,7 +506,7 @@ export default function App() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div ref={movesContainerRef} className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {activePokemonDetails.moves.map((move, index) => 
                                             <MoveButton 
                                                 key={move.name} 
