@@ -2,146 +2,23 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Hash, Pencil, ChevronDown, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShaderBackground } from './components/ShaderBackground';
-
-// --- Type Definitions ---
-interface PlayTime {
-    hours: number;
-    minutes: number;
-    seconds: number;
-}
-
-interface SectorMap {
-    [key: string]: number;
-}
-
-interface BaseMove {
-    name: string;
-    id: number;
-    pp: number;
-}
-
-interface Moves {
-    move1: BaseMove;
-    move2: BaseMove;
-    move3: BaseMove;
-    move4: BaseMove;
-}
-
-interface Pokemon {
-    personality: number;
-    otId: number;
-    nickname: string;
-    otName: string;
-    currentHp: number;
-    speciesId: number;
-    item: number;
-    move1: number;
-    move2: number;
-    move3: number;
-    move4: number;
-    pp1: number;
-    pp2: number;
-    pp3: number;
-    pp4: number;
-    hpEV: number;
-    atkEV: number;
-    defEV: number;
-    speEV: number;
-    spaEV: number;
-    spdEV: number;
-    ivs: number[];
-    level: number;
-    maxHp: number;
-    attack: number;
-    defense: number;
-    speed: number;
-    spAttack: number;
-    spDefense: number;
-    moves: Moves;
-    evs: number[];
-    id: number;
-    spriteUrl: string;
-}
-
-interface BackendData {
-    player_name: string;
-    play_time: PlayTime;
-    active_slot: number;
-    sector_map: SectorMap;
-    party_pokemon: Omit<Pokemon, 'id' | 'spriteUrl'>[];
-}
-
-interface TypeBadgeProps {
-    type: string;
-    isLarge?: boolean;
-}
-
-interface PokemonStatusProps {
-    pokemon: Pokemon;
-    isActive: boolean;
-}
-
-interface MoveWithDetails extends BaseMove {
-    type: string;
-    description: string;
-    power: number | null;
-    accuracy: number | null;
-}
-
-interface MoveButtonProps {
-    move: MoveWithDetails;
-    isExpanded: boolean;
-    opensUpward: boolean;
-}
-
-interface StatDisplayProps {
-    ivs: number[];
-    evs: number[];
-}
-
-interface Ability {
-    name: string;
-    description: string;
-}
-
-interface PokemonDetails {
-    types: string[];
-    ability: Ability;
-    moves: MoveWithDetails[];
-}
-
-interface DetailedCache {
-    [speciesId: number]: PokemonDetails;
-}
-
-interface PokeApiAbility {
-    ability: {
-        name: string;
-        url: string;
-    };
-    is_hidden: boolean;
-    slot: number;
-}
-
-interface PokeApiType {
-    slot: number;
-    type: {
-        name: string;
-        url: string;
-    };
-}
-
-interface PokeApiEffectEntry {
-    effect: string;
-    language: {
-        name: string;
-        url: string;
-    };
-}
+import backendData from './stub.json';
+import type {
+    Pokemon,
+    TypeBadgeProps,
+    PokemonStatusProps,
+    MoveWithDetails,
+    MoveButtonProps,
+    StatDisplayProps,
+    DetailedCache,
+    PokeApiAbility,
+    PokeApiType,
+    PokeApiEffectEntry,
+    Ability
+} from './types';
 
 // --- Data Stub from Backend ---
 // This is a sample data structure that mimics what a backend might provide.
-const backendData: BackendData = {"player_name": "DRACULA", "play_time": {"hours": 46, "minutes": 54, "seconds": 19}, "active_slot": 14, "sector_map": {"12": 31, "13": 16, "14": 17, "15": 18, "0": 19, "1": 20, "2": 21, "3": 22, "4": 23, "5": 24, "6": 25, "7": 26, "8": 27, "9": 28, "10": 29, "11": 30}, "party_pokemon": [{"personality": 240, "otId": 1364199219, "nickname": "Bayleef", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 141, "unknown_25": [0, 0, 4], "speciesId": 153, "item": 0, "unknown_2C": [220, 224, 1, 0, 255, 27, 1, 0], "move1": 202, "move2": 219, "move3": 73, "move4": 77, "pp1": 16, "pp2": 40, "pp3": 16, "pp4": 56, "hpEV": 48, "atkEV": 128, "defEV": 116, "speEV": 128, "spaEV": 36, "spdEV": 52, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 64], "level": 50, "unknown_59": 255, "maxHp": 141, "attack": 88, "defense": 115, "speed": 96, "spAttack": 96, "spDefense": 107, "unknown_66": [34, 50], "displayOtId": "01843", "displayNature": "Modest", "moves": {"move1": {"name": "Giga Drain", "id": 202, "pp": 16}, "move2": {"name": "Safeguard", "id": 219, "pp": 40}, "move3": {"name": "Leech Seed", "id": 73, "pp": 16}, "move4": {"name": "Poison Powder", "id": 77, "pp": 56}}, "evs": [48, 128, 116, 128, 36, 52], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}, {"personality": 249, "otId": 1364199219, "nickname": "Flaaffy", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 94, "unknown_25": [0, 0, 4], "speciesId": 180, "item": 0, "unknown_2C": [148, 82, 0, 0, 255, 90, 1, 0], "move1": 486, "move2": 86, "move3": 84, "move4": 268, "pp1": 16, "pp2": 32, "pp3": 48, "pp4": 32, "hpEV": 76, "atkEV": 96, "defEV": 56, "speEV": 132, "spaEV": 56, "spdEV": 28, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 64], "level": 29, "unknown_59": 255, "maxHp": 94, "attack": 52, "defense": 49, "speed": 49, "spAttack": 64, "spDefense": 50, "unknown_66": [0, 0], "displayOtId": "01843", "displayNature": "Quirky", "moves": {"move1": {"name": "Electro Ball", "id": 486, "pp": 16}, "move2": {"name": "Thunder Wave", "id": 86, "pp": 32}, "move3": {"name": "Thunder Shock", "id": 84, "pp": 48}, "move4": {"name": "Charge", "id": 268, "pp": 32}}, "evs": [76, 96, 56, 132, 56, 28], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 444, "totalIvs": 186}, {"personality": 241, "otId": 1364199219, "nickname": "Noivern", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 139, "unknown_25": [0, 0, 4], "speciesId": 715, "item": 0, "unknown_2C": [224, 20, 1, 0, 255, 35, 1, 0], "move1": 162, "move2": 403, "move3": 44, "move4": 406, "pp1": 16, "pp2": 24, "pp3": 40, "pp4": 16, "hpEV": 32, "atkEV": 192, "defEV": 108, "speEV": 96, "spaEV": 44, "spdEV": 36, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 80], "level": 42, "unknown_59": 255, "maxHp": 139, "attack": 96, "defense": 86, "speed": 131, "spAttack": 114, "spDefense": 89, "unknown_66": [34, 50], "displayOtId": "01843", "displayNature": "Mild", "moves": {"move1": {"name": "Super Fang", "id": 162, "pp": 16}, "move2": {"name": "Air Slash", "id": 403, "pp": 24}, "move3": {"name": "Bite", "id": 44, "pp": 40}, "move4": {"name": "Dragon Pulse", "id": 406, "pp": 16}}, "evs": [32, 192, 108, 96, 44, 36], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}, {"personality": 235, "otId": 1364199219, "nickname": "Eevee", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 115, "unknown_25": [0, 0, 4], "speciesId": 133, "item": 463, "unknown_2C": [162, 42, 1, 0, 255, 33, 1, 0], "move1": 129, "move2": 98, "move3": 44, "move4": 28, "pp1": 32, "pp2": 48, "pp3": 40, "pp4": 24, "hpEV": 20, "atkEV": 244, "defEV": 116, "speEV": 56, "spaEV": 48, "spdEV": 24, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 80], "level": 43, "unknown_59": 255, "maxHp": 115, "attack": 81, "defense": 73, "speed": 78, "spAttack": 62, "spDefense": 76, "unknown_66": [17, 17], "displayOtId": "01843", "displayNature": "Timid", "moves": {"move1": {"name": "Swift", "id": 129, "pp": 32}, "move2": {"name": "Quick Attack", "id": 98, "pp": 48}, "move3": {"name": "Bite", "id": 44, "pp": 40}, "move4": {"name": "Sand Attack", "id": 28, "pp": 24}}, "evs": [20, 244, 116, 56, 48, 24], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}, {"personality": 1, "otId": 1364199219, "nickname": "Tinkaton", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 150, "unknown_25": [0, 0, 4], "speciesId": 1288, "item": 459, "unknown_2C": [110, 24, 1, 0, 255, 29, 1, 0], "move1": 577, "move2": 819, "move3": 583, "move4": 430, "pp1": 16, "pp2": 8, "pp3": 16, "pp4": 16, "hpEV": 132, "atkEV": 112, "defEV": 40, "speEV": 120, "spaEV": 76, "spdEV": 28, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 64], "level": 42, "unknown_59": 255, "maxHp": 150, "attack": 101, "defense": 77, "speed": 109, "spAttack": 84, "spDefense": 109, "unknown_66": [34, 50], "displayOtId": "01843", "displayNature": "Lonely", "moves": {"move1": {"name": "Draining Kiss", "id": 577, "pp": 16}, "move2": {"name": "Gigaton Hammer", "id": 819, "pp": 8}, "move3": {"name": "Play Rough", "id": 583, "pp": 16}, "move4": {"name": "Flash Cannon", "id": 430, "pp": 16}}, "evs": [132, 112, 40, 120, 76, 28], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}, {"personality": 23, "otId": 1364199219, "nickname": "Gligar", "unknown_12": [2, 2], "otName": "DRACULA", "unknown_1B": [0, 0, 0, 0, 0, 0, 1, 0], "currentHp": 124, "unknown_25": [0, 0, 4], "speciesId": 207, "item": 0, "unknown_2C": [28, 26, 1, 0, 255, 31, 1, 0], "move1": 404, "move2": 369, "move3": 342, "move4": 512, "pp1": 24, "pp2": 32, "pp3": 40, "pp4": 24, "hpEV": 20, "atkEV": 252, "defEV": 112, "speEV": 64, "spaEV": 32, "spdEV": 28, "unknown_46": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ivData": 1073741823, "unknown_54": [0, 0, 0, 80], "level": 43, "unknown_59": 255, "maxHp": 124, "attack": 109, "defense": 120, "speed": 98, "spAttack": 45, "spDefense": 84, "unknown_66": [34, 50], "displayOtId": "01843", "displayNature": "Careful", "moves": {"move1": {"name": "X Scissor", "id": 404, "pp": 24}, "move2": {"name": "U-turn", "id": 369, "pp": 32}, "move3": {"name": "Poison Tail", "id": 342, "pp": 40}, "move4": {"name": "Acrobatics", "id": 512, "pp": 24}}, "evs": [20, 252, 112, 64, 32, 28], "ivs": [31, 31, 31, 31, 31, 31], "totalEvs": 508, "totalIvs": 186}]}
 // --- UI Components ---
 
 // Helper to map type names to colors and icons
@@ -300,21 +177,21 @@ const StatDisplay: React.FC<StatDisplayProps> = ({ ivs, evs }) => {
         <div className="space-y-3 text-xs">
             <div className="grid grid-cols-4 gap-2 text-slate-400">
                 <div className="col-span-1">STAT</div>
-                <div className="text-center">IV</div>
-                <div className="col-span-2 text-center">EV</div>
+                <div className="col-span-2 text-end">IV</div>
+                <div className="text-center">EV</div>
             </div>
             {statKeys.map((stat, index) => {
                 const evPercentage = (evs[index] / 252) * 100;
                 return (
                     <div key={stat.name} className="grid grid-cols-4 gap-2 items-center">
                         <div className="text-white">{stat.name}</div>
-                        <div className="text-cyan-400 text-center text-sm">{ivs[index]}</div>
                         <div className="col-span-2 flex items-center gap-2">
-                            <div className="w-full bg-slate-900/70 rounded-full h-2 overflow-hidden">
+                            <div className="w-full bg-slate-700/70 rounded-full h-2 overflow-hidden">
                                 <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full" style={{ width: `${evPercentage}%`}}></div>
                             </div>
                             <span className="text-white w-8 text-right text-xs">{evs[index]}</span>
                         </div>
+                        <div className="text-cyan-400 text-center text-sm">{ivs[index]}</div>
                     </div>
                 );
             })}
