@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PokemonStatusProps } from '../../types';
+import { Card } from '../common';
 
 // Health percentage thresholds for color coding
 const HP_THRESHOLDS = {
@@ -27,7 +28,7 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
     };
 
     return (
-        <div className={`relative flex items-center p-3 rounded-xl transition-all duration-300 backdrop-blur-sm border border-slate-700 ${containerClasses}`}>
+        <Card className={`flex items-center p-3 transition-all duration-300 ${containerClasses}`}>
             <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center">
                 <img 
                     src={pokemon.spriteUrl} 
@@ -47,6 +48,6 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
                 </div>
                 <p className="text-right text-xs mt-1 text-slate-400">{pokemon.currentHp}/{pokemon.maxHp}</p>
             </div>
-        </div>
+        </Card>
     );
 };

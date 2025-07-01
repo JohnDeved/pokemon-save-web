@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShaderBackground } from './components/common';
+import { ShaderBackground, Card } from './components/common';
 import {
     PokemonPartyList,
     PokemonHeader,
@@ -58,7 +58,7 @@ export default function App() {
                     <div className="grid grid-rows-[auto_auto_1fr] gap-4 min-h-0">
                         {(!activePokemon || !activePokemonDetails || isLoading) ? <PokemonDetailsSkeleton /> : (
                              <>
-                                <section className={`bg-slate-800/50 backdrop-blur-lg rounded-xl shadow-2xl border border-slate-700 z-30 relative`}>
+                                <Card className={`z-30 relative`}>
                                     <PokemonHeader
                                         pokemon={activePokemon}
                                         pokemonDetails={activePokemonDetails}
@@ -75,10 +75,10 @@ export default function App() {
                                         expandedMoveName={expandedMoveName}
                                         onMoveHover={setExpandedMoveName}
                                     />
-                                </section>
-                                <section className={`bg-slate-800/50 backdrop-blur-lg rounded-xl shadow-2xl border border-slate-700 p-4 ${expandedMoveName ? 'z-20' : 'z-20'} relative`}>
+                                </Card>
+                                <Card className={`p-4 ${expandedMoveName ? 'z-20' : 'z-20'} relative`}>
                                     <PokemonStatDisplay ivs={activePokemon.ivs} evs={activePokemon.evs} baseStats={activePokemon.baseStats} />
-                                </section>
+                                </Card>
                                 <PokemonAbilitySection ability={activePokemonDetails.ability} />
                              </>
                         )}

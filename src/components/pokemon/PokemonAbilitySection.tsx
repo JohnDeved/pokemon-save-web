@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card } from '../common/Card';
 import { ScrollableContainer } from '../common';
 import type { Ability } from '../../types';
 
@@ -8,7 +9,7 @@ interface PokemonAbilitySectionProps {
 
 export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({ ability }) => {
     return (
-        <section className="bg-slate-800/50 backdrop-blur-lg rounded-xl shadow-2xl border border-slate-700 text-xs flex flex-col min-h-0 z-10">
+        <Card className="text-xs flex flex-col min-h-0 z-10">
             <div className="p-4 border-b border-slate-700/50 flex-shrink-0">
                 <div className="flex items-center gap-2">
                     <span className="text-slate-300 bg-slate-700/80 px-2 py-1 rounded-md">Ability</span>
@@ -20,6 +21,6 @@ export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({ ab
                     {ability.description}
                 </ScrollableContainer>
             </div>
-        </section>
+        </Card>
     );
 };
