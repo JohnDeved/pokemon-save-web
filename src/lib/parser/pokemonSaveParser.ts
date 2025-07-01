@@ -23,6 +23,9 @@ import type {
   SaveData,
 } from './types.js';
 
+// Import character map for decoding text
+import charMap from './pokemon_charmap.json';
+
 /**
  * DataView wrapper for little-endian operations with bounds checking
  */
@@ -167,6 +170,34 @@ class PokemonDataParser {
 }
 
 /**
+ * Character decoder for Pokemon text data
+ */
+class PokemonTextDecoder {
+  private static charMap: Record<string, string> = charMap;
+
+  /**
+   * Decode Pokemon character-encoded text to string
+   */
+  static decode(bytes: Uint8Array): string {
+    const result: string[] = [];
+    
+    for (const byte of bytes) {
+      if (byte === 0xFF) {
+        // End of string marker
+        break;
+      }
+      
+      const char = this.charMap[byte.toString()];
+      if (char) {
+        result.push(char);
+      }
+    }
+    
+    return result.join('').trim();
+  }
+}
+
+/**
  * Main Pokemon Save File Parser class
  * Handles parsing of Pokemon Emerald save files in the browser
  */
@@ -188,7 +219,18 @@ export class PokemonSaveParser {
       let buffer: ArrayBuffer;
       
       if (input instanceof File) {
-        buffer = await input.arrayBuffer();
+        // Check if arrayBuffer method exists (browser environment)
+        if (typeof input.arrayBuffer === 'function') {
+          buffer = await input.arrayBuffer();
+        } else {
+          // Fallback for test environments where File might not have arrayBuffer method
+          const reader = new FileReader();
+          buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as ArrayBuffer);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsArrayBuffer(input);
+          });
+        }
       } else {
         buffer = input;
       }
@@ -369,9 +411,7 @@ export class PokemonSaveParser {
    */
   private parsePlayerName(saveblock2Data: Uint8Array): string {
     const playerNameBytes = saveblock2Data.slice(0, 8);
-    return Array.from(playerNameBytes)
-      .map(byte => byte.toString(16).padStart(2, '0'))
-      .join('');
+    return PokemonTextDecoder.decode(playerNameBytes);
   }
 
   /**
