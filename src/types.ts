@@ -1,3 +1,7 @@
+// Strong typing for Pokemon stats
+export type StatName = 'hp' | 'attack' | 'defense' | 'speed' | 'special-attack' | 'special-defense';
+export type PokemonType = 'NORMAL' | 'FIRE' | 'WATER' | 'ELECTRIC' | 'GRASS' | 'ICE' | 'FIGHTING' | 'POISON' | 'GROUND' | 'FLYING' | 'PSYCHIC' | 'BUG' | 'ROCK' | 'GHOST' | 'DRAGON' | 'DARK' | 'STEEL' | 'FAIRY' | 'UNKNOWN';
+
 export interface BaseMove {
     name: string;
     id: number;
@@ -49,7 +53,7 @@ export interface Pokemon {
 }
 
 export interface TypeBadgeProps {
-    type: string;
+    type: PokemonType;
     isLarge?: boolean;
 }
 
@@ -59,7 +63,7 @@ export interface PokemonStatusProps {
 }
 
 export interface MoveWithDetails extends BaseMove {
-    type: string;
+    type: PokemonType;
     description: string;
     power: number | null;
     accuracy: number | null;
@@ -83,7 +87,7 @@ export interface Ability {
 }
 
 export interface PokemonDetails {
-    types: string[];
+    types: PokemonType[];
     ability: Ability;
     moves: MoveWithDetails[];
     baseStats: number[];

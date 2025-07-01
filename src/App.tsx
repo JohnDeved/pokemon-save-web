@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { cn } from './lib/utils';
 import { ShaderBackground, Card } from './components/common';
 import {
     PokemonPartyList,
@@ -10,7 +9,6 @@ import {
 } from './components/pokemon';
 import { usePokemonData, usePokemonRenaming } from './hooks';
 
-// --- Main App Component ---
 export default function App() {
     const {
         partyList,
@@ -56,40 +54,38 @@ export default function App() {
                         isRenaming={isRenaming}
                     />
                     <div className="grid grid-rows-[auto_auto_1fr] gap-4 min-h-0">
-                        <>
-                            <Card className={`z-30 relative`}>
-                                <PokemonHeader
-                                    pokemon={activePokemon || undefined}
-                                    pokemonDetails={activePokemonDetails || undefined}
-                                    isRenaming={isRenaming}
-                                    renameInput={renameInput}
-                                    onStartRename={handleStartEditing}
-                                    onConfirmRename={handleConfirmRename}
-                                    onCancelRename={handleCancelRename}
-                                    onRenameInputChange={setRenameInput}
-                                    onKeyDown={handleKeyDown}
-                                    isLoading={!activePokemon || !activePokemonDetails || isLoading}
-                                />
-                                <PokemonMovesSection
-                                    moves={activePokemonDetails?.moves}
-                                    expandedMoveName={expandedMoveName}
-                                    onMoveHover={setExpandedMoveName}
-                                    isLoading={!activePokemon || !activePokemonDetails || isLoading}
-                                />
-                            </Card>
-                            <Card className={cn("p-4 relative", expandedMoveName ? 'z-20' : 'z-20')}>
-                                <PokemonStatDisplay 
-                                    ivs={activePokemon?.ivs} 
-                                    evs={activePokemon?.evs} 
-                                    baseStats={activePokemon?.baseStats}
-                                    isLoading={!activePokemon || !activePokemonDetails || isLoading}
-                                />
-                            </Card>
-                            <PokemonAbilitySection 
-                                ability={activePokemonDetails?.ability}
+                        <Card className="z-30 relative">
+                            <PokemonHeader
+                                pokemon={activePokemon}
+                                pokemonDetails={activePokemonDetails || undefined}
+                                isRenaming={isRenaming}
+                                renameInput={renameInput}
+                                onStartRename={handleStartEditing}
+                                onConfirmRename={handleConfirmRename}
+                                onCancelRename={handleCancelRename}
+                                onRenameInputChange={setRenameInput}
+                                onKeyDown={handleKeyDown}
                                 isLoading={!activePokemon || !activePokemonDetails || isLoading}
                             />
-                        </>
+                            <PokemonMovesSection
+                                moves={activePokemonDetails?.moves}
+                                expandedMoveName={expandedMoveName}
+                                onMoveHover={setExpandedMoveName}
+                                isLoading={!activePokemon || !activePokemonDetails || isLoading}
+                            />
+                        </Card>
+                        <Card className="p-4 relative z-20">
+                            <PokemonStatDisplay 
+                                ivs={activePokemon?.ivs} 
+                                evs={activePokemon?.evs} 
+                                baseStats={activePokemon?.baseStats}
+                                isLoading={!activePokemon || !activePokemonDetails || isLoading}
+                            />
+                        </Card>
+                        <PokemonAbilitySection 
+                            ability={activePokemonDetails?.ability}
+                            isLoading={!activePokemon || !activePokemonDetails || isLoading}
+                        />
                     </div>
                 </main>
             </div>

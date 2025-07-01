@@ -4,12 +4,28 @@ import type {
     DetailedCache, 
     MoveWithDetails, 
     Ability,
+    PokemonType,
     PokeApiAbility,
     PokeApiType,
     PokeApiStat,
     PokeApiEffectEntry
 } from '../types';
 import backendData from '../stub.json';
+
+// Type guard function to ensure we have a valid PokemonType
+const isPokemonType = (type: string): type is PokemonType => {
+    const validTypes: PokemonType[] = [
+        'NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE', 
+        'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG', 
+        'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'UNKNOWN'
+    ];
+    return validTypes.includes(type as PokemonType);
+};
+
+const normalizePokemonType = (apiType: string): PokemonType => {
+    const upperType = apiType.toUpperCase();
+    return isPokemonType(upperType) ? upperType : 'UNKNOWN';
+};
 
 export const usePokemonData = () => {
     // Memoize the initial party list to prevent re-computation on re-renders.
@@ -29,10 +45,7 @@ export const usePokemonData = () => {
 
     // Effect to fetch detailed data for the active Pokémon.
     useEffect(() => {
-        if (!activePokemon) return;
-
-        // If we already have the data in our cache, use it and skip the API calls.
-        if (detailedCache[activePokemon.speciesId]) {
+        if (!activePokemon || detailedCache[activePokemon.speciesId]) {
             setIsLoading(false);
             return; 
         }
@@ -65,7 +78,7 @@ export const usePokemonData = () => {
                 }
                 
                 // Process and format the fetched data
-                const types = pokeData.types.map((t: PokeApiType) => t.type.name.toUpperCase());
+                const types = pokeData.types.map((t: PokeApiType) => normalizePokemonType(t.type.name));
                 const baseStats = pokeData.stats.map((stat: PokeApiStat) => stat.base_stat);
                 const ability: Ability = abilityData ? {
                     name: abilityData.name.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
@@ -76,7 +89,7 @@ export const usePokemonData = () => {
                     const result = moveResults[i];
                     return {
                         ...move,
-                        type: result?.type?.name.toUpperCase() || 'UNKNOWN',
+                        type: result?.type?.name ? normalizePokemonType(result.type.name) : 'UNKNOWN',
                         description: result?.effect_entries?.find((e: PokeApiEffectEntry) => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, result.effect_chance) || "No description available.",
                         power: result?.power,
                         accuracy: result?.accuracy,
@@ -106,7 +119,7 @@ export const usePokemonData = () => {
                         ability: { name: 'Error', description: 'Could not fetch ability data.' }, 
                         moves: Object.values(activePokemon.moves).map((m): MoveWithDetails => ({ 
                             ...m, 
-                            type: 'UNKNOWN', 
+                            type: 'UNKNOWN',
                             description: 'Could not load details.', 
                             power: null, 
                             accuracy: null 
