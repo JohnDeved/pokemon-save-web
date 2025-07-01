@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Hash, Pencil, ChevronDown, Check, X } from 'lucide-react';
+import { Hash, Pencil, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShaderBackground } from './components/ShaderBackground';
 import backendData from './stub.json';
@@ -13,27 +13,53 @@ import type {
     DetailedCache,
     PokeApiAbility,
     PokeApiType,
+    PokeApiStat,
     PokeApiEffectEntry,
     Ability
 } from './types';
 
 // --- Data Stub from Backend ---
 // This is a sample data structure that mimics what a backend might provide.
+
+// Health percentage thresholds for color coding
+const HP_THRESHOLDS = {
+    HIGH: 50,
+    LOW: 20
+} as const;
+
 // --- UI Components ---
 
-// Helper to map type names to colors and icons
-const typeDetails: { [key: string]: { color: string } } = {
-    GHOST: { color: 'from-indigo-500 to-purple-600' }, GROUND: { color: 'from-yellow-600 to-amber-700' }, GRASS: { color: 'from-green-500 to-emerald-600' }, NORMAL: { color: 'from-gray-400 to-gray-500' }, FIGHTING: { color: 'from-red-600 to-rose-700' }, STEEL: { color: 'from-slate-500 to-slate-600' }, FIRE: { color: 'from-orange-500 to-red-600' }, WATER: { color: 'from-blue-500 to-sky-600' }, FLYING: { color: 'from-sky-400 to-cyan-500' }, BUG: { color: 'from-lime-500 to-green-600' }, ROCK: { color: 'from-stone-600 to-neutral-700' }, PSYCHIC: { color: 'from-pink-500 to-fuchsia-600' }, FAIRY: { color: 'from-pink-400 to-rose-400' }, ELECTRIC: { color: 'from-yellow-400 to-amber-400' }, POISON: { color: 'from-purple-500 to-fuchsia-600' }, ICE: { color: 'from-cyan-300 to-sky-400' }, DRAGON: { color: 'from-indigo-600 to-purple-700' }, DARK: { color: 'from-neutral-800 to-gray-900' }, UNKNOWN: { color: 'from-slate-600 to-slate-700' }
-};
+// Type-safe mapping for Pokemon type colors
+const TYPE_COLORS: Record<string, string> = {
+    GHOST: 'from-indigo-500 to-purple-600',
+    GROUND: 'from-yellow-600 to-amber-700',
+    GRASS: 'from-green-500 to-emerald-600',
+    NORMAL: 'from-gray-400 to-gray-500',
+    FIGHTING: 'from-red-600 to-rose-700',
+    STEEL: 'from-slate-500 to-slate-600',
+    FIRE: 'from-orange-500 to-red-600',
+    WATER: 'from-blue-500 to-sky-600',
+    FLYING: 'from-sky-400 to-cyan-500',
+    BUG: 'from-lime-500 to-green-600',
+    ROCK: 'from-stone-600 to-neutral-700',
+    PSYCHIC: 'from-pink-500 to-fuchsia-600',
+    FAIRY: 'from-pink-400 to-rose-400',
+    ELECTRIC: 'from-yellow-400 to-amber-400',
+    POISON: 'from-purple-500 to-fuchsia-600',
+    ICE: 'from-cyan-300 to-sky-400',
+    DRAGON: 'from-indigo-600 to-purple-700',
+    DARK: 'from-neutral-800 to-gray-900',
+    UNKNOWN: 'from-slate-600 to-slate-700'
+} as const;
 
 // Component for the colored Type Badge
 const TypeBadge: React.FC<TypeBadgeProps> = ({ type, isLarge = false }) => {
-    const details = typeDetails[type.toUpperCase()] || typeDetails['NORMAL'];
+    const colorClass = TYPE_COLORS[type.toUpperCase()] || TYPE_COLORS['NORMAL'];
     const iconUrl = `https://cdn.jsdelivr.net/gh/duiker101/pokemon-type-svg-icons/icons/${type.toLowerCase()}.svg`;
     const sizeClasses = isLarge ? 'px-3 py-1 text-[10px]' : 'px-2 py-1 text-[8px]';
     
     return (
-        <div className={`inline-flex items-center justify-center gap-1.5 rounded-md text-white bg-gradient-to-br ${details.color} ${sizeClasses} shadow-md`}>
+        <div className={`inline-flex items-center justify-center gap-1.5 rounded-md text-white bg-gradient-to-br ${colorClass} ${sizeClasses} shadow-md`}>
             <img src={iconUrl} alt={`${type} type icon`} className="w-3 h-3" />
             <span>{type.toUpperCase()}</span>
         </div>
@@ -43,20 +69,31 @@ const TypeBadge: React.FC<TypeBadgeProps> = ({ type, isLarge = false }) => {
 // Component for a single Pokémon's status display on the left
 const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive }) => {
     const hpPercentage = (pokemon.currentHp / pokemon.maxHp) * 100;
-    const hpColor = hpPercentage > 50 ? 'from-green-400 to-emerald-500' : hpPercentage > 20 ? 'from-yellow-400 to-amber-500' : 'from-red-500 to-rose-600';
+    const hpColor = hpPercentage > HP_THRESHOLDS.HIGH 
+        ? 'from-green-400 to-emerald-500' 
+        : hpPercentage > HP_THRESHOLDS.LOW 
+            ? 'from-yellow-400 to-amber-500' 
+            : 'from-red-500 to-rose-600';
 
-    const activeClasses = 'bg-slate-700/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30';
-    const inactiveClasses = 'bg-slate-800/60 hover:bg-slate-700/60';
+    const containerClasses = isActive 
+        ? 'bg-slate-700/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30'
+        : 'bg-slate-800/60 hover:bg-slate-700/60';
+
+    const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const target = e.target as HTMLImageElement;
+        target.onerror = null;
+        target.src = `https://placehold.co/96x96/334155/94a3b8?text=${String(pokemon.speciesId).padStart(3, '0')}`;
+    };
 
     return (
-        <div className={`relative flex items-center p-3 rounded-xl transition-all duration-300 backdrop-blur-sm border border-slate-700 ${isActive ? activeClasses : inactiveClasses}`}>
+        <div className={`relative flex items-center p-3 rounded-xl transition-all duration-300 backdrop-blur-sm border border-slate-700 ${containerClasses}`}>
             <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center">
                 <img 
                     src={pokemon.spriteUrl} 
                     alt={pokemon.nickname} 
                     className={`w-full h-full object-contain transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
                     style={{ filter: 'drop-shadow(0px 4px 3px rgba(0,0,0,0.5)) drop-shadow(0px 0px 6px rgba(255, 255, 255, 0.15))' }}
-                    onError={(e) => { const target = e.target as HTMLImageElement; target.onerror = null; target.src=`https://placehold.co/96x96/334155/94a3b8?text=${String(pokemon.speciesId).padStart(3, '0')}`; }} 
+                    onError={handleImageError}
                 />
             </div>
             <div className="flex-grow">
@@ -83,7 +120,6 @@ const MoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward }
             <div className="w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200">
                 <div className="flex items-center justify-between">
                     <span className="text-sm text-white">{move.name}</span>
-                    {/* <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /> */}
                 </div>
                 <div className="flex items-center justify-between mt-2">
                     {move.type ? <TypeBadge type={move.type} /> : <div className="h-[22px] w-16 bg-slate-700 rounded-md animate-pulse"></div>}
@@ -170,28 +206,33 @@ const ScrollableContainer: React.FC<{ children: React.ReactNode, className?: str
     );
 };
 
+// Constants for stat calculations
+const MAX_EV = 252;
+const STAT_NAMES = ['HP', 'ATK', 'DEF', 'SpA', 'SpD', 'SPE'] as const;
+
 // Component to display IVs and EVs
-const StatDisplay: React.FC<StatDisplayProps> = ({ ivs, evs }) => {
-    const statKeys = [ { name: 'HP', key: 'hp' }, { name: 'ATK', key: 'atk' }, { name: 'DEF', key: 'def' }, { name: 'SpA', key: 'spa' }, { name: 'SpD', key: 'spd' }, { name: 'SPE', key: 'spe' }];
+const StatDisplay: React.FC<StatDisplayProps> = ({ ivs, evs, baseStats }) => {
     return (
         <div className="space-y-3 text-xs">
-            <div className="grid grid-cols-4 gap-2 text-slate-400">
+            <div className="grid grid-cols-10 gap-2 text-slate-400">
                 <div className="col-span-1">STAT</div>
-                <div className="col-span-2 text-end">IV</div>
+                <div className="col-span-7 text-end">IV</div>
                 <div className="text-center">EV</div>
+                <div className="text-center">BASE</div>
             </div>
-            {statKeys.map((stat, index) => {
-                const evPercentage = (evs[index] / 252) * 100;
+            {STAT_NAMES.map((statName, index) => {
+                const evPercentage = Math.min((evs[index] || 0) / MAX_EV * 100, 100);
                 return (
-                    <div key={stat.name} className="grid grid-cols-4 gap-2 items-center">
-                        <div className="text-white">{stat.name}</div>
-                        <div className="col-span-2 flex items-center gap-2">
+                    <div key={statName} className="grid grid-cols-10 gap-2 items-center">
+                        <div className="text-white">{statName}</div>
+                        <div className="col-span-7 flex items-center gap-2">
                             <div className="w-full bg-slate-700/70 rounded-full h-2 overflow-hidden">
                                 <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full" style={{ width: `${evPercentage}%`}}></div>
                             </div>
-                            <span className="text-white w-8 text-right text-xs">{evs[index]}</span>
+                            <span className="text-white w-8 text-right text-xs">{evs[index] || 0}</span>
                         </div>
-                        <div className="text-cyan-400 text-center text-sm">{ivs[index]}</div>
+                        <div className="text-cyan-400 text-center text-sm">{ivs[index] || 0}</div>
+                        <div className="text-orange-400 text-center text-sm">{baseStats[index] || 0}</div>
                     </div>
                 );
             })}
@@ -258,7 +299,8 @@ export default function App() {
     const initialPartyList = useMemo(() => backendData.party_pokemon.map((p, index): Pokemon => ({
         ...p,
         id: index,
-        spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.speciesId}.png`
+        spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.speciesId}.png`,
+        baseStats: [0, 0, 0, 0, 0, 0] // Will be populated when fetching details
     })), []);
 
     const [partyList, setPartyList] = useState<Pokemon[]>(initialPartyList);
@@ -273,21 +315,21 @@ export default function App() {
 
     // Effect to fetch detailed data for the active Pokémon.
     useEffect(() => {
+        if (!activePokemon) return;
+
         // When the active Pokémon changes, close any expanded move details.
         setExpandedMoveName(null);
 
+        // If we already have the data in our cache, use it and skip the API calls.
+        if (detailedCache[activePokemon.speciesId]) {
+            setIsLoading(false);
+            return; 
+        }
+
         const fetchDetails = async () => {
-            if (!activePokemon) return;
-
-            // If we already have the data in our cache, use it and skip the API calls.
-            if (detailedCache[activePokemon.speciesId]) {
-                setIsLoading(false);
-                return; 
-            }
-
             setIsLoading(true);
             try {
-                // **PERFORMANCE IMPROVEMENT**: Fetch Pokémon details and all move details in parallel.
+                // Fetch Pokémon details and all move details in parallel for better performance
                 const [pokeRes, ...moveResults] = await Promise.all([
                     fetch(`https://pokeapi.co/api/v2/pokemon/${activePokemon.speciesId}`),
                     ...Object.values(activePokemon.moves).map(move => 
@@ -295,10 +337,13 @@ export default function App() {
                     )
                 ]);
 
-                if (!pokeRes.ok) throw new Error(`Failed to fetch Pokémon: ${pokeRes.status}`);
+                if (!pokeRes.ok) {
+                    throw new Error(`Failed to fetch Pokémon: ${pokeRes.status}`);
+                }
+                
                 const pokeData = await pokeRes.json();
 
-                // Fetch ability details. This is done after the main pokemon fetch to get the ability URL.
+                // Fetch ability details after getting the main pokemon data
                 const abilityUrl = pokeData.abilities.find((a: PokeApiAbility) => !a.is_hidden)?.ability.url;
                 let abilityData = null;
                 if (abilityUrl) {
@@ -308,8 +353,9 @@ export default function App() {
                     }
                 }
                 
-                // Process and format the fetched data.
+                // Process and format the fetched data
                 const types = pokeData.types.map((t: PokeApiType) => t.type.name.toUpperCase());
+                const baseStats = pokeData.stats.map((stat: PokeApiStat) => stat.base_stat);
                 const ability: Ability = abilityData ? {
                     name: abilityData.name.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
                     description: abilityData.effect_entries.find((e: PokeApiEffectEntry) => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, abilityData.effect_chance) || "No description available."
@@ -326,18 +372,35 @@ export default function App() {
                     };
                 });
                 
-                // Update the cache with the new data.
-                setDetailedCache(prev => ({ ...prev, [activePokemon.speciesId]: { types, ability, moves: movesWithDetails } }));
+                // Update the cache with the new data
+                setDetailedCache(prev => ({ 
+                    ...prev, 
+                    [activePokemon.speciesId]: { types, ability, moves: movesWithDetails, baseStats } 
+                }));
+
+                // Update the party list with base stats
+                setPartyList(prevList =>
+                    prevList.map(p =>
+                        p.id === activePokemon.id ? { ...p, baseStats } : p
+                    )
+                );
 
             } catch (error) {
                 console.error("Failed to fetch Pokémon details:", error);
-                // Set a fallback state in the cache in case of an error.
+                // Set a fallback state in the cache in case of an error
                 setDetailedCache(prev => ({ 
                     ...prev, 
                     [activePokemon.speciesId]: { 
                         types: ['UNKNOWN'], 
                         ability: { name: 'Error', description: 'Could not fetch ability data.' }, 
-                        moves: Object.values(activePokemon.moves).map((m): MoveWithDetails => ({ ...m, type: 'UNKNOWN', description: 'Could not load details.', power: null, accuracy: null })) 
+                        moves: Object.values(activePokemon.moves).map((m): MoveWithDetails => ({ 
+                            ...m, 
+                            type: 'UNKNOWN', 
+                            description: 'Could not load details.', 
+                            power: null, 
+                            accuracy: null 
+                        })),
+                        baseStats: [0, 0, 0, 0, 0, 0]
                     } 
                 }));
             } finally {
@@ -356,13 +419,16 @@ export default function App() {
     }, [activePokemon]);
 
     const handleConfirmRename = useCallback(() => {
-        if (renameInput.trim() && activePokemonId !== null) {
-            setPartyList(prevList =>
-                prevList.map(p =>
-                    p.id === activePokemonId ? { ...p, nickname: renameInput.trim() } : p
-                )
-            );
+        if (!renameInput.trim() || activePokemonId === null) {
+            setIsRenaming(false);
+            return;
         }
+        
+        setPartyList(prevList =>
+            prevList.map(p =>
+                p.id === activePokemonId ? { ...p, nickname: renameInput.trim() } : p
+            )
+        );
         setIsRenaming(false);
     }, [renameInput, activePokemonId]);
     
@@ -444,7 +510,7 @@ export default function App() {
                                     </div>
                                 </section>
                                 <section className={`bg-slate-800/50 backdrop-blur-lg rounded-xl shadow-2xl border border-slate-700 p-4 ${expandedMoveName ? 'z-20' : 'z-20'} relative`}>
-                                    <StatDisplay ivs={activePokemon.ivs} evs={activePokemon.evs} />
+                                    <StatDisplay ivs={activePokemon.ivs} evs={activePokemon.evs} baseStats={activePokemon.baseStats} />
                                 </section>
                                 <section className="bg-slate-800/50 backdrop-blur-lg rounded-xl shadow-2xl border border-slate-700 text-xs flex flex-col min-h-0 z-10">
                                      <div className="p-4 border-b border-slate-700/50 flex-shrink-0">

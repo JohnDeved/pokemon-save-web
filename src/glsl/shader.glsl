@@ -69,8 +69,8 @@ void main() {
     vec2 pos = (vUv * 2.0 - 1.0) * vec2(resolution.x/resolution.y, 1.0);
     
     // Apply movement
-    pos.y -= time * 0.1;  // Upward drift
-    pos.x += sin(time * 0.2) * 0.1;  // Gentle sway
+    pos.y -= time * 0.05;  // Upward drift
+    pos.x += sin(time * 0.2) * 0.05;  // Gentle sway
     
     // Grid setup
     float gridSize = 0.5;

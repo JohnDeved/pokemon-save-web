@@ -43,6 +43,7 @@ export interface Pokemon {
     spDefense: number;
     moves: Moves;
     evs: number[];
+    baseStats: number[];
     id: number;
     spriteUrl: string;
 }
@@ -73,6 +74,7 @@ export interface MoveButtonProps {
 export interface StatDisplayProps {
     ivs: number[];
     evs: number[];
+    baseStats: number[];
 }
 
 export interface Ability {
@@ -84,6 +86,7 @@ export interface PokemonDetails {
     types: string[];
     ability: Ability;
     moves: MoveWithDetails[];
+    baseStats: number[];
 }
 
 export interface DetailedCache {
@@ -102,6 +105,15 @@ export interface PokeApiAbility {
 export interface PokeApiType {
     slot: number;
     type: {
+        name: string;
+        url: string;
+    };
+}
+
+export interface PokeApiStat {
+    base_stat: number;
+    effort: number;
+    stat: {
         name: string;
         url: string;
     };
