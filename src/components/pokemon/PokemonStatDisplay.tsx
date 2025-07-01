@@ -23,7 +23,8 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
                 {/* Mimic exact header structure */}
                 <div className="grid grid-cols-10 gap-2 text-slate-400">
                     <Skeleton.Text className="col-span-1">STAT</Skeleton.Text>
-                    <Skeleton.Text className="col-span-7 text-end">IV</Skeleton.Text>
+                    <div className='col-span-6'></div>
+                    <Skeleton.Text className="col-span-1 text-end">IV</Skeleton.Text>
                     <Skeleton.Text className="text-center">EV</Skeleton.Text>
                     <Skeleton.Text className="text-center">BASE</Skeleton.Text>
                 </div>
