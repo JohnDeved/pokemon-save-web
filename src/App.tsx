@@ -226,13 +226,13 @@ const StatDisplay: React.FC<StatDisplayProps> = ({ ivs, evs, baseStats }) => {
                     <div key={statName} className="grid grid-cols-10 gap-2 items-center">
                         <div className="text-white">{statName}</div>
                         <div className="col-span-7 flex items-center gap-2">
-                            <div className="w-full bg-slate-700/70 rounded-full h-2 overflow-hidden">
+                            <div className="w-full bg-slate-800/70 rounded-full h-2 overflow-hidden">
                                 <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full" style={{ width: `${evPercentage}%`}}></div>
                             </div>
                             <span className="text-white w-8 text-right text-xs">{evs[index] || 0}</span>
                         </div>
                         <div className="text-cyan-400 text-center text-sm">{ivs[index] || 0}</div>
-                        <div className="text-orange-400 text-center text-sm">{baseStats[index] || 0}</div>
+                        <div className="text-slate-700 text-center text-sm">{baseStats[index] || 0}</div>
                     </div>
                 );
             })}
