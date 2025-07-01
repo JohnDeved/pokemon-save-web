@@ -146,20 +146,20 @@ export const PokemonApiResponseSchema = z.object({
     types: z.array(PokeApiTypeSchema),
     stats: z.array(PokeApiStatSchema),
     abilities: z.array(PokeApiAbilitySchema)
-});
+}).passthrough(); // Allow additional properties
 
 export const MoveApiResponseSchema = z.object({
     type: z.object({
         name: z.string()
-    }),
-    effect_entries: z.array(PokeApiEffectEntrySchema),
-    power: z.number().nullable(),
-    accuracy: z.number().nullable(),
+    }).optional(),
+    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
+    power: z.number().nullable().optional(),
+    accuracy: z.number().nullable().optional(),
     effect_chance: z.number().optional()
-});
+}).passthrough(); // Allow additional properties
 
 export const AbilityApiResponseSchema = z.object({
     name: z.string(),
-    effect_entries: z.array(PokeApiEffectEntrySchema),
+    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
     effect_chance: z.number().optional()
-});
+}).passthrough(); // Allow additional properties

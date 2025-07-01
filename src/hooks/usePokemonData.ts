@@ -49,7 +49,12 @@ export const usePokemonData = () => {
                 const [pokeRes, ...moveResults] = await Promise.all([
                     fetch(`https://pokeapi.co/api/v2/pokemon/${activePokemon.speciesId}`),
                     ...Object.values(activePokemon.moves).map(move => 
-                        fetch(`https://pokeapi.co/api/v2/move/${move.id}`).then(res => res.json())
+                        fetch(`https://pokeapi.co/api/v2/move/${move.id}`)
+                            .then(res => res.ok ? res.json() : null)
+                            .catch(err => {
+                                console.warn(`Failed to fetch move ${move.id}:`, err);
+                                return null;
+                            })
                     )
                 ]);
 
@@ -85,29 +90,46 @@ export const usePokemonData = () => {
                 const baseStats = validatedPokeData.stats.map(stat => stat.base_stat);
                 const ability: Ability = abilityData ? {
                     name: abilityData.name.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-                    description: abilityData.effect_entries.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(abilityData.effect_chance || '')) || "No description available."
+                    description: abilityData.effect_entries?.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(abilityData.effect_chance || '')) || "No description available."
                 } : { name: 'Unknown', description: 'Could not fetch ability data.' };
 
                 const movesWithDetails: MoveWithDetails[] = Object.values(activePokemon.moves).map((move, i) => {
                     const result = moveResults[i];
+                    
+                    // Handle null/failed requests
+                    if (!result) {
+                        console.warn(`No data received for move ${move.name} (${move.id})`);
+                        return {
+                            ...move,
+                            type: 'UNKNOWN',
+                            description: 'Failed to load move details.',
+                            power: null,
+                            accuracy: null,
+                        };
+                    }
+
                     const moveValidation = MoveApiResponseSchema.safeParse(result);
                     
                     if (moveValidation.success) {
                         const validMove = moveValidation.data;
                         return {
                             ...move,
-                            type: parsePokemonType(validMove.type.name),
-                            description: validMove.effect_entries.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(validMove.effect_chance || '')) || "No description available.",
-                            power: validMove.power,
-                            accuracy: validMove.accuracy,
+                            type: validMove.type?.name ? parsePokemonType(validMove.type.name) : 'UNKNOWN',
+                            description: validMove.effect_entries?.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(validMove.effect_chance || '')) || "No description available.",
+                            power: validMove.power ?? null,
+                            accuracy: validMove.accuracy ?? null,
                         };
                     } else {
+                        // Log validation errors for debugging
+                        console.warn(`Move validation failed for move ${move.name}:`, moveValidation.error.issues);
+                        
+                        // Fallback to manual parsing for backwards compatibility
                         return {
                             ...move,
-                            type: 'UNKNOWN',
-                            description: 'Could not load move details.',
-                            power: null,
-                            accuracy: null,
+                            type: result?.type?.name ? parsePokemonType(result.type.name) : 'UNKNOWN',
+                            description: result?.effect_entries?.find((e: { language: { name: string }; effect: string }) => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(result.effect_chance || '')) || "No description available.",
+                            power: result?.power ?? null,
+                            accuracy: result?.accuracy ?? null,
                         };
                     }
                 });
