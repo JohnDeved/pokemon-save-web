@@ -27,7 +27,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
     onKeyDown
 }) => {
     return (
-        <div className="p-4 bg-slate-900/50 border-b border-slate-700 rounded-t-xl">
+        <div className="p-4 border-b border-slate-800">
             <div className="flex justify-between items-start">
                 <div>
                     <div className="h-8 flex items-center">
