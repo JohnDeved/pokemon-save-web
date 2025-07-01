@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ShaderBackground, Card } from './components/common';
+import { useState, Suspense, lazy } from 'react';
+import { Card } from './components/common';
 import {
     PokemonPartyList,
     PokemonHeader,
@@ -8,6 +8,13 @@ import {
     PokemonAbilitySection
 } from './components/pokemon';
 import { usePokemonData, usePokemonRenaming } from './hooks';
+
+// Dynamically import ShaderBackground to code-split heavy 3D dependencies
+const ShaderBackground = lazy(() => 
+    import('./components/common/ShaderBackground').then(module => ({
+        default: module.ShaderBackground
+    }))
+);
 
 export default function App() {
     const {
@@ -43,7 +50,9 @@ export default function App() {
     
     return (
         <>
-          <ShaderBackground />
+            <Suspense fallback={<div className="fixed inset-0 z-10 bg-black" />}>
+                <ShaderBackground />
+            </Suspense>
             <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
                 <div className="absolute inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"></div>
                 <main className="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 z-10">
