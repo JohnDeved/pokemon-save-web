@@ -2,7 +2,7 @@ import { useMemo, memo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ShaderMaterial } from "three";
 
-import fragmentShader from "../glsl/shader.glsl?raw";
+import fragmentShader from "../../glsl/shader.glsl?raw"
 
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
 const uniforms = {
