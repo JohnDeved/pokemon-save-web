@@ -14,25 +14,26 @@ interface PokemonStatDisplayProps extends Partial<StatDisplayProps> {
 export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ 
     ivs, 
     evs, 
-    baseStats, 
+    baseStats,
+    totalStats,
     isLoading = false 
 }) => {
-    if (isLoading || !ivs || !evs || !baseStats) {
+    if (isLoading || !ivs || !evs || !baseStats || !totalStats) {
         return (
             <div className="space-y-3 text-xs">
-                {/* Mimic exact header structure */}
+                {/* Match the actual header structure */}
                 <div className="grid grid-cols-10 gap-2 text-slate-400">
                     <Skeleton.Text className="col-span-1">STAT</Skeleton.Text>
-                    <div className='col-span-6'></div>
-                    <Skeleton.Text className="col-span-1 text-end">IV</Skeleton.Text>
+                    <div className="col-span-5 text-end">IV</div>
                     <Skeleton.Text className="text-center">EV</Skeleton.Text>
                     <Skeleton.Text className="text-center">BASE</Skeleton.Text>
+                    <div className="text-right col-span-2">TOTAL</div>
                 </div>
-                {/* Mimic exact stat row structure */}
+                {/* Match the actual stat row structure */}
                 {STAT_NAMES.map((statName) => (
                     <div key={statName} className="grid grid-cols-10 gap-2 items-center">
                         <Skeleton.Text className="text-white">{statName}</Skeleton.Text>
-                        <div className="col-span-7 flex items-center gap-2">
+                        <div className="col-span-5 flex items-center gap-2">
                             <div className="w-full bg-slate-800/70 rounded-full h-2 overflow-hidden">
                                 <div className="bg-slate-700/50 animate-pulse h-full rounded-full w-3/4"></div>
                             </div>
@@ -40,6 +41,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
                         </div>
                         <Skeleton.Text className="text-cyan-400 text-center text-sm">31</Skeleton.Text>
                         <Skeleton.Text className="text-slate-700 text-center text-sm">100</Skeleton.Text>
+                        <Skeleton.Text className="text-slate-500 col-span-2 text-right text-sm">350</Skeleton.Text>
                     </div>
                 ))}
             </div>
@@ -50,16 +52,17 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
         <div className="space-y-3 text-xs">
             <div className="grid grid-cols-10 gap-2 text-slate-400">
                 <div className="col-span-1">STAT</div>
-                <div className="col-span-7 text-end">IV</div>
+                <div className="col-span-5 text-end">IV</div>
                 <div className="text-center">EV</div>
                 <div className="text-center">BASE</div>
+                <div className="text-right col-span-2">TOTAL</div>
             </div>
             {STAT_NAMES.map((statName, index) => {
                 const evPercentage = Math.min((evs[index] || 0) / MAX_EV * 100, 100);
                 return (
                     <div key={statName} className="grid grid-cols-10 gap-2 items-center">
                         <div className="text-white">{statName}</div>
-                        <div className="col-span-7 flex items-center gap-2">
+                        <div className="col-span-5 flex items-center gap-2">
                             <div className="w-full bg-slate-800/70 rounded-full h-2 overflow-hidden">
                                 <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full" style={{ width: `${evPercentage}%`}}></div>
                             </div>
@@ -67,6 +70,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
                         </div>
                         <div className="text-cyan-400 text-center text-sm">{ivs[index] || 0}</div>
                         <div className="text-slate-700 text-center text-sm">{baseStats[index] || 0}</div>
+                        <div className="text-slate-500 col-span-2 text-right text-sm">{totalStats[index] || 0}</div>
                     </div>
                 );
             })}

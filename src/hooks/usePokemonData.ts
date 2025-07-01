@@ -1,17 +1,30 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { 
-    Pokemon, 
-    DetailedCache, 
-    MoveWithDetails, 
-    Ability
-} from '../types';
-import { 
-    PokemonTypeSchema, 
-    PokemonApiResponseSchema, 
-    MoveApiResponseSchema, 
-    AbilityApiResponseSchema 
-} from '../types';
-import backendData from '../stub.json';
+import type { UIPokemonData } from '../types';
+import type { DetailedCache, MoveWithDetails, Ability } from '../types';
+import { PokemonTypeSchema, PokemonApiResponseSchema, MoveApiResponseSchema, AbilityApiResponseSchema } from '../types';
+import { useSaveFileParser } from './useSaveFileParser';
+import { z } from 'zod';
+
+// Helper to fetch and validate data from a URL
+async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T> {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch from ${url}: ${response.statusText}`);
+
+    const data = await response.json();
+    const result = schema.safeParse(data);
+    if (!result.success) throw new Error(`Invalid API response format for ${url}`);
+
+    return result.data as T;
+}
+
+const fetchPokemonFromApi = (speciesId: number) =>
+    fetchAndValidate(`https://pokeapi.co/api/v2/pokemon/${speciesId}`, PokemonApiResponseSchema);
+
+const fetchMoveFromApi = (moveId: number) =>
+    fetchAndValidate(`https://pokeapi.co/api/v2/move/${moveId}`, MoveApiResponseSchema);
+
+const fetchAbilityFromApi = (abilityUrl: string) =>
+    fetchAndValidate(abilityUrl, AbilityApiResponseSchema);
 
 // Simple helper to safely parse Pokemon types from API
 const parsePokemonType = (apiType: string) => {
@@ -19,158 +32,123 @@ const parsePokemonType = (apiType: string) => {
     return result.success ? result.data : 'UNKNOWN';
 };
 
-export const usePokemonData = () => {
-    // Memoize the initial party list to prevent re-computation on re-renders.
-    const initialPartyList = useMemo(() => backendData.party_pokemon.map((p, index): Pokemon => ({
-        ...p,
-        id: index,
-        spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.speciesId}.png`,
-        baseStats: [0, 0, 0, 0, 0, 0] // Will be populated when fetching details
-    })), []);
+function getInitialMovesWithDetails(moves: UIPokemonData['data']['moves']): MoveWithDetails[] {
+    return [moves.move1, moves.move2, moves.move3, moves.move4].map(move => ({
+        pp: move.pp,
+        id: move.id,
+        name: 'Move #' + move.id,
+        type: 'UNKNOWN',
+        description: '',
+        power: null,
+        accuracy: null,
+    }));
+}
 
-    const [partyList, setPartyList] = useState<Pokemon[]>(initialPartyList);
-    const [activePokemonId, setActivePokemonId] = useState<number>(0);
+async function getPokemonDetails(pokemon: UIPokemonData) {
+    const { data } = pokemon;
+
+    const pokeData = await fetchPokemonFromApi(data.speciesId);
+    const moveSources = [data.moves.move1, data.moves.move2, data.moves.move3, data.moves.move4];
+    const moveResults = await Promise.all(moveSources.map(move => fetchMoveFromApi(move.id).catch(() => null)));
+    const abilityUrl = pokeData.abilities.find(a => !a.is_hidden)?.ability.url;
+    const abilityData = abilityUrl ? await fetchAbilityFromApi(abilityUrl).catch(() => null) : null;
+    const types = pokeData.types.map(t => parsePokemonType(t.type.name));
+    const baseStats = pokeData.stats.map(stat => stat.base_stat);
+
+    const ability: Ability = abilityData ? {
+        name: abilityData.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: abilityData.effect_entries?.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(abilityData.effect_chance || '')) || 'No description available.'
+    } : { name: 'Unknown', description: 'Could not fetch ability data.' };
+
+    const movesWithDetails: MoveWithDetails[] = moveSources.map((move, i) => {
+        const validMove = moveResults[i];
+        if (validMove) {
+            return {
+                id: move.id,
+                name: validMove.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                pp: move.pp,
+                type: validMove.type?.name ? parsePokemonType(validMove.type.name) : 'UNKNOWN',
+                description: validMove.effect_entries?.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(validMove.effect_chance || '')) || 'No description available.',
+                power: validMove.power ?? null,
+                accuracy: validMove.accuracy ?? null,
+            };
+        }
+        return {
+            id: move.id,
+            name: `Move #${move.id}`,
+            pp: move.pp,
+            type: 'UNKNOWN',
+            description: 'Failed to load move details.',
+            power: null,
+            accuracy: null,
+        };
+    });
+    
+    return { types, ability, movesWithDetails, baseStats };
+}
+
+export const usePokemonData = () => {
+    const saveFileParser = useSaveFileParser();
+    const { saveData } = saveFileParser;
+
+    const initialPartyList = useMemo(() => {
+        if (!saveData?.party_pokemon) return [];
+        return saveData.party_pokemon.map((parsedPokemon, index): UIPokemonData => ({
+            id: index,
+            spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${parsedPokemon.speciesId}.png`,
+            baseStats: [],
+            data: parsedPokemon,
+            movesWithDetails: getInitialMovesWithDetails(parsedPokemon.moves),
+        }));
+    }, [saveData]);
+
+    const [partyList, setPartyList] = useState<UIPokemonData[]>(initialPartyList);
+    const [activePokemonId, setActivePokemonId] = useState(0);
     const [detailedCache, setDetailedCache] = useState<DetailedCache>({});
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        setPartyList(initialPartyList);
+        if (initialPartyList.length > 0) setActivePokemonId(0);
+    }, [initialPartyList]);
 
     const activePokemon = useMemo(() => partyList.find(p => p.id === activePokemonId), [partyList, activePokemonId]);
 
-    // Effect to fetch detailed data for the active Pokémon.
     useEffect(() => {
-        if (!activePokemon || detailedCache[activePokemon.speciesId]) {
+        if (!activePokemon || detailedCache[activePokemon.data.speciesId]) {
             setIsLoading(false);
-            return; 
+            return;
         }
-
-        const fetchDetails = async () => {
+        let cancelled = false;
+        (async () => {
             setIsLoading(true);
             try {
-                // Fetch Pokémon details and all move details in parallel for better performance
-                const [pokeRes, ...moveResults] = await Promise.all([
-                    fetch(`https://pokeapi.co/api/v2/pokemon/${activePokemon.speciesId}`),
-                    ...Object.values(activePokemon.moves).map(move => 
-                        fetch(`https://pokeapi.co/api/v2/move/${move.id}`)
-                            .then(res => res.ok ? res.json() : null)
-                            .catch(err => {
-                                console.warn(`Failed to fetch move ${move.id}:`, err);
-                                return null;
-                            })
-                    )
-                ]);
-
-                if (!pokeRes.ok) {
-                    throw new Error(`Failed to fetch Pokémon: ${pokeRes.status}`);
-                }
-                
-                const pokeData = await pokeRes.json();
-                
-                // Validate Pokemon API response with Zod
-                const pokemonResult = PokemonApiResponseSchema.safeParse(pokeData);
-                if (!pokemonResult.success) {
-                    throw new Error('Invalid Pokemon API response format');
-                }
-                const validatedPokeData = pokemonResult.data;
-
-                // Fetch ability details after getting the main pokemon data
-                const abilityUrl = validatedPokeData.abilities.find(a => !a.is_hidden)?.ability.url;
-                let abilityData = null;
-                if (abilityUrl) {
-                    const abilityRes = await fetch(abilityUrl);
-                    if (abilityRes.ok) {
-                        const rawAbilityData = await abilityRes.json();
-                        const abilityResult = AbilityApiResponseSchema.safeParse(rawAbilityData);
-                        if (abilityResult.success) {
-                            abilityData = abilityResult.data;
-                        }
+                const { types, ability, movesWithDetails, baseStats } = await getPokemonDetails(activePokemon);
+                if (cancelled) return;
+                setDetailedCache(prev => ({ ...prev, [activePokemon.data.speciesId]: { types, ability, moves: movesWithDetails, baseStats } }));
+                setPartyList(prevList => prevList.map(p =>
+                    p.id === activePokemon.id ? {
+                        ...p,
+                        baseStats,
+                        movesWithDetails,
+                    } : p
+                ));
+            } catch {
+                if (cancelled) return;
+                setDetailedCache(prev => ({
+                    ...prev,
+                    [activePokemon.data.speciesId]: {
+                        types: ['UNKNOWN'],
+                        ability: { name: 'Error', description: 'Could not fetch ability data.' },
+                        moves: getInitialMovesWithDetails(activePokemon.data.moves).map(m => ({ ...m, description: 'Could not load details.' })),
+                        baseStats: [0, 0, 0, 0, 0, 0],
                     }
-                }
-                
-                // Process and format the fetched data with validated data
-                const types = validatedPokeData.types.map(t => parsePokemonType(t.type.name));
-                const baseStats = validatedPokeData.stats.map(stat => stat.base_stat);
-                const ability: Ability = abilityData ? {
-                    name: abilityData.name.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-                    description: abilityData.effect_entries?.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(abilityData.effect_chance || '')) || "No description available."
-                } : { name: 'Unknown', description: 'Could not fetch ability data.' };
-
-                const movesWithDetails: MoveWithDetails[] = Object.values(activePokemon.moves).map((move, i) => {
-                    const result = moveResults[i];
-                    
-                    // Handle null/failed requests
-                    if (!result) {
-                        console.warn(`No data received for move ${move.name} (${move.id})`);
-                        return {
-                            ...move,
-                            type: 'UNKNOWN',
-                            description: 'Failed to load move details.',
-                            power: null,
-                            accuracy: null,
-                        };
-                    }
-
-                    const moveValidation = MoveApiResponseSchema.safeParse(result);
-                    
-                    if (moveValidation.success) {
-                        const validMove = moveValidation.data;
-                        return {
-                            ...move,
-                            type: validMove.type?.name ? parsePokemonType(validMove.type.name) : 'UNKNOWN',
-                            description: validMove.effect_entries?.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(validMove.effect_chance || '')) || "No description available.",
-                            power: validMove.power ?? null,
-                            accuracy: validMove.accuracy ?? null,
-                        };
-                    } else {
-                        // Log validation errors for debugging
-                        console.warn(`Move validation failed for move ${move.name}:`, moveValidation.error.issues);
-                        
-                        // Fallback to manual parsing for backwards compatibility
-                        return {
-                            ...move,
-                            type: result?.type?.name ? parsePokemonType(result.type.name) : 'UNKNOWN',
-                            description: result?.effect_entries?.find((e: { language: { name: string }; effect: string }) => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(result.effect_chance || '')) || "No description available.",
-                            power: result?.power ?? null,
-                            accuracy: result?.accuracy ?? null,
-                        };
-                    }
-                });
-                
-                // Update the cache with the new data
-                setDetailedCache(prev => ({ 
-                    ...prev, 
-                    [activePokemon.speciesId]: { types, ability, moves: movesWithDetails, baseStats } 
-                }));
-
-                // Update the party list with base stats
-                setPartyList(prevList =>
-                    prevList.map(p =>
-                        p.id === activePokemon.id ? { ...p, baseStats } : p
-                    )
-                );
-
-            } catch (error) {
-                console.error("Failed to fetch Pokémon details:", error);
-                // Set a fallback state in the cache in case of an error
-                setDetailedCache(prev => ({ 
-                    ...prev, 
-                    [activePokemon.speciesId]: { 
-                        types: ['UNKNOWN'], 
-                        ability: { name: 'Error', description: 'Could not fetch ability data.' }, 
-                        moves: Object.values(activePokemon.moves).map((m): MoveWithDetails => ({ 
-                            ...m, 
-                            type: 'UNKNOWN',
-                            description: 'Could not load details.', 
-                            power: null, 
-                            accuracy: null 
-                        })),
-                        baseStats: [0, 0, 0, 0, 0, 0]
-                    } 
                 }));
             } finally {
-                setIsLoading(false);
+                if (!cancelled) setIsLoading(false);
             }
-        };
-
-        fetchDetails();
+        })();
+        return () => { cancelled = true; };
     }, [activePokemon, detailedCache]);
 
     const updatePokemonNickname = (pokemonId: number, newNickname: string) => {
@@ -188,6 +166,7 @@ export const usePokemonData = () => {
         activePokemon,
         detailedCache,
         isLoading,
-        updatePokemonNickname
+        updatePokemonNickname,
+        saveFileParser,
     };
 };

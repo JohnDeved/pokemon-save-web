@@ -12,8 +12,6 @@ export type {
   PokemonMoves,
   PokemonEVs,
   PokemonIVs,
-  RawPokemonData,
-  ParsedPokemonData,
   SectorInfo,
   SaveData,
 } from './types.js';

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { PokemonData } from './lib/parser/pokemonSaveParser';
 
 // Zod schemas for runtime validation
 export const PokemonTypeSchema = z.enum([
@@ -25,50 +26,26 @@ export interface Moves {
     move4: BaseMove;
 }
 
-export interface Pokemon {
-    personality: number;
-    otId: number;
-    nickname: string;
-    otName: string;
-    currentHp: number;
-    speciesId: number;
-    item: number;
-    move1: number;
-    move2: number;
-    move3: number;
-    move4: number;
-    pp1: number;
-    pp2: number;
-    pp3: number;
-    pp4: number;
-    hpEV: number;
-    atkEV: number;
-    defEV: number;
-    speEV: number;
-    spaEV: number;
-    spdEV: number;
-    ivs: number[];
-    level: number;
-    maxHp: number;
-    attack: number;
-    defense: number;
-    speed: number;
-    spAttack: number;
-    spDefense: number;
-    moves: Moves;
-    evs: number[];
-    baseStats: number[];
-    id: number;
-    spriteUrl: string;
-}
 
 export interface TypeBadgeProps {
     type: PokemonType;
     isLarge?: boolean;
 }
 
+// UI-enhanced Pokemon data - extends ParsedPokemonData with UI-specific properties
+export interface UIPokemonData {
+  readonly id: number;        // UI index for React keys
+  readonly spriteUrl: string; // UI sprite URL
+  readonly baseStats: readonly number[];
+  readonly movesWithDetails: MoveWithDetails[]; // Optional, for detailed move info
+  readonly data: PokemonData;
+}
+
+export type Pokemon = UIPokemonData;
+
+
 export interface PokemonStatusProps {
-    pokemon: Pokemon;
+    pokemon: UIPokemonData;
     isActive: boolean;
 }
 
@@ -86,9 +63,10 @@ export interface MoveButtonProps {
 }
 
 export interface StatDisplayProps {
-    ivs: number[];
-    evs: number[];
-    baseStats: number[];
+    ivs: readonly number[];
+    evs: readonly number[];
+    baseStats: readonly number[];
+    totalStats: readonly number[];
 }
 
 export interface Ability {
@@ -149,17 +127,18 @@ export const PokemonApiResponseSchema = z.object({
 }).passthrough(); // Allow additional properties
 
 export const MoveApiResponseSchema = z.object({
+    name: z.string(),
     type: z.object({
         name: z.string()
     }).optional(),
     effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
     power: z.number().nullable().optional(),
     accuracy: z.number().nullable().optional(),
-    effect_chance: z.number().optional()
+    effect_chance: z.number().nullable().optional()
 }).passthrough(); // Allow additional properties
 
 export const AbilityApiResponseSchema = z.object({
     name: z.string(),
     effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
-    effect_chance: z.number().optional()
+    effect_chance: z.number().nullable().optional()
 }).passthrough(); // Allow additional properties

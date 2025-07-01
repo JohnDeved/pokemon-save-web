@@ -3,6 +3,8 @@
  * Port of poke_types.py with modern TypeScript features
  */
 
+import type { PokemonData } from "./pokemonSaveParser";
+
 // Core data structures
 export interface PlayTimeData {
   hours: number;
@@ -49,51 +51,6 @@ export interface PokemonIVs {
   readonly sp_defense: number;
 }
 
-// Raw Pokemon data structure matching the save file format
-export interface RawPokemonData {
-  readonly personality: number;
-  readonly otId: number;
-  readonly nickname: Uint8Array;
-  readonly otName: Uint8Array;
-  readonly currentHp: number;
-  readonly speciesId: number;
-  readonly item: number;
-  readonly move1: number;
-  readonly move2: number;
-  readonly move3: number;
-  readonly move4: number;
-  readonly pp1: number;
-  readonly pp2: number;
-  readonly pp3: number;
-  readonly pp4: number;
-  readonly hpEV: number;
-  readonly atkEV: number;
-  readonly defEV: number;
-  readonly speEV: number;
-  readonly spaEV: number;
-  readonly spdEV: number;
-  readonly ivData: number;
-  readonly level: number;
-  readonly maxHp: number;
-  readonly attack: number;
-  readonly defense: number;
-  readonly speed: number;
-  readonly spAttack: number;
-  readonly spDefense: number;
-  readonly raw_bytes: Uint8Array;
-}
-
-// Processed Pokemon data with computed properties
-export interface ParsedPokemonData extends RawPokemonData {
-  readonly otId_str: string;
-  readonly moves_data: PokemonMoves;
-  readonly evs: readonly number[];
-  readonly evs_structured: PokemonEVs;
-  readonly ivs: readonly number[];
-  readonly ivs_structured: PokemonIVs;
-  readonly stats_structured: PokemonStats;
-}
-
 // Sector information
 export interface SectorInfo {
   readonly id: number;
@@ -104,7 +61,7 @@ export interface SectorInfo {
 
 // Complete save data structure
 export interface SaveData {
-  readonly party_pokemon: readonly ParsedPokemonData[];
+  readonly party_pokemon: readonly PokemonData[];
   readonly player_name: string;
   readonly play_time: PlayTimeData;
   readonly active_slot: number;
@@ -123,6 +80,8 @@ export const CONSTANTS = {
   PARTY_START_OFFSET: 0x6A8,
   PARTY_POKEMON_SIZE: 104,
   MAX_PARTY_SIZE: 6,
+  POKEMON_NICKNAME_LENGTH: 10,
+  POKEMON_TRAINER_NAME_LENGTH: 7,
 } as const;
 
 // Helper functions for data creation

@@ -11,7 +11,7 @@ const HP_THRESHOLDS = {
 
 // Component for a single Pokémon's status display on the left
 export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive }) => {
-    const hpPercentage = (pokemon.currentHp / pokemon.maxHp) * 100;
+    const hpPercentage = (pokemon.data.currentHp / pokemon.data.maxHp) * 100;
     const hpColor = hpPercentage > HP_THRESHOLDS.HIGH 
         ? 'from-green-400 to-emerald-500' 
         : hpPercentage > HP_THRESHOLDS.LOW 
@@ -25,7 +25,7 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
     const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
         const target = e.target as HTMLImageElement;
         target.onerror = null;
-        target.src = `https://placehold.co/96x96/334155/94a3b8?text=${String(pokemon.speciesId).padStart(3, '0')}`;
+        target.src = `https://placehold.co/96x96/334155/94a3b8?text=${String(pokemon.data.speciesId).padStart(3, '0')}`;
     };
 
     return (
@@ -33,7 +33,7 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
             <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center">
                 <img 
                     src={pokemon.spriteUrl} 
-                    alt={pokemon.nickname} 
+                    alt={pokemon.data.nickname} 
                     className={cn("w-full h-full object-contain transition-transform duration-300", isActive ? 'scale-110' : 'group-hover:scale-110')}
                     style={{ filter: 'drop-shadow(0px 4px 3px rgba(0,0,0,0.5)) drop-shadow(0px 0px 6px rgba(255, 255, 255, 0.15))' }}
                     onError={handleImageError}
@@ -41,13 +41,13 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
             </div>
             <div className="flex-grow">
                 <div className="flex justify-between items-center text-sm">
-                    <h3 className="text-white">{pokemon.nickname}</h3>
-                    <span className="text-slate-300">Lv.{pokemon.level}</span>
+                    <h3 className="text-white">{pokemon.data.nickname}</h3>
+                    <span className="text-slate-300">Lv.{pokemon.data.level}</span>
                 </div>
                 <div className="w-full bg-slate-900/70 rounded-full h-2.5 mt-2 overflow-hidden">
                     <div className={cn("bg-gradient-to-r h-full rounded-full transition-all duration-500", hpColor)} style={{ width: `${hpPercentage}%` }}></div>
                 </div>
-                <p className="text-right text-xs mt-1 text-slate-400">{pokemon.currentHp}/{pokemon.maxHp}</p>
+                <p className="text-right text-xs mt-1 text-slate-400">{pokemon.data.currentHp}/{pokemon.data.maxHp}</p>
             </div>
         </Card>
     );

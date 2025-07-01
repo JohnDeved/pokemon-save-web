@@ -6,3 +6,4 @@ export { PokemonHeader } from './PokemonHeader';
 export { PokemonMovesSection } from './PokemonMovesSection';
 export { PokemonAbilitySection } from './PokemonAbilitySection';
 export { PokemonPartyList } from './PokemonPartyList';
+export { SaveFileDropzone } from './SaveFileDropzone';

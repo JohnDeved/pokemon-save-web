@@ -86,7 +86,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                             </div>
                         ) : (
                             <h2 className="text-xl text-white tracking-tight flex items-center gap-2">
-                                {pokemon.nickname}
+                                {pokemon.data.nickname}
                                 <Pencil
                                     className="w-3 h-3 text-slate-400 hover:text-white cursor-pointer transition-colors"
                                     onClick={onStartRename}
@@ -102,7 +102,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                 </div>
                 <span className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border border-cyan-800">
                     <Hash size={12} />
-                    {String(pokemon.speciesId).padStart(3, '0')}
+                    {String(pokemon.data.speciesId).padStart(3, '0')}
                 </span>
             </div>
         </div>

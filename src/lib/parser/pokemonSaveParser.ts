@@ -9,6 +9,7 @@ import {
   createPokemonEVs,
   createPokemonIVs,
   createPokemonStats,
+  createMoveData,
 } from './types.js';
 
 import type {
@@ -17,14 +18,14 @@ import type {
   PokemonEVs,
   PokemonIVs,
   PokemonStats,
-  RawPokemonData,
-  ParsedPokemonData,
   SectorInfo,
   SaveData,
+  MoveData,
 } from './types.js';
 
 // Import character map for decoding text
 import charMap from './pokemon_charmap.json';
+import { bytesToGbaString } from './utils';
 
 /**
  * DataView wrapper for little-endian operations with bounds checking
@@ -72,100 +73,123 @@ class SafeDataView {
 /**
  * Parses raw Pokemon data from save file bytes into structured format
  */
-class PokemonDataParser {
-  /**
-   * Parse raw Pokemon data from a byte array
-   */
-  static parsePokemonData(data: Uint8Array): ParsedPokemonData {
-    if (data.length < 104) { // PARTY_POKEMON_SIZE
+export class PokemonData {
+  private readonly view: SafeDataView;
+
+  constructor(private readonly data: Uint8Array) {
+    if (data.length < CONSTANTS.PARTY_POKEMON_SIZE) {
       throw new Error(`Insufficient data for Pokemon: ${data.length} bytes`);
     }
+    this.view = new SafeDataView(data.buffer, data.byteOffset, data.byteLength);
+  }
 
-    const view = new SafeDataView(data.buffer, data.byteOffset, data.byteLength);
-    
-    const rawData: RawPokemonData = {
-      personality: view.getUint32(0x00),
-      otId: view.getUint32(0x04),
-      nickname: view.getBytes(0x08, 10),
-      otName: view.getBytes(0x14, 7),
-      currentHp: view.getUint16(0x23),
-      speciesId: view.getUint16(0x28),
-      item: view.getUint16(0x2A),
-      move1: view.getUint16(0x34),
-      move2: view.getUint16(0x36),
-      move3: view.getUint16(0x38),
-      move4: view.getUint16(0x3A),
-      pp1: view.getUint8(0x3C),
-      pp2: view.getUint8(0x3D),
-      pp3: view.getUint8(0x3E),
-      pp4: view.getUint8(0x3F),
-      hpEV: view.getUint8(0x40),
-      atkEV: view.getUint8(0x41),
-      defEV: view.getUint8(0x42),
-      speEV: view.getUint8(0x43),
-      spaEV: view.getUint8(0x44),
-      spdEV: view.getUint8(0x45),
-      ivData: view.getUint32(0x50),
-      level: view.getUint8(0x58),
-      maxHp: view.getUint16(0x5A),
-      attack: view.getUint16(0x5C),
-      defense: view.getUint16(0x5E),
-      speed: view.getUint16(0x60),
-      spAttack: view.getUint16(0x62),
-      spDefense: view.getUint16(0x64),
-      raw_bytes: new Uint8Array(data),
-    };
+  get personality(): number { return this.view.getUint32(0x00); }
+  get otId(): number { return this.view.getUint32(0x04); }
+  get nicknameRaw(): Uint8Array { return this.view.getBytes(0x08, CONSTANTS.POKEMON_NICKNAME_LENGTH); }
+  get otNameRaw(): Uint8Array { return this.view.getBytes(0x14, CONSTANTS.POKEMON_TRAINER_NAME_LENGTH); }
+  get currentHp(): number { return this.view.getUint16(0x23); }
+  get speciesId(): number { return this.view.getUint16(0x28); }
+  get item(): number { return this.view.getUint16(0x2A); }
+  get move1(): number { return this.view.getUint16(0x34); }
+  get move2(): number { return this.view.getUint16(0x36); }
+  get move3(): number { return this.view.getUint16(0x38); }
+  get move4(): number { return this.view.getUint16(0x3A); }
+  get pp1(): number { return this.view.getUint8(0x3C); }
+  get pp2(): number { return this.view.getUint8(0x3D); }
+  get pp3(): number { return this.view.getUint8(0x3E); }
+  get pp4(): number { return this.view.getUint8(0x3F); }
+  get hpEV(): number { return this.view.getUint8(0x40); }
+  get atkEV(): number { return this.view.getUint8(0x41); }
+  get defEV(): number { return this.view.getUint8(0x42); }
+  get speEV(): number { return this.view.getUint8(0x43); }
+  get spaEV(): number { return this.view.getUint8(0x44); }
+  get spdEV(): number { return this.view.getUint8(0x45); }
+  get ivData(): number { return this.view.getUint32(0x50); }
+  get level(): number { return this.view.getUint8(0x58); }
+  get maxHp(): number { return this.view.getUint16(0x5A); }
+  get attack(): number { return this.view.getUint16(0x5C); }
+  get defense(): number { return this.view.getUint16(0x5E); }
+  get speed(): number { return this.view.getUint16(0x60); }
+  get spAttack(): number { return this.view.getUint16(0x62); }
+  get spDefense(): number { return this.view.getUint16(0x64); }
+  get rawBytes(): Uint8Array { return new Uint8Array(this.data); }
 
+  // Computed properties
+  get otId_str(): string {
+    return (this.otId & 0xFFFF).toString().padStart(5, '0');
+  }
+  get nickname(): string {
+    return bytesToGbaString(this.nicknameRaw);
+  }
+  get otName(): string {
+    return bytesToGbaString(this.otNameRaw);
+  }
+  get stats(): readonly number[] {
+    return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];
+  }
+  get moves(): {
+    readonly move1: MoveData;
+    readonly move2: MoveData;
+    readonly move3: MoveData;
+    readonly move4: MoveData;
+  } {
     return {
-      ...rawData,
-      otId_str: this.formatOtId(rawData.otId),
-      moves_data: this.extractMoves(rawData),
-      evs: this.extractEVsArray(rawData),
-      evs_structured: this.extractEVsStructured(rawData),
-      ivs: this.extractIVsArray(rawData.ivData),
-      ivs_structured: this.extractIVsStructured(rawData.ivData),
-      stats_structured: this.extractStatsStructured(rawData),
+      move1: createMoveData(this.move1, this.pp1),
+      move2: createMoveData(this.move2, this.pp2),
+      move3: createMoveData(this.move3, this.pp3),
+      move4: createMoveData(this.move4, this.pp4),
     };
   }
-
-  private static formatOtId(otId: number): string {
-    return (otId & 0xFFFF).toString().padStart(5, '0');
-  }
-
-  private static extractMoves(data: RawPokemonData): PokemonMoves {
+  get moves_data(): PokemonMoves {
     return createPokemonMoves(
-      data.move1, data.move2, data.move3, data.move4,
-      data.pp1, data.pp2, data.pp3, data.pp4
+      this.move1, this.move2, this.move3, this.move4,
+      this.pp1, this.pp2, this.pp3, this.pp4
     );
   }
-
-  private static extractEVsArray(data: RawPokemonData): readonly number[] {
-    return [data.hpEV, data.atkEV, data.defEV, data.speEV, data.spaEV, data.spdEV];
+  get evs(): readonly number[] {
+    return [this.hpEV, this.atkEV, this.defEV, this.speEV, this.spaEV, this.spdEV];
   }
-
-  private static extractEVsStructured(data: RawPokemonData): PokemonEVs {
+  get evs_structured(): PokemonEVs {
     return createPokemonEVs(
-      data.hpEV, data.atkEV, data.defEV,
-      data.speEV, data.spaEV, data.spdEV
+      this.hpEV, this.atkEV, this.defEV,
+      this.speEV, this.spaEV, this.spdEV
     );
   }
-
-  private static extractIVsArray(ivData: number): readonly number[] {
-    return Array.from({ length: 6 }, (_, i) => (ivData >>> (i * 5)) & 0x1F);
+  get ivs(): readonly number[] {
+    return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F);
   }
-
-  private static extractIVsStructured(ivData: number): PokemonIVs {
-    const ivs = this.extractIVsArray(ivData);
+  get ivs_structured(): PokemonIVs {
+    const ivs = this.ivs;
     return createPokemonIVs(
       ivs[0], ivs[1], ivs[2], ivs[3], ivs[4], ivs[5]
     );
   }
-
-  private static extractStatsStructured(data: RawPokemonData): PokemonStats {
+  get stats_structured(): PokemonStats {
     return createPokemonStats(
-      data.maxHp, data.attack, data.defense,
-      data.speed, data.spAttack, data.spDefense
+      this.maxHp, this.attack, this.defense,
+      this.speed, this.spAttack, this.spDefense
     );
+  }
+  get evsArray(): readonly number[] {
+    return [this.hpEV, this.atkEV, this.defEV, this.speEV, this.spaEV, this.spdEV];
+  }
+  get ivsArray(): readonly number[] {
+    return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F);
+  }
+  get statsArray(): readonly number[] {
+    return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];
+  }
+  get totalEVs(): number {
+    return this.evsArray.reduce((sum, ev) => sum + ev, 0);
+  }
+  get totalIVs(): number {
+    return this.ivsArray.reduce((sum, iv) => sum + iv, 0);
+  }
+  get moveIds(): readonly number[] {
+    return [this.move1, this.move2, this.move3, this.move4];
+  }
+  get ppValues(): readonly number[] {
+    return [this.pp1, this.pp2, this.pp3, this.pp4];
   }
 }
 
@@ -377,8 +401,8 @@ export class PokemonSaveParser {
   /**
    * Parse party Pokemon from SaveBlock1 data
    */
-  private parsePartyPokemon(saveblock1Data: Uint8Array): ParsedPokemonData[] {
-    const partyPokemon: ParsedPokemonData[] = [];
+  private parsePartyPokemon(saveblock1Data: Uint8Array): PokemonData[] {
+    const partyPokemon: PokemonData[] = [];
 
     for (let slot = 0; slot < CONSTANTS.MAX_PARTY_SIZE; slot++) {
       const offset = CONSTANTS.PARTY_START_OFFSET + slot * CONSTANTS.PARTY_POKEMON_SIZE;
@@ -389,13 +413,11 @@ export class PokemonSaveParser {
       }
 
       try {
-        const pokemon = PokemonDataParser.parsePokemonData(data);
-        
+        const pokemon = new PokemonData(data);
         // Check if Pokemon slot is empty (species ID = 0)
         if (pokemon.speciesId === 0) {
           break;
         }
-
         partyPokemon.push(pokemon);
       } catch (error) {
         console.warn(`Failed to parse Pokemon at slot ${slot}:`, error);

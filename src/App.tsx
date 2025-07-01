@@ -5,9 +5,10 @@ import {
     PokemonHeader,
     PokemonMovesSection,
     PokemonStatDisplay,
-    PokemonAbilitySection
+    PokemonAbilitySection,
+    SaveFileDropzone
 } from './components/pokemon';
-import { usePokemonData, usePokemonRenaming } from './hooks';
+import { usePokemonData, usePokemonRenaming, useGlobalFileDrop } from './hooks';
 
 // Dynamically import ShaderBackground to code-split heavy 3D dependencies
 const ShaderBackground = lazy(() => 
@@ -24,7 +25,8 @@ export default function App() {
         activePokemon,
         detailedCache,
         isLoading,
-        updatePokemonNickname
+        updatePokemonNickname,
+        saveFileParser
     } = usePokemonData();
 
     const [expandedMoveName, setExpandedMoveName] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export default function App() {
         handleCancelRename,
         handleKeyDown
     } = usePokemonRenaming(
-        activePokemon?.nickname || '',
+        activePokemon?.data.nickname || '',
         (newName) => {
             if (activePokemon) {
                 updatePokemonNickname(activePokemon.id, newName);
@@ -46,7 +48,32 @@ export default function App() {
         }
     );
 
-    const activePokemonDetails = activePokemon ? detailedCache[activePokemon.speciesId] : null;
+    const activePokemonDetails = activePokemon ? detailedCache[activePokemon.data.speciesId] : null;
+    
+    // Enable global file drop when Pokemon interface is loaded
+    const { isDragging } = useGlobalFileDrop({
+        onFileLoad: saveFileParser.parseSaveFile,
+        enabled: saveFileParser.hasFile && partyList.length > 0,
+    });
+    
+    // Show file dropzone if no save data is loaded or no Pokemon in party
+    if (!saveFileParser.hasFile || partyList.length === 0) {
+        return (
+            <>
+                <Suspense fallback={<div className="fixed inset-0 z-10 bg-black" />}>
+                    <ShaderBackground />
+                </Suspense>
+                <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
+                    <div className="absolute inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"></div>
+                    <SaveFileDropzone
+                        onFileLoad={saveFileParser.parseSaveFile}
+                        error={saveFileParser.error}
+                        isGlobalDragActive={false}
+                    />
+                </div>
+            </>
+        );
+    }
     
     return (
         <>
@@ -85,9 +112,10 @@ export default function App() {
                         </Card>
                         <Card className="p-4 relative z-20">
                             <PokemonStatDisplay 
-                                ivs={activePokemon?.ivs} 
-                                evs={activePokemon?.evs} 
+                                ivs={activePokemon?.data.ivs} 
+                                evs={activePokemon?.data.evs} 
                                 baseStats={activePokemon?.baseStats}
+                                totalStats={activePokemon?.data.stats}
                                 isLoading={!activePokemon || !activePokemonDetails || isLoading}
                             />
                         </Card>
@@ -98,6 +126,15 @@ export default function App() {
                     </div>
                 </main>
             </div>
+            
+            {/* Global drop overlay */}
+            {isDragging && (
+                <SaveFileDropzone
+                    onFileLoad={saveFileParser.parseSaveFile}
+                    error={saveFileParser.error}
+                    isGlobalDragActive={isDragging}
+                />
+            )}
         </>
     );
 }
