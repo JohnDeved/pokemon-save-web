@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../lib/utils';
 import type { PokemonStatusProps } from '../../types';
 import { Card } from '../common';
 
@@ -28,12 +29,12 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
     };
 
     return (
-        <Card className={`flex items-center p-3 transition-all duration-300 ${containerClasses}`}>
+        <Card className={cn("flex items-center p-3 transition-all duration-300", containerClasses)}>
             <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center">
                 <img 
                     src={pokemon.spriteUrl} 
                     alt={pokemon.nickname} 
-                    className={`w-full h-full object-contain transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
+                    className={cn("w-full h-full object-contain transition-transform duration-300", isActive ? 'scale-110' : 'group-hover:scale-110')}
                     style={{ filter: 'drop-shadow(0px 4px 3px rgba(0,0,0,0.5)) drop-shadow(0px 0px 6px rgba(255, 255, 255, 0.15))' }}
                     onError={handleImageError}
                 />
@@ -44,7 +45,7 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
                     <span className="text-slate-300">Lv.{pokemon.level}</span>
                 </div>
                 <div className="w-full bg-slate-900/70 rounded-full h-2.5 mt-2 overflow-hidden">
-                    <div className={`bg-gradient-to-r ${hpColor} h-full rounded-full transition-all duration-500`} style={{ width: `${hpPercentage}%` }}></div>
+                    <div className={cn("bg-gradient-to-r h-full rounded-full transition-all duration-500", hpColor)} style={{ width: `${hpPercentage}%` }}></div>
                 </div>
                 <p className="text-right text-xs mt-1 text-slate-400">{pokemon.currentHp}/{pokemon.maxHp}</p>
             </div>

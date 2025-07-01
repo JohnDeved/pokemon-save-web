@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../lib/utils';
 import type { TypeBadgeProps } from '../../types';
 
 // Type-safe mapping for Pokemon type colors
@@ -31,7 +32,7 @@ export const PokemonTypeBadge: React.FC<TypeBadgeProps> = ({ type, isLarge = fal
     const sizeClasses = isLarge ? 'px-3 py-1 text-[10px]' : 'px-2 py-1 text-[8px]';
     
     return (
-        <div className={`inline-flex items-center justify-center gap-1.5 rounded-md text-white bg-gradient-to-br ${colorClass} ${sizeClasses} shadow-md`}>
+        <div className={cn("inline-flex items-center justify-center gap-1.5 rounded-md text-white bg-gradient-to-br shadow-md", colorClass, sizeClasses)}>
             <img src={iconUrl} alt={`${type} type icon`} className="w-3 h-3" />
             <span>{type.toUpperCase()}</span>
         </div>

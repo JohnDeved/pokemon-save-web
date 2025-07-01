@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { cn } from '../../lib/utils';
 
 interface ScrollableContainerProps {
     children: React.ReactNode;
@@ -55,7 +56,7 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
     }[scrollState];
 
     return (
-        <div ref={containerRef} className={`scroll-container ${className} ${fadeClass}`}>
+        <div ref={containerRef} className={cn("scroll-container", className, fadeClass)}>
             {children}
         </div>
     );

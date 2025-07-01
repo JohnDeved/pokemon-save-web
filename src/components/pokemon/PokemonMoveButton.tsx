@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../lib/utils';
 import type { MoveButtonProps } from '../../types';
 import { PokemonTypeBadge } from './PokemonTypeBadge';
 import { ScrollableContainer } from '../common';
@@ -10,7 +11,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
     const animationY = opensUpward ? 10 : -10;
 
     return (
-        <motion.div layout className={`relative ${isExpanded ? 'z-20' : 'z-0'}`}>
+        <motion.div layout className={cn("relative", isExpanded ? 'z-20' : 'z-0')}>
             <div className="w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200">
                 <div className="flex items-center justify-between">
                     <span className="text-sm text-white">{move.name}</span>
@@ -28,7 +29,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: animationY }}
                         transition={{ type: "spring", stiffness: 400, damping: 40 }}
-                        className={`absolute ${popoverDirectionClass} left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-700 rounded-lg shadow-xl text-xs`}
+                        className={cn("absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-700 rounded-lg shadow-xl text-xs", popoverDirectionClass)}
                     >
                         <div className="flex justify-between text-slate-400 mb-2 pb-2 border-b border-slate-700/50">
                             <div>Power: <div className="text-white">{move.power ?? '—'}</div></div>
