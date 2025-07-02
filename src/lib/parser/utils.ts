@@ -109,8 +109,7 @@ export function getNatureModifier(nature: string, statIndex: number): number {
  * @returns An array of calculated total stats
  */
 export function calculateTotalStats(pokemon: PokemonData, baseStats: number[]): number[] {
-  const { level, ivs, evs } = pokemon;
-  const nature = getPokemonNature(pokemon.personality);
+  const { level, ivs, evs, nature } = pokemon;
 
   // HP calculation
   const hp = Math.floor(((2 * baseStats[0] + ivs[0] + Math.floor(evs[0] / 4)) * level) / 100) + level + 10;
