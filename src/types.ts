@@ -62,13 +62,6 @@ export interface MoveButtonProps {
     opensUpward: boolean;
 }
 
-export interface StatDisplayProps {
-    ivs: readonly number[];
-    evs: readonly number[];
-    baseStats: readonly number[];
-    totalStats: readonly number[];
-}
-
 export interface Ability {
     name: string;
     description: string;

@@ -62,23 +62,30 @@ export function formatPlayTime(hours: number, minutes: number, seconds: number):
   return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
+export const natures = [
+  'Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty',
+  'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax',
+  'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive',
+  'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash',
+  'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky'
+] as const;
 /**
  * Get Pokemon nature from the first byte of the personality value
  * Pokemon nature is determined by (personality & 0xFF) % 25
  */
 export function getPokemonNature(personality: number): string {
-  const natures = [
-    'Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty',
-    'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax',
-    'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive',
-    'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash',
-    'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky'
-  ];
 
   // Use only the first byte of the personality value
   return natures[(personality & 0xFF) % 25];
 }
 
+export const natureEffects: { [key: string]: { increased: number, decreased: number } } = {
+  'Lonely': { increased: 1, decreased: 2 }, 'Brave': { increased: 1, decreased: 3 }, 'Adamant': { increased: 1, decreased: 4 }, 'Naughty': { increased: 1, decreased: 5 },
+  'Bold': { increased: 2, decreased: 1 }, 'Relaxed': { increased: 2, decreased: 3 }, 'Impish': { increased: 2, decreased: 4 }, 'Lax': { increased: 2, decreased: 5 },
+  'Timid': { increased: 3, decreased: 1 }, 'Hasty': { increased: 3, decreased: 2 }, 'Jolly': { increased: 3, decreased: 4 }, 'Naive': { increased: 3, decreased: 5 },
+  'Modest': { increased: 4, decreased: 1 }, 'Mild': { increased: 4, decreased: 2 }, 'Quiet': { increased: 4, decreased: 3 }, 'Rash': { increased: 4, decreased: 5 },
+  'Calm': { increased: 5, decreased: 1 }, 'Gentle': { increased: 5, decreased: 2 }, 'Sassy': { increased: 5, decreased: 3 }, 'Careful': { increased: 5, decreased: 4 },
+};
 /**
  * Get nature modifier for a given stat
  * @param nature The Pokemon's nature
@@ -86,13 +93,6 @@ export function getPokemonNature(personality: number): string {
  * @returns The stat modifier (1.1, 0.9, or 1.0)
  */
 export function getNatureModifier(nature: string, statIndex: number): number {
-  const natureEffects: { [key: string]: { increased: number, decreased: number } } = {
-    'Lonely': { increased: 1, decreased: 2 }, 'Brave': { increased: 1, decreased: 3 }, 'Adamant': { increased: 1, decreased: 4 }, 'Naughty': { increased: 1, decreased: 5 },
-    'Bold': { increased: 2, decreased: 1 }, 'Relaxed': { increased: 2, decreased: 3 }, 'Impish': { increased: 2, decreased: 4 }, 'Lax': { increased: 2, decreased: 5 },
-    'Timid': { increased: 3, decreased: 1 }, 'Hasty': { increased: 3, decreased: 2 }, 'Jolly': { increased: 3, decreased: 4 }, 'Naive': { increased: 3, decreased: 5 },
-    'Modest': { increased: 4, decreased: 1 }, 'Mild': { increased: 4, decreased: 2 }, 'Quiet': { increased: 4, decreased: 3 }, 'Rash': { increased: 4, decreased: 5 },
-    'Calm': { increased: 5, decreased: 1 }, 'Gentle': { increased: 5, decreased: 2 }, 'Sassy': { increased: 5, decreased: 3 }, 'Careful': { increased: 5, decreased: 4 },
-  };
 
   const effect = natureEffects[nature];
   if (effect) {

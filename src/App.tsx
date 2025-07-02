@@ -72,10 +72,7 @@ export default function App() {
                             </Card>
                             <Card className="z-20">
                                 <PokemonStatDisplay 
-                                    ivs={activePokemon?.data.ivs} 
-                                    evs={activePokemon?.data.evs} 
-                                    baseStats={activePokemon?.baseStats}
-                                    totalStats={activePokemon?.data.stats}
+                                    pokemon={activePokemon}
                                     isLoading={!activePokemon || !activePokemonDetails || isLoading}
                                 />
                             </Card>                            
