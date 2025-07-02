@@ -18,9 +18,22 @@ for (const [key, value] of Object.entries(charmapData)) {
  */
 export function bytesToGbaString(bytes: Uint8Array): string {
   let result = '';
-  for (const byte of bytes) {
-    // Check for string terminators
-    if (byte === 0x00 || byte === 0xFF) break;
+  
+  // Pokemon strings are fixed-length fields padded with 0xFF bytes at the end
+  // We need to find the end of the actual string content by looking for trailing 0xFF bytes
+  let endIndex = bytes.length;
+  
+  // Find the last non-0xFF byte to determine actual string length
+  for (let i = bytes.length - 1; i >= 0; i--) {
+    if (bytes[i] !== 0xFF) {
+      endIndex = i + 1;
+      break;
+    }
+  }
+  
+  // Process only the actual string content (before padding)
+  for (let i = 0; i < endIndex; i++) {
+    const byte = bytes[i];
     
     // Look up character in charmap
     const char = charmap[byte];
@@ -37,6 +50,7 @@ export function bytesToGbaString(bytes: Uint8Array): string {
     }
     // If character not found in charmap, skip it (could log for debugging)
   }
+  
   return result.trim();
 }
 

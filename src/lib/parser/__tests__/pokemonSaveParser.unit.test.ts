@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { PokemonSaveParser } from '../pokemonSaveParser';
 import { CONSTANTS } from '../types';
+import { bytesToGbaString } from '../utils';
 
 describe('PokemonSaveParser - Unit Tests', () => {
   let parser: PokemonSaveParser;
@@ -113,6 +114,44 @@ describe('PokemonSaveParser - Unit Tests', () => {
         // Expected to fail with mock data, but the slot logic should be tested
         expect(error).toBeDefined();
       }
+    });
+  });
+
+  describe('Text Decoding', () => {
+    it('should decode nicknames with spaces correctly', () => {
+      // Test case 1: "my mon" using byte 0 for space (full-width space as used in Pokemon)
+      // Character mappings: 'm' = 225, 'y' = 237, ' ' = 0 (full-width), 'o' = 227, 'n' = 226
+      const nickname1 = new Uint8Array([225, 237, 0, 225, 227, 226, 0xFF, 0xFF, 0xFF, 0xFF]);
+      expect(bytesToGbaString(nickname1)).toBe('my　mon'); // Note: full-width space
+
+      // Test case 2: "A B" using uppercase letters with full-width space
+      // Character mappings: 'A' = 187, ' ' = 0 (full-width), 'B' = 188
+      const nickname2 = new Uint8Array([187, 0, 188, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+      expect(bytesToGbaString(nickname2)).toBe('A　B'); // Note: full-width space
+
+      // Test case 3: Regular name without spaces
+      const nickname3 = new Uint8Array([187, 188, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+      expect(bytesToGbaString(nickname3)).toBe('AB');
+
+      // Test case 4: If regular ASCII space is actually used (byte 255 from charmap)
+      // This might be the case if the charmap is correct
+      const nickname4 = new Uint8Array([225, 237, 255, 225, 227, 226]);
+      // Since we now know 255 is in the charmap as a space, let's see what happens
+      expect(bytesToGbaString(nickname4)).toBe('my mon');
+    });
+
+    it('should handle edge cases in text decoding', () => {
+      // Empty string (just padding)
+      const empty = new Uint8Array([0xFF, 0xFF, 0xFF, 0xFF]);
+      expect(bytesToGbaString(empty)).toBe('');
+
+      // String with no padding
+      const noPadding = new Uint8Array([187, 188]); // "AB"
+      expect(bytesToGbaString(noPadding)).toBe('AB');
+
+      // String with control characters that should be skipped
+      const withControl = new Uint8Array([187, 250, 188, 0xFF]); // "A[line break]B" - should skip line break
+      expect(bytesToGbaString(withControl)).toBe('AB');
     });
   });
 });
