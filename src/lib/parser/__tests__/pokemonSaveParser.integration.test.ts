@@ -15,18 +15,6 @@ import type { SaveData } from '../types';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Interfaces for PokeAPI response
-interface PokeApiStat {
-  base_stat: number;
-  stat: {
-    name: string;
-  };
-}
-
-interface StatMap {
-  [key: string]: number;
-}
-
 describe('PokemonSaveParser - Integration Tests', () => {
   let parser: PokemonSaveParser;
   let testSaveData: ArrayBuffer;
@@ -66,202 +54,113 @@ describe('PokemonSaveParser - Integration Tests', () => {
     let parsedData: SaveData;
 
     beforeAll(async () => {
-      if (!testSaveData) {
-        console.warn('Skipping integration tests - test data not available');
-        return;
-      }
-      
-      try {
-        parsedData = await parser.parseSaveFile(testSaveData);
-        console.log('Save file parsed successfully');
-      } catch (error) {
-        console.error('Failed to parse save file:', error);
-        throw error;
-      }
+      if (!testSaveData) return;
+      parsedData = await parser.parseSaveFile(testSaveData);
     });
 
     it('should calculate stats correctly for all party pokemon', async () => {
-      if (!parsedData || !groundTruth) {
-        console.warn('Skipping test - no data available');
-        return;
+      if (!parsedData || !groundTruth) return;
+      const fs = await import('fs');
+      const path = await import('path');
+      const cachePath = path.resolve(__dirname, 'test_data', 'base_stats_cache.json');
+      let baseStatsCache: Record<number, number[]> = {};
+      if (fs.existsSync(cachePath)) {
+        baseStatsCache = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
       }
-
-      for (const pokemon of parsedData.party_pokemon) {
-        const speciesId = pokemon.speciesId;
-
-        // Fetch base stats from PokéAPI
-        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
-        if (!response.ok) {
-          console.warn(`Could not fetch base stats for species ${speciesId}`);
-          continue; // Skip this pokemon if API fails
+      const speciesIds = Array.from(new Set(parsedData.party_pokemon.map(p => p.speciesId)));
+      const missing = speciesIds.filter(id => !baseStatsCache[id]);
+      if (missing.length > 0) {
+        for (const speciesId of missing) {
+          const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
+          if (!response.ok) continue;
+          const speciesData = await response.json();
+          const apiStats = speciesData.stats.reduce((acc: Record<string, number>, stat: { stat: { name: string }, base_stat: number }) => {
+            acc[stat.stat.name] = stat.base_stat;
+            return acc;
+          }, {} as Record<string, number>);
+          baseStatsCache[speciesId] = [
+            apiStats['hp'],
+            apiStats['attack'],
+            apiStats['defense'],
+            apiStats['speed'],
+            apiStats['special-attack'],
+            apiStats['special-defense'],
+          ];
         }
-        const speciesData = await response.json();
-        
-        // The order of stats from PokéAPI is different from what we use.
-        // PokéAPI: hp, attack, defense, special-attack, special-defense, speed
-        // Our app: HP, Attack, Defense, Speed, Sp. Attack, Sp. Defense
-        const apiStats = speciesData.stats.reduce((acc: StatMap, stat: PokeApiStat) => {
-          acc[stat.stat.name] = stat.base_stat;
-          return acc;
-        }, {} as StatMap);
-
-        const baseStats = [
-          apiStats['hp'],
-          apiStats['attack'],
-          apiStats['defense'],
-          apiStats['speed'],
-          apiStats['special-attack'],
-          apiStats['special-defense'],
-        ];
-
-        const calculatedStats = calculateTotalStats(pokemon, baseStats);
-
-        // Compare stats with a tolerance for small rounding differences
-        calculatedStats.forEach((stat, index) => {
-          if (Math.abs(stat - pokemon.statsArray[index]) > 0.5) {
-            console.log(`Stat mismatch for ${pokemon.nickname} (species: ${pokemon.speciesId})`);
-            console.log(`Stat index: ${index} (${['HP', 'Attack', 'Defense', 'Speed', 'Sp. Attack', 'Sp. Defense'][index]})`);
-            console.log(`Calculated: ${stat}, From Save: ${pokemon.statsArray[index]}`);
-            console.log('Base Stats:', baseStats);
-            console.log('IVs:', pokemon.ivs);
-            console.log('EVs:', pokemon.evs);
-            console.log('Level:', pokemon.level);
-            console.log('Nature:', pokemon.nature);
-          }
-          expect(stat).toBeCloseTo(pokemon.statsArray[index], 0);
-        });
+        fs.writeFileSync(cachePath, JSON.stringify(baseStatsCache, null, 2));
+      }
+      for (const pokemon of parsedData.party_pokemon) {
+        const baseStats = baseStatsCache[pokemon.speciesId];
+        if (!baseStats) continue;
+        expect(calculateTotalStats(pokemon, baseStats)).toEqual(pokemon.statsArray);
       }
     });
 
     it('should parse player information correctly', () => {
-      if (!parsedData || !groundTruth) {
-        console.warn('Skipping test - no data available');
-        return;
-      }
-      
+      if (!parsedData || !groundTruth) return;
       expect(parsedData.player_name).toBe(groundTruth.player_name);
-      expect(parsedData.play_time.hours).toBe(groundTruth.play_time.hours);
-      expect(parsedData.play_time.minutes).toBe(groundTruth.play_time.minutes);
-      expect(parsedData.play_time.seconds).toBe(groundTruth.play_time.seconds);
+      expect(parsedData.play_time).toEqual(groundTruth.play_time);
       expect(parsedData.active_slot).toBe(groundTruth.active_slot);
     });
 
     it('should parse Pokemon party correctly', () => {
-      if (!parsedData || !groundTruth) {
-        console.warn('Skipping test - no data available');
-        return;
-      }
-      
+      if (!parsedData || !groundTruth) return;
       expect(parsedData.party_pokemon).toHaveLength(groundTruth.party_pokemon.length);
-      
-      // Test first Pokemon in detail
       if (parsedData.party_pokemon.length > 0) {
-        const firstPokemon = parsedData.party_pokemon[0];
-        const expectedPokemon = groundTruth.party_pokemon[0];
-        
-        expect(firstPokemon.speciesId).toBe(expectedPokemon.speciesId);
-        expect(firstPokemon.level).toBe(expectedPokemon.level);
-        expect(firstPokemon.personality).toBe(expectedPokemon.personality);
-        expect(firstPokemon.currentHp).toBe(expectedPokemon.currentHp);
-        expect(firstPokemon.maxHp).toBe(expectedPokemon.maxHp);
-        
-        // Test moves
-        expect(firstPokemon.move1).toBe(expectedPokemon.move1);
-        expect(firstPokemon.move2).toBe(expectedPokemon.move2);
-        expect(firstPokemon.move3).toBe(expectedPokemon.move3);
-        expect(firstPokemon.move4).toBe(expectedPokemon.move4);
-        
-        // Test EVs
-        expect(firstPokemon.hpEV).toBe(expectedPokemon.hpEV);
-        expect(firstPokemon.atkEV).toBe(expectedPokemon.atkEV);
-        expect(firstPokemon.defEV).toBe(expectedPokemon.defEV);
-        expect(firstPokemon.speEV).toBe(expectedPokemon.speEV);
-        expect(firstPokemon.spaEV).toBe(expectedPokemon.spaEV);
-        expect(firstPokemon.spdEV).toBe(expectedPokemon.spdEV);
-        
-        // Test IVs
-        expect([...firstPokemon.ivs]).toEqual(expectedPokemon.ivs);
-        
-        console.log('First Pokemon validation passed:', {
-          species: firstPokemon.speciesId,
-          level: firstPokemon.level,
-          hp: `${firstPokemon.currentHp}/${firstPokemon.maxHp}`
-        });
+        const first = parsedData.party_pokemon[0];
+        const expected = groundTruth.party_pokemon[0];
+        expect(first.speciesId).toBe(expected.speciesId);
+        expect(first.level).toBe(expected.level);
+        expect(first.personality).toBe(expected.personality);
+        expect(first.currentHp).toBe(expected.currentHp);
+        expect(first.maxHp).toBe(expected.maxHp);
+        expect([first.move1, first.move2, first.move3, first.move4]).toEqual([
+          expected.move1, expected.move2, expected.move3, expected.move4
+        ]);
+        expect([
+          first.hpEV, first.atkEV, first.defEV, first.speEV, first.spaEV, first.spdEV
+        ]).toEqual([
+          expected.hpEV, expected.atkEV, expected.defEV, expected.speEV, expected.spaEV, expected.spdEV
+        ]);
+        expect([...first.ivs]).toEqual(expected.ivs);
       }
     });
 
     it('should parse all Pokemon consistently', () => {
-      if (!parsedData || !groundTruth) {
-        console.warn('Skipping test - no data available');
-        return;
-      }
-      
-      parsedData.party_pokemon.forEach((pokemon, index) => {
-        const expected = groundTruth.party_pokemon[index];
-        
-        // Core data should match exactly
-        expect(pokemon.speciesId).toBe(expected.speciesId);
-        expect(pokemon.level).toBe(expected.level);
-        expect(pokemon.personality).toBe(expected.personality);
-        expect(pokemon.otId).toBe(expected.otId);
-        
-        // Stats should match
-        expect(pokemon.maxHp).toBe(expected.maxHp);
-        expect(pokemon.attack).toBe(expected.attack);
-        expect(pokemon.defense).toBe(expected.defense);
-        expect(pokemon.speed).toBe(expected.speed);
-        expect(pokemon.spAttack).toBe(expected.spAttack);
-        expect(pokemon.spDefense).toBe(expected.spDefense);
-        
-        console.log(`Pokemon ${index + 1} validation passed`);
+      if (!parsedData || !groundTruth) return;
+      parsedData.party_pokemon.forEach((p, i) => {
+        const e = groundTruth.party_pokemon[i];
+        expect(p.speciesId).toBe(e.speciesId);
+        expect(p.level).toBe(e.level);
+        expect(p.personality).toBe(e.personality);
+        expect(p.otId).toBe(e.otId);
+        expect([
+          p.maxHp, p.attack, p.defense, p.speed, p.spAttack, p.spDefense
+        ]).toEqual([
+          e.maxHp, e.attack, e.defense, e.speed, e.spAttack, e.spDefense
+        ]);
       });
     });
 
     it('should have valid sector mapping', () => {
-      if (!parsedData || !groundTruth) {
-        console.warn('Skipping test - no data available');
-        return;
-      }
-      
-      // Check that we have the expected sectors
+      if (!parsedData || !groundTruth) return;
       expect(parsedData.sector_map.size).toBeGreaterThan(0);
-      
-      // Convert ground truth sector map (string keys) to number keys for comparison
-      const expectedSectorMap = new Map();
-      Object.entries(groundTruth.sector_map).forEach(([key, value]) => {
-        expectedSectorMap.set(parseInt(key), value);
-      });
-      
+      const expectedSectorMap = new Map(
+        Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v])
+      );
       expect(parsedData.sector_map).toEqual(expectedSectorMap);
-      
-      console.log('Sector map validation passed:', {
-        sectors: parsedData.sector_map.size,
-        activeSlot: parsedData.active_slot
-      });
     });
   });
 
   describe('Data Structure Validation', () => {
     it('should create properly structured Pokemon data', async () => {
-      if (!testSaveData) {
-        console.warn('Skipping test - no test data available');
-        return;
-      }
-      
+      if (!testSaveData) return;
       const result = await parser.parseSaveFile(testSaveData);
-      
-      result.party_pokemon.forEach((pokemon, index) => {
-        // Check that structured data is present
-        expect(pokemon.moves_data).toBeDefined();
-        
-        // Check that arrays have correct length
-        expect(pokemon.evs).toHaveLength(6);
-        expect(pokemon.ivs).toHaveLength(6);
-        
-        // Check that OT ID is formatted correctly
-        expect(pokemon.otId_str).toMatch(/^\d{5}$/);
-        
-        console.log(`Pokemon ${index + 1} structure validation passed`);
+      result.party_pokemon.forEach((p) => {
+        expect(p.moves_data).toBeDefined();
+        expect(p.evs).toHaveLength(6);
+        expect(p.ivs).toHaveLength(6);
+        expect(p.otId_str).toMatch(/^[0-9]{5}$/);
       });
     });
   });
