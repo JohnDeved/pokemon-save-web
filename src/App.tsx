@@ -74,8 +74,8 @@ export default function App() {
                             onPokemonSelect={setActivePokemonId}
                             isRenaming={isRenaming}
                         />
-                        <div className="grid grid-rows-[auto_auto_1fr] gap-4 min-h-0">
-                            <Card className="z-30 relative">
+                        <div className="grid grid-rows-[auto_auto_1fr] gap-4">
+                            <Card className="z-30">
                                 <PokemonHeader
                                     pokemon={activePokemon}
                                     pokemonDetails={activePokemonDetails || undefined}
@@ -95,7 +95,7 @@ export default function App() {
                                     isLoading={!activePokemon || !activePokemonDetails || isLoading}
                                 />
                             </Card>
-                            <Card className="p-4 relative z-20">
+                            <Card className="z-20">
                                 <PokemonStatDisplay 
                                     ivs={activePokemon?.data.ivs} 
                                     evs={activePokemon?.data.evs} 
@@ -103,11 +103,13 @@ export default function App() {
                                     totalStats={activePokemon?.data.stats}
                                     isLoading={!activePokemon || !activePokemonDetails || isLoading}
                                 />
+                            </Card>                            
+                            <Card className="z-10">
+                                <PokemonAbilitySection 
+                                    ability={activePokemonDetails?.ability}
+                                    isLoading={!activePokemon || !activePokemonDetails || isLoading}
+                                />
                             </Card>
-                            <PokemonAbilitySection 
-                                ability={activePokemonDetails?.ability}
-                                isLoading={!activePokemon || !activePokemonDetails || isLoading}
-                            />
                         </div>
                     </main>
                 )}

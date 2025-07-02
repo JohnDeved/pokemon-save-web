@@ -47,7 +47,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
     }
 
     return (
-        <div className="space-y-3 text-xs">
+        <div className="p-4 space-y-2 text-xs">
             <div className="grid grid-cols-10 gap-2 text-slate-400">
                 <div className="col-span-1">STAT</div>
                 <div className="col-span-5 text-end">IV</div>
