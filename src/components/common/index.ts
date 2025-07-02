@@ -1,4 +1,4 @@
-import { SkeletonText, SkeletonBox, SkeletonButton, SkeletonDiv, SkeletonImage, SkeletonLoadingProvider } from './Skeleton';
+import { SkeletonText, SkeletonBox, SkeletonButton, SkeletonImage, SkeletonLoadingProvider, SkeletonContainer } from './Skeleton';
 
 export { ScrollableContainer } from './ScrollableContainer';
 export { Card } from './Card';
@@ -7,10 +7,9 @@ const Skeleton = {
   Text: SkeletonText,
   Box: SkeletonBox,
   Button: SkeletonButton,
-  Div: SkeletonDiv, // Renamed for clarity
-  Container: SkeletonDiv,
   Image: SkeletonImage,
   LoadingProvider: SkeletonLoadingProvider,
+  Container: SkeletonContainer
 }
 
 export { Skeleton };

@@ -44,10 +44,10 @@ export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({
                                     <Skeleton.Text className="text-sm text-white">Move Name</Skeleton.Text>
                                 </div>
                                 <div className="flex items-center justify-between mt-2">
-                                    <Skeleton.Div className="inline-flex items-center justify-center gap-1.5 rounded-md text-white bg-gradient-to-br px-2 py-1 text-[8px] shadow-md">
+                                    <div className="inline-flex items-center justify-center gap-1.5 rounded-md text-white bg-gradient-to-br px-2 py-1 text-[8px] shadow-md">
                                         <Skeleton.Image className="w-3 h-3" />
                                         <Skeleton.Text>TYPE</Skeleton.Text>
-                                    </Skeleton.Div>
+                                    </div>
                                     <Skeleton.Text className="text-xs text-slate-300">25/25</Skeleton.Text>
                                 </div>
                             </div>

@@ -79,26 +79,35 @@ export const SkeletonButton = ({ children, className, loading, ...props }: Skele
   );
 };
 
-// Image skeleton that maintains aspect ratio
-export const SkeletonImage = ({ className, loading, children, ...props }: SkeletonProps) => {
+// Image skeleton that maintains aspect ratio and forwards img props
+export const SkeletonImage = ({ className, loading, ...props }: SkeletonProps & React.ImgHTMLAttributes<HTMLImageElement>) => {
   const isLoading = useSkeletonLoading(loading);
   if (!isLoading) {
-    return <>{children}</>;
+    // Render actual image with all img props
+    return <img className={className} {...props} />;
   }
+  // Render skeleton placeholder
   return (
     <div 
       className={cn("bg-slate-700/50 animate-pulse", className)}
-      {...props}
+      style={{ aspectRatio: props.width && props.height ? `${props.width} / ${props.height}` : undefined, ...props.style }}
     />
   );
 };
 
-// Container that preserves layout exactly
-export const SkeletonDiv = ({ className, children, ...props }: SkeletonProps) => (
-  <div className={className} {...props}>
-    {children}
-  </div>
-);
+// with the Container we just take the children, but make them invisible and non-interactive, then make the container itself pulse with the skeleton class
+export const SkeletonContainer = ({ className, children, loading, ...props }: SkeletonProps) => {
+  const isLoading = useSkeletonLoading(loading);
+  if (!isLoading) {
+    return <div className={className} {...props}>{children}</div>;
+  }
+
+  return (
+    <div className={cn(className, "bg-slate-700/50 animate-pulse children-invisible rounded border-none")}>
+      {children}
+    </div>
+  );
+}
 
 /*
 Usage example for SkeletonLoadingProvider context:

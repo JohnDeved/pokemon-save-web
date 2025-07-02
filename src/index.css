@@ -47,3 +47,9 @@
     mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
     mask-composite: add;
 }
+
+@layer utilities {
+  .children-invisible > * {
+    visibility: hidden;
+  }
+}
