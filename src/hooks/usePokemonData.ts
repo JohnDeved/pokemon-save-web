@@ -151,14 +151,6 @@ export const usePokemonData = () => {
         return () => { cancelled = true; };
     }, [activePokemon, detailedCache]);
 
-    const updatePokemonNickname = (pokemonId: number, newNickname: string) => {
-        setPartyList(prevList =>
-            prevList.map(p =>
-                p.id === pokemonId ? { ...p, nickname: newNickname } : p
-            )
-        );
-    };
-
     return {
         partyList,
         activePokemonId,
@@ -166,7 +158,6 @@ export const usePokemonData = () => {
         activePokemon,
         detailedCache,
         isLoading,
-        updatePokemonNickname,
         saveFileParser,
     };
 };

@@ -8,7 +8,7 @@ import {
     PokemonAbilitySection,
     SaveFileDropzone
 } from './components/pokemon';
-import { usePokemonData, usePokemonRenaming } from './hooks';
+import { usePokemonData } from './hooks';
 
 // Dynamically import ShaderBackground to code-split heavy 3D dependencies
 const ShaderBackground = lazy(() => 
@@ -25,28 +25,10 @@ export default function App() {
         activePokemon,
         detailedCache,
         isLoading,
-        updatePokemonNickname,
         saveFileParser
     } = usePokemonData();
 
     const [expandedMoveName, setExpandedMoveName] = useState<string | null>(null);
-
-    const {
-        isRenaming,
-        renameInput,
-        setRenameInput,
-        handleStartEditing,
-        handleConfirmRename,
-        handleCancelRename,
-        handleKeyDown
-    } = usePokemonRenaming(
-        activePokemon?.data.nickname || '',
-        (newName) => {
-            if (activePokemon) {
-                updatePokemonNickname(activePokemon.id, newName);
-            }
-        }
-    );
 
     const activePokemonDetails = activePokemon ? detailedCache[activePokemon.data.speciesId] : null;
     
@@ -72,21 +54,14 @@ export default function App() {
                             partyList={partyList}
                             activePokemonId={activePokemonId}
                             onPokemonSelect={setActivePokemonId}
-                            isRenaming={isRenaming}
+                            isRenaming={false}
                         />
                         <div className="grid grid-rows-[auto_auto_1fr] gap-4">
                             <Card className="z-30">
                                 <PokemonHeader
                                     pokemon={activePokemon}
                                     pokemonDetails={activePokemonDetails || undefined}
-                                    isRenaming={isRenaming}
-                                    renameInput={renameInput}
-                                    onStartRename={handleStartEditing}
-                                    onConfirmRename={handleConfirmRename}
-                                    onCancelRename={handleCancelRename}
-                                    onRenameInputChange={setRenameInput}
-                                    onKeyDown={handleKeyDown}
-                                    isLoading={!activePokemon || !activePokemonDetails || isLoading}
+                                    isLoading={isLoading}
                                 />
                                 <PokemonMovesSection
                                     moves={activePokemonDetails?.moves}
