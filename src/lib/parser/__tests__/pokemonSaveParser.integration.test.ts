@@ -8,11 +8,24 @@ import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { PokemonSaveParser } from '../pokemonSaveParser';
+import { calculateTotalStats } from '../utils';
 import type { SaveData } from '../types';
 
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Interfaces for PokeAPI response
+interface PokeApiStat {
+  base_stat: number;
+  stat: {
+    name: string;
+  };
+}
+
+interface StatMap {
+  [key: string]: number;
+}
 
 describe('PokemonSaveParser - Integration Tests', () => {
   let parser: PokemonSaveParser;
@@ -64,6 +77,59 @@ describe('PokemonSaveParser - Integration Tests', () => {
       } catch (error) {
         console.error('Failed to parse save file:', error);
         throw error;
+      }
+    });
+
+    it('should calculate stats correctly for all party pokemon', async () => {
+      if (!parsedData || !groundTruth) {
+        console.warn('Skipping test - no data available');
+        return;
+      }
+
+      for (const pokemon of parsedData.party_pokemon) {
+        const speciesId = pokemon.speciesId;
+
+        // Fetch base stats from PokéAPI
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
+        if (!response.ok) {
+          console.warn(`Could not fetch base stats for species ${speciesId}`);
+          continue; // Skip this pokemon if API fails
+        }
+        const speciesData = await response.json();
+        
+        // The order of stats from PokéAPI is different from what we use.
+        // PokéAPI: hp, attack, defense, special-attack, special-defense, speed
+        // Our app: HP, Attack, Defense, Speed, Sp. Attack, Sp. Defense
+        const apiStats = speciesData.stats.reduce((acc: StatMap, stat: PokeApiStat) => {
+          acc[stat.stat.name] = stat.base_stat;
+          return acc;
+        }, {} as StatMap);
+
+        const baseStats = [
+          apiStats['hp'],
+          apiStats['attack'],
+          apiStats['defense'],
+          apiStats['speed'],
+          apiStats['special-attack'],
+          apiStats['special-defense'],
+        ];
+
+        const calculatedStats = calculateTotalStats(pokemon, baseStats);
+
+        // Compare stats with a tolerance for small rounding differences
+        calculatedStats.forEach((stat, index) => {
+          if (Math.abs(stat - pokemon.statsArray[index]) > 0.5) {
+            console.log(`Stat mismatch for ${pokemon.nickname} (species: ${pokemon.speciesId})`);
+            console.log(`Stat index: ${index} (${['HP', 'Attack', 'Defense', 'Speed', 'Sp. Attack', 'Sp. Defense'][index]})`);
+            console.log(`Calculated: ${stat}, From Save: ${pokemon.statsArray[index]}`);
+            console.log('Base Stats:', baseStats);
+            console.log('IVs:', pokemon.ivs);
+            console.log('EVs:', pokemon.evs);
+            console.log('Level:', pokemon.level);
+            console.log('Nature:', pokemon.nature);
+          }
+          expect(stat).toBeCloseTo(pokemon.statsArray[index], 0);
+        });
       }
     });
 
@@ -187,9 +253,6 @@ describe('PokemonSaveParser - Integration Tests', () => {
       result.party_pokemon.forEach((pokemon, index) => {
         // Check that structured data is present
         expect(pokemon.moves_data).toBeDefined();
-        expect(pokemon.evs_structured).toBeDefined();
-        expect(pokemon.ivs_structured).toBeDefined();
-        expect(pokemon.stats_structured).toBeDefined();
         
         // Check that arrays have correct length
         expect(pokemon.evs).toHaveLength(6);

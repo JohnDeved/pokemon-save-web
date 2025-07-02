@@ -6,18 +6,12 @@
 import {
   CONSTANTS,
   createPokemonMoves,
-  createPokemonEVs,
-  createPokemonIVs,
-  createPokemonStats,
   createMoveData,
 } from './types.js';
 
 import type {
   PlayTimeData,
   PokemonMoves,
-  PokemonEVs,
-  PokemonIVs,
-  PokemonStats,
   SectorInfo,
   SaveData,
   MoveData,
@@ -25,7 +19,7 @@ import type {
 
 // Import character map for decoding text
 import charMap from './pokemon_charmap.json';
-import { bytesToGbaString } from './utils';
+import { bytesToGbaString, getPokemonNature } from './utils';
 
 /**
  * DataView wrapper for little-endian operations with bounds checking
@@ -124,6 +118,9 @@ export class PokemonData {
   get otName(): string {
     return bytesToGbaString(this.otNameRaw);
   }
+  get nature(): string {
+    return getPokemonNature(this.personality);
+  }
   get stats(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];
   }
@@ -149,41 +146,17 @@ export class PokemonData {
   get evs(): readonly number[] {
     return [this.hpEV, this.atkEV, this.defEV, this.speEV, this.spaEV, this.spdEV];
   }
-  get evs_structured(): PokemonEVs {
-    return createPokemonEVs(
-      this.hpEV, this.atkEV, this.defEV,
-      this.speEV, this.spaEV, this.spdEV
-    );
-  }
   get ivs(): readonly number[] {
-    return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F);
-  }
-  get ivs_structured(): PokemonIVs {
-    const ivs = this.ivs;
-    return createPokemonIVs(
-      ivs[0], ivs[1], ivs[2], ivs[3], ivs[4], ivs[5]
-    );
-  }
-  get stats_structured(): PokemonStats {
-    return createPokemonStats(
-      this.maxHp, this.attack, this.defense,
-      this.speed, this.spAttack, this.spDefense
-    );
-  }
-  get evsArray(): readonly number[] {
-    return [this.hpEV, this.atkEV, this.defEV, this.speEV, this.spaEV, this.spdEV];
-  }
-  get ivsArray(): readonly number[] {
     return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F);
   }
   get statsArray(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];
   }
   get totalEVs(): number {
-    return this.evsArray.reduce((sum, ev) => sum + ev, 0);
+    return this.evs.reduce((sum, ev) => sum + ev, 0);
   }
   get totalIVs(): number {
-    return this.ivsArray.reduce((sum, iv) => sum + iv, 0);
+    return this.ivs.reduce((sum, iv) => sum + iv, 0);
   }
   get moveIds(): readonly number[] {
     return [this.move1, this.move2, this.move3, this.move4];
