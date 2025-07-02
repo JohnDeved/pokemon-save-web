@@ -1,12 +1,10 @@
 import React, { useCallback } from 'react';
-import type { FileRejection } from 'react-dropzone';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '../../lib/utils';
 
 interface SaveFileDropzoneProps {
   onFileLoad: (file: File) => void;
   error?: string | null;
-  setError: (error: string | null) => void;
   showDropzone: boolean;
 }
 
@@ -78,7 +76,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({
             style={{ imageRendering: 'pixelated' }}
           />
           <h2 className="text-2xl font-bold text-slate-100">
-            {isDragActive ? "Drop your save file to load!" : "Drop your Savegame here"}
+            {isDragActive ? "Drop your Savegame to load!" : "Drop your Savegame here"}
           </h2>
           {showDropzone && <p className="text-slate-400 mt-1">or click to browse</p>}
           <p className="text-xs text-slate-500 mt-2">Supported: .sav, .sa2</p>
