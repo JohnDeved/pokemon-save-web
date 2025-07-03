@@ -56,6 +56,36 @@ export function bytesToGbaString(bytes: Uint8Array): string {
 }
 
 /**
+ * Convert a string to a byte array using Pokemon GBA character encoding
+ * Uses the external charmap.json for accurate character conversion
+ * Pads with 0xFF to the specified length (default 10)
+ * @param str The string to encode
+ * @param length The fixed length of the output array (default 10)
+ * @returns Uint8Array of encoded bytes
+ */
+export function gbaStringToBytes(str: string, length = 10): Uint8Array {
+  // Build a reverse charmap: char -> byte
+  const reverseCharmap: { [char: string]: number } = {};
+  for (const [key, value] of Object.entries(charmap)) {
+    reverseCharmap[value] = Number(key);
+  }
+  const bytes = new Uint8Array(length).fill(0xFF);
+  let i = 0;
+  for (const char of str) {
+    if (i >= length) break;
+    // Find the byte for this character
+    const byte = reverseCharmap[char];
+    if (byte !== undefined) {
+      bytes[i++] = byte;
+    } else {
+      // If not found, use 0x00 (could also skip or use a placeholder)
+      bytes[i++] = 0x00;
+    }
+  }
+  return bytes;
+}
+
+/**
  * Format play time as a human-readable string
  */
 export function formatPlayTime(hours: number, minutes: number, seconds: number): string {

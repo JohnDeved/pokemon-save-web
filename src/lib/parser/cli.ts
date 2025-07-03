@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import PokemonSaveParser, { PokemonData } from './pokemonSaveParser';
 import type { SaveData } from './types';
+import { gbaStringToBytes } from './utils';
 
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [
@@ -139,6 +140,14 @@ const displayPartyPokemonGraph = (party: readonly PokemonData[]) => {
 const argv = process.argv;
 const debug = argv.includes('--debug');
 const graph = argv.includes('--graph');
+const toBytesArg = argv.find(arg => arg.startsWith('--toBytes='));
+if (toBytesArg) {
+  const str = toBytesArg.split('=')[1] || '';
+  const bytes = gbaStringToBytes(str, str.length + 1); // +1 for null terminator
+  console.log(`GBA bytes for "${str}":`);
+  console.log(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '));
+  process.exit(0);
+}
 const savePath = argv.find(arg=>arg.match(/\.sav$/i)&&fs.existsSync(path.resolve(arg)));
 if(!savePath){
   console.error('Usage: tsx cli.ts <savefile.sav> [--debug] [--graph]');
