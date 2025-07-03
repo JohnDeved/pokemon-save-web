@@ -1,12 +1,12 @@
-import React from 'react';
 import { Hash } from 'lucide-react';
-import { PokemonTypeBadge } from './PokemonTypeBadge';
+import React from 'react';
+import type { Pokemon, PokemonDetails } from '../../types';
 import { Skeleton } from '../common';
-import type { Pokemon, DetailedCache } from '../../types';
+import { PokemonTypeBadge } from './PokemonTypeBadge';
 
 interface PokemonHeaderProps {
     pokemon?: Pokemon;
-    pokemonDetails?: DetailedCache[number];
+    pokemonDetails?: PokemonDetails;
     isLoading?: boolean;
 }
 

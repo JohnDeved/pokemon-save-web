@@ -44,13 +44,14 @@ export interface MoveWithDetails extends BaseMove {
 }
 
 export interface Ability {
+    slot: number;
     name: string;
     description: string;
 }
 
 export interface PokemonDetails {
     types: PokemonType[];
-    ability: Ability;
+    abilities: Ability[];
     moves: MoveWithDetails[];
     baseStats: number[];
 }

@@ -99,6 +99,7 @@ export class PokemonData {
   get spaEV(): number { return this.view.getUint8(0x44); }
   get spdEV(): number { return this.view.getUint8(0x45); }
   get ivData(): number { return this.view.getUint32(0x50); }
+  get status(): number { return this.view.getUint8(0x57); }
   get level(): number { return this.view.getUint8(0x58); }
   get maxHp(): number { return this.view.getUint16(0x5A); }
   get attack(): number { return this.view.getUint16(0x5C); }
@@ -131,6 +132,12 @@ export class PokemonData {
       decreased: statStrings[decreased] || 'Unknown',
     };
 
+  }
+  get abilityNumber(): number {
+    // if 2nd bit of status is set, ability is 1
+    // if 3rd bit is set, ability is 2
+    // otherwise ability is 0
+    return (this.status & 16) ? 1 : (this.status & 32) ? 2 : 0;
   }
   get stats(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];

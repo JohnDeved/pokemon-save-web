@@ -75,8 +75,9 @@ export default function App() {
                                 />
                             </Card>                            
                             <Card className="z-10">
-                                <PokemonAbilitySection 
-                                    ability={activePokemonDetails?.ability}
+                                <PokemonAbilitySection
+                                    pokemon={activePokemon}
+                                    pokemonDetails={activePokemonDetails || undefined}
                                     isLoading={!activePokemon || !activePokemonDetails || isLoading}
                                 />
                             </Card>

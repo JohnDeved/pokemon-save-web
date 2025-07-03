@@ -64,15 +64,24 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
     const moveSources = [data.moves.move1, data.moves.move2, data.moves.move3, data.moves.move4];
     // Only fetch moves with id != 0, otherwise set to null
     const moveResults = await Promise.all(moveSources.map(move => move.id === 0 ? null : fetchMoveFromApi(move.id).catch(() => null)));
-    const abilityUrl = pokeData.abilities.find(a => !a.is_hidden)?.ability.url;
-    const abilityData = abilityUrl ? await fetchAbilityFromApi(abilityUrl).catch(() => null) : null;
+    // Fetch all abilities (not just the first non-hidden)
+    const abilityEntries = pokeData.abilities;
+    const abilities: Ability[] = await Promise.all(
+        abilityEntries.map(async (entry) => {
+            try {
+                const abilityData = await fetchAbilityFromApi(entry.ability.url);
+                return {
+                    slot: entry.slot,
+                    name: abilityData.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    description: abilityData.effect_entries?.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(abilityData.effect_chance || '')) || 'No description available.'
+                };
+            } catch {
+                return { slot: entry.slot, name: entry.ability.name, description: 'Could not fetch ability data.' };
+            }
+        })
+    );
     const types = pokeData.types.map(t => parsePokemonType(t.type.name));
     const baseStats = pokeData.stats.map(stat => stat.base_stat);
-
-    const ability: Ability = abilityData ? {
-        name: abilityData.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        description: abilityData.effect_entries?.find(e => e.language.name === 'en')?.effect.replace(/\$effect_chance/g, String(abilityData.effect_chance || '')) || 'No description available.'
-    } : { name: 'Unknown', description: 'Could not fetch ability data.' };
 
     const movesWithDetails: MoveWithDetails[] = moveSources.map((move, i) => {
         if (move.id === 0) {
@@ -80,7 +89,7 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
                 id: 0,
                 name: 'None',
                 pp: 0,
-                type: 'UNKNOWN', // Changed from 'NONE' to 'UNKNOWN' to match type
+                type: 'UNKNOWN',
                 description: 'No move assigned.',
                 power: null,
                 accuracy: null,
@@ -109,7 +118,7 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
         };
     });
     
-    return { types, ability, movesWithDetails, baseStats };
+    return { types, abilities, movesWithDetails, baseStats };
 }
 
 export const usePokemonData = () => {
@@ -148,9 +157,9 @@ export const usePokemonData = () => {
         (async () => {
             setIsLoading(true);
             try {
-                const { types, ability, movesWithDetails, baseStats } = await getPokemonDetails(activePokemon);
+                const { types, abilities, movesWithDetails, baseStats } = await getPokemonDetails(activePokemon);
                 if (cancelled) return;
-                setDetailedCache(prev => ({ ...prev, [activePokemon.data.speciesId]: { types, ability, moves: movesWithDetails, baseStats } }));
+                setDetailedCache(prev => ({ ...prev, [activePokemon.data.speciesId]: { types, abilities, moves: movesWithDetails, baseStats } }));
                 setPartyList(prevList => prevList.map(p =>
                     p.id === activePokemon.id ? {
                         ...p,
@@ -164,7 +173,7 @@ export const usePokemonData = () => {
                     ...prev,
                     [activePokemon.data.speciesId]: {
                         types: ['UNKNOWN'],
-                        ability: { name: 'Error', description: 'Could not fetch ability data.' },
+                        abilities: [{ slot: 1, name: 'Error', description: 'Could not fetch ability data.' }],
                         moves: getInitialMovesWithDetails(activePokemon.data.moves).map(m => ({ ...m, description: 'Could not load details.' })),
                         baseStats: [0, 0, 0, 0, 0, 0],
                     }
@@ -182,8 +191,8 @@ export const usePokemonData = () => {
         if (!pokemon) return;
         if (detailedCache[pokemon.data.speciesId]) return; // Already cached
         try {
-            const { types, ability, movesWithDetails, baseStats } = await getPokemonDetails(pokemon);
-            setDetailedCache(prev => ({ ...prev, [pokemon.data.speciesId]: { types, ability, moves: movesWithDetails, baseStats } }));
+            const { types, abilities, movesWithDetails, baseStats } = await getPokemonDetails(pokemon);
+            setDetailedCache(prev => ({ ...prev, [pokemon.data.speciesId]: { types, abilities, moves: movesWithDetails, baseStats } }));
             setPartyList(prevList => prevList.map(p =>
                 p.id === pokemon.id ? {
                     ...p,

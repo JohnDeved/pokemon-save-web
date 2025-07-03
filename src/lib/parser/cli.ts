@@ -12,6 +12,7 @@ const PARTY_COLUMNS = [
   { label: 'Dex ID', width: 8, value: (p: PokemonData) => p.speciesId?.toString() ?? '' },
   { label: 'Nickname', width: 12, value: (p: PokemonData) => p.nickname || '' },
   { label: 'Lv', width: 4, value: (p: PokemonData) => p.level?.toString() ?? '' },
+  { label: 'Ability', width: 8, value: (p: PokemonData) => p.abilityNumber.toString() }, 
   { label: 'Nature', width: 10, value: (p: PokemonData) => p.nature || '' },
   { label: 'HP', width: 30, value: (p: PokemonData) => {
     const hpBars = p.maxHp>0 ? Math.round(20*p.currentHp/p.maxHp):0;
