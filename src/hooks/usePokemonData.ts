@@ -151,6 +151,26 @@ export const usePokemonData = () => {
         return () => { cancelled = true; };
     }, [activePokemon, detailedCache]);
 
+    // Preload details for a given party member by id
+    const preloadPokemonDetails = async (id: number) => {
+        const pokemon = partyList.find(p => p.id === id);
+        if (!pokemon) return;
+        if (detailedCache[pokemon.data.speciesId]) return; // Already cached
+        try {
+            const { types, ability, movesWithDetails, baseStats } = await getPokemonDetails(pokemon);
+            setDetailedCache(prev => ({ ...prev, [pokemon.data.speciesId]: { types, ability, moves: movesWithDetails, baseStats } }));
+            setPartyList(prevList => prevList.map(p =>
+                p.id === pokemon.id ? {
+                    ...p,
+                    baseStats,
+                    movesWithDetails,
+                } : p
+            ));
+        } catch {
+            // Ignore errors for preloading
+        }
+    };
+
     return {
         partyList,
         activePokemonId,
@@ -159,5 +179,6 @@ export const usePokemonData = () => {
         detailedCache,
         isLoading,
         saveFileParser,
+        preloadPokemonDetails, // Expose preloading
     };
 };

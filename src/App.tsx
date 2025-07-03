@@ -25,7 +25,8 @@ export default function App() {
         activePokemon,
         detailedCache,
         isLoading,
-        saveFileParser
+        saveFileParser,
+        preloadPokemonDetails // Add preloading function
     } = usePokemonData();
 
     const [expandedMoveName, setExpandedMoveName] = useState<string | null>(null);
@@ -55,6 +56,7 @@ export default function App() {
                             activePokemonId={activePokemonId}
                             onPokemonSelect={setActivePokemonId}
                             isRenaming={false}
+                            onPokemonHover={preloadPokemonDetails} // Preload on hover
                         />
                         <div className="grid grid-rows-[auto_auto_1fr] gap-4">
                             <Card className="z-30">

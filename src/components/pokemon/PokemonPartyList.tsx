@@ -7,13 +7,15 @@ interface PokemonPartyListProps {
     activePokemonId: number;
     onPokemonSelect: (id: number) => void;
     isRenaming: boolean;
+    onPokemonHover?: (id: number) => void; // Added prop
 }
 
 export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
     partyList,
     activePokemonId,
     onPokemonSelect,
-    isRenaming
+    isRenaming,
+    onPokemonHover
 }) => {
     return (
         <section className="flex flex-col gap-4">
@@ -21,6 +23,7 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
                 <div 
                     key={pokemon.id} 
                     onClick={() => { if (!isRenaming) onPokemonSelect(pokemon.id); }} 
+                    onMouseEnter={() => { if (onPokemonHover) onPokemonHover(pokemon.id); }} // Preload on hover
                     className="cursor-pointer group"
                 >
                    <PokemonStatus pokemon={pokemon} isActive={pokemon.id === activePokemonId} />
