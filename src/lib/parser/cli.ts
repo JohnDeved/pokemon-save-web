@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import PokemonSaveParser, { PokemonData } from './pokemonSaveParser';
 import type { SaveData } from './types';
-import { gbaStringToBytes } from './utils';
+import { gbaStringToBytes, bytesToGbaString } from './utils';
 
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [
@@ -146,6 +146,22 @@ if (toBytesArg) {
   const bytes = gbaStringToBytes(str, str.length + 1); // +1 for null terminator
   console.log(`GBA bytes for "${str}":`);
   console.log(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '));
+  process.exit(0);
+}
+const toStringArg = argv.find(arg => arg.startsWith('--toString='));
+if (toStringArg) {
+  const hexStr = toStringArg.split('=')[1] || '';
+  // Accepts space or comma separated hex bytes
+  const bytes = new Uint8Array(
+    hexStr
+      .trim()
+      .split(/\s+|,/)
+      .filter(Boolean)
+      .map(b => parseInt(b, 16))
+  );
+  const str = bytesToGbaString(bytes);
+  console.log(`String for bytes [${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`);
+  console.log(str);
   process.exit(0);
 }
 const savePath = argv.find(arg=>arg.match(/\.sav$/i)&&fs.existsSync(path.resolve(arg)));
