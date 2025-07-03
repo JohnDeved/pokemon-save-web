@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "parse": "tsx src/lib/parser/cli.ts"
   },
   "dependencies": {
     "@million/lint": "^1.0.14",
