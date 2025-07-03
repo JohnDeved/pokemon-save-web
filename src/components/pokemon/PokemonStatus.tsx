@@ -50,8 +50,8 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
                     <h3 className="text-white">{pokemon.data.nickname}</h3>
                     <span className="text-slate-300">Lv.{pokemon.data.level}</span>
                 </div>
-                <div className="w-full bg-slate-900/70 rounded-full h-2.5 mt-2 overflow-hidden">
-                    <div className={cn("bg-gradient-to-r h-full rounded-full transition-all duration-500", hpColor)} style={{ width: `${hpPercentage}%` }}></div>
+                <div className="w-full bg-slate-900/30 border border-slate-700 border-x-2 rounded-sm h-2.5 mt-2 overflow-hidden">
+                    <div className={cn("bg-gradient-to-r h-full transition-all duration-500", hpColor)} style={{ width: `${hpPercentage}%` }}></div>
                 </div>
                 <p className="text-right text-xs mt-1 text-slate-400">{pokemon.data.currentHp}/{pokemon.data.maxHp}</p>
             </div>
