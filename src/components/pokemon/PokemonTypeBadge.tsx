@@ -1,6 +1,12 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
-import type { TypeBadgeProps } from '../../types';
+import type { PokemonType } from '../../types';
+
+// Props for the colored Type Badge
+export interface TypeBadgeProps {
+    type: PokemonType;
+    isLarge?: boolean;
+}
 
 // Type-safe mapping for Pokemon type colors
 const TYPE_COLORS: Record<string, string> = {

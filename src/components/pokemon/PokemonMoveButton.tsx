@@ -1,9 +1,16 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
-import type { MoveButtonProps } from '../../types';
 import { PokemonTypeBadge } from './PokemonTypeBadge';
 import { ScrollableContainer } from '../common';
+import type { MoveWithDetails } from '../../types';
+
+// Props for PokemonMoveButton
+export interface MoveButtonProps {
+    move: MoveWithDetails;
+    isExpanded: boolean;
+    opensUpward: boolean;
+}
 
 // Component for a single move in the list
 export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward }) => {

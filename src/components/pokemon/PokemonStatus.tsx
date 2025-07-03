@@ -1,13 +1,19 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
-import type { PokemonStatusProps } from '../../types';
 import { Card } from '../common';
+import type { UIPokemonData } from '../../types';
 
 // Health percentage thresholds for color coding
 const HP_THRESHOLDS = {
     HIGH: 50,
     LOW: 20
 } as const;
+
+// Props for PokemonStatus
+export interface PokemonStatusProps {
+    pokemon: UIPokemonData;
+    isActive: boolean;
+}
 
 // Component for a single Pokémon's status display on the left
 export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive }) => {

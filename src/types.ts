@@ -26,13 +26,6 @@ export interface Moves {
     move4: BaseMove;
 }
 
-
-export interface TypeBadgeProps {
-    type: PokemonType;
-    isLarge?: boolean;
-}
-
-// UI-enhanced Pokemon data - extends ParsedPokemonData with UI-specific properties
 export interface UIPokemonData {
   readonly id: number;        // UI index for React keys
   readonly spriteUrl: string; // UI sprite URL
@@ -43,23 +36,11 @@ export interface UIPokemonData {
 
 export type Pokemon = UIPokemonData;
 
-
-export interface PokemonStatusProps {
-    pokemon: UIPokemonData;
-    isActive: boolean;
-}
-
 export interface MoveWithDetails extends BaseMove {
     type: PokemonType;
     description: string;
     power: number | null;
     accuracy: number | null;
-}
-
-export interface MoveButtonProps {
-    move: MoveWithDetails;
-    isExpanded: boolean;
-    opensUpward: boolean;
 }
 
 export interface Ability {

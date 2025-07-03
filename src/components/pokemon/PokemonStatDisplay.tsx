@@ -1,6 +1,6 @@
 import React from 'react';
 import { Skeleton } from '../common';
-import type { Pokemon, StatDisplayProps } from '../../types';
+import type { Pokemon } from '../../types';
 
 // Constants for stat calculations
 const MAX_EV = 252;
