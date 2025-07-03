@@ -19,7 +19,7 @@ import type {
 
 // Import character map for decoding text
 import charMap from './pokemon_charmap.json';
-import { bytesToGbaString, getPokemonNature, natureEffects } from './utils';
+import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils';
 
 /**
  * DataView wrapper for little-endian operations with bounds checking
@@ -123,6 +123,14 @@ export class PokemonData {
   }
   get natureModifiers(): { increased: number, decreased: number } {
     return natureEffects[this.nature] || { increased: 0, decreased: 0 };
+  }
+  get natureModifiersString(): { increased: string, decreased: string } {
+    const { increased, decreased } = this.natureModifiers;
+    return {
+      increased: statStrings[increased] || 'Unknown',
+      decreased: statStrings[decreased] || 'Unknown',
+    };
+
   }
   get stats(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];

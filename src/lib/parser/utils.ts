@@ -62,6 +62,10 @@ export function formatPlayTime(hours: number, minutes: number, seconds: number):
   return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
+export const statStrings: string[] = [
+  'HP', 'Attack', 'Defense', 'Speed', 'Special Attack', 'Special Defense'
+];
+
 export const natures = [
   'Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty',
   'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax',

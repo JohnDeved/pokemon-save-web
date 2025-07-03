@@ -21,23 +21,20 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                 <div className="flex justify-between items-start">
                     <div>
                         <div className="h-8 flex items-center">
-                            <Skeleton.Text as="h2" className="text-xl text-white tracking-tight flex items-center gap-2">
+                            <h2 className="text-xl text-white tracking-tight flex items-center gap-2">
                                 {pokemon?.data.nickname}
-                            </Skeleton.Text>
+                            </h2>
                         </div>
-                        <Skeleton.Container className="flex items-center gap-2 mt-2">
-                            {isLoading
-                                ? <><PokemonTypeBadge type="UNKNOWN" isLarge={true} /><PokemonTypeBadge type="UNKNOWN" isLarge={true} /></>
-                                : pokemonDetails?.types.map(type => <PokemonTypeBadge key={type} type={type} isLarge={true} />)
-                            }
+                        <Skeleton.Container className="flex items-center gap-2 mt-2 min-w-8 min-h-[25px]">
+                            {pokemonDetails?.types.map(type => <PokemonTypeBadge key={type} type={type} isLarge={true} />)}
                         </Skeleton.Container>
                     </div>
-                    <Skeleton.Container className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border border-cyan-800">
+                    <div className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border border-cyan-800">
                         <Hash size={12} />
                         <span>
                             {String(pokemon?.data.speciesId).padStart(3, '0')}
                         </span>
-                    </Skeleton.Container>
+                    </div>
                 </div>
             </div>
         </Skeleton.LoadingProvider>
