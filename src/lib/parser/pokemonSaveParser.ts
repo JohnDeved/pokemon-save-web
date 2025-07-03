@@ -303,23 +303,27 @@ export class PokemonSaveParser {
    */
   private determineActiveSlot(): void {
     if (this.forcedSlot !== undefined) {
+      console.log('[PokemonSaveParser] Forced slot:', this.forcedSlot, '-> activeSlotStart:', this.forcedSlot === 1 ? 0 : 14);
       this.activeSlotStart = this.forcedSlot === 1 ? 0 : 14;
       return;
     }
 
-    const getMaxCounter = (range: number[]): number => {
-      const validCounters = range
-        .map(i => this.getSectorInfo(i))
-        .filter(info => info.valid)
-        .map(info => info.counter);
-      
-      return validCounters.length > 0 ? Math.max(...validCounters) : 0;
+    const getCounterSum = (range: number[]): number => {
+      const infos = range.map(i => this.getSectorInfo(i));
+      const validInfos = infos.filter(info => info.valid);
+      const sum = validInfos.reduce((sum, info) => sum + info.counter, 0);
+      console.log('[PokemonSaveParser] Sector range:', range, 'Counters:', validInfos.map(i => i.counter), 'Sum:', sum);
+      return sum;
     };
 
-    const slot1Counter = getMaxCounter(Array.from({ length: 18 }, (_, i) => i));
-    const slot2Counter = getMaxCounter(Array.from({ length: 18 }, (_, i) => i + 14));
+    const slot1Range = Array.from({ length: 18 }, (_, i) => i);
+    const slot2Range = Array.from({ length: 18 }, (_, i) => i + 14);
+    const slot1Sum = getCounterSum(slot1Range);
+    const slot2Sum = getCounterSum(slot2Range);
 
-    this.activeSlotStart = slot2Counter >= slot1Counter ? 14 : 0;
+    console.log('[PokemonSaveParser] Slot1 sum:', slot1Sum, 'Slot2 sum:', slot2Sum);
+    this.activeSlotStart = slot2Sum >= slot1Sum ? 14 : 0;
+    console.log('[PokemonSaveParser] Selected activeSlotStart:', this.activeSlotStart);
   }
 
   /**
@@ -463,38 +467,6 @@ export class PokemonSaveParser {
     }
 
     return ((checksum >>> 16) + (checksum & 0xFFFF)) & 0xFFFF;
-  }
-
-  /**
-   * Debug information about save slots
-   */
-  debugSaveSlots(): void {
-    console.log('\n--- Save Slot Debug Information ---');
-    
-    const analyzeSlot = (range: number[], slotName: string): [number, number] => {
-      const validSectors: number[] = [];
-      const counters: number[] = [];
-      
-      for (const i of range) {
-        const sectorInfo = this.getSectorInfo(i);
-        if (sectorInfo.valid) {
-          validSectors.push(i);
-          counters.push(sectorInfo.counter);
-          console.log(`  Sector ${i}: ID=${sectorInfo.id}, Counter=${sectorInfo.counter.toString(16).toUpperCase().padStart(8, '0')}`);
-        }
-      }
-      
-      const maxCounter = counters.length > 0 ? Math.max(...counters) : 0;
-      console.log(`${slotName}: ${validSectors.length} valid sectors, max counter ${maxCounter.toString(16).toUpperCase().padStart(8, '0')}`);
-      
-      return [validSectors.length, maxCounter];
-    };
-
-    const [, slot1Counter] = analyzeSlot(Array.from({ length: 18 }, (_, i) => i), 'Slot 1 (sectors 0-17)');
-    const [, slot2Counter] = analyzeSlot(Array.from({ length: 18 }, (_, i) => i + 14), 'Slot 2 (sectors 14-31)');
-    
-    const activeSlot = slot2Counter >= slot1Counter ? 14 : 0;
-    console.log(`\nActive slot: ${activeSlot} (highest counter wins, slot 2 wins ties)`);
   }
 
   /**

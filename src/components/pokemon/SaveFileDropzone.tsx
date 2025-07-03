@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '../../lib/utils';
 
@@ -13,6 +13,48 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({
   error = null,
   showDropzone,
 }) => {
+  const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [lastModified, setLastModified] = useState<number | null>(null);
+  const pollInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // File System Access API: open file picker
+  const openFileWithPicker = async () => {
+    try {
+      // @ts-expect-error File System Access API is not yet in TypeScript DOM lib, safe to ignore for supported browsers
+      const [handle] = await window.showOpenFilePicker({
+        types: [
+          {
+            description: 'Pokemon Save Files',
+            accept: { 'application/octet-stream': ['.sav', '.sa2'] },
+          },
+        ],
+        excludeAcceptAllOption: true,
+        multiple: false,
+      });
+      setFileHandle(handle);
+      const file = await handle.getFile();
+      setLastModified(file.lastModified);
+      onFileLoad(file);
+    } catch {
+      // User cancelled or not supported
+    }
+  };
+
+  // Poll for file changes
+  useEffect(() => {
+    if (!fileHandle) return;
+    pollInterval.current = setInterval(async () => {
+      const file = await fileHandle.getFile();
+      if (file.lastModified !== lastModified) {
+        setLastModified(file.lastModified);
+        onFileLoad(file);
+      }
+    }, 300); // Poll every 300ms
+    return () => {
+      if (pollInterval.current) clearInterval(pollInterval.current);
+    };
+  }, [fileHandle, lastModified, onFileLoad]);
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
@@ -31,6 +73,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({
     },
     maxFiles: 1,
     noKeyboard: true,
+    noClick: true, // Prevent default click from opening file dialog
   });
 
   const shouldShowOverlay = isDragActive || showDropzone;
@@ -51,7 +94,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({
       )}
     >
       <div
-        {...getRootProps()}
+        {...getRootProps({ onClick: openFileWithPicker })} // Use File Picker on click
         className={cn(
           `group w-full h-full flex flex-col items-center justify-center 
           rounded-lg cursor-pointer transition-all duration-300 ease-in-out 

@@ -80,14 +80,6 @@ describe('PokemonSaveParser - Unit Tests', () => {
     });
   });
 
-  describe('Debug Methods', () => {
-    it('should provide debug information without crashing', () => {
-      expect(() => {
-        parser.debugSaveSlots();
-      }).not.toThrow();
-    });
-  });
-
   describe('Forced Slot Behavior', () => {
     it('should respect forced slot 1', async () => {
       const slot1Parser = new PokemonSaveParser(1);
