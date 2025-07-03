@@ -1,12 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PokemonMoveButton } from './PokemonMoveButton';
 import { Skeleton } from '../common';
 import type { MoveWithDetails } from '../../types';
 
 interface PokemonMovesProps {
     moves?: MoveWithDetails[];
-    expandedMoveName?: string | null;
-    onMoveHover?: (moveName: string | null) => void;
     isLoading?: boolean;
 }
 
@@ -23,20 +21,19 @@ const SKELETON_MOVES: MoveWithDetails[] = Array.from({ length: 4 }, (_, i) => ({
 
 export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({ 
     moves = [], 
-    expandedMoveName = null, 
-    onMoveHover,
     isLoading = false
 }) => {
+    const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null);
     const renderMoves = isLoading ? SKELETON_MOVES : moves;
     return (
         <Skeleton.LoadingProvider loading={isLoading}>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {renderMoves.map((move, i) => (
                     <div
-                        key={isLoading ? i : move.name}
+                        key={i}
                         className="group cursor-pointer"
-                        onMouseEnter={() => !isLoading && onMoveHover?.(move.name)}
-                        onMouseLeave={() => !isLoading && onMoveHover?.(null)}
+                        onMouseEnter={() => !isLoading && setExpandedMoveIndex(i)}
+                        onMouseLeave={() => !isLoading && setExpandedMoveIndex(null)}
                     >
                         {isLoading ? (
                             <div className="w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200">
@@ -54,7 +51,7 @@ export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({
                         ) : (
                             <PokemonMoveButton 
                                 move={move} 
-                                isExpanded={expandedMoveName === move.name}
+                                isExpanded={expandedMoveIndex === i}
                                 opensUpward={i < 2}
                             />
                         )}

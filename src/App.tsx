@@ -1,4 +1,4 @@
-import { useState, Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { Card } from './components/common';
 import {
     PokemonPartyList,
@@ -28,8 +28,6 @@ export default function App() {
         saveFileParser,
         preloadPokemonDetails // Add preloading function
     } = usePokemonData();
-
-    const [expandedMoveName, setExpandedMoveName] = useState<string | null>(null);
 
     const activePokemonDetails = activePokemon ? detailedCache[activePokemon.data.speciesId] : null;
     
@@ -67,8 +65,6 @@ export default function App() {
                                 />
                                 <PokemonMovesSection
                                     moves={activePokemonDetails?.moves}
-                                    expandedMoveName={expandedMoveName}
-                                    onMoveHover={setExpandedMoveName}
                                     isLoading={!activePokemon || !activePokemonDetails || isLoading}
                                 />
                             </Card>

@@ -33,15 +33,28 @@ const parsePokemonType = (apiType: string) => {
 };
 
 function getInitialMovesWithDetails(moves: UIPokemonData['data']['moves']): MoveWithDetails[] {
-    return [moves.move1, moves.move2, moves.move3, moves.move4].map(move => ({
-        pp: move.pp,
-        id: move.id,
-        name: 'Move #' + move.id,
-        type: 'UNKNOWN',
-        description: '',
-        power: null,
-        accuracy: null,
-    }));
+    return [moves.move1, moves.move2, moves.move3, moves.move4].map(move => {
+        if (move.id === 0) {
+            return {
+                pp: 0,
+                id: 0,
+                name: 'None',
+                type: 'UNKNOWN', // Changed from 'NONE' to 'UNKNOWN' to match type
+                description: 'No move assigned.',
+                power: null,
+                accuracy: null,
+            };
+        }
+        return {
+            pp: move.pp,
+            id: move.id,
+            name: 'Move #' + move.id,
+            type: 'UNKNOWN',
+            description: '',
+            power: null,
+            accuracy: null,
+        };
+    });
 }
 
 async function getPokemonDetails(pokemon: UIPokemonData) {
@@ -49,7 +62,8 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
 
     const pokeData = await fetchPokemonFromApi(data.speciesId);
     const moveSources = [data.moves.move1, data.moves.move2, data.moves.move3, data.moves.move4];
-    const moveResults = await Promise.all(moveSources.map(move => fetchMoveFromApi(move.id).catch(() => null)));
+    // Only fetch moves with id != 0, otherwise set to null
+    const moveResults = await Promise.all(moveSources.map(move => move.id === 0 ? null : fetchMoveFromApi(move.id).catch(() => null)));
     const abilityUrl = pokeData.abilities.find(a => !a.is_hidden)?.ability.url;
     const abilityData = abilityUrl ? await fetchAbilityFromApi(abilityUrl).catch(() => null) : null;
     const types = pokeData.types.map(t => parsePokemonType(t.type.name));
@@ -61,6 +75,17 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
     } : { name: 'Unknown', description: 'Could not fetch ability data.' };
 
     const movesWithDetails: MoveWithDetails[] = moveSources.map((move, i) => {
+        if (move.id === 0) {
+            return {
+                id: 0,
+                name: 'None',
+                pp: 0,
+                type: 'UNKNOWN', // Changed from 'NONE' to 'UNKNOWN' to match type
+                description: 'No move assigned.',
+                power: null,
+                accuracy: null,
+            };
+        }
         const validMove = moveResults[i];
         if (validMove) {
             return {
