@@ -127,13 +127,20 @@ export const usePokemonData = () => {
 
     const initialPartyList = useMemo(() => {
         if (!saveData?.party_pokemon) return [];
-        return saveData.party_pokemon.map((parsedPokemon, index): UIPokemonData => ({
-            id: index,
-            spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${parsedPokemon.speciesId}.png`,
-            baseStats: [],
-            data: parsedPokemon,
-            movesWithDetails: getInitialMovesWithDetails(parsedPokemon.moves),
-        }));
+        return saveData.party_pokemon.map((parsedPokemon, index): UIPokemonData => {
+            // Determine if shiny or radiant
+            const isShiny = parsedPokemon.shinyNumber > 0;
+            const spriteUrl = isShiny
+                ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${parsedPokemon.speciesId}.png`
+                : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${parsedPokemon.speciesId}.png`;
+            return {
+                id: index,
+                spriteUrl,
+                baseStats: [],
+                data: parsedPokemon,
+                movesWithDetails: getInitialMovesWithDetails(parsedPokemon.moves),
+            };
+        });
     }, [saveData]);
 
     const [partyList, setPartyList] = useState<UIPokemonData[]>(initialPartyList);

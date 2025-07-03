@@ -19,7 +19,7 @@ import type {
 
 // Import character map for decoding text
 import charMap from './pokemon_charmap.json';
-import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils';
+import { bytesToGbaString, getPokemonNature, mapMoveToPokeId, mapSpeciesToPokeId, natureEffects, statStrings } from './utils';
 
 /**
  * DataView wrapper for little-endian operations with bounds checking
@@ -82,12 +82,12 @@ export class PokemonData {
   get nicknameRaw(): Uint8Array { return this.view.getBytes(0x08, CONSTANTS.POKEMON_NICKNAME_LENGTH); }
   get otNameRaw(): Uint8Array { return this.view.getBytes(0x14, CONSTANTS.POKEMON_TRAINER_NAME_LENGTH); }
   get currentHp(): number { return this.view.getUint16(0x23); }
-  get speciesId(): number { return this.view.getUint16(0x28); }
+  get speciesId(): number { return mapSpeciesToPokeId(this.view.getUint16(0x28)); }
   get item(): number { return this.view.getUint16(0x2A); }
-  get move1(): number { return this.view.getUint16(0x34); }
-  get move2(): number { return this.view.getUint16(0x36); }
-  get move3(): number { return this.view.getUint16(0x38); }
-  get move4(): number { return this.view.getUint16(0x3A); }
+  get move1(): number { return mapMoveToPokeId(this.view.getUint16(0x34)); }
+  get move2(): number { return mapMoveToPokeId(this.view.getUint16(0x36)); }
+  get move3(): number { return mapMoveToPokeId(this.view.getUint16(0x38)); }
+  get move4(): number { return mapMoveToPokeId(this.view.getUint16(0x3A)); }
   get pp1(): number { return this.view.getUint8(0x3C); }
   get pp2(): number { return this.view.getUint8(0x3D); }
   get pp3(): number { return this.view.getUint8(0x3E); }

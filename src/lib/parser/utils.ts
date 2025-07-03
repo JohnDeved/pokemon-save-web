@@ -4,7 +4,17 @@
  */
 
 import charmapData from './pokemon_charmap.json';
+import pokemonMap from './mappings/pokemon_map.json'
+import moveMap from './mappings/move_map.json';
 import { PokemonData } from './pokemonSaveParser';
+
+export function mapSpeciesToPokeId (speciesId: number): number {
+  return pokemonMap[speciesId.toString() as keyof typeof pokemonMap].id || speciesId;
+}
+
+export function mapMoveToPokeId (moveId: number): number {
+  return moveMap[moveId.toString() as keyof typeof moveMap].id || moveId;
+}
 
 // Convert charmap keys from strings to numbers for faster lookup
 const charmap: { [key: number]: string } = {};
