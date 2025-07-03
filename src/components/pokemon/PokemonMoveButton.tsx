@@ -21,7 +21,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
         <div className="relative">
             <div className="w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 border border-slate-700 shadow-lg transition-all duration-200">
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-white">{move.name}</span>
+                    <span className="text-sm text-white truncate w-full block" title={move.name}>{move.name}</span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
                     {move.type ? <PokemonTypeBadge type={move.type} /> : <div className="h-[22px] w-16 bg-slate-700 rounded-md animate-pulse"></div>}
