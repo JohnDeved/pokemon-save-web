@@ -6,18 +6,6 @@ import path from 'path';
 import PokemonSaveParser, { PokemonData } from './pokemonSaveParser';
 import type { SaveData } from './types';
 
-// Table/graph constants
-const COLORS = [31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96];
-const FIELDS: [number, number, string][] = [
-  [0, 4, 'personality'], [4, 8, 'otId'], [8, 18, 'nickname'], [0x14, 0x1b, 'otName'],
-  [0x23, 0x25, 'c.HP'], [0x25, 0x26, 'status'], [0x28, 0x2A, 'sp.Id'], [0x2A, 0x2C, 'item'],
-  [0x34, 0x3F, 'moves'], [0x3F, 0x45, 'EVS?'], [0x50, 0x54, 'IV'], [0x58, 0x59, 'lv'],
-  [0x5A, 0x5C, 'HP'], [0x5C, 0x5E, 'Atk'], [0x5E, 0x60, 'Def'], [0x60, 0x62, 'S.Def'],
-  [0x62, 0x64, 'S.Atk'], [0x64, 0x66, 'Speed'],
-];
-const RESET = '\x1b[0m';
-const colorFor = (i:number) => `\x1b[${COLORS[i % COLORS.length]}m`;
-
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [
   { label: 'Slot', width: 5, value: (_p: PokemonData, i: number) => (i+1).toString() },
@@ -70,6 +58,32 @@ const displayPartyPokemonRaw = (party: readonly PokemonData[]) => {
     console.log([...p.rawBytes].map(b=>b.toString(16).padStart(2,'0')).join(' '));
   });
 };
+
+// Table/graph constants
+const COLORS = [31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96];
+const FIELDS: [number, number, string][] = [
+  [0x00, 0x04, 'personality'],
+  [0x04, 0x08, 'otId'],
+  [0x08, 0x12, 'nickname'],
+  [0x14, 0x1b, 'otName'],
+  [0x23, 0x25, 'c.HP'],
+  [0x25, 0x26, 'status'],
+  [0x28, 0x2A, 'sp.Id'],
+  [0x2A, 0x2C, 'item'],
+  [0x34, 0x3F, 'moves'],
+  [0x3F, 0x45, 'EVS?'],
+  [0x50, 0x54, 'IV'],
+  [0x57, 0x58, 'ability'],
+  [0x58, 0x59, 'lv'],
+  [0x5A, 0x5C, 'HP'],
+  [0x5C, 0x5E, 'Atk'],
+  [0x5E, 0x60, 'Def'],
+  [0x60, 0x62, 'S.Def'],
+  [0x62, 0x64, 'S.Atk'],
+  [0x64, 0x66, 'Speed'],
+];
+const RESET = '\x1b[0m';
+const colorFor = (i:number) => `\x1b[${COLORS[i % COLORS.length]}m`;
 
 /** Display colored, labeled hex/ASCII visualization for Pokémon bytes. */
 const displayColoredBytes = (raw: Uint8Array, fields: [number, number, string][], bytesPerLine = 32) => {
