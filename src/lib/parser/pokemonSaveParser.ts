@@ -139,6 +139,16 @@ export class PokemonData {
     // otherwise ability is 0
     return (this.status & 16) ? 1 : (this.status & 32) ? 2 : 0;
   }
+  get shinyNumber(): number {
+    // the 2nd byte of personality determines shininess
+    return (this.personality >> 8) & 0xFF;
+  }
+  get isShiny(): boolean {
+    return this.shinyNumber === 1
+  }
+  get isRadiant(): boolean {
+    return this.shinyNumber === 2;
+  }
   get stats(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];
   }
