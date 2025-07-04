@@ -106,6 +106,5 @@ export const MoveApiResponseSchema = z.object({
 
 export const AbilityApiResponseSchema = z.object({
     name: z.string(),
-    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
-    effect_chance: z.number().nullable().optional()
+    effect_entries: z.array(PokeApiEffectEntrySchema).optional()
 }).passthrough(); // Allow additional properties

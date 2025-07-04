@@ -74,11 +74,7 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
                 return {
                     slot: entry.slot,
                     name: formatName(abilityData.name),
-                    description:
-                        effectEntry?.effect.replace(
-                            /\$effect_chance/g,
-                            String(abilityData.effect_chance || '')
-                        ) || 'No description available.',
+                    description: effectEntry?.effect || 'No description available.',
                 };
             } catch {
                 return { slot: entry.slot, name: entry.ability.name, description: 'Could not fetch ability data.' };
@@ -101,11 +97,7 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
                 name: formatName(validMove.name),
                 pp: move.pp,
                 type: validMove.type?.name ? parsePokemonType(validMove.type.name) : UNKNOWN_TYPE,
-                description:
-                    effectEntry?.effect.replace(
-                        /\$effect_chance/g,
-                        String(validMove.effect_chance || '')
-                    ) || 'No description available.',
+                description: effectEntry?.effect || 'No description available.',
                 power: validMove.power ?? null,
                 accuracy: validMove.accuracy ?? null,
             };
