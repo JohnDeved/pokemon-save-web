@@ -50,4 +50,8 @@
   .children-invisible > * {
     visibility: hidden;
   }
+  
+  .image-pixelate {
+    image-rendering: pixelated;
+  }
 }

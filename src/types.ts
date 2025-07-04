@@ -9,6 +9,19 @@ export const PokemonTypeSchema = z.enum([
 ]);
 export type PokemonType = z.infer<typeof PokemonTypeSchema>;
 
+// --- Damage Class ---
+export const DamageClassSchema = z.object({
+    name: z.enum(['physical', 'special', 'status']),
+    url: z.string(),
+});
+export type DamageClass = z.infer<typeof DamageClassSchema>;
+
+export const TargetSchema = z.object({
+    name: z.string(),
+    url: z.string(),
+});
+export type Target = z.infer<typeof TargetSchema>;
+
 // --- Move/Ability/Type API schemas ---
 export const PokeApiTypeSchema = z.object({
     slot: z.number(),
@@ -76,6 +89,8 @@ export const MoveApiResponseSchema = z.object({
     type: z.object({
         name: z.string(),
     }).optional(),
+    damage_class: DamageClassSchema.optional(),
+    target: TargetSchema.optional(),
     effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
     flavor_text_entries: z.array(PokeApiFlavorTextEntrySchema).optional(),
     power: z.number().nullable().optional(),
@@ -118,6 +133,8 @@ export interface MoveWithDetails extends BaseMove {
     description: string;
     power: number | null;
     accuracy: number | null;
+    damageClass?: DamageClass['name'];
+    target?: Target['name'];
 }
 
 export interface Ability {

@@ -9,29 +9,17 @@ interface PokemonMovesProps {
     isLoading?: boolean;
 }
 
-const SKELETON_MOVES: MoveWithDetails[] = Array.from({ length: 4 }, (_, i) => ({
-    id: i,
-    name: `move-skeleton-${i}`,
-    type: 'UNKNOWN',
-    pp: 0,
-    maxPp: 0,
-    power: 0,
-    accuracy: 0,
-    description: '',
-}));
-
 export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({ 
     moves = [], 
     isLoading = false
 }) => {
     const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null);
-    const renderMoves = isLoading ? SKELETON_MOVES : moves;
     const totalSlots = 4;
     return (
         <Skeleton.LoadingProvider loading={isLoading}>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {Array.from({ length: totalSlots }).map((_, i) => {
-                    const move = renderMoves[i];
+                    const move = moves[i];
                     if (!isLoading && (!move || move.id === 0)) {
                         // Show placeholder for empty slot or move id 0
                         return (

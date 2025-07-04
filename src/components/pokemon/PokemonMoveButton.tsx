@@ -5,6 +5,12 @@ import { PokemonTypeBadge } from './PokemonTypeBadge';
 import { ScrollableContainer } from '../common';
 import type { MoveWithDetails } from '../../types';
 
+const damageClassIcons: Record<"physical" | "special" | "status", string> = {
+    physical: '/damage-type-icons/physical.png',
+    special: '/damage-type-icons/special.png',
+    status: '/damage-type-icons/status.png',
+};
+
 // Props for PokemonMoveButton
 export interface MoveButtonProps {
     move: MoveWithDetails;
@@ -25,7 +31,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
                 </div>
                 <div className="flex items-center justify-between mt-2">
                     {move.type ? <PokemonTypeBadge type={move.type} /> : <div className="h-[22px] w-16 bg-slate-700 rounded-md animate-pulse"></div>}
-                    <span className="text-xs text-slate-300">{move.pp}/{move.pp}</span>
+                    <span className="text-xs text-slate-300">{move.pp}/--</span>
                 </div>
             </div>
             <AnimatePresence>
@@ -38,11 +44,22 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
                         className={cn("absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-700 rounded-lg shadow-xl text-xs", popoverDirectionClass)}
                     >
                         <div className="flex justify-between text-slate-400 mb-2 pb-2 border-b border-slate-700/50">
-                            <div>Power: <div className="text-white">{move.power ?? '—'}</div></div>
-                            <div>Accuracy: <div className="text-white">{move.accuracy ? `${move.accuracy}%` : '—'}</div></div>
+                            <div>
+                                <div>
+                                    Power: 
+                                    <div className="text-white flex items-center gap-1">
+                                        {move.damageClass && <img src={damageClassIcons[move.damageClass]} alt={move.damageClass} className="w-3 h-3" />}
+                                        {move.power ?? '—'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div>Accuracy: <div className="text-white">{move.accuracy ? `${move.accuracy}%` : '—'}</div></div>
+                            </div>
                         </div>
                         <ScrollableContainer className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-slate-400 leading-relaxed text-[8px]">
-                          {move.description || 'Loading description...'}
+                            Targets: {move.target ?? ''} <br />
+                            {move.description || 'Loading description...'}
                         </ScrollableContainer>
                     </motion.div>
                 )}

@@ -125,6 +125,8 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
                 description: getBestEnglishDescription(validMove),
                 power: validMove.power ?? null,
                 accuracy: validMove.accuracy ?? null,
+                damageClass: validMove.damage_class?.name,
+                target: validMove.target?.name
             };
         }
         return {
