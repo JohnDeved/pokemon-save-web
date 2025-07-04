@@ -1,13 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { z } from 'zod';
-import type { Ability, MoveWithDetails, PokemonType, UIPokemonData } from '../types';
 import {
-    AbilityApiResponseSchema,
-    MoveApiResponseSchema,
     PokemonApiResponseSchema,
-    PokemonTypeSchema
+    PokemonTypeSchema,
+    MoveApiResponseSchema,
+    AbilityApiResponseSchema,
+    PokeApiFlavorTextEntrySchema,
+    type AbilityApiResponse,
+    type MoveApiResponse,
+    type PokeApiFlavorTextEntry
 } from '../types';
+import type { Ability, MoveWithDetails, PokemonType, UIPokemonData } from '../types';
 import { useSaveFileParser } from './useSaveFileParser';
 
 // --- Constants ---
@@ -44,6 +48,33 @@ async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T
 }
 
 /**
+ * Helper to get the best English description from effect_entries or flavor_text_entries.
+ */
+function getBestEnglishDescription(apiObj: MoveApiResponse | AbilityApiResponse): string {
+    // Prefer effect_entries in English
+    const effectEntry = apiObj.effect_entries?.find(e => e.language.name === 'en');
+    if (effectEntry?.effect) return effectEntry.effect;
+
+    // Fallback to latest English flavor_text_entry using Zod schema, but only keep the latest
+    if (!Array.isArray(apiObj.flavor_text_entries)) return 'No description available.';
+
+    let latest: PokeApiFlavorTextEntry | undefined;
+    let latestId = -1;
+    for (const entry of apiObj.flavor_text_entries) {
+        const parsed = PokeApiFlavorTextEntrySchema.safeParse(entry);
+        if (!(parsed.success && parsed.data.language.name === 'en')) continue;
+        const match = parsed.data.version_group.url.match(/\/(\d+)\/?$/);
+        const id = match ? parseInt(match[1], 10) : 0;
+        if (id > latestId) {
+            latest = parsed.data;
+            latestId = id;
+        }
+    }
+    if (latest) return latest.flavor_text.replace(/\s+/g, ' ').trim();
+    return 'No description available.';
+}
+
+/**
  * Fetches all details for a Pokémon, including moves and abilities.
  */
 async function getPokemonDetails(pokemon: UIPokemonData) {
@@ -57,24 +88,21 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
         moveSources.map(move =>
             move.id === 0
                 ? null
-                : fetchAndValidate(`https://pokeapi.co/api/v2/move/${move.id}`, MoveApiResponseSchema).catch(() => null)
+                : fetchAndValidate<MoveApiResponse>(`https://pokeapi.co/api/v2/move/${move.id}`, MoveApiResponseSchema).catch(() => null)
         )
     );
     const abilityEntries = pokeData.abilities;
     const abilities: Ability[] = await Promise.all(
         abilityEntries.map(async (entry) => {
             try {
-                const abilityData = await fetchAndValidate(
+                const abilityData = await fetchAndValidate<AbilityApiResponse>(
                     entry.ability.url,
                     AbilityApiResponseSchema
                 );
-                const effectEntry = Array.isArray(abilityData.effect_entries)
-                  ? abilityData.effect_entries.find(e => e.language.name === 'en')
-                  : undefined;
                 return {
                     slot: entry.slot,
                     name: formatName(abilityData.name),
-                    description: effectEntry?.effect || 'No description available.',
+                    description: getBestEnglishDescription(abilityData),
                 };
             } catch {
                 return { slot: entry.slot, name: entry.ability.name, description: 'Could not fetch ability data.' };
@@ -87,17 +115,14 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
         if (move.id === 0) {
             return { ...NO_MOVE };
         }
-        const validMove = moveResults[i];
-        if (validMove && MoveApiResponseSchema.safeParse(validMove).success) {
-            const effectEntry = Array.isArray(validMove.effect_entries)
-              ? validMove.effect_entries.find(e => e.language.name === 'en')
-              : undefined;
+        const validMove = moveResults[i] as MoveApiResponse | null;
+        if (validMove) {
             return {
                 id: move.id,
                 name: formatName(validMove.name),
                 pp: move.pp,
                 type: validMove.type?.name ? parsePokemonType(validMove.type.name) : UNKNOWN_TYPE,
-                description: effectEntry?.effect || 'No description available.',
+                description: getBestEnglishDescription(validMove),
                 power: validMove.power ?? null,
                 accuracy: validMove.accuracy ?? null,
             };
