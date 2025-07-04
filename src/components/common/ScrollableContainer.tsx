@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useCallback, useLayoutEffect, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 
 interface ScrollableContainerProps {
@@ -6,57 +6,51 @@ interface ScrollableContainerProps {
     className?: string;
 }
 
-// Reusable component for a scrollable container with dynamic fade effects
+type ScrollState = 'none' | 'top' | 'bottom' | 'both';
+
+const fadeClassMap: Record<ScrollState, string> = {
+    top: 'scroll-fade-top',
+    bottom: 'scroll-fade-bottom',
+    both: 'scroll-fade-both',
+    none: ''
+};
+
+// Scrollable container with dynamic fade effects
 export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ children, className }) => {
-    const [scrollState, setScrollState] = useState('none');
+    const [scrollState, setScrollState] = useState<ScrollState>('none');
     const containerRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const checkScroll = () => {
-            const el = containerRef.current;
-            if (!el) return;
-
-            const isScrollable = el.scrollHeight > el.clientHeight;
-            if (!isScrollable) {
-                setScrollState('none');
-                return;
-            }
-
-            const atTop = el.scrollTop === 0;
-            const atBottom = Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) < 1; // More robust check
-
-            if (atTop && !atBottom) {
-                setScrollState('bottom');
-            } else if (!atTop && atBottom) {
-                setScrollState('top');
-            } else if (!atTop && !atBottom) {
-                setScrollState('both');
-            } else {
-                setScrollState('none');
-            }
-        };
-
+    const checkScroll = useCallback(() => {
         const el = containerRef.current;
-        checkScroll(); // Initial check
+        if (!el) return setScrollState('none');
+        if (el.scrollHeight <= el.clientHeight) return setScrollState('none');
+        const atTop = el.scrollTop === 0;
+        const atBottom = Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) < 1;
+        if (!atTop && !atBottom) return setScrollState('both');
+        if (atTop && !atBottom) return setScrollState('bottom');
+        if (!atTop && atBottom) return setScrollState('top');
+        setScrollState('none');
+    }, []);
 
+    useLayoutEffect(() => {
+        checkScroll();
+    }, [checkScroll, children]);
+
+    useEffect(() => {
+        const el = containerRef.current;
         el?.addEventListener('scroll', checkScroll);
-        window.addEventListener('resize', checkScroll); // Re-check on resize
-
+        window.addEventListener('resize', checkScroll);
         return () => {
             el?.removeEventListener('scroll', checkScroll);
             window.removeEventListener('resize', checkScroll);
         };
-    }, [children]); // Re-run effect if children change
-
-    const fadeClass = {
-        top: 'scroll-fade-top',
-        bottom: 'scroll-fade-bottom',
-        both: 'scroll-fade-both',
-        none: ''
-    }[scrollState];
+    }, [checkScroll]);
 
     return (
-        <div ref={containerRef} className={cn("scroll-container", className, fadeClass)}>
+        <div
+            ref={containerRef}
+            className={cn('scroll-container', className, fadeClassMap[scrollState])}
+        >
             {children}
         </div>
     );
