@@ -1,11 +1,11 @@
 import { Suspense, lazy } from 'react';
 import { Card } from './components/common';
 import {
-    PokemonPartyList,
+    PokemonAbilitySection,
     PokemonHeader,
     PokemonMovesSection,
+    PokemonPartyList,
     PokemonStatDisplay,
-    PokemonAbilitySection,
     SaveFileDropzone
 } from './components/pokemon';
 import { usePokemonData } from './hooks';
@@ -23,13 +23,10 @@ export default function App() {
         activePokemonId,
         setActivePokemonId,
         activePokemon,
-        detailedCache,
         isLoading,
         saveFileParser,
         preloadPokemonDetails // Add preloading function
     } = usePokemonData();
-
-    const activePokemonDetails = activePokemon ? detailedCache[activePokemon.data.speciesId] : null;
     
     const hasSaveData = saveFileParser.hasFile && partyList.length > 0;
 
@@ -60,25 +57,23 @@ export default function App() {
                             <Card className="z-30">
                                 <PokemonHeader
                                     pokemon={activePokemon}
-                                    pokemonDetails={activePokemonDetails || undefined}
                                     isLoading={isLoading}
                                 />
                                 <PokemonMovesSection
-                                    moves={activePokemonDetails?.moves}
-                                    isLoading={!activePokemon || !activePokemonDetails || isLoading}
+                                    moves={activePokemon?.details?.moves}
+                                    isLoading={!activePokemon?.details || isLoading}
                                 />
                             </Card>
                             <Card className="z-20">
                                 <PokemonStatDisplay 
                                     pokemon={activePokemon}
-                                    isLoading={!activePokemon || !activePokemonDetails || isLoading}
+                                    isLoading={!activePokemon?.details || isLoading}
                                 />
                             </Card>                            
                             <Card className="z-10">
                                 <PokemonAbilitySection
                                     pokemon={activePokemon}
-                                    pokemonDetails={activePokemonDetails || undefined}
-                                    isLoading={!activePokemon || !activePokemonDetails || isLoading}
+                                    isLoading={!activePokemon?.details || isLoading}
                                 />
                             </Card>
                         </div>

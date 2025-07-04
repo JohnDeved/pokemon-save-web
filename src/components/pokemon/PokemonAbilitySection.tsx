@@ -1,23 +1,21 @@
 import React, { useMemo } from 'react';
-import type { Pokemon, PokemonDetails } from '../../types';
+import type { Pokemon } from '../../types';
 import { ScrollableContainer, Skeleton } from '../common';
 
 interface PokemonAbilitySectionProps {
     pokemon?: Pokemon;
-    pokemonDetails?: PokemonDetails;
     isLoading?: boolean;
 }
 
 export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({ 
     pokemon,
-    pokemonDetails,
     isLoading = false,
 }) => {
 
     const ability = useMemo(() => {
-        if (!pokemon || !pokemonDetails) return null;
-        return pokemonDetails.abilities.find(a => a.slot === (pokemon.data.abilityNumber + 1));
-    }, [pokemon, pokemonDetails]);
+        if (!pokemon?.details) return null;
+        return pokemon.details.abilities.find(a => a.slot === (pokemon.data.abilityNumber + 1));
+    }, [pokemon]);
 
     return (
         <Skeleton.LoadingProvider loading={isLoading}>

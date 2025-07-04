@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 import { Card } from '../common';
-import type { UIPokemonData } from '../../types';
+import type { Pokemon } from '../../types';
 
 // Health percentage thresholds for color coding
 const HP_THRESHOLDS = {
@@ -11,7 +11,7 @@ const HP_THRESHOLDS = {
 
 // Props for PokemonStatus
 export interface PokemonStatusProps {
-    pokemon: UIPokemonData;
+    pokemon: Pokemon;
     isActive: boolean;
 }
 

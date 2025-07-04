@@ -17,6 +17,8 @@
     "@million/lint": "^1.0.14",
     "@react-three/fiber": "^9.1.4",
     "@tailwindcss/vite": "^4.1.11",
+    "@tanstack/react-query": "^5.81.5",
+    "@types/react-query": "^1.2.8",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.0",
     "react": "^19.1.0",

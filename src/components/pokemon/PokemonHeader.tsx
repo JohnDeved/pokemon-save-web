@@ -2,19 +2,17 @@ import { IoSparkles } from "react-icons/io5";
 import { FaHashtag } from "react-icons/fa6";
 import { FaWandMagicSparkles } from "react-icons/fa6";
 import React from 'react';
-import type { Pokemon, PokemonDetails } from '../../types';
+import type { Pokemon } from '../../types';
 import { Skeleton } from '../common';
 import { PokemonTypeBadge } from './PokemonTypeBadge';
 
 interface PokemonHeaderProps {
     pokemon?: Pokemon;
-    pokemonDetails?: PokemonDetails;
     isLoading?: boolean;
 }
 
 export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
     pokemon,
-    pokemonDetails,
     isLoading = false
 }) => {
     return (
@@ -35,7 +33,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                 {/* Row 2: Typing and Nature */}
                 <div className="flex items-center justify-between mt-2 min-h-[25px]">
                     <div className="flex items-center gap-2 min-w-8">
-                        {pokemonDetails?.types.map(type => <PokemonTypeBadge key={type} type={type} isLarge={true} />)}
+                        {pokemon?.details?.types.map(type => <PokemonTypeBadge key={type} type={type} isLarge={true} />)}
                     </div>
                     <div className="flex items-center gap-2 min-w-8">
                         <span className="text-xs text-slate-400 whitespace-nowrap">

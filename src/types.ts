@@ -10,9 +10,6 @@ export const PokemonTypeSchema = z.enum([
 
 export type PokemonType = z.infer<typeof PokemonTypeSchema>;
 
-// Strong typing for Pokemon stats
-export type StatName = 'hp' | 'attack' | 'defense' | 'speed' | 'special-attack' | 'special-defense';
-
 export interface BaseMove {
     name: string;
     id: number;
@@ -29,9 +26,8 @@ export interface Moves {
 export interface UIPokemonData {
   readonly id: number;        // UI index for React keys
   readonly spriteUrl: string; // UI sprite URL
-  readonly baseStats: readonly number[];
-  readonly movesWithDetails: MoveWithDetails[]; // Optional, for detailed move info
   readonly data: PokemonData;
+  details?: PokemonDetails; // Optional, for loaded details (types, abilities, moves, baseStats)
 }
 
 export type Pokemon = UIPokemonData;
@@ -54,10 +50,6 @@ export interface PokemonDetails {
     abilities: Ability[];
     moves: MoveWithDetails[];
     baseStats: number[];
-}
-
-export interface DetailedCache {
-    [speciesId: number]: PokemonDetails;
 }
 
 // Zod schemas for API validation

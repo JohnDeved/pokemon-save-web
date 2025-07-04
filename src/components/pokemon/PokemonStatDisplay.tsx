@@ -18,7 +18,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
 }) => {
     const ivs = pokemon?.data.ivs;
     const evs = pokemon?.data.evs;
-    const baseStats = pokemon?.baseStats;
+    const baseStats = pokemon?.details?.baseStats;
     const totalStats = pokemon?.data.stats;
     const natureModifier = pokemon?.data.natureModifiersArray;
 
