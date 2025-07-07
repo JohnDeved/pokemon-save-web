@@ -59,6 +59,34 @@ class SafeDataView {
     return new Uint8Array(this.view.buffer, this.view.byteOffset + byteOffset, length);
   }
 
+  setUint8(byteOffset: number, value: number): void {
+    if (byteOffset >= this.view.byteLength) {
+      throw new RangeError(`Offset ${byteOffset} out of bounds`);
+    }
+    this.view.setUint8(byteOffset, value);
+  }
+
+  setUint16(byteOffset: number, value: number, littleEndian = true): void {
+    if (byteOffset + 1 >= this.view.byteLength) {
+      throw new RangeError(`Offset ${byteOffset} out of bounds`);
+    }
+    this.view.setUint16(byteOffset, value, littleEndian);
+  }
+
+  setUint32(byteOffset: number, value: number, littleEndian = true): void {
+    if (byteOffset + 3 >= this.view.byteLength) {
+      throw new RangeError(`Offset ${byteOffset} out of bounds`);
+    }
+    this.view.setUint32(byteOffset, value, littleEndian);
+  }
+
+  setBytes(byteOffset: number, bytes: Uint8Array): void {
+    if (byteOffset + bytes.length > this.view.byteLength) {
+      throw new RangeError(`Range ${byteOffset}:${byteOffset + bytes.length} out of bounds`);
+    }
+    new Uint8Array(this.view.buffer, this.view.byteOffset + byteOffset, bytes.length).set(bytes);
+  }
+
   get byteLength(): number {
     return this.view.byteLength;
   }
@@ -68,7 +96,7 @@ class SafeDataView {
  * Parses raw Pokemon data from save file bytes into structured format
  */
 export class PokemonData {
-  private readonly view: SafeDataView;
+  readonly view: SafeDataView;
 
   constructor(private readonly data: Uint8Array) {
     if (data.length < CONSTANTS.PARTY_POKEMON_SIZE) {
@@ -93,20 +121,33 @@ export class PokemonData {
   get pp3(): number { return this.view.getUint8(0x3E); }
   get pp4(): number { return this.view.getUint8(0x3F); }
   get hpEV(): number { return this.view.getUint8(0x40); }
+  set hpEV(value: number) { this.view.setUint8(0x40, value); }
   get atkEV(): number { return this.view.getUint8(0x41); }
+  set atkEV(value: number) { this.view.setUint8(0x41, value); }
   get defEV(): number { return this.view.getUint8(0x42); }
+  set defEV(value: number) { this.view.setUint8(0x42, value); }
   get speEV(): number { return this.view.getUint8(0x43); }
+  set speEV(value: number) { this.view.setUint8(0x43, value); }
   get spaEV(): number { return this.view.getUint8(0x44); }
+  set spaEV(value: number) { this.view.setUint8(0x44, value); }
   get spdEV(): number { return this.view.getUint8(0x45); }
+  set spdEV(value: number) { this.view.setUint8(0x45, value); }
   get ivData(): number { return this.view.getUint32(0x50); }
+  set ivData(value: number) { this.view.setUint32(0x50, value); }
   get status(): number { return this.view.getUint8(0x57); }
   get level(): number { return this.view.getUint8(0x58); }
   get maxHp(): number { return this.view.getUint16(0x5A); }
+  set maxHp(value: number) { this.view.setUint16(0x5A, value); }
   get attack(): number { return this.view.getUint16(0x5C); }
+  set attack(value: number) { this.view.setUint16(0x5C, value); }
   get defense(): number { return this.view.getUint16(0x5E); }
+  set defense(value: number) { this.view.setUint16(0x5E, value); }
   get speed(): number { return this.view.getUint16(0x60); }
+  set speed(value: number) { this.view.setUint16(0x60, value); }
   get spAttack(): number { return this.view.getUint16(0x62); }
+  set spAttack(value: number) { this.view.setUint16(0x62, value); }
   get spDefense(): number { return this.view.getUint16(0x64); }
+  set spDefense(value: number) { this.view.setUint16(0x64, value); }
   get rawBytes(): Uint8Array { return new Uint8Array(this.data); }
 
   // Computed properties
@@ -176,6 +217,14 @@ export class PokemonData {
   }
   get ivs(): readonly number[] {
     return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F);
+  }
+  set ivs(values: readonly number[]) {
+    if (values.length !== 6) throw new Error('IVs array must have 6 values');
+    let packed = 0;
+    for (let i = 0; i < 6; i++) {
+      packed |= (values[i] & 0x1F) << (i * 5);
+    }
+    this.ivData = packed;
   }
   get statsArray(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];
@@ -487,6 +536,28 @@ export class PokemonSaveParser {
   }
 
   /**
+   * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonData array.
+   * Returns a new Uint8Array with the updated party data.
+   * @param saveblock1 The original SaveBlock1 buffer
+   * @param party Array of PokemonData (max length = CONSTANTS.MAX_PARTY_SIZE)
+   */
+  private updatePartyInSaveblock1(saveblock1: Uint8Array, party: PokemonData[]): Uint8Array {
+    if (saveblock1.length < CONSTANTS.SAVEBLOCK1_SIZE) {
+      throw new Error(`SaveBlock1 must be at least ${CONSTANTS.SAVEBLOCK1_SIZE} bytes`);
+    }
+    if (party.length > CONSTANTS.MAX_PARTY_SIZE) {
+      throw new Error(`Party size cannot exceed ${CONSTANTS.MAX_PARTY_SIZE}`);
+    }
+    const updated = new Uint8Array(saveblock1);
+    for (let i = 0; i < party.length; i++) {
+      const offset = CONSTANTS.PARTY_START_OFFSET + i * CONSTANTS.PARTY_POKEMON_SIZE;
+      // Use the most up-to-date view data for each Pokemon
+      updated.set(party[i].view.getBytes(0, CONSTANTS.PARTY_POKEMON_SIZE), offset);
+    }
+    return updated;
+  }
+
+  /**
    * Parse the complete save file and return structured data
    */
   async parseSaveFile(input: File | ArrayBuffer): Promise<SaveData> {
@@ -508,7 +579,42 @@ export class PokemonSaveParser {
       play_time: playTime,
       active_slot: this.activeSlotStart,
       sector_map: new Map(this.sectorMap),
+      rawSaveData: this.saveData!, // Attach raw save data for rehydration
     };
+  }
+
+  /**
+   * Reconstruct the full save file from a new party (PokemonData[]).
+   * Updates SaveBlock1 with the given party and returns a new Uint8Array representing the reconstructed save file.
+   *
+   * @param partyPokemon Array of PokemonData to update party in SaveBlock1
+   */
+  reconstructSaveFile(partyPokemon: PokemonData[]): Uint8Array {
+    if (!this.saveData) throw new Error('Save data not loaded');
+    const baseSaveblock1 = this.extractSaveblock1();
+    const updatedSaveblock1 = this.updatePartyInSaveblock1(baseSaveblock1, partyPokemon);
+    const newSave = new Uint8Array(this.saveData);
+
+    // Helper to write a sector and update its checksum
+    const writeSector = (sectorId: number, data: Uint8Array) => {
+      if (!this.sectorMap.has(sectorId)) return;
+      const sectorIdx = this.sectorMap.get(sectorId)!;
+      const startOffset = sectorIdx * CONSTANTS.SECTOR_SIZE;
+      newSave.set(data, startOffset);
+      // Recalculate checksum for this sector
+      const checksum = this.calculateSectorChecksum(data);
+      const footerOffset = startOffset + CONSTANTS.SECTOR_SIZE - CONSTANTS.SECTOR_FOOTER_SIZE;
+      const view = new SafeDataView(newSave.buffer, newSave.byteOffset + footerOffset, CONSTANTS.SECTOR_FOOTER_SIZE);
+      view.setUint16(2, checksum);
+    };
+
+    // Write SaveBlock1 (sectors 1-4)
+    for (let sectorId = 1; sectorId <= 4; sectorId++) {
+      const chunkOffset = (sectorId - 1) * CONSTANTS.SECTOR_DATA_SIZE;
+      const chunk = updatedSaveblock1.slice(chunkOffset, chunkOffset + CONSTANTS.SECTOR_DATA_SIZE);
+      writeSector(sectorId, chunk);
+    }
+    return newSave;
   }
 }
 

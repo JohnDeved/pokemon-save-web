@@ -164,4 +164,69 @@ describe('PokemonSaveParser - Integration Tests', () => {
       });
     });
   });
+
+  describe('Save file reconstruction', () => {
+    it('should produce identical save file data after reconstructing with the same party', async () => {
+      if (!testSaveData) return;
+      // Parse the save file
+      const parsed = await parser.parseSaveFile(testSaveData);
+      // Reconstruct the save file using the parsed party
+      const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon.slice());
+      // Hash both original and reconstructed
+      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
+        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+        // Use Node.js crypto for hash
+        const { createHash } = await import('crypto');
+        return createHash('sha256').update(ab).digest('hex');
+      };
+      const originalHash = await hashBuffer(testSaveData);
+      const reconstructedHash = await hashBuffer(reconstructed);
+      expect(reconstructedHash).toBe(originalHash);
+    });
+
+    it('should produce a different hash if the party order is changed', async () => {
+      if (!testSaveData) return;
+      const parsed = await parser.parseSaveFile(testSaveData);
+      if (parsed.party_pokemon.length < 2) return; // Need at least 2 to swap
+      // Swap first and last
+      const swapped = parsed.party_pokemon.slice();
+      const temp = swapped[0];
+      swapped[0] = swapped[swapped.length - 1];
+      swapped[swapped.length - 1] = temp;
+      const reconstructed = parser.reconstructSaveFile(swapped);
+      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
+        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+        const { createHash } = await import('crypto');
+        return createHash('sha256').update(ab).digest('hex');
+      };
+      const originalHash = await hashBuffer(testSaveData);
+      const swappedHash = await hashBuffer(reconstructed);
+      expect(swappedHash).not.toBe(originalHash);
+    });
+
+    it('should produce a different hash if the party order is changed and reflect the change after parsing', async () => {
+      if (!testSaveData) return;
+      const parsed = await parser.parseSaveFile(testSaveData);
+      if (parsed.party_pokemon.length < 2) return; // Need at least 2 to swap
+      // Swap first and last
+      const swapped = parsed.party_pokemon.slice();
+      const temp = swapped[0];
+      swapped[0] = swapped[swapped.length - 1];
+      swapped[swapped.length - 1] = temp;
+      const reconstructed = parser.reconstructSaveFile(swapped);
+      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
+        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+        const { createHash } = await import('crypto');
+        return createHash('sha256').update(ab).digest('hex');
+      };
+      const originalHash = await hashBuffer(testSaveData);
+      const swappedHash = await hashBuffer(reconstructed);
+      expect(swappedHash).not.toBe(originalHash);
+      // Parse the reconstructed save file
+      const reparsed = await parser.parseSaveFile(reconstructed);
+      // The first and last Pokémon should be swapped compared to the original
+      expect(reparsed.party_pokemon[0].speciesId).toBe(parsed.party_pokemon[parsed.party_pokemon.length - 1].speciesId);
+      expect(reparsed.party_pokemon[reparsed.party_pokemon.length - 1].speciesId).toBe(parsed.party_pokemon[0].speciesId);
+    });
+  });
 });

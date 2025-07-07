@@ -7,6 +7,7 @@ import charmapData from './pokemon_charmap.json';
 import pokemonMap from './mappings/pokemon_map.json'
 import moveMap from './mappings/move_map.json';
 import { PokemonData } from './pokemonSaveParser';
+import { CONSTANTS } from './types';
 
 export function mapSpeciesToPokeId (speciesId: number): number {
   return pokemonMap[speciesId.toString() as keyof typeof pokemonMap].id || speciesId;
@@ -174,6 +175,26 @@ export function calculateTotalStats(pokemon: PokemonData, baseStats: number[]): 
   return [hp, ...otherStats];
 }
 
+/**
+ * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonData array.
+ * Returns a new Uint8Array with the updated party data.
+ * @param saveblock1 The original SaveBlock1 buffer
+ * @param party Array of PokemonData (max length = CONSTANTS.MAX_PARTY_SIZE)
+ */
+export function updatePartyInSaveblock1(saveblock1: Uint8Array, party: import('./pokemonSaveParser').PokemonData[]): Uint8Array {
+  if (saveblock1.length < CONSTANTS.SAVEBLOCK1_SIZE) {
+    throw new Error(`SaveBlock1 must be at least ${CONSTANTS.SAVEBLOCK1_SIZE} bytes`);
+  }
+  if (party.length > CONSTANTS.MAX_PARTY_SIZE) {
+    throw new Error(`Party size cannot exceed ${CONSTANTS.MAX_PARTY_SIZE}`);
+  }
+  const updated = new Uint8Array(saveblock1);
+  for (let i = 0; i < party.length; i++) {
+    const offset = CONSTANTS.PARTY_START_OFFSET + i * CONSTANTS.PARTY_POKEMON_SIZE;
+    updated.set(party[i].rawBytes, offset);
+  }
+  return updated;
+}
 
 export default {
   formatPlayTime,

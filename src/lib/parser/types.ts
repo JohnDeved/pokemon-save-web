@@ -66,6 +66,7 @@ export interface SaveData {
   readonly play_time: PlayTimeData;
   readonly active_slot: number;
   readonly sector_map: ReadonlyMap<number, number>;
+  readonly rawSaveData: Uint8Array; // Add raw save data for rehydration
 }
 
 // Constants
