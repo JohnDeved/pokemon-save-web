@@ -38,11 +38,12 @@ const TYPE_COLORS: Record<string, string> = {
 export const PokemonTypeBadge: React.FC<TypeBadgeProps> = ({ type, isLarge = false }) => {
     const iconUrl = `/type-icons/${type.toLowerCase()}.png`;
     const sizeClasses = isLarge ? 'text-[10px] pr-3' : 'text-[8px] pr-2';
-    const iconSize = isLarge ? 'h-[23px]' : 'h-[20px]';
+    const iconSize = isLarge ? 'h-[23px] w-[23px]' : 'h-[20px] w-[20px]';
 
     return (
         <div className={`inline-flex gap-1 pl-1 rounded-md items-center justify-center shadow-md ${TYPE_COLORS[type.toLowerCase()]}`}>
             <img
+                key={type}
                 src={iconUrl}
                 className={cn("image-pixelate", iconSize)}
             />
