@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import {
     PokemonApiResponseSchema,
@@ -13,9 +13,12 @@ import {
 } from '../types';
 import type { Ability, MoveWithDetails, PokemonType, UIPokemonData } from '../types';
 import { useSaveFileParser } from './useSaveFileParser';
+import { calculateTotalStats } from '@/lib/parser/utils';
 
 // --- Constants ---
 const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+const MAX_EV_PER_STAT = 252;
+const MAX_TOTAL_EVS = 508;
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN';
 const NO_MOVE: MoveWithDetails = {
     pp: 0,
@@ -110,7 +113,9 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
         })
     );
     const types = pokeData.types.map((t) => parsePokemonType(t.type.name));
-    const baseStats = pokeData.stats.map((stat) => stat.base_stat);
+    // Extract base stats in correct order
+    const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense']
+        .map(stat => pokeData.stats.find(s => s.stat.name === stat)?.base_stat ?? 0);
     const moves: MoveWithDetails[] = moveSources.map((move, i) => {
         if (move.id === 0) {
             return { ...NO_MOVE };
@@ -168,10 +173,16 @@ export const usePokemonData = () => {
 
     // UI state: which Pokémon is active
     const [activePokemonId, setActivePokemonId] = useState(0);
-    const activePokemon = useMemo(() =>
-        initialPartyList.find((p) => p.id === activePokemonId),
-        [initialPartyList, activePokemonId]
-    );
+    // Store party list in state for immutable updates
+    const [partyList, setPartyList] = useState<UIPokemonData[]>(() => initialPartyList);
+
+    // Update party list when initial data changes
+    useEffect(() => {
+        setPartyList(initialPartyList);
+    }, [initialPartyList]);
+
+    // Get the current active Pokémon from initial data
+    const activePokemonFromInitial = initialPartyList.find(p => p.id === activePokemonId);
 
     // Query for details of the active Pokémon
     const {
@@ -181,23 +192,22 @@ export const usePokemonData = () => {
         error,
     } = useQuery({
         queryKey: ['pokemon', 'details', String(activePokemonId)],
-        queryFn: () => activePokemon ? getPokemonDetails(activePokemon) : Promise.reject('No active Pokémon'),
-        enabled: !!activePokemon,
+        queryFn: () => activePokemonFromInitial ? getPokemonDetails(activePokemonFromInitial) : Promise.reject('No active Pokémon'),
+        enabled: activePokemonId >= 0 && !!activePokemonFromInitial,
         staleTime: 1000 * 60 * 60, // 1 hour
     });
 
-    // Merge detailed data into the party list for UI
-    const mergedPartyList: UIPokemonData[] = useMemo(() => {
-        if (!detailedData || !activePokemon) return initialPartyList;
-        return initialPartyList.map((p) =>
-            p.id === activePokemon.id
-                ? {
-                    ...p,
-                    details: detailedData,
-                }
-                : p
+    // Update partyList with detailed data
+    useEffect(() => {
+        if (!detailedData || activePokemonId < 0) return;
+        setPartyList(prevList =>
+            prevList.map(p =>
+                p.id === activePokemonId
+                    ? { ...p, details: detailedData }
+                    : p
+            )
         );
-    }, [initialPartyList, detailedData, activePokemon]);
+    }, [detailedData, activePokemonId]);
 
     // Preload details for a given party member by id
     const preloadPokemonDetails = useCallback(
@@ -213,15 +223,58 @@ export const usePokemonData = () => {
         [initialPartyList, queryClient]
     );
 
+    // Update EVs immutably, but preserve class instance
+    const setEvIndex = useCallback((pokemonId: number, statIndex: number, evValue: number) => {
+        setPartyList(prevList => prevList.map(p => {
+            if (p.id !== pokemonId || !p.details) return p;
+            
+            // Validate EV constraints
+            const clampedEvValue = Math.max(0, Math.min(MAX_EV_PER_STAT, evValue));
+            
+            // Calculate current total EVs excluding the stat being changed
+            const currentEvs = p.data.evs;
+            const otherEvsTotal = currentEvs.reduce((sum, ev, index) => 
+                index === statIndex ? sum : sum + ev, 0
+            );
+            
+            // Ensure total EVs don't exceed limit
+            const maxAllowedForThisStat = Math.min(
+                MAX_EV_PER_STAT,
+                MAX_TOTAL_EVS - otherEvsTotal
+            );
+            const finalEvValue = Math.min(clampedEvValue, maxAllowedForThisStat);
+            
+            // Only update if the value actually changed
+            if (currentEvs[statIndex] === finalEvValue) return p;
+            
+            // Directly mutate the class instance
+            p.data.setEvByIndex(statIndex, finalEvValue);
+            p.data.stats = calculateTotalStats(p.data, p.details.baseStats);
+            // Return a new object reference for React to detect change
+            return { ...p };
+        }));
+    }, []);
+
+    // Calculate remaining EVs for the active Pokémon
+    const getRemainingEvs = useCallback((pokemonId: number) => {
+        const pokemon = partyList.find(p => p.id === pokemonId);
+        if (!pokemon) return MAX_TOTAL_EVS;
+        
+        const totalEvs = pokemon.data.evs.reduce((sum, ev) => sum + ev, 0);
+        return Math.max(0, MAX_TOTAL_EVS - totalEvs);
+    }, [partyList]);
+
     return {
-        partyList: mergedPartyList,
+        partyList,
         activePokemonId,
         setActivePokemonId,
-        activePokemon: mergedPartyList.find((p) => p.id === activePokemonId),
+        activePokemon: partyList.find((p) => p.id === activePokemonId),
         isLoading,
         isError,
         error,
         saveFileParser,
+        setEvIndex,
         preloadPokemonDetails,
+        getRemainingEvs,
     };
 };

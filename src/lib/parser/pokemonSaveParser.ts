@@ -193,6 +193,15 @@ export class PokemonData {
   get stats(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];
   }
+  set stats(values: readonly number[]) {
+    if (values.length !== 6) throw new Error('Stats array must have 6 values');
+    this.maxHp = values[0];
+    this.attack = values[1];
+    this.defense = values[2];
+    this.speed = values[3];
+    this.spAttack = values[4];
+    this.spDefense = values[5];
+  }
   get moves(): {
     readonly move1: MoveData;
     readonly move2: MoveData;
@@ -215,6 +224,15 @@ export class PokemonData {
   get evs(): readonly number[] {
     return [this.hpEV, this.atkEV, this.defEV, this.speEV, this.spaEV, this.spdEV];
   }
+  set evs(values: readonly number[]) {
+    if (values.length !== 6) throw new Error('EVs array must have 6 values');
+    this.hpEV = values[0];
+    this.atkEV = values[1];
+    this.defEV = values[2];
+    this.speEV = values[3];
+    this.spaEV = values[4];
+    this.spdEV = values[5];
+  }
   get ivs(): readonly number[] {
     return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F);
   }
@@ -226,13 +244,10 @@ export class PokemonData {
     }
     this.ivData = packed;
   }
-  get statsArray(): readonly number[] {
-    return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense];
-  }
   get natureModifiersArray(): readonly number[] { // usage for statsArray
     // Nature modifiers: [hp, atk, def, spe, spa, spd]
     const { increased, decreased } = this.natureModifiers;
-    return this.statsArray.map((_, i) =>
+    return this.stats.map((_, i) =>
       i === increased ? 1.1 : i === decreased ? 0.9 : 1
     );
   }
@@ -247,6 +262,19 @@ export class PokemonData {
   }
   get ppValues(): readonly number[] {
     return [this.pp1, this.pp2, this.pp3, this.pp4];
+  }
+
+  setEvByIndex(statIndex: number, value: number): void {
+    switch (statIndex) {
+      case 0: this.hpEV = value; break;
+      case 1: this.atkEV = value; break;
+      case 2: this.defEV = value; break;
+      case 3: this.speEV = value; break;
+      case 4: this.spaEV = value; break;
+      case 5: this.spdEV = value; break;
+      default:
+        throw new Error(`Invalid EV index: ${statIndex}`);
+    }
   }
 }
 
@@ -369,7 +397,7 @@ export class PokemonSaveParser {
    */
   private determineActiveSlot(): void {
     if (this.forcedSlot !== undefined) {
-      console.log('[PokemonSaveParser] Forced slot:', this.forcedSlot, '-> activeSlotStart:', this.forcedSlot === 1 ? 0 : 14);
+      // console.log('[PokemonSaveParser] Forced slot:', this.forcedSlot, '-> activeSlotStart:', this.forcedSlot === 1 ? 0 : 14);
       this.activeSlotStart = this.forcedSlot === 1 ? 0 : 14;
       return;
     }
@@ -378,7 +406,7 @@ export class PokemonSaveParser {
       const infos = range.map(i => this.getSectorInfo(i));
       const validInfos = infos.filter(info => info.valid);
       const sum = validInfos.reduce((sum, info) => sum + info.counter, 0);
-      console.log('[PokemonSaveParser] Sector range:', range, 'Counters:', validInfos.map(i => i.counter), 'Sum:', sum);
+      // console.log('[PokemonSaveParser] Sector range:', range, 'Counters:', validInfos.map(i => i.counter), 'Sum:', sum);
       return sum;
     };
 
@@ -387,9 +415,9 @@ export class PokemonSaveParser {
     const slot1Sum = getCounterSum(slot1Range);
     const slot2Sum = getCounterSum(slot2Range);
 
-    console.log('[PokemonSaveParser] Slot1 sum:', slot1Sum, 'Slot2 sum:', slot2Sum);
+    // console.log('[PokemonSaveParser] Slot1 sum:', slot1Sum, 'Slot2 sum:', slot2Sum);
     this.activeSlotStart = slot2Sum >= slot1Sum ? 14 : 0;
-    console.log('[PokemonSaveParser] Selected activeSlotStart:', this.activeSlotStart);
+    // console.log('[PokemonSaveParser] Selected activeSlotStart:', this.activeSlotStart);
   }
 
   /**

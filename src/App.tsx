@@ -25,7 +25,9 @@ export default function App() {
         activePokemon,
         isLoading,
         saveFileParser,
-        preloadPokemonDetails // Add preloading function
+        setEvIndex,
+        preloadPokemonDetails,
+        getRemainingEvs
     } = usePokemonData();
     
     const hasSaveData = saveFileParser.hasFile && partyList.length > 0;
@@ -51,7 +53,7 @@ export default function App() {
                             activePokemonId={activePokemonId}
                             onPokemonSelect={setActivePokemonId}
                             isRenaming={false}
-                            onPokemonHover={preloadPokemonDetails} // Preload on hover
+                            onPokemonHover={preloadPokemonDetails}
                         />
                         <div className="grid grid-rows-[auto_auto_1fr] gap-4">
                             <Card className="z-30">
@@ -65,9 +67,11 @@ export default function App() {
                                 />
                             </Card>
                             <Card className="z-20">
-                                <PokemonStatDisplay 
+                                <PokemonStatDisplay
+                                    setEvIndex={setEvIndex}
                                     pokemon={activePokemon}
                                     isLoading={!activePokemon?.details || isLoading}
+                                    getRemainingEvs={getRemainingEvs}
                                 />
                             </Card>                            
                             <Card className="z-10">
