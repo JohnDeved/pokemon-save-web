@@ -10,9 +10,11 @@ function Slider({
   min = 0,
   max = 100,
   thumbVisibleOnHover = true,
+  maxVisualValue,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root> & {
-  thumbVisibleOnHover?: boolean
+  thumbVisibleOnHover?: boolean,
+  maxVisualValue?: number
 }) {
   const sliderRef = React.useRef<HTMLDivElement>(null);
   const _values = React.useMemo(
@@ -31,12 +33,14 @@ function Slider({
       if (props.disabled) return;
       e.preventDefault();
       const delta = Math.sign(e.deltaY) * (e.shiftKey ? 10 : 1);
-      const newValue = Math.max(min, Math.min(max, value[0] - delta));
+      // Clamp to maxVisualValue if provided
+      const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max;
+      const newValue = Math.max(min, Math.min(upperLimit, value[0] - delta));
       if (props.onValueChange) {
         props.onValueChange([newValue]);
       }
     },
-    [value, min, max, props]
+    [value, min, max, maxVisualValue, props]
   );
 
   React.useEffect(() => {
@@ -48,11 +52,23 @@ function Slider({
     };
   }, [handleWheel]);
 
+  // Calculate percentage for the visual max
+  const visualPercent = typeof maxVisualValue === 'number' && maxVisualValue > min && max > min
+    ? ((maxVisualValue - min) / (max - min)) * 100
+    : 100;
+
+  // Clamp controlled value to maxVisualValue
+  const clampedValue = React.useMemo(() => {
+    if (!Array.isArray(value)) return value;
+    const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max;
+    return value.map(v => Math.max(min, Math.min(upperLimit, v)));
+  }, [value, min, max, maxVisualValue]);
+
   return (
     <SliderPrimitive.Root
       data-slot="slider"
       defaultValue={defaultValue}
-      value={value}
+      value={clampedValue}
       min={min}
       max={max}
       className={cn(
@@ -68,6 +84,18 @@ function Slider({
           "bg-muted relative grow overflow-hidden rounded-full cursor-pointer data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
         )}
       >
+        {/* Visual remaining bar */}
+        {typeof maxVisualValue === 'number' && maxVisualValue > min && (
+          <div
+            className={
+              cn(
+                "absolute left-0 top-0 h-full pointer-events-none text-white/3 bg-white/2 bg-[size:8px_8px] bg-top-left",
+                "bg-[image:repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_1px,transparent_50%)]"
+              )
+            }
+            style={{ width: `${visualPercent}%` }}
+          />
+        )}
         <SliderPrimitive.Range
           data-slot="slider-range"
           className={cn(

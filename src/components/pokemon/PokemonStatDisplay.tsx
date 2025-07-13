@@ -21,9 +21,10 @@ export interface PokemonStatDisplayProps {
 interface EVSliderProps {
     value: number;
     onChange: (newValue: number) => void;
+    maxVisualValue?: number;
 }
 
-const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider({ value, onChange }) {
+const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider({ value, onChange, maxVisualValue }) {
     const handleValueChange = React.useCallback((val: number[]) => {
         onChange(val[0]);
     }, [onChange]);
@@ -33,6 +34,7 @@ const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider({ value, 
             max={MAX_EV}
             onValueChange={handleValueChange}
             className="[&_[data-slot=slider-track]]:bg-slate-800/70 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500"
+            maxVisualValue={maxVisualValue}
         />
     );
 });
@@ -42,7 +44,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
     isLoading = false,
     setEvIndex,
     setIvIndex,
-    getRemainingEvs: _getRemainingEvs
+    getRemainingEvs
 }) => {
     const ivs = pokemon?.data.ivs;
     const evs = pokemon?.data.evs;
@@ -94,14 +96,18 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
                     let statClass = 'text-slate-500';
                     if (natureMod > 1.0) statClass = 'text-green-400/50 font-bold';
                     else if (natureMod < 1.0) statClass = 'text-red-400/50 font-bold';
-                    
                     // IV color: bright cyan for max IV (31), slightly dimmed for non-max
                     const ivClass = iv === MAX_IV ? 'text-cyan-400' : 'text-cyan-800';
-                    
                     // Calculate preview stat if this IV is hovered and not at max
                     const isHovered = hoveredIvIndex === index;
                     const previewTotal = isHovered && iv !== MAX_IV ? calculatePreviewStat(index, iv) : null;
                     const isShowingPreview = isHovered && iv !== MAX_IV && previewTotal !== null;
+                    // Calculate how many more EVs can be assigned to this stat
+                    let maxVisualValue = MAX_EV;
+                    if (pokemon?.id != null && typeof getRemainingEvs === 'function') {
+                        const remainingTotalEvs = getRemainingEvs(pokemon.id);
+                        maxVisualValue = Math.min(MAX_EV, (evs?.[index] ?? 0) + remainingTotalEvs);
+                    }
                     
                     return (
                         <div key={statName} className="grid grid-cols-10 gap-2 items-center">
@@ -110,6 +116,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
                                 <EVSlider 
                                     value={evs?.[index] ?? 0}
                                     onChange={newValue => handleEvChange(index, newValue)}
+                                    maxVisualValue={maxVisualValue}
                                 />
                                 <span className="text-white w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
                             </div>

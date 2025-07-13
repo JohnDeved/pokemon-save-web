@@ -39,7 +39,7 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
             <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center relative">
                 <img 
                     src={pokemon.spriteUrl}
-                    className={cn("absolute z-0 w-full blur-md opacity-70 h-full object-contain transition-transform duration-300", 'scale-130')}
+                    className={cn("absolute z-0 w-full blur-md opacity-40 h-full object-contain transition-transform duration-300", 'scale-130')}
                     onError={handleImageError}
                 />
                 <img 
