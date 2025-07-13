@@ -14,7 +14,26 @@ export interface PokemonStatDisplayProps {
     getRemainingEvs?: (pokemonId: number) => number;
 }
 
-// Component to display IVs and EVs
+// Move EVSliderProps to top-level
+interface EVSliderProps {
+    value: number;
+    onChange: (newValue: number) => void;
+}
+
+const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider({ value, onChange }) {
+    const handleValueChange = React.useCallback((val: number[]) => {
+        onChange(val[0]);
+    }, [onChange]);
+    return (
+        <Slider
+            value={[value]}
+            max={MAX_EV}
+            onValueChange={handleValueChange}
+            className="[&_[data-slot=slider-track]]:bg-slate-800/70 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500"
+        />
+    );
+});
+
 export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ 
     pokemon,
     isLoading = false,
@@ -27,41 +46,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
     const totalStats = pokemon?.data.stats;
     const natureModifier = pokemon?.data.natureModifiersArray;
 
-    interface EVSliderProps {
-        value: number;
-        onChange: (newValue: number) => void;
-    }
-    // EVSlider with commit on release
-    const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider({ value, onChange }) {
-        const [dragValue, setDragValue] = React.useState<number | null>(null);
-        
-        const currentValue = dragValue !== null ? dragValue : value;
-        
-        const handleValueChange = React.useCallback((val: number[]) => {
-            const newValue = val[0];
-            setDragValue(newValue);
-        }, []);
-        
-        const handleValueCommit = React.useCallback((val: number[]) => {
-            const finalValue = val[0];
-            setDragValue(null);
-            if (finalValue !== value) {
-                onChange(finalValue);
-            }
-        }, [value, onChange]);
-        
-        return (
-            <Slider
-                value={[currentValue]}
-                max={MAX_EV}
-                onValueChange={handleValueChange}
-                onValueCommit={handleValueCommit}
-                className="[&_[data-slot=slider-track]]:bg-slate-800/70 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500"
-            />
-        );
-    });
-
-    // Handler for EV changes - direct updates for smooth dragging
+    // Handler for EV changes - update parent state immediately
     const handleEvChange = React.useCallback((statIndex: number, newValue: number) => {
         if (typeof pokemon?.id !== 'number') return;
         setEvIndex(pokemon.id, statIndex, newValue);
@@ -75,13 +60,6 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
     return (
         <Skeleton.LoadingProvider loading={isLoading}>
             <div className="p-4 space-y-2 text-xs">
-                {/* EV Budget Display */}
-                <div className="flex justify-between items-center mb-3 p-2 bg-slate-800/50 rounded">
-                    <span className="text-slate-400">Remaining EVs:</span>
-                    <span className={`font-bold ${remainingEvs > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {remainingEvs}
-                    </span>
-                </div>
                 <div className="grid grid-cols-10 gap-2 text-slate-400">
                     <div className="col-span-1">STAT</div>
                     <div className="col-span-5 text-end">EV</div>
@@ -103,10 +81,10 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
                             <div className="text-white">{statName}</div>
                             <div className="col-span-5 flex items-center gap-2">
                                 <EVSlider 
-                                    value={ev} 
-                                    onChange={newValue => handleEvChange(index, newValue)} 
+                                    value={evs?.[index] ?? 0}
+                                    onChange={newValue => handleEvChange(index, newValue)}
                                 />
-                                <span className="text-white w-8 text-right text-xs flex-shrink-0">{ev}</span>
+                                <span className="text-white w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
                             </div>
                             <div className="text-cyan-400 text-center text-sm">{iv}</div>
                             <div className="text-slate-700 text-center text-sm"><Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text></div>

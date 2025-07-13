@@ -5,6 +5,7 @@ import React from 'react';
 import type { Pokemon } from '../../types';
 import { Skeleton } from '../common';
 import { PokemonTypeBadge } from './PokemonTypeBadge';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 
 interface PokemonHeaderProps {
     pokemon?: Pokemon;
@@ -22,7 +23,28 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl text-white tracking-tight flex items-center gap-2 h-8">
                         {pokemon?.data.nickname}
+                        {pokemon?.data.isShiny && (
+                            <Tooltip disableHoverableContent>
+                                <TooltipTrigger asChild>
+                                    <span>
+                                        <IoSparkles className='text-yellow-300/80' />
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Shiny</TooltipContent>
+                            </Tooltip>
+                        )}
+                        {pokemon?.data.isRadiant && (
+                            <Tooltip disableHoverableContent>
+                                <TooltipTrigger asChild>
+                                    <span>
+                                        <FaWandMagicSparkles className='text-purple-400/80' />
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Radiant</TooltipContent>
+                            </Tooltip>
+                        )}
                     </h2>
+
                     <div className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border border-cyan-800">
                         <FaHashtag size={12} />
                         <span>
@@ -40,16 +62,6 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                         <span className="text-xs text-slate-400 whitespace-nowrap">
                             {pokemon?.data.nature}
                         </span>
-                        {pokemon?.data.isShiny && (
-                            <span title="Shiny">
-                                <IoSparkles className='text-yellow-300/80'/>
-                            </span>
-                        )}
-                        {pokemon?.data.isRadiant && (
-                            <span title="Radiant">
-                                <FaWandMagicSparkles className='text-purple-400/80'/>
-                            </span>
-                        )}
                     </div>
                 </div>
             </div>
