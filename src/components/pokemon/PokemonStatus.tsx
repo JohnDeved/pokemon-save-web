@@ -36,12 +36,16 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
 
     return (
         <Card className={cn("flex items-center p-3 transition-all duration-300", containerClasses)}>
-            <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center">
+            <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center relative">
+                <img 
+                    src={pokemon.spriteUrl}
+                    className={cn("absolute z-0 w-full blur-md opacity-70 h-full object-contain transition-transform duration-300", 'scale-130')}
+                    onError={handleImageError}
+                />
                 <img 
                     src={pokemon.spriteUrl} 
                     alt={pokemon.data.nickname} 
-                    className={cn("w-full h-full object-contain transition-transform duration-300", isActive ? 'scale-110' : 'group-hover:scale-110')}
-                    style={{ filter: 'drop-shadow(0px 4px 3px rgba(0,0,0,0.5)) drop-shadow(0px 0px 6px rgba(255, 255, 255, 0.15))' }}
+                    className={cn("z-10 w-full h-full object-contain transition-transform duration-300", isActive ? 'scale-110' : 'group-hover:scale-110')}
                     onError={handleImageError}
                 />
             </div>

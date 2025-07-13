@@ -19,7 +19,7 @@ import type {
 
 // Import character map for decoding text
 import charMap from './pokemon_charmap.json';
-import { bytesToGbaString, getPokemonNature, mapMoveToPokeId, mapSpeciesToPokeId, natureEffects, statStrings } from './utils';
+import { bytesToGbaString, getPokemonNature, mapItemToNameId, mapItemToPokeId, mapMoveToPokeId, mapSpeciesToPokeId, natureEffects, statStrings } from './utils';
 
 /**
  * DataView wrapper for little-endian operations with bounds checking
@@ -105,50 +105,51 @@ export class PokemonData {
     this.view = new SafeDataView(data.buffer, data.byteOffset, data.byteLength);
   }
 
-  get personality(): number { return this.view.getUint32(0x00); }
-  get otId(): number { return this.view.getUint32(0x04); }
-  get nicknameRaw(): Uint8Array { return this.view.getBytes(0x08, CONSTANTS.POKEMON_NICKNAME_LENGTH); }
-  get otNameRaw(): Uint8Array { return this.view.getBytes(0x14, CONSTANTS.POKEMON_TRAINER_NAME_LENGTH); }
-  get currentHp(): number { return this.view.getUint16(0x23); }
-  get speciesId(): number { return mapSpeciesToPokeId(this.view.getUint16(0x28)); }
-  get item(): number { return this.view.getUint16(0x2A); }
-  get move1(): number { return mapMoveToPokeId(this.view.getUint16(0x34)); }
-  get move2(): number { return mapMoveToPokeId(this.view.getUint16(0x36)); }
-  get move3(): number { return mapMoveToPokeId(this.view.getUint16(0x38)); }
-  get move4(): number { return mapMoveToPokeId(this.view.getUint16(0x3A)); }
-  get pp1(): number { return this.view.getUint8(0x3C); }
-  get pp2(): number { return this.view.getUint8(0x3D); }
-  get pp3(): number { return this.view.getUint8(0x3E); }
-  get pp4(): number { return this.view.getUint8(0x3F); }
-  get hpEV(): number { return this.view.getUint8(0x40); }
-  set hpEV(value: number) { this.view.setUint8(0x40, value); }
-  get atkEV(): number { return this.view.getUint8(0x41); }
-  set atkEV(value: number) { this.view.setUint8(0x41, value); }
-  get defEV(): number { return this.view.getUint8(0x42); }
-  set defEV(value: number) { this.view.setUint8(0x42, value); }
-  get speEV(): number { return this.view.getUint8(0x43); }
-  set speEV(value: number) { this.view.setUint8(0x43, value); }
-  get spaEV(): number { return this.view.getUint8(0x44); }
-  set spaEV(value: number) { this.view.setUint8(0x44, value); }
-  get spdEV(): number { return this.view.getUint8(0x45); }
-  set spdEV(value: number) { this.view.setUint8(0x45, value); }
-  get ivData(): number { return this.view.getUint32(0x50); }
-  set ivData(value: number) { this.view.setUint32(0x50, value); }
-  get status(): number { return this.view.getUint8(0x57); }
-  get level(): number { return this.view.getUint8(0x58); }
-  get maxHp(): number { return this.view.getUint16(0x5A); }
-  set maxHp(value: number) { this.view.setUint16(0x5A, value); }
-  get attack(): number { return this.view.getUint16(0x5C); }
-  set attack(value: number) { this.view.setUint16(0x5C, value); }
-  get defense(): number { return this.view.getUint16(0x5E); }
-  set defense(value: number) { this.view.setUint16(0x5E, value); }
-  get speed(): number { return this.view.getUint16(0x60); }
-  set speed(value: number) { this.view.setUint16(0x60, value); }
-  get spAttack(): number { return this.view.getUint16(0x62); }
-  set spAttack(value: number) { this.view.setUint16(0x62, value); }
-  get spDefense(): number { return this.view.getUint16(0x64); }
-  set spDefense(value: number) { this.view.setUint16(0x64, value); }
-  get rawBytes(): Uint8Array { return new Uint8Array(this.data); }
+  get personality() { return this.view.getUint32(0x00); }
+  get otId() { return this.view.getUint32(0x04); }
+  get nicknameRaw() { return this.view.getBytes(0x08, CONSTANTS.POKEMON_NICKNAME_LENGTH); }
+  get otNameRaw() { return this.view.getBytes(0x14, CONSTANTS.POKEMON_TRAINER_NAME_LENGTH); }
+  get currentHp() { return this.view.getUint16(0x23); }
+  get speciesId() { return mapSpeciesToPokeId(this.view.getUint16(0x28)); }
+  get item() { return mapItemToPokeId(this.view.getUint16(0x2A)); }
+  get itemIdName() { return mapItemToNameId(this.view.getUint16(0x2A)); }
+  get move1() { return mapMoveToPokeId(this.view.getUint16(0x34)); }
+  get move2() { return mapMoveToPokeId(this.view.getUint16(0x36)); }
+  get move3() { return mapMoveToPokeId(this.view.getUint16(0x38)); }
+  get move4() { return mapMoveToPokeId(this.view.getUint16(0x3A)); }
+  get pp1() { return this.view.getUint8(0x3C); }
+  get pp2() { return this.view.getUint8(0x3D); }
+  get pp3() { return this.view.getUint8(0x3E); }
+  get pp4() { return this.view.getUint8(0x3F); }
+  get hpEV() { return this.view.getUint8(0x40); }
+  set hpEV(value) { this.view.setUint8(0x40, value); }
+  get atkEV() { return this.view.getUint8(0x41); }
+  set atkEV(value) { this.view.setUint8(0x41, value); }
+  get defEV() { return this.view.getUint8(0x42); }
+  set defEV(value) { this.view.setUint8(0x42, value); }
+  get speEV() { return this.view.getUint8(0x43); }
+  set speEV(value) { this.view.setUint8(0x43, value); }
+  get spaEV() { return this.view.getUint8(0x44); }
+  set spaEV(value) { this.view.setUint8(0x44, value); }
+  get spdEV() { return this.view.getUint8(0x45); }
+  set spdEV(value) { this.view.setUint8(0x45, value); }
+  get ivData() { return this.view.getUint32(0x50); }
+  set ivData(value) { this.view.setUint32(0x50, value); }
+  get status() { return this.view.getUint8(0x57); }
+  get level() { return this.view.getUint8(0x58); }
+  get maxHp() { return this.view.getUint16(0x5A); }
+  set maxHp(value) { this.view.setUint16(0x5A, value); }
+  get attack() { return this.view.getUint16(0x5C); }
+  set attack(value) { this.view.setUint16(0x5C, value); }
+  get defense() { return this.view.getUint16(0x5E); }
+  set defense(value) { this.view.setUint16(0x5E, value); }
+  get speed() { return this.view.getUint16(0x60); }
+  set speed(value) { this.view.setUint16(0x60, value); }
+  get spAttack() { return this.view.getUint16(0x62); }
+  set spAttack(value) { this.view.setUint16(0x62, value); }
+  get spDefense() { return this.view.getUint16(0x64); }
+  set spDefense(value) { this.view.setUint16(0x64, value); }
+  get rawBytes() { return new Uint8Array(this.data); }
 
   // Computed properties
   get otId_str(): string {

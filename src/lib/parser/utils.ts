@@ -6,15 +6,28 @@
 import charmapData from './pokemon_charmap.json';
 import pokemonMap from './mappings/pokemon_map.json'
 import moveMap from './mappings/move_map.json';
+import itemMap from './mappings/item_map.json';
 import { PokemonData } from './pokemonSaveParser';
 import { CONSTANTS } from './types';
 
 export function mapSpeciesToPokeId (speciesId: number): number {
-  return pokemonMap[speciesId.toString() as keyof typeof pokemonMap].id || speciesId;
+  return pokemonMap[speciesId.toString() as keyof typeof pokemonMap]?.id || speciesId;
 }
 
 export function mapMoveToPokeId (moveId: number): number {
-  return moveMap[moveId.toString() as keyof typeof moveMap].id || moveId;
+  return moveMap[moveId.toString() as keyof typeof moveMap]?.id || moveId;
+}
+
+export function mapItemToPokeId (itemId: number): number {
+  return itemMap[itemId.toString() as keyof typeof itemMap]?.id || itemId;
+}
+
+export function mapItemToNameId(itemId: number): string | undefined {
+  return itemMap[itemId.toString() as keyof typeof itemMap]?.id_name
+}
+
+export function getItemSpriteUrl(itemIdName: string): string {
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${itemIdName}.png`;
 }
 
 // Convert charmap keys from strings to numbers for faster lookup

@@ -6,6 +6,7 @@ import type { Pokemon } from '../../types';
 import { Skeleton } from '../common';
 import { PokemonTypeBadge } from './PokemonTypeBadge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
+import { getItemSpriteUrl } from "@/lib/parser/utils";
 
 interface PokemonHeaderProps {
     pokemon?: Pokemon;
@@ -59,6 +60,15 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                         {pokemon?.details?.types.map(type => <PokemonTypeBadge key={type} type={type} isLarge={true} />)}
                     </Skeleton.Container>
                     <div className="flex items-center gap-2 min-w-8">
+                        {
+                            pokemon?.data.itemIdName && (
+                                <img
+                                    src={getItemSpriteUrl(pokemon.data.itemIdName)}
+                                    alt={pokemon.data.itemIdName}
+                                    className="w-6 h-6"
+                                />
+                            )
+                        }
                         <span className="text-xs text-slate-400 whitespace-nowrap">
                             {pokemon?.data.nature}
                         </span>
