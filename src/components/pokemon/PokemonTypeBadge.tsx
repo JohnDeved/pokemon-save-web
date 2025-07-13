@@ -36,7 +36,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 // Component for the colored Type Badge
 export const PokemonTypeBadge: React.FC<TypeBadgeProps> = ({ type, isLarge = false }) => {
-    const iconUrl = `/type-icons/${type.toLowerCase()}.png`;
+    const iconUrl = `/type-icons/${type.toLowerCase()}_t.png`;
     const sizeClasses = isLarge ? 'text-[10px] pr-3' : 'text-[8px] pr-2';
     const iconSize = isLarge ? 'h-[23px] w-[23px]' : 'h-[20px] w-[20px]';
 
