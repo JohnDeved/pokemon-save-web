@@ -155,7 +155,26 @@ export function getNatureModifier(nature: string, statIndex: number): number {
  */
 export function calculateTotalStats(pokemon: PokemonData, baseStats: number[]): number[] {
   const { level, ivs, evs, nature } = pokemon;
+  // Cast readonly arrays to mutable arrays for compatibility
+  return calculateTotalStatsDirect(baseStats, ivs, evs, level, nature);
+}
 
+/**
+ * Calculate total stats based on base stats, IVs, EVs, level, nature (direct params version)
+ * @param baseStats Array of base stats [HP, Atk, Def, Spe, SpA, SpD]
+ * @param ivs Array of IVs [HP, Atk, Def, Spe, SpA, SpD]
+ * @param evs Array of EVs [HP, Atk, Def, Spe, SpA, SpD]
+ * @param level Pokemon level
+ * @param nature Nature string
+ * @returns Array of calculated total stats
+ */
+export function calculateTotalStatsDirect(
+  baseStats: readonly number[],
+  ivs: readonly number[],
+  evs: readonly number[],
+  level: number,
+  nature: string
+): number[] {
   // HP calculation
   const hp = Math.floor(((2 * baseStats[0] + ivs[0] + Math.floor(evs[0] / 4)) * level) / 100) + level + 10;
 

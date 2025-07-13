@@ -255,6 +255,22 @@ export const usePokemonData = () => {
         }));
     }, []);
 
+    // Update IVs immutably, but preserve class instance
+    const setIvIndex = useCallback((pokemonId: number, statIndex: number, ivValue: number) => {
+        setPartyList(prevList => prevList.map(p => {
+            if (p.id !== pokemonId || !p.details) return p;
+            
+            // Only update if the value actually changed
+            if (p.data.ivs[statIndex] === ivValue) return p;
+            
+            // Directly mutate the class instance
+            p.data.setIvByIndex(statIndex, ivValue);
+            p.data.stats = calculateTotalStats(p.data, p.details.baseStats);
+            // Return a new object reference for React to detect change
+            return { ...p };
+        }));
+    }, []);
+
     // Calculate remaining EVs for the active Pokémon
     const getRemainingEvs = useCallback((pokemonId: number) => {
         const pokemon = partyList.find(p => p.id === pokemonId);
@@ -274,6 +290,7 @@ export const usePokemonData = () => {
         error,
         saveFileParser,
         setEvIndex,
+        setIvIndex,
         preloadPokemonDetails,
         getRemainingEvs,
     };

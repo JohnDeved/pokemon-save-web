@@ -276,6 +276,16 @@ export class PokemonData {
         throw new Error(`Invalid EV index: ${statIndex}`);
     }
   }
+
+  setIvByIndex(statIndex: number, value: number): void {
+    if (statIndex < 0 || statIndex > 5) {
+      throw new Error(`Invalid IV index: ${statIndex}`);
+    }
+    const clampedValue = Math.max(0, Math.min(31, value));
+    const currentIvs = [...this.ivs];
+    currentIvs[statIndex] = clampedValue;
+    this.ivs = currentIvs;
+  }
 }
 
 /**

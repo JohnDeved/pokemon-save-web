@@ -92,7 +92,7 @@ describe('PokemonSaveParser - Integration Tests', () => {
       for (const pokemon of parsedData.party_pokemon) {
         const baseStats = baseStatsCache[pokemon.speciesId];
         if (!baseStats) continue;
-        expect(calculateTotalStats(pokemon, baseStats)).toEqual(pokemon.statsArray);
+        expect(calculateTotalStats(pokemon, baseStats)).toEqual(pokemon.stats);
       }
     });
 

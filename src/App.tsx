@@ -26,6 +26,7 @@ export default function App() {
         isLoading,
         saveFileParser,
         setEvIndex,
+        setIvIndex,
         preloadPokemonDetails,
         getRemainingEvs
     } = usePokemonData();
@@ -69,6 +70,7 @@ export default function App() {
                             <Card className="z-20">
                                 <PokemonStatDisplay
                                     setEvIndex={setEvIndex}
+                                    setIvIndex={setIvIndex}
                                     pokemon={activePokemon}
                                     isLoading={!activePokemon?.details || isLoading}
                                     getRemainingEvs={getRemainingEvs}
