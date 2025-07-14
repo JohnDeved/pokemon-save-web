@@ -89,7 +89,7 @@ function Slider({
           <div
             className={
               cn(
-                "absolute left-0 top-0 h-full pointer-events-none text-white/3 bg-white/2 bg-[size:8px_8px] bg-top-left",
+                "absolute left-0 top-0 h-full pointer-events-none text-white/5 bg-white/3 bg-[size:8px_8px] bg-top-left",
                 "bg-[image:repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_1px,transparent_50%)]"
               )
             }
