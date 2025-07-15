@@ -6,15 +6,19 @@ import type { Pokemon } from '../../types';
 import { Skeleton } from '../common';
 import { PokemonTypeBadge } from './PokemonTypeBadge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
-import { getItemSpriteUrl } from "@/lib/parser/utils";
+import { getItemSpriteUrl, natures } from "@/lib/parser/utils";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../ui/select";
+import type { usePokemonData } from "@/hooks";
 
 interface PokemonHeaderProps {
     pokemon?: Pokemon;
     isLoading?: boolean;
+    setNature?: ReturnType<typeof usePokemonData>['setNature'];
 }
 
 export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
     pokemon,
+    setNature,
     isLoading = false
 }) => {
     return (
@@ -69,9 +73,22 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                                 />
                             )
                         }
-                        <span className="text-xs text-slate-400 whitespace-nowrap">
-                            {pokemon?.data.nature}
-                        </span>
+                        <Select value={pokemon?.data.nature ?? undefined} onValueChange={nature => {
+                            console.log('Setting nature:', pokemon?.id, nature);
+                            if (typeof pokemon?.id === 'undefined') return;
+                            setNature?.(pokemon.id, nature)
+                        }}>
+                            <SelectTrigger className="text-xs">
+                                <SelectValue placeholder="Nature" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    {natures.map(nature => (
+                                        <SelectItem key={nature} value={nature}>{nature}</SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </div>

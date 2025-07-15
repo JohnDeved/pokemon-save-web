@@ -8,8 +8,8 @@ import {
     PokemonStatDisplay,
     SaveFileDropzone
 } from './components/pokemon';
+import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger } from './components/ui/menubar';
 import { usePokemonData } from './hooks';
-import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarTrigger } from './components/ui/menubar';
 
 // Dynamically import ShaderBackground to code-split heavy 3D dependencies
 const ShaderBackground = lazy(() =>
@@ -30,6 +30,7 @@ export default function App() {
         setIvIndex,
         preloadPokemonDetails,
         getRemainingEvs,
+        setNature
     } = usePokemonData();
 
     const hasSaveData = saveFileParser.hasFile && partyList.length > 0;
@@ -82,6 +83,7 @@ export default function App() {
                                 <Card className="z-30">
                                     <PokemonHeader
                                         pokemon={activePokemon}
+                                        setNature={setNature}
                                         isLoading={isLoading}
                                     />
                                     <PokemonMovesSection

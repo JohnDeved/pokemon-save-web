@@ -56,7 +56,7 @@ export const useSaveFileParser = () => {
     });
   }, []);
 
-  const reconstructAndDownload = useCallback((partyPokemon: PokemonData[]) => {
+  const reconstructAndDownload = useCallback((partyPokemon: readonly PokemonData[]) => {
     if (!state.saveData || !parserRef.current) throw new Error('No save data loaded');
     // Use the same parser instance
     const newSave = parserRef.current.reconstructSaveFile(partyPokemon);

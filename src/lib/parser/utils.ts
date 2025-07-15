@@ -126,7 +126,7 @@ export const natures = [
   'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive',
   'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash',
   'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky'
-] as const;
+];
 /**
  * Get Pokemon nature from the first byte of the personality value
  * Pokemon nature is determined by (personality & 0xFF) % 25
@@ -135,6 +135,17 @@ export function getPokemonNature(personality: number): string {
 
   // Use only the first byte of the personality value
   return natures[(personality & 0xFF) % 25];
+}
+
+export function setPokemonNature(pokemon: PokemonData, nature: string): void {
+  // Find the index of the nature in the natures array
+  const natureIndex = natures.indexOf(nature as (typeof natures)[number]);
+  if (natureIndex === -1) {
+    throw new Error(`Invalid nature: ${nature}`);
+  }
+  
+  // Calculate the new personality value
+  pokemon.natureRaw = natureIndex;
 }
 
 export const natureEffects: { [key: string]: { increased: number, decreased: number } } = {

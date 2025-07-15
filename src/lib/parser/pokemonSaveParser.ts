@@ -106,6 +106,8 @@ export class PokemonData {
   }
 
   get personality() { return this.view.getUint32(0x00); }
+  get natureRaw() { return this.view.getUint8(0x00); }
+  set natureRaw(value: number) { this.view.setUint8(0x00, value); }
   get otId() { return this.view.getUint32(0x04); }
   get nicknameRaw() { return this.view.getBytes(0x08, CONSTANTS.POKEMON_NICKNAME_LENGTH); }
   get otNameRaw() { return this.view.getBytes(0x14, CONSTANTS.POKEMON_TRAINER_NAME_LENGTH); }
@@ -585,7 +587,7 @@ export class PokemonSaveParser {
    * @param saveblock1 The original SaveBlock1 buffer
    * @param party Array of PokemonData (max length = CONSTANTS.MAX_PARTY_SIZE)
    */
-  private updatePartyInSaveblock1(saveblock1: Uint8Array, party: PokemonData[]): Uint8Array {
+  private updatePartyInSaveblock1(saveblock1: Uint8Array, party: readonly PokemonData[]): Uint8Array {
     if (saveblock1.length < CONSTANTS.SAVEBLOCK1_SIZE) {
       throw new Error(`SaveBlock1 must be at least ${CONSTANTS.SAVEBLOCK1_SIZE} bytes`);
     }
@@ -633,7 +635,7 @@ export class PokemonSaveParser {
    *
    * @param partyPokemon Array of PokemonData to update party in SaveBlock1
    */
-  reconstructSaveFile(partyPokemon: PokemonData[]): Uint8Array {
+  reconstructSaveFile(partyPokemon: readonly PokemonData[]): Uint8Array {
     if (!this.saveData) throw new Error('Save data not loaded');
     const baseSaveblock1 = this.extractSaveblock1();
     const updatedSaveblock1 = this.updatePartyInSaveblock1(baseSaveblock1, partyPokemon);

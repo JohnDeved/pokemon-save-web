@@ -13,7 +13,7 @@ import {
 } from '../types';
 import type { Ability, MoveWithDetails, PokemonType, UIPokemonData } from '../types';
 import { useSaveFileParser } from './useSaveFileParser';
-import { calculateTotalStats } from '@/lib/parser/utils';
+import { calculateTotalStats, natures } from '@/lib/parser/utils';
 
 // --- Constants ---
 const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
@@ -271,11 +271,26 @@ export const usePokemonData = () => {
         }));
     }, []);
 
+
+    // Set nature by updating natureRaw and state
+    const setNature = useCallback((pokemonId: number, nature: string) => {
+        setPartyList(prevList => prevList.map(p => {
+            console.log('Setting nature:', pokemonId, nature);
+            const natureValue = natures.indexOf(nature);
+            if (p.id !== pokemonId || !p.details) return p;
+            // Only update if the value actually changed
+            if (p.data.natureRaw === natureValue) return p;
+            p.data.natureRaw = natureValue;
+            // Optionally, recalculate stats if needed
+            p.data.stats = calculateTotalStats(p.data, p.details.baseStats);
+            return { ...p };
+        }));
+    }, []);
+
     // Calculate remaining EVs for the active Pokémon
     const getRemainingEvs = useCallback((pokemonId: number) => {
         const pokemon = partyList.find(p => p.id === pokemonId);
         if (!pokemon) return MAX_TOTAL_EVS;
-        
         const totalEvs = pokemon.data.evs.reduce((sum, ev) => sum + ev, 0);
         return Math.max(0, MAX_TOTAL_EVS - totalEvs);
     }, [partyList]);
@@ -291,6 +306,7 @@ export const usePokemonData = () => {
         saveFileParser,
         setEvIndex,
         setIvIndex,
+        setNature,
         preloadPokemonDetails,
         getRemainingEvs,
     };
