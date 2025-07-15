@@ -1,14 +1,13 @@
-import { IoSparkles } from "react-icons/io5";
-import { FaHashtag } from "react-icons/fa6";
-import { FaWandMagicSparkles } from "react-icons/fa6";
+import type { usePokemonData } from "@/hooks";
+import { getItemSpriteUrl, natures } from "@/lib/parser/utils";
 import React from 'react';
+import { FaHashtag, FaWandMagicSparkles } from "react-icons/fa6";
+import { IoSparkles } from "react-icons/io5";
 import type { Pokemon } from '../../types';
 import { Skeleton } from '../common';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { PokemonTypeBadge } from './PokemonTypeBadge';
-import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
-import { getItemSpriteUrl, natures } from "@/lib/parser/utils";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../ui/select";
-import type { usePokemonData } from "@/hooks";
 
 interface PokemonHeaderProps {
     pokemon?: Pokemon;
