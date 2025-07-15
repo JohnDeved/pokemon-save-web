@@ -326,6 +326,7 @@ export class PokemonSaveParser {
   private activeSlotStart = 0;
   private sectorMap = new Map<number, number>();
   private forcedSlot: 1 | 2 | undefined;
+  public saveFileName: string | null = null;
 
   constructor(forcedSlot?: 1 | 2) {
     this.forcedSlot = forcedSlot;
@@ -339,6 +340,10 @@ export class PokemonSaveParser {
       let buffer: ArrayBuffer;
       
       if (input instanceof File) {
+        // save the original file name for later use
+        this.saveFileName = input.name;
+
+
         // Check if arrayBuffer method exists (browser environment)
         if (typeof input.arrayBuffer === 'function') {
           buffer = await input.arrayBuffer();

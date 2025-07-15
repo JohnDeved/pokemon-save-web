@@ -31,7 +31,7 @@ const Scene = memo(function Scene() {
 
 export function ShaderBackground() {
   return (
-    <div className="fixed inset-0 z-10">
+    <div className="fixed inset-0">
       {useMemo(
         () => (
           <Canvas>

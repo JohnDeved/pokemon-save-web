@@ -62,7 +62,7 @@ export const useSaveFileParser = () => {
     const newSave = parserRef.current.reconstructSaveFile(partyPokemon);
     // Download using file-saver
     const blob = new Blob([newSave], { type: 'application/octet-stream' });
-    saveAs(blob, 'pokemon_save.sav');
+    saveAs(blob, parserRef.current.saveFileName || 'pokemon_save.sav');
   }, [state.saveData]);
 
   return {

@@ -33,7 +33,7 @@ const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider({ value, 
             value={[value]}
             max={MAX_EV}
             onValueChange={handleValueChange}
-            className="[&_[data-slot=slider-track]]:bg-slate-800/70 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500"
+            className="[&_[data-slot=slider-track]]:bg-slate-700/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500"
             maxVisualValue={maxVisualValue}
         />
     );

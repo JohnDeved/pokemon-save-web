@@ -9,9 +9,10 @@ import {
     SaveFileDropzone
 } from './components/pokemon';
 import { usePokemonData } from './hooks';
+import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarTrigger } from './components/ui/menubar';
 
 // Dynamically import ShaderBackground to code-split heavy 3D dependencies
-const ShaderBackground = lazy(() => 
+const ShaderBackground = lazy(() =>
     import('./components/common/ShaderBackground').then(module => ({
         default: module.ShaderBackground
     }))
@@ -28,19 +29,19 @@ export default function App() {
         setEvIndex,
         setIvIndex,
         preloadPokemonDetails,
-        getRemainingEvs
+        getRemainingEvs,
     } = usePokemonData();
-    
+
     const hasSaveData = saveFileParser.hasFile && partyList.length > 0;
 
     return (
         <>
-            <Suspense fallback={<div className="fixed inset-0 z-10 bg-black" />}>
+            <Suspense fallback={<div className="fixed inset-0 bg-black" />}>
                 <ShaderBackground />
             </Suspense>
             <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
                 <div className="absolute inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"></div>
-                
+
                 <SaveFileDropzone
                     onFileLoad={saveFileParser.parseSaveFile}
                     error={saveFileParser.error}
@@ -48,40 +49,62 @@ export default function App() {
                 />
 
                 {hasSaveData && (
-                    <main className="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 z-10">
-                        <PokemonPartyList
-                            partyList={partyList}
-                            activePokemonId={activePokemonId}
-                            onPokemonSelect={setActivePokemonId}
-                            isRenaming={false}
-                            onPokemonHover={preloadPokemonDetails}
-                        />
-                        <div className="grid grid-rows-[auto_auto_1fr] gap-4">
-                            <Card className="z-30">
-                                <PokemonHeader
-                                    pokemon={activePokemon}
-                                    isLoading={isLoading}
-                                />
-                                <PokemonMovesSection
-                                    moves={activePokemon?.details?.moves}
-                                    isLoading={!activePokemon?.details || isLoading}
-                                />
-                            </Card>
-                            <Card className="z-20">
-                                <PokemonStatDisplay
-                                    setEvIndex={setEvIndex}
-                                    setIvIndex={setIvIndex}
-                                    pokemon={activePokemon}
-                                    isLoading={!activePokemon?.details || isLoading}
-                                    getRemainingEvs={getRemainingEvs}
-                                />
-                            </Card>                            
-                            <Card className="z-10">
-                                <PokemonAbilitySection
-                                    pokemon={activePokemon}
-                                    isLoading={!activePokemon?.details || isLoading}
-                                />
-                            </Card>
+                    <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
+                        <div className="flex justify-start">
+                            <Menubar>
+                                <MenubarMenu>
+                                    <MenubarTrigger>File</MenubarTrigger>
+                                    <MenubarContent>
+                                        <MenubarItem disabled>
+                                            Load
+                                        </MenubarItem>
+                                        <MenubarItem disabled>Save</MenubarItem>
+                                        <MenubarItem onClick={() => {
+                                            const pokemon = saveFileParser.saveData?.party_pokemon
+                                            if (!pokemon) return;
+                                            saveFileParser.reconstructAndDownload(pokemon)
+                                        }}>Download</MenubarItem>
+                                        <MenubarSeparator />
+                                        <MenubarItem disabled>Share</MenubarItem>
+                                    </MenubarContent>
+                                </MenubarMenu>
+                            </Menubar>
+                        </div>
+                        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 z-10'>
+                            <PokemonPartyList
+                                partyList={partyList}
+                                activePokemonId={activePokemonId}
+                                onPokemonSelect={setActivePokemonId}
+                                isRenaming={false}
+                                onPokemonHover={preloadPokemonDetails}
+                            />
+                            <div className="grid grid-rows-[auto_auto_1fr] gap-4">
+                                <Card className="z-30">
+                                    <PokemonHeader
+                                        pokemon={activePokemon}
+                                        isLoading={isLoading}
+                                    />
+                                    <PokemonMovesSection
+                                        moves={activePokemon?.details?.moves}
+                                        isLoading={!activePokemon?.details || isLoading}
+                                    />
+                                </Card>
+                                <Card className="z-20">
+                                    <PokemonStatDisplay
+                                        setEvIndex={setEvIndex}
+                                        setIvIndex={setIvIndex}
+                                        pokemon={activePokemon}
+                                        isLoading={!activePokemon?.details || isLoading}
+                                        getRemainingEvs={getRemainingEvs}
+                                    />
+                                </Card>
+                                <Card className="z-10">
+                                    <PokemonAbilitySection
+                                        pokemon={activePokemon}
+                                        isLoading={!activePokemon?.details || isLoading}
+                                    />
+                                </Card>
+                            </div>
                         </div>
                     </main>
                 )}
