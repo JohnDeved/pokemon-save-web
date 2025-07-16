@@ -342,15 +342,15 @@ export class PokemonSaveParser {
     try {
       let buffer: ArrayBuffer;
 
-      if (input instanceof FileSystemFileHandle) {
+      // Only check instanceof FileSystemFileHandle if it exists (browser)
+      if (typeof FileSystemFileHandle !== 'undefined' && input instanceof FileSystemFileHandle) {
         this.fileHandle = input;
         input = await input.getFile();
       }
-      
+
       if (input instanceof File) {
         // save the original file name for later use
         this.saveFileName = input.name;
-
 
         // Check if arrayBuffer method exists (browser environment)
         if (typeof input.arrayBuffer === 'function') {
@@ -361,13 +361,13 @@ export class PokemonSaveParser {
           buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
             reader.onload = () => resolve(reader.result as ArrayBuffer);
             reader.onerror = () => reject(reader.error);
-            reader.readAsArrayBuffer(input);
+            reader.readAsArrayBuffer(input as File);
           });
         }
       } else {
-        buffer = input;
+        buffer = input as ArrayBuffer;
       }
-      
+
       this.saveData = new Uint8Array(buffer);
     } catch (error) {
       throw new Error(`Failed to load save file: ${error instanceof Error ? error.message : 'Unknown error'}`);
