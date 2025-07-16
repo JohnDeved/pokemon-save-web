@@ -171,15 +171,18 @@ export const usePokemonData = () => {
         });
     }, [saveData]);
 
+
     // UI state: which Pokémon is active
     const [activePokemonId, setActivePokemonId] = useState(0);
     // Store party list in state for immutable updates
     const [partyList, setPartyList] = useState<UIPokemonData[]>(() => initialPartyList);
 
-    // Update party list when initial data changes
+    // When saveData changes, reset partyList and activePokemonId to avoid stale details
     useEffect(() => {
         setPartyList(initialPartyList);
-    }, [initialPartyList]);
+        // Clear cached pokemon details to avoid stale data after loading a new file
+        queryClient.removeQueries({ queryKey: ['pokemon', 'details'] });
+    }, [initialPartyList, queryClient]);
 
     // Get the current active Pokémon from initial data
     const activePokemonFromInitial = initialPartyList.find(p => p.id === activePokemonId);
