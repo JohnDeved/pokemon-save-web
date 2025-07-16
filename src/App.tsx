@@ -8,7 +8,7 @@ import {
     SaveFileDropzone
 } from './components/pokemon';
 import { Card } from './components/common';
-import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger } from './components/ui/menubar';
+import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger, MenubarShortcut } from './components/ui/menubar';
 import { Toaster } from './components/ui/sonner';
 import { usePokemonData } from './hooks';
 
@@ -63,13 +63,14 @@ export default function App() {
                     <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
                         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 z-10'>
                             <div className="flex flex-col gap-4">
-                                <Menubar>
+                                <Menubar className="geist-font">
                                     <MenubarMenu>
                                         <MenubarTrigger>File</MenubarTrigger>
                                         <MenubarContent>
                                             <MenubarItem onClick={() => filePickerRef.current?.()}>
-                                                Load
+                                                Open
                                             </MenubarItem>
+                                            <MenubarSeparator />
                                             <MenubarItem disabled>Save</MenubarItem>
                                             <MenubarItem 
                                                 onClick={() => saveFileParser.reconstructAndDownload("saveAs")} 
@@ -80,6 +81,15 @@ export default function App() {
                                             >Download</MenubarItem>
                                             <MenubarSeparator />
                                             <MenubarItem disabled>Share</MenubarItem>
+                                        </MenubarContent>
+                                    </MenubarMenu>
+                                    <MenubarMenu>
+                                        <MenubarTrigger>Edit</MenubarTrigger>
+                                        <MenubarContent>
+                                            <MenubarItem disabled>Undo <MenubarShortcut>Ctrl+Z</MenubarShortcut></MenubarItem>
+                                            <MenubarItem disabled>Redo <MenubarShortcut>Ctrl+Y</MenubarShortcut></MenubarItem>
+                                            <MenubarSeparator />
+                                            <MenubarItem disabled>Reset</MenubarItem>
                                         </MenubarContent>
                                     </MenubarMenu>
                                 </Menubar>

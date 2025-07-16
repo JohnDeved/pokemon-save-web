@@ -5,7 +5,13 @@
 
 /* Custom pixel font class */
 .font-pixel {
-  font-family: "Press Start 2P", cursive;
+  font-family: "Press Start 2P";
+}
+
+.geist-font {
+  font-family: "Geist", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
 }
 
 /* Custom scrollbar styles */
