@@ -41,7 +41,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
                         initial={{ opacity: 0, y: animationY }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: animationY }}
-                        className={cn("absolute left-0 right-0 z-50 p-3 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-xs", popoverDirectionClass)}
+                        className={cn("absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-800 rounded-lg shadow-xl text-xs", popoverDirectionClass)}
                     >
                         <div className="flex justify-between text-slate-400 mb-2 pb-2 border-b border-slate-700/50">
                             <div>
@@ -57,7 +57,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
                                 <div>Accuracy: <div className="text-white">{move.accuracy ? `${move.accuracy}%` : '—'}</div></div>
                             </div>
                         </div>
-                        <ScrollableContainer className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-slate-400 leading-relaxed text-[8px]">
+                        <ScrollableContainer className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-slate-400 leading-relaxed text-xs">
                             Targets: {move.target ?? ''} <br />
                             {move.description || 'Loading description...'}
                         </ScrollableContainer>

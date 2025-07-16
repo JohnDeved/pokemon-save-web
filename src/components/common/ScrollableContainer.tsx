@@ -49,7 +49,7 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
     return (
         <div
             ref={containerRef}
-            className={cn('scroll-container', className, fadeClassMap[scrollState])}
+            className={cn('scroll-container geist-font', className, fadeClassMap[scrollState])}
         >
             {children}
         </div>
