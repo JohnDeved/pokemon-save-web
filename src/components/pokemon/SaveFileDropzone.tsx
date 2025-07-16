@@ -1,24 +1,20 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '../../lib/utils';
 
-interface SaveFileDropzoneProps {
+type SaveFileDropzoneProps = {
   onFileLoad: (file: File) => void;
   error?: string | null;
   showDropzone: boolean;
-}
+  onOpenFilePicker?: (fn: () => void) => void;
+};
 
-export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({
-  onFileLoad,
-  error = null,
-  showDropzone,
-}) => {
+export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, error = null, showDropzone, onOpenFilePicker }) => {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [lastModified, setLastModified] = useState<number | null>(null);
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // File System Access API: open file picker
-  const openFileWithPicker = async () => {
+  const openFileWithPicker = useCallback(async () => {
     try {
       // @ts-expect-error File System Access API is not yet in TypeScript DOM lib, safe to ignore for supported browsers
       const [handle] = await window.showOpenFilePicker({
@@ -38,7 +34,13 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({
     } catch {
       // User cancelled or not supported
     }
-  };
+  }, [onFileLoad]);
+
+  useEffect(() => {
+    if (onOpenFilePicker) {
+      onOpenFilePicker(openFileWithPicker);
+    }
+  }, [onOpenFilePicker, openFileWithPicker]);
 
   // Poll for file changes
   useEffect(() => {

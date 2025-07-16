@@ -1,5 +1,4 @@
-import { Suspense, lazy } from 'react';
-import { Card } from './components/common';
+import { Suspense, lazy, useState } from 'react';
 import {
     PokemonAbilitySection,
     PokemonHeader,
@@ -8,6 +7,7 @@ import {
     PokemonStatDisplay,
     SaveFileDropzone
 } from './components/pokemon';
+import { Card } from './components/common';
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger } from './components/ui/menubar';
 import { usePokemonData } from './hooks';
 
@@ -34,6 +34,8 @@ export default function App() {
     } = usePokemonData();
 
     const hasSaveData = saveFileParser.hasFile && partyList.length > 0;
+    // Store the openFileWithPicker function from SaveFileDropzone
+    const [openFilePicker, setOpenFilePicker] = useState<() => void>(() => {});
 
     return (
         <>
@@ -47,6 +49,7 @@ export default function App() {
                     onFileLoad={saveFileParser.parseSaveFile}
                     error={saveFileParser.error}
                     showDropzone={!hasSaveData}
+                    onOpenFilePicker={fn => setOpenFilePicker(() => fn)}
                 />
 
                 {hasSaveData && (
@@ -56,7 +59,7 @@ export default function App() {
                                 <MenubarMenu>
                                     <MenubarTrigger>File</MenubarTrigger>
                                     <MenubarContent>
-                                        <MenubarItem disabled>
+                                        <MenubarItem onClick={() => openFilePicker?.()}>
                                             Load
                                         </MenubarItem>
                                         <MenubarItem disabled>Save</MenubarItem>
