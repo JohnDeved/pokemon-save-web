@@ -101,9 +101,10 @@ export const useSaveFileParser = () => {
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
+        return
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
-        toast.error(message, {
+        return toast.error(message, {
           position: 'bottom-center',
           duration: 5000,
         });

@@ -70,8 +70,11 @@ export default function App() {
                                             <MenubarItem onClick={() => filePickerRef.current?.()}>
                                                 Open
                                             </MenubarItem>
+                                            <MenubarItem disabled>Open Recent</MenubarItem>
                                             <MenubarSeparator />
-                                            <MenubarItem disabled={!saveFileParser.parser?.fileHandle}>Save</MenubarItem>
+                                            <MenubarItem 
+                                                disabled={!saveFileParser.parser?.fileHandle}
+                                            >Save <MenubarShortcut>Ctrl+S</MenubarShortcut></MenubarItem>
                                             <MenubarItem 
                                                 onClick={() => saveFileParser.reconstructAndDownload("saveAs")} 
                                                 disabled={!canSaveAs}
@@ -80,8 +83,6 @@ export default function App() {
                                                 onClick={() => saveFileParser.reconstructAndDownload()}
                                             >Download</MenubarItem>
                                             <MenubarSeparator />
-                                            <MenubarItem disabled>History</MenubarItem>
-                                            <MenubarSeparator />
                                             <MenubarItem disabled>Share</MenubarItem>
                                         </MenubarContent>
                                     </MenubarMenu>
@@ -89,7 +90,7 @@ export default function App() {
                                         <MenubarTrigger>Edit</MenubarTrigger>
                                         <MenubarContent>
                                             <MenubarItem disabled>Undo <MenubarShortcut>Ctrl+Z</MenubarShortcut></MenubarItem>
-                                            <MenubarItem disabled>Redo <MenubarShortcut>Ctrl+Y</MenubarShortcut></MenubarItem>
+                                            <MenubarItem disabled>Redo <MenubarShortcut>Ctrl+Shift+Y</MenubarShortcut></MenubarItem>
                                             <MenubarSeparator />
                                             <MenubarItem disabled>Reset</MenubarItem>
                                         </MenubarContent>
