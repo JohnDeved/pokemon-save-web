@@ -9,6 +9,7 @@ import {
 } from './components/pokemon';
 import { Card } from './components/common';
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger } from './components/ui/menubar';
+import { Toaster } from './components/ui/sonner';
 import { usePokemonData } from './hooks';
 
 // Dynamically import ShaderBackground to code-split heavy 3D dependencies
@@ -34,6 +35,8 @@ export default function App() {
     } = usePokemonData();
 
     const hasSaveData = saveFileParser.hasFile && partyList.length > 0;
+    // Only show dropzone if there is no save data and last parse did not fail
+    const shouldShowDropzone = !hasSaveData && !saveFileParser.lastParseFailed;
     // Store the openFileWithPicker function from SaveFileDropzone
     const [openFilePicker, setOpenFilePicker] = useState<() => void>(() => {});
 
@@ -42,13 +45,14 @@ export default function App() {
             <Suspense fallback={<div className="fixed inset-0 bg-black" />}>
                 <ShaderBackground />
             </Suspense>
+            <Toaster richColors position="bottom-center" />
             <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
                 <div className="absolute inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"></div>
 
                 <SaveFileDropzone
                     onFileLoad={saveFileParser.parseSaveFile}
                     error={saveFileParser.error}
-                    showDropzone={!hasSaveData}
+                    showDropzone={shouldShowDropzone}
                     onOpenFilePicker={fn => setOpenFilePicker(() => fn)}
                 />
 

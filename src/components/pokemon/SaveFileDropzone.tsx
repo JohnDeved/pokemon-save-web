@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '../../lib/utils';
+import { toast } from 'sonner';
 
 type SaveFileDropzoneProps = {
   onFileLoad: (file: File) => void;
@@ -16,7 +17,6 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
 
   const openFileWithPicker = useCallback(async () => {
     try {
-      // @ts-expect-error File System Access API is not yet in TypeScript DOM lib, safe to ignore for supported browsers
       const [handle] = await window.showOpenFilePicker({
         types: [
           {
@@ -41,6 +41,16 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
       onOpenFilePicker(openFileWithPicker);
     }
   }, [onOpenFilePicker, openFileWithPicker]);
+
+  // Show error toast if error prop changes
+  useEffect(() => {
+    if (error) {
+      toast.error(error, {
+        position: 'bottom-center',
+        duration: 5000,
+      });
+    }
+  }, [error]);
 
   // Poll for file changes
   useEffect(() => {
@@ -87,52 +97,48 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
   }
 
   return (
-    <div
-      className={cn(
-        'fixed inset-0 z-50 transition-colors duration-200',
-        isDragActive ? 'bg-black/20' : 'bg-transparent',
-        showDropzone ? 'p-48' : 'p-0',
-        !showDropzone && !isDragActive && 'pointer-events-none'
-      )}
-    >
+    <>
       <div
-        {...getRootProps({ onClick: openFileWithPicker })} // Use File Picker on click
         className={cn(
-          `group w-full h-full flex flex-col items-center justify-center 
-          rounded-lg cursor-pointer transition-all duration-300 ease-in-out 
-          border-2 border-dashed`,
-          // Visibility and base styles
-          (isDragActive || showDropzone) ? 'opacity-100' : 'opacity-0',
-          showDropzone ? 'bg-slate-900/50 border-slate-700 shadow-2xl' : 'bg-transparent border-transparent',
-          
-          // Drag states
-          isDragActive && 'bg-slate-800/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
-          
-          // Hover state only when it's the initial, visible dropzone
-          !isDragActive && showDropzone && 'hover:border-slate-600 hover:bg-slate-900/70',
+          'fixed inset-0 z-50 transition-colors duration-200',
+          isDragActive ? 'bg-black/20' : 'bg-transparent',
+          showDropzone ? 'p-48' : 'p-0',
+          !showDropzone && !isDragActive && 'pointer-events-none'
         )}
       >
-        <input {...getInputProps()} />
-        <div className="text-center p-8 flex flex-col items-center">
-          <img
-            src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
-            alt="Pokeball"
-            className="w-24 h-24 mb-8"
-            style={{ imageRendering: 'pixelated' }}
-          />
-          <h2 className="text-2xl font-bold text-slate-100">
-            {isDragActive ? "Drop your Savegame to load!" : "Drop your Savegame here"}
-          </h2>
-          {showDropzone && <p className="text-slate-400 mt-1">or click to browse</p>}
-          <p className="text-xs text-slate-500 mt-2">Supported: .sav, .sa2</p>
-        </div>
-        {error && (
-          <div className="absolute bottom-6 left-6 right-6 mx-auto mt-4 p-3 bg-red-900/50 border border-red-500/50 rounded-lg max-w-md text-sm w-full">
-            <div className="text-red-400 font-semibold mb-1">Error</div>
-            <div className="text-red-300">{error}</div>
+        <div
+          {...getRootProps({ onClick: openFileWithPicker })} // Use File Picker on click
+          className={cn(
+            `group w-full h-full flex flex-col items-center justify-center 
+            rounded-lg cursor-pointer transition-all duration-300 ease-in-out 
+            border-2 border-dashed`,
+            // Visibility and base styles
+            (isDragActive || showDropzone) ? 'opacity-100' : 'opacity-0',
+            showDropzone ? 'bg-slate-900/50 border-slate-700 shadow-2xl' : 'bg-transparent border-transparent',
+            
+            // Drag states
+            isDragActive && 'bg-slate-800/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
+            
+            // Hover state only when it's the initial, visible dropzone
+            !isDragActive && showDropzone && 'hover:border-slate-600 hover:bg-slate-900/70',
+          )}
+        >
+          <input {...getInputProps()} />
+          <div className="text-center p-8 flex flex-col items-center">
+            <img
+              src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
+              alt="Pokeball"
+              className="w-24 h-24 mb-8"
+              style={{ imageRendering: 'pixelated' }}
+            />
+            <h2 className="text-2xl font-bold text-slate-100">
+              {isDragActive ? "Drop your Savegame to load!" : "Drop your Savegame here"}
+            </h2>
+            {showDropzone && <p className="text-slate-400 mt-1">or click to browse</p>}
+            <p className="text-xs text-slate-500 mt-2">Supported: .sav, .sa2</p>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
