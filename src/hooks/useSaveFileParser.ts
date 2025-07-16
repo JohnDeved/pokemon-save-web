@@ -2,7 +2,7 @@ import { useReducer, useCallback, useRef } from 'react';
 import { PokemonSaveParser } from '../lib/parser';
 import type { SaveData } from '../lib/parser/types';
 import { saveAs } from 'file-saver';
-import type { PokemonData } from '../lib/parser/pokemonSaveParser';
+import { toast } from 'sonner';
 
 export interface SaveFileParserState {
   saveData: SaveData | null;
@@ -76,13 +76,42 @@ export const useSaveFileParser = () => {
     dispatch({ type: 'CLEAR' });
   }, []);
 
-  const reconstructAndDownload = useCallback((partyPokemon: readonly PokemonData[]) => {
-    if (!state.saveData || !parserRef.current) throw new Error('No save data loaded');
+  type SaveMethod = 'download' | 'saveAs';
+  const reconstructAndDownload = useCallback(async (method: SaveMethod = 'download') => {
+    if (!state.saveData || !parserRef.current) {
+      throw new Error('No save data loaded');
+    }
+    
     // Use the same parser instance
-    const newSave = parserRef.current.reconstructSaveFile(partyPokemon);
-    // Download using file-saver
+    const newSave = parserRef.current.reconstructSaveFile(state.saveData.party_pokemon);
     const blob = new Blob([newSave], { type: 'application/octet-stream' });
-    saveAs(blob, parserRef.current.saveFileName || 'pokemon_save.sav');
+    const defaultFileName = parserRef.current.saveFileName || 'pokemon_save.sav';
+
+    if (method === 'saveAs') {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: defaultFileName,
+          types: [
+            {
+              description: 'Pokémon Save File',
+              accept: { 'application/octet-stream': ['.sav', '.sa2'] },
+            },
+          ],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        toast.error(message, {
+          position: 'bottom-center',
+          duration: 5000,
+        });
+      }
+    } else {
+      // 'download' method always uses file-saver
+      saveAs(blob, defaultFileName);
+    }
   }, [state.saveData]);
 
   return {

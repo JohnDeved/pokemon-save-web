@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useRef } from 'react';
 import {
     PokemonAbilitySection,
     PokemonHeader,
@@ -34,11 +34,14 @@ export default function App() {
         setNature
     } = usePokemonData();
 
+    // Check if the browser supports the File System Access API
+    const canSaveAs = typeof window !== 'undefined' && !!window.showSaveFilePicker;
+    // Determine if there is save data to display
     const hasSaveData = saveFileParser.hasFile && partyList.length > 0;
     // Only show dropzone if there is no save data and last parse did not fail
     const shouldShowDropzone = !hasSaveData && !saveFileParser.lastParseFailed;
-    // Store the openFileWithPicker function from SaveFileDropzone
-    const [openFilePicker, setOpenFilePicker] = useState<() => void>(() => {});
+    // Store the file picker function from SaveFileDropzone using a ref to avoid update loops
+    const filePickerRef = useRef<() => void>(() => { });
 
     return (
         <>
@@ -53,39 +56,41 @@ export default function App() {
                     onFileLoad={saveFileParser.parseSaveFile}
                     error={saveFileParser.error}
                     showDropzone={shouldShowDropzone}
-                    onOpenFilePicker={fn => setOpenFilePicker(() => fn)}
+                    onOpenFilePicker={fn => filePickerRef.current = fn}
                 />
 
                 {hasSaveData && (
                     <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
-                        <div className="flex justify-start">
-                            <Menubar>
-                                <MenubarMenu>
-                                    <MenubarTrigger>File</MenubarTrigger>
-                                    <MenubarContent>
-                                        <MenubarItem onClick={() => openFilePicker?.()}>
-                                            Load
-                                        </MenubarItem>
-                                        <MenubarItem disabled>Save</MenubarItem>
-                                        <MenubarItem onClick={() => {
-                                            const pokemon = saveFileParser.saveData?.party_pokemon
-                                            if (!pokemon) return;
-                                            saveFileParser.reconstructAndDownload(pokemon)
-                                        }}>Download</MenubarItem>
-                                        <MenubarSeparator />
-                                        <MenubarItem disabled>Share</MenubarItem>
-                                    </MenubarContent>
-                                </MenubarMenu>
-                            </Menubar>
-                        </div>
                         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 z-10'>
-                            <PokemonPartyList
-                                partyList={partyList}
-                                activePokemonId={activePokemonId}
-                                onPokemonSelect={setActivePokemonId}
-                                isRenaming={false}
-                                onPokemonHover={preloadPokemonDetails}
-                            />
+                            <div className="flex flex-col gap-4">
+                                <Menubar>
+                                    <MenubarMenu>
+                                        <MenubarTrigger>File</MenubarTrigger>
+                                        <MenubarContent>
+                                            <MenubarItem onClick={() => filePickerRef.current?.()}>
+                                                Load
+                                            </MenubarItem>
+                                            <MenubarItem disabled>Save</MenubarItem>
+                                            <MenubarItem 
+                                                onClick={() => saveFileParser.reconstructAndDownload("saveAs")} 
+                                                disabled={!canSaveAs}
+                                            >Save As</MenubarItem>
+                                            <MenubarItem 
+                                                onClick={() => saveFileParser.reconstructAndDownload()}
+                                            >Download</MenubarItem>
+                                            <MenubarSeparator />
+                                            <MenubarItem disabled>Share</MenubarItem>
+                                        </MenubarContent>
+                                    </MenubarMenu>
+                                </Menubar>
+                                <PokemonPartyList
+                                    partyList={partyList}
+                                    activePokemonId={activePokemonId}
+                                    onPokemonSelect={setActivePokemonId}
+                                    isRenaming={false}
+                                    onPokemonHover={preloadPokemonDetails}
+                                />
+                            </div>
                             <div className="grid grid-rows-[auto_auto_1fr] gap-4">
                                 <Card className="z-30">
                                     <PokemonHeader
