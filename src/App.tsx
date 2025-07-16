@@ -96,6 +96,14 @@ export default function App() {
                                                 </MenubarSubContent>
                                             </MenubarSub>
                                             <MenubarSeparator />
+                                            <MenubarSub>
+                                                <MenubarSubTrigger>Player</MenubarSubTrigger>
+                                                <MenubarSubContent>
+                                                    <MenubarItem disabled>Info <MenubarShortcut>{saveFileParser.saveData?.player_name}</MenubarShortcut></MenubarItem>
+                                                    <MenubarItem disabled>Rename</MenubarItem>
+                                                </MenubarSubContent>
+                                            </MenubarSub>
+                                            <MenubarSeparator />
                                             <MenubarItem disabled>Share</MenubarItem>
                                         </MenubarContent>
                                     </MenubarMenu>
@@ -106,13 +114,6 @@ export default function App() {
                                             <MenubarItem disabled>Redo <MenubarShortcut>Ctrl+Shift+Y</MenubarShortcut></MenubarItem>
                                             <MenubarSeparator />
                                             <MenubarItem disabled>Reset</MenubarItem>
-                                        </MenubarContent>
-                                    </MenubarMenu>
-                                    <MenubarMenu>
-                                        <MenubarTrigger>Player</MenubarTrigger>
-                                        <MenubarContent>
-                                            <MenubarItem disabled>Info <MenubarShortcut>{saveFileParser.saveData?.player_name}</MenubarShortcut></MenubarItem>
-                                            <MenubarItem disabled>Rename</MenubarItem>
                                         </MenubarContent>
                                     </MenubarMenu>
                                     <MenubarMenu>
