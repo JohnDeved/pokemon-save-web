@@ -8,7 +8,7 @@ import {
     SaveFileDropzone
 } from './components/pokemon';
 import { Card } from './components/common';
-import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger, MenubarShortcut } from './components/ui/menubar';
+import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger, MenubarShortcut, MenubarSub, MenubarSubTrigger, MenubarSubContent } from './components/ui/menubar';
 import { Toaster } from './components/ui/sonner';
 import { usePokemonData } from './hooks';
 
@@ -83,6 +83,18 @@ export default function App() {
                                             <MenubarItem 
                                                 onClick={() => saveFileParser.reconstructAndDownload()}
                                             >Download</MenubarItem>
+                                            <MenubarSeparator />
+                                            <MenubarSub>
+                                                <MenubarSubTrigger>Party</MenubarSubTrigger>
+                                                <MenubarSubContent>
+                                                    <MenubarItem disabled>Load from File</MenubarItem>
+                                                    <MenubarItem disabled>Storage</MenubarItem>
+                                                    <MenubarSeparator />
+                                                    <MenubarItem disabled>Save As</MenubarItem>
+                                                    <MenubarItem disabled>Download</MenubarItem>
+                                                    <MenubarItem disabled>Store</MenubarItem>
+                                                </MenubarSubContent>
+                                            </MenubarSub>
                                             <MenubarSeparator />
                                             <MenubarItem disabled>Share</MenubarItem>
                                         </MenubarContent>
