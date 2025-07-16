@@ -112,7 +112,16 @@ export const useSaveFileParser = () => {
     }
 
     if (method === 'save') {
-      // todo: implement save logic
+      if (!parserRef.current.fileHandle) {
+        return toast.error('No file handle available for saving', {
+          position: 'bottom-center',
+          duration: 3000,
+        });
+      }
+      const writable = await parserRef.current.fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
     }
 
     // 'download' method always uses file-saver

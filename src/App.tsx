@@ -74,6 +74,7 @@ export default function App() {
                                             <MenubarSeparator />
                                             <MenubarItem 
                                                 disabled={!saveFileParser.parser?.fileHandle}
+                                                onClick={() => saveFileParser.reconstructAndDownload('save')}
                                             >Save <MenubarShortcut>Ctrl+S</MenubarShortcut></MenubarItem>
                                             <MenubarItem 
                                                 onClick={() => saveFileParser.reconstructAndDownload("saveAs")} 
@@ -93,6 +94,13 @@ export default function App() {
                                             <MenubarItem disabled>Redo <MenubarShortcut>Ctrl+Shift+Y</MenubarShortcut></MenubarItem>
                                             <MenubarSeparator />
                                             <MenubarItem disabled>Reset</MenubarItem>
+                                        </MenubarContent>
+                                    </MenubarMenu>
+                                    <MenubarMenu>
+                                        <MenubarTrigger>Player</MenubarTrigger>
+                                        <MenubarContent>
+                                            <MenubarItem disabled>Info <MenubarShortcut>{saveFileParser.saveData?.player_name}</MenubarShortcut></MenubarItem>
+                                            <MenubarItem disabled>Rename</MenubarItem>
                                         </MenubarContent>
                                     </MenubarMenu>
                                     <MenubarMenu>
