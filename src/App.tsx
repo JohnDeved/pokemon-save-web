@@ -71,7 +71,7 @@ export default function App() {
                                                 Open
                                             </MenubarItem>
                                             <MenubarSeparator />
-                                            <MenubarItem disabled>Save</MenubarItem>
+                                            <MenubarItem disabled={!saveFileParser.parser?.fileHandle}>Save</MenubarItem>
                                             <MenubarItem 
                                                 onClick={() => saveFileParser.reconstructAndDownload("saveAs")} 
                                                 disabled={!canSaveAs}
@@ -79,6 +79,8 @@ export default function App() {
                                             <MenubarItem 
                                                 onClick={() => saveFileParser.reconstructAndDownload()}
                                             >Download</MenubarItem>
+                                            <MenubarSeparator />
+                                            <MenubarItem disabled>History</MenubarItem>
                                             <MenubarSeparator />
                                             <MenubarItem disabled>Share</MenubarItem>
                                         </MenubarContent>
@@ -90,6 +92,15 @@ export default function App() {
                                             <MenubarItem disabled>Redo <MenubarShortcut>Ctrl+Y</MenubarShortcut></MenubarItem>
                                             <MenubarSeparator />
                                             <MenubarItem disabled>Reset</MenubarItem>
+                                        </MenubarContent>
+                                    </MenubarMenu>
+                                    <MenubarMenu>
+                                        <MenubarTrigger>Help</MenubarTrigger>
+                                        <MenubarContent>
+                                            <MenubarItem onClick={() => location.reload()}>Restart</MenubarItem>
+                                            <MenubarSeparator />
+                                            <MenubarItem disabled>Github</MenubarItem>
+                                            <MenubarItem disabled>About</MenubarItem>
                                         </MenubarContent>
                                     </MenubarMenu>
                                 </Menubar>

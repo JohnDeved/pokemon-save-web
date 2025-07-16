@@ -329,6 +329,7 @@ export class PokemonSaveParser {
   private sectorMap = new Map<number, number>();
   private forcedSlot: 1 | 2 | undefined;
   public saveFileName: string | null = null;
+  public fileHandle: FileSystemFileHandle | null = null;
 
   constructor(forcedSlot?: 1 | 2) {
     this.forcedSlot = forcedSlot;
@@ -337,9 +338,14 @@ export class PokemonSaveParser {
   /**
    * Load save file data from a File or ArrayBuffer
    */
-  async loadSaveFile(input: File | ArrayBuffer): Promise<void> {
+  async loadSaveFile(input: File | ArrayBuffer | FileSystemFileHandle): Promise<void> {
     try {
       let buffer: ArrayBuffer;
+
+      if (input instanceof FileSystemFileHandle) {
+        this.fileHandle = input;
+        input = await input.getFile();
+      }
       
       if (input instanceof File) {
         // save the original file name for later use
@@ -606,7 +612,7 @@ export class PokemonSaveParser {
   /**
    * Parse the complete save file and return structured data
    */
-  async parseSaveFile(input: File | ArrayBuffer): Promise<SaveData> {
+  async parseSaveFile(input: File | ArrayBuffer | FileSystemFileHandle): Promise<SaveData> {
     await this.loadSaveFile(input);
     
     this.determineActiveSlot();

@@ -76,12 +76,12 @@ export const useSaveFileParser = () => {
     dispatch({ type: 'CLEAR' });
   }, []);
 
-  type SaveMethod = 'download' | 'saveAs';
+  type SaveMethod = 'download' | 'saveAs' | 'save';
   const reconstructAndDownload = useCallback(async (method: SaveMethod = 'download') => {
     if (!state.saveData || !parserRef.current) {
       throw new Error('No save data loaded');
     }
-    
+
     // Use the same parser instance
     const newSave = parserRef.current.reconstructSaveFile(state.saveData.party_pokemon);
     const blob = new Blob([newSave], { type: 'application/octet-stream' });
@@ -108,10 +108,14 @@ export const useSaveFileParser = () => {
           duration: 5000,
         });
       }
-    } else {
-      // 'download' method always uses file-saver
-      saveAs(blob, defaultFileName);
     }
+
+    if (method === 'save') {
+      // todo: implement save logic
+    }
+
+    // 'download' method always uses file-saver
+    saveAs(blob, defaultFileName);
   }, [state.saveData]);
 
   return {
@@ -119,5 +123,6 @@ export const useSaveFileParser = () => {
     parseSaveFile,
     clearSaveFile,
     reconstructAndDownload,
+    parser: parserRef.current,
   };
 }

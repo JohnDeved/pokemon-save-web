@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { fromEvent } from 'file-selector';
 import { cn } from '../../lib/utils';
+import type { PokemonSaveParser } from '../../lib/parser';
 import { toast } from 'sonner';
 
 type SaveFileDropzoneProps = {
-  onFileLoad: (file: File) => void;
+  onFileLoad: PokemonSaveParser['parseSaveFile'];
   error?: string | null;
   showDropzone: boolean;
   onOpenFilePicker?: (fn: () => void) => void;
@@ -34,9 +35,10 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
           return [];
         }
         setFileHandle(handle);
+        onFileLoad(handle);
         const file = await handle.getFile();
         setLastModified(file.lastModified);
-        return [file];
+        return []; // we dont need to return files here, as we handle the file directly
       }
 
       // Fallback to default behavior for regular file drops
