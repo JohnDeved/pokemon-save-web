@@ -25,6 +25,7 @@
     "@tanstack/react-query": "^5.81.5",
     "@types/react-query": "^1.2.8",
     "@types/wicg-file-system-access": "^2023.10.6",
+    "@undefined/lint": "github:JohnDeved/undefined-lint",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
@@ -42,21 +43,16 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@eslint/js": "^9.29.0",
     "@types/file-saver": "^2.0.7",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@types/three": "^0.177.0",
     "@vitejs/plugin-react-swc": "^3.10.2",
     "@vitest/ui": "^3.2.4",
-    "eslint": "^9.29.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
     "jsdom": "^26.1.0",
     "tw-animate-css": "^1.3.5",
     "typescript": "~5.8.3",
-    "typescript-eslint": "^8.34.1",
     "vite": "^7.0.0",
     "vitest": "^3.2.4"
   }

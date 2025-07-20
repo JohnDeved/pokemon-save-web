@@ -1,0 +1,16 @@
+{
+  "extends": [
+    "./node_modules/@undefined/lint/.eslintrc"
+  ],
+  "parserOptions": {
+    "project": "./tsconfig.app.json"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off"
+  }
+}
