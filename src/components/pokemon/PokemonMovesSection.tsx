@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { PokemonMoveButton } from './PokemonMoveButton'
-import { Skeleton } from '../common'
 import type { MoveWithDetails } from '../../types'
+import { Skeleton } from '../common'
+import { PokemonMoveButton } from './PokemonMoveButton'
 import { PokemonMovePlaceholder } from './PokemonMovePlaceholder'
 
 interface PokemonMovesProps {
@@ -19,8 +19,8 @@ export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {Array.from({ length: totalSlots }).map((_, i) => {
-          const move = moves[i]
-          if (!isLoading && (!move || move.id === 0)) {
+          const move = moves[i]!
+          if (!isLoading && move.id === 0) {
             // Show placeholder for empty slot or move id 0
             return (
               <div key={i} className="group cursor-default">

@@ -1,22 +1,24 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { z } from 'zod'
+import type {
+  Ability,
+  AbilityApiResponse,
+  MoveApiResponse,
+  MoveWithDetails,
+  PokeApiFlavorTextEntry,
+  PokemonType, UIPokemonData,
+} from '../types'
 import {
+  AbilityApiResponseSchema,
+  MoveApiResponseSchema,
+  PokeApiFlavorTextEntrySchema,
   PokemonApiResponseSchema,
   PokemonTypeSchema,
-  MoveApiResponseSchema,
-  AbilityApiResponseSchema,
-  PokeApiFlavorTextEntrySchema,
-} from '../types'
-import type {
-  Ability, MoveWithDetails, PokemonType, UIPokemonData,
-  type AbilityApiResponse,
-  type MoveApiResponse,
-  type PokeApiFlavorTextEntry,
 } from '../types'
 
-import { useSaveFileParser } from './useSaveFileParser'
 import { calculateTotalStats, natures } from '@/lib/parser/utils'
+import { useSaveFileParser } from './useSaveFileParser'
 
 // --- Constants ---
 const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
@@ -70,7 +72,7 @@ function getBestEnglishDescription (apiObj: MoveApiResponse | AbilityApiResponse
     const parsed = PokeApiFlavorTextEntrySchema.safeParse(entry)
     if (!(parsed.success && parsed.data.language.name === 'en')) continue
     const match = parsed.data.version_group.url.match(/\/(\d+)\/?$/)
-    const id = match ? parseInt(match[1], 10) : 0
+    const id = match ? parseInt(match[1]!, 10) : 0
     if (id > latestId) {
       latest = parsed.data
       latestId = id
@@ -197,7 +199,7 @@ export const usePokemonData = () => {
     error,
   } = useQuery({
     queryKey: ['pokemon', 'details', String(activePokemonId)],
-    queryFn: () => activePokemonFromInitial ? getPokemonDetails(activePokemonFromInitial) : Promise.reject('No active Pokémon'),
+    queryFn: () => activePokemonFromInitial ? getPokemonDetails(activePokemonFromInitial) : Promise.reject(new Error('No active Pokémon')),
     enabled: activePokemonId >= 0 && !!activePokemonFromInitial,
     staleTime: 1000 * 60 * 60, // 1 hour
   })

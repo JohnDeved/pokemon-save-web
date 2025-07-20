@@ -30,7 +30,7 @@ export const SkeletonText = ({
   as?: 'span' | 'div' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p'
 }) => {
   const isLoading = useSkeletonLoading(loading)
-  const Component = as || 'span'
+  const Component = as ?? 'span'
   if (!isLoading) {
     // If not loading, render children directly
     return React.createElement(Component, { className, ...props }, children)
@@ -46,7 +46,7 @@ export const SkeletonText = ({
   return React.createElement(
     Component,
     componentProps,
-    React.createElement('span', { className: 'invisible' }, children || 'Placeholder text'),
+    React.createElement('span', { className: 'invisible' }, children ?? 'Placeholder text'),
   )
 }
 
@@ -54,7 +54,7 @@ export const SkeletonText = ({
 export const SkeletonBox = ({ className, loading, children, ...props }: SkeletonProps) => {
   const isLoading = useSkeletonLoading(loading)
   if (!isLoading) {
-    return <>{children}</>
+    return children
   }
   return (
     <div className={cn('bg-slate-700/50 animate-pulse rounded', className)} {...props}/>
@@ -65,7 +65,7 @@ export const SkeletonBox = ({ className, loading, children, ...props }: Skeleton
 export const SkeletonButton = ({ children, className, loading, ...props }: SkeletonProps) => {
   const isLoading = useSkeletonLoading(loading)
   if (!isLoading) {
-    return <>{children}</>
+    return children
   }
   return (
     <button

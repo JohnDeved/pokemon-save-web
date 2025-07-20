@@ -1,7 +1,7 @@
 import React from 'react'
 import { cn } from '../../lib/utils'
-import { Card } from '../common'
 import type { Pokemon } from '../../types'
+import { Card } from '../common'
 
 // Health percentage thresholds for color coding
 const HP_THRESHOLDS = {

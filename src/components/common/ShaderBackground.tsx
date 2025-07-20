@@ -1,5 +1,5 @@
-import { useMemo, memo } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { memo, useMemo } from 'react'
 import { ShaderMaterial } from 'three'
 
 import fragmentShader from '../../glsl/shader.glsl?raw'

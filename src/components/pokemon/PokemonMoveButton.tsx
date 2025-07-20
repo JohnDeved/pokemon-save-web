@@ -1,9 +1,9 @@
+import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/utils'
-import { PokemonTypeBadge } from './PokemonTypeBadge'
-import { ScrollableContainer } from '../common'
 import type { MoveWithDetails } from '../../types'
+import { ScrollableContainer } from '../common'
+import { PokemonTypeBadge } from './PokemonTypeBadge'
 
 const damageClassIcons: Record<'physical' | 'special' | 'status', string> = {
   physical: '/damage-type-icons/physical.png',
@@ -30,7 +30,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
           <span className="text-sm text-white truncate w-full block" title={move.name}>{move.name}</span>
         </div>
         <div className="flex items-center justify-between mt-2">
-          {move.type ? <PokemonTypeBadge type={move.type}/> : <div className="h-[22px] w-16 bg-slate-700 rounded-md animate-pulse"/>}
+          <PokemonTypeBadge type={move.type}/>
           <span className="text-xs text-slate-300">{move.pp}/--</span>
         </div>
       </div>

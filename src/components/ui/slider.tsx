@@ -1,5 +1,5 @@
-import * as React from 'react'
 import * as SliderPrimitive from '@radix-ui/react-slider'
+import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -35,7 +35,7 @@ const Slider = ({
       const delta = Math.sign(e.deltaY) * (e.shiftKey ? 10 : 1)
       // Clamp to maxVisualValue if provided
       const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max
-      const newValue = Math.max(min, Math.min(upperLimit, value[0] - delta))
+      const newValue = Math.max(min, Math.min(upperLimit, value[0]! - delta))
       if (props.onValueChange) {
         props.onValueChange([newValue])
       }
@@ -87,12 +87,10 @@ const Slider = ({
         {/* Visual remaining bar */}
         {typeof maxVisualValue === 'number' && maxVisualValue > min && (
           <div
-            className={
-              cn(
-                'absolute left-0 top-0 h-full pointer-events-none text-white/5 bg-white/3 bg-[size:8px_8px] bg-top-left',
-                'bg-[image:repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_1px,transparent_50%)]',
-              )
-            }
+            className={cn(
+              'absolute left-0 top-0 h-full pointer-events-none text-white/5 bg-white/3 bg-[size:8px_8px] bg-top-left',
+              'bg-[image:repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_1px,transparent_50%)]',
+            )}
             style={{ width: `${visualPercent}%` }}
           />
         )}

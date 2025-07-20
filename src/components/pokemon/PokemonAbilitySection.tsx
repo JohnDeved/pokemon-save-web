@@ -25,6 +25,7 @@ export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({
             <Skeleton.Text className="text-white">{ability?.name ?? 'Ability Name'}</Skeleton.Text>
           </div>
         </div>
+
         <div className="relative flex-1">
           <ScrollableContainer className="absolute inset-0 text-slate-400 leading-relaxed overflow-y-auto custom-scrollbar p-4 text-xs">
             <Skeleton.Text>

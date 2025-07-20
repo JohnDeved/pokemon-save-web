@@ -1,8 +1,8 @@
-import { useReducer, useCallback, useRef } from 'react'
+import { saveAs } from 'file-saver'
+import { useCallback, useReducer, useRef } from 'react'
+import { toast } from 'sonner'
 import { PokemonSaveParser } from '../lib/parser'
 import type { SaveData } from '../lib/parser/types'
-import { saveAs } from 'file-saver'
-import { toast } from 'sonner'
 
 export interface SaveFileParserState {
   saveData: SaveData | null
@@ -85,7 +85,7 @@ export const useSaveFileParser = () => {
     // Use the same parser instance
     const newSave = parserRef.current.reconstructSaveFile(state.saveData.party_pokemon)
     const blob = new Blob([newSave], { type: 'application/octet-stream' })
-    const defaultFileName = parserRef.current.saveFileName || 'pokemon_save.sav'
+    const defaultFileName = parserRef.current.saveFileName ?? 'pokemon_save.sav'
 
     if (method === 'saveAs') {
       try {

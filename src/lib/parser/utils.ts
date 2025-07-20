@@ -3,27 +3,35 @@
  * Converts parsed save data to formats expected by the existing app
  */
 
-import charmapData from './pokemon_charmap.json'
-import pokemonMap from './mappings/pokemon_map.json'
-import moveMap from './mappings/move_map.json'
 import itemMap from './mappings/item_map.json'
+import moveMap from './mappings/move_map.json'
+import pokemonMap from './mappings/pokemon_map.json'
+import charmapData from './pokemon_charmap.json'
 import type { PokemonData } from './pokemonSaveParser'
 import { CONSTANTS } from './types'
 
+// make the mappings more type-safe by using string keys
+
+const maps = {
+  itemMap: itemMap as Record<string, typeof itemMap[keyof typeof itemMap]>,
+  moveMap: moveMap as Record<string, typeof moveMap[keyof typeof moveMap]>,
+  pokemonMap: pokemonMap as Record<string, typeof pokemonMap[keyof typeof pokemonMap]>,
+}
+
 export function mapSpeciesToPokeId (speciesId: number): number {
-  return pokemonMap[speciesId.toString() as keyof typeof pokemonMap].id || speciesId
+  return maps.pokemonMap[speciesId.toString()]?.id ?? speciesId
 }
 
 export function mapMoveToPokeId (moveId: number): number {
-  return moveMap[moveId.toString() as keyof typeof moveMap].id || moveId
+  return maps.moveMap[moveId.toString()]?.id ?? moveId
 }
 
 export function mapItemToPokeId (itemId: number): number {
-  return itemMap[itemId.toString() as keyof typeof itemMap].id || itemId
+  return maps.itemMap[itemId.toString()]?.id ?? itemId
 }
 
 export function mapItemToNameId (itemId: number): string | undefined {
-  return itemMap[itemId.toString() as keyof typeof itemMap].id_name
+  return maps.itemMap[itemId.toString()]?.id_name
 }
 
 export function getItemSpriteUrl (itemIdName: string): string {
@@ -58,22 +66,23 @@ export function bytesToGbaString (bytes: Uint8Array): string {
 
   // Process only the actual string content (before padding)
   for (let i = 0; i < endIndex; i++) {
-    const byte = bytes[i]
+    const byte = bytes[i]!
 
     // Look up character in charmap
     const char = charmap[byte]
-    if (char !== undefined) {
-      // Handle special control characters
-      if (char === '\\n') {
-        result += '\n'
-      } else if (char === '\\l' || char === '\\p') {
-        // Skip line break and page break control codes
-        continue
-      } else {
-        result += char
-      }
+    if (char === undefined) {
+      // If character not found in charmap, skip it (could log for debugging)
+      continue
     }
-    // If character not found in charmap, skip it (could log for debugging)
+    // Handle special control characters
+    if (char === '\\n') {
+      result += '\n'
+    } else if (char === '\\l' || char === '\\p') {
+      // Skip line break and page break control codes
+      continue
+    } else {
+      result += char
+    }
   }
 
   return result.trim()
@@ -99,7 +108,7 @@ export function gbaStringToBytes (str: string, length = 10): Uint8Array {
     if (i >= length) break
     // Find the byte for this character
     const byte = reverseCharmap[char]
-    if (byte !== undefined) {
+    if (typeof byte !== 'undefined') {
       bytes[i++] = byte
     } else {
       // If not found, use 0x00 (could also skip or use a placeholder)
@@ -133,7 +142,7 @@ export const natures = [
  */
 export function getPokemonNature (personality: number): string {
   // Use only the first byte of the personality value
-  return natures[(personality & 0xFF) % 25]
+  return natures[(personality & 0xFF) % 25]!
 }
 
 export function setPokemonNature (pokemon: PokemonData, nature: string): void {
@@ -177,7 +186,7 @@ export const natureEffects: Record<string, { increased: number, decreased: numbe
  */
 export function getNatureModifier (nature: string, statIndex: number): number {
   const effect = natureEffects[nature]
-  if (effect) {
+  if (typeof effect !== 'undefined') {
     if (statIndex === effect.increased) return 1.1
     if (statIndex === effect.decreased) return 0.9
   }
@@ -213,7 +222,7 @@ export function calculateTotalStatsDirect (
   nature: string,
 ): number[] {
   // HP calculation
-  const hp = Math.floor(((2 * baseStats[0] + ivs[0] + Math.floor(evs[0] / 4)) * level) / 100) + level + 10
+  const hp = Math.floor(((2 * baseStats[0]! + ivs[0]! + Math.floor(evs[0]! / 4)) * level) / 100) + level + 10
 
   // Stat order: [HP, Atk, Def, Spe, SpA, SpD]
   // Calculate non-HP stats (Atk, Def, Spe, SpA, SpD)
@@ -223,7 +232,7 @@ export function calculateTotalStatsDirect (
     const iv = ivs[i]
     const ev = evs[i]
     const natureMod = getNatureModifier(nature, i)
-    const stat = Math.floor((Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + 5) * natureMod)
+    const stat = Math.floor((Math.floor(((2 * base! + iv! + Math.floor(ev! / 4)) * level) / 100) + 5) * natureMod)
     return stat
   })
 
@@ -237,7 +246,7 @@ export function calculateTotalStatsDirect (
  * @param saveblock1 The original SaveBlock1 buffer
  * @param party Array of PokemonData (max length = CONSTANTS.MAX_PARTY_SIZE)
  */
-export function updatePartyInSaveblock1 (saveblock1: Uint8Array, party: Array<import('./pokemonSaveParser').PokemonData>): Uint8Array {
+export function updatePartyInSaveblock1 (saveblock1: Uint8Array, party: PokemonData[]): Uint8Array {
   if (saveblock1.length < CONSTANTS.SAVEBLOCK1_SIZE) {
     throw new Error(`SaveBlock1 must be at least ${CONSTANTS.SAVEBLOCK1_SIZE} bytes`)
   }
@@ -247,7 +256,7 @@ export function updatePartyInSaveblock1 (saveblock1: Uint8Array, party: Array<im
   const updated = new Uint8Array(saveblock1)
   for (let i = 0; i < party.length; i++) {
     const offset = CONSTANTS.PARTY_START_OFFSET + i * CONSTANTS.PARTY_POKEMON_SIZE
-    updated.set(party[i].rawBytes, offset)
+    updated.set(party[i]!.rawBytes, offset)
   }
   return updated
 }

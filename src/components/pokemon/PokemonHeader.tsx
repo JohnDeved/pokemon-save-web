@@ -48,13 +48,12 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
               </Tooltip>
             )}
           </h2>
-
-                    <div className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border border-cyan-800">
-                      <FaHashtag size={12}/>
-                      <span>
-                        {String(pokemon?.data.speciesId).padStart(3, '0')}
-                      </span>
-                    </div>
+          <div className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border border-cyan-800">
+            <FaHashtag size={12}/>
+            <span>
+              {String(pokemon?.data.speciesId).padStart(3, '0')}
+            </span>
+          </div>
         </div>
         {/* Row 2: Typing and Nature */}
         <div className="flex items-center justify-between mt-2 min-h-[25px]">
@@ -64,14 +63,14 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
           </Skeleton.Container>
           <div className="flex items-center gap-2 min-w-8">
             {
-                            pokemon?.data.itemIdName && (
-                              <img
-                                src={getItemSpriteUrl(pokemon.data.itemIdName)}
-                                alt={pokemon.data.itemIdName}
-                                className="w-6 h-6"
-                              />
-                            )
-                        }
+              pokemon?.data.itemIdName && (
+                <img
+                  src={getItemSpriteUrl(pokemon.data.itemIdName)}
+                  alt={pokemon.data.itemIdName}
+                  className="w-6 h-6"
+                />
+              )
+            }
             <Select
               value={pokemon?.data.nature ?? undefined}
               onValueChange={nature => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { PokemonSaveParser } from '../pokemonSaveParser'
 import { CONSTANTS } from '../types'
 import { bytesToGbaString } from '../utils'

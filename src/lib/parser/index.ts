@@ -6,28 +6,16 @@
 export { PokemonSaveParser as default, PokemonSaveParser } from './pokemonSaveParser.js'
 
 export type {
-  PlayTimeData,
-  PokemonStats,
-  MoveData,
-  PokemonMoves,
-  PokemonEVs,
-  PokemonIVs,
-  SectorInfo,
-  SaveData,
+  MoveData, PlayTimeData, PokemonEVs,
+  PokemonIVs, PokemonMoves, PokemonStats, SaveData, SectorInfo,
 } from './types.js'
 
 export {
   CONSTANTS,
-  createMoveData,
-  createPokemonMoves,
-  createPokemonEVs,
-  createPokemonIVs,
-  createPokemonStats,
-  pokemonEVsToArray,
+  createMoveData, createPokemonEVs,
+  createPokemonIVs, createPokemonMoves, createPokemonStats, getMoveIds,
+  getPPValues, getTotalEVs,
+  getTotalIVs, pokemonEVsToArray,
   pokemonIVsToArray,
   pokemonStatsToArray,
-  getTotalEVs,
-  getTotalIVs,
-  getMoveIds,
-  getPPValues,
 } from './types.js'

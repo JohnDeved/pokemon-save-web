@@ -4,16 +4,16 @@ import path from 'path'
 import type { PokemonData } from './pokemonSaveParser'
 import PokemonSaveParser from './pokemonSaveParser'
 import type { SaveData } from './types'
-import { gbaStringToBytes, bytesToGbaString } from './utils'
+import { bytesToGbaString, gbaStringToBytes } from './utils'
 
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [
   { label: 'Slot', width: 5, value: (_p: PokemonData, i: number) => (i + 1).toString() },
-  { label: 'Dex ID', width: 8, value: (p: PokemonData) => p.speciesId.toString() ?? '' },
-  { label: 'Nickname', width: 12, value: (p: PokemonData) => p.nickname || '' },
-  { label: 'Lv', width: 4, value: (p: PokemonData) => p.level.toString() ?? '' },
+  { label: 'Dex ID', width: 8, value: (p: PokemonData) => p.speciesId.toString() },
+  { label: 'Nickname', width: 12, value: (p: PokemonData) => p.nickname },
+  { label: 'Lv', width: 4, value: (p: PokemonData) => p.level.toString() },
   { label: 'Ability', width: 8, value: (p: PokemonData) => p.abilityNumber.toString() },
-  { label: 'Nature', width: 10, value: (p: PokemonData) => p.nature || '' },
+  { label: 'Nature', width: 10, value: (p: PokemonData) => p.nature },
   { label: 'Shiny', width: 6, value: (p: PokemonData) => p.shinyNumber.toString() },
   {
     label: 'HP',
@@ -23,17 +23,17 @@ const PARTY_COLUMNS = [
       return `[${'█'.repeat(hpBars)}${'░'.repeat(20 - hpBars)}] ${p.currentHp}/${p.maxHp}`
     },
   },
-  { label: 'Atk', width: 5, value: (p: PokemonData) => p.attack.toString() ?? '' },
-  { label: 'Def', width: 5, value: (p: PokemonData) => p.defense.toString() ?? '' },
-  { label: 'Spe', width: 5, value: (p: PokemonData) => p.speed.toString() ?? '' },
-  { label: 'SpA', width: 5, value: (p: PokemonData) => p.spAttack.toString() ?? '' },
-  { label: 'SpD', width: 5, value: (p: PokemonData) => p.spDefense.toString() ?? '' },
-  { label: 'OT Name', width: 10, value: (p: PokemonData) => p.otName || '' },
-  { label: 'IDNo', width: 7, value: (p: PokemonData) => p.otId_str || '' },
+  { label: 'Atk', width: 5, value: (p: PokemonData) => p.attack.toString() },
+  { label: 'Def', width: 5, value: (p: PokemonData) => p.defense.toString() },
+  { label: 'Spe', width: 5, value: (p: PokemonData) => p.speed.toString() },
+  { label: 'SpA', width: 5, value: (p: PokemonData) => p.spAttack.toString() },
+  { label: 'SpD', width: 5, value: (p: PokemonData) => p.spDefense.toString() },
+  { label: 'OT Name', width: 10, value: (p: PokemonData) => p.otName },
+  { label: 'IDNo', width: 7, value: (p: PokemonData) => p.otId_str },
 ]
 
 function pad (str: string, width: number) {
-  return (str ?? '').toString().padEnd(width)
+  return str.toString().padEnd(width)
 }
 
 /** Display party Pokémon in a formatted table. */
@@ -52,7 +52,7 @@ const displayPartyPokemon = (party: readonly PokemonData[]) => {
 const displaySaveblock2Info = ({ player_name, play_time }: SaveData) => {
   console.log('\n--- SaveBlock2 Data ---')
   console.log(`Player Name: ${player_name}`)
-  if (play_time)console.log(`Play Time: ${play_time.hours}h ${play_time.minutes}m ${play_time.seconds}s`)
+  console.log(`Play Time: ${play_time.hours}h ${play_time.minutes}m ${play_time.seconds}s`)
 }
 
 /** Display raw bytes for each party Pokémon. */
@@ -89,7 +89,7 @@ const FIELDS: Array<[number, number, string]> = [
   [0x64, 0x66, 'Speed'],
 ]
 const RESET = '\x1b[0m'
-const colorFor = (i: number) => `\x1b[${COLORS[i % COLORS.length]}m`
+const colorFor = (i: number) => `\x1b[${COLORS[i % COLORS.length]!}m`
 
 /** Display colored, labeled hex/ASCII visualization for Pokémon bytes. */
 const displayColoredBytes = (raw: Uint8Array, fields: Array<[number, number, string]>, bytesPerLine = 32) => {
@@ -120,7 +120,7 @@ const displayColoredBytes = (raw: Uint8Array, fields: Array<[number, number, str
     for (let j = 0; j < lineBytes.length; ++j) {
       const field = fieldForByte[j]; const color = field ? colorFor(fields.indexOf(field)) : ''
       artLine += (field ? `${color}──${RESET}` : '  ') + (j < lineBytes.length - 1 ? ' ' : '')
-      hexLine += (j ? ' ' : '') + (field ? `${color}${lineBytes[j].toString(16).padStart(2, '0')}${RESET}` : lineBytes[j].toString(16).padStart(2, '0'))
+      hexLine += (j ? ' ' : '') + (field ? `${color}${lineBytes[j]!.toString(16).padStart(2, '0')}${RESET}` : lineBytes[j]!.toString(16).padStart(2, '0'))
     }
     if (labelLine.trim()) console.log(`\n      ${labelLine}`)
     if (artLine.trim()) console.log(`      ${artLine}`)
@@ -145,7 +145,7 @@ const debug = argv.includes('--debug')
 const graph = argv.includes('--graph')
 const toBytesArg = argv.find(arg => arg.startsWith('--toBytes='))
 if (toBytesArg) {
-  const str = toBytesArg.split('=')[1] || ''
+  const str = toBytesArg.split('=')[1] ?? ''
   const bytes = gbaStringToBytes(str, str.length + 1) // +1 for null terminator
   console.log(`GBA bytes for "${str}":`)
   console.log(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '))
@@ -153,7 +153,7 @@ if (toBytesArg) {
 }
 const toStringArg = argv.find(arg => arg.startsWith('--toString='))
 if (toStringArg) {
-  const hexStr = toStringArg.split('=')[1] || ''
+  const hexStr = toStringArg.split('=')[1] ?? ''
   // Accepts space or comma separated hex bytes
   const bytes = new Uint8Array(
     hexStr

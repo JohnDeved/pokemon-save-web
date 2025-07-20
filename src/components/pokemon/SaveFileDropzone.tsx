@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react'
-import { useDropzone } from 'react-dropzone'
 import { fromEvent } from 'file-selector'
-import { cn } from '../../lib/utils'
-import type { PokemonSaveParser } from '../../lib/parser'
+import { useEffect, useRef, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
 import { toast } from 'sonner'
+import type { PokemonSaveParser } from '../../lib/parser'
+import { cn } from '../../lib/utils'
 
 interface SaveFileDropzoneProps {
   onFileLoad: PokemonSaveParser['parseSaveFile']
@@ -46,7 +46,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     },
     onDrop: acceptedFiles => {
       const file = acceptedFiles[0]
-      if (file) {
+      if (typeof file !== 'undefined') {
         onFileLoad(file)
       }
     },

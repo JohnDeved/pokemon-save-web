@@ -1,8 +1,8 @@
 import React from 'react'
-import { PokemonStatus } from './PokemonStatus'
-import type { Pokemon } from '../../types'
-import { PokemonStatusPlaceholder } from './PokemonStatusPlaceholder'
 import { CONSTANTS } from '../../lib/parser'
+import type { Pokemon } from '../../types'
+import { PokemonStatus } from './PokemonStatus'
+import { PokemonStatusPlaceholder } from './PokemonStatusPlaceholder'
 
 interface PokemonPartyListProps {
   partyList: Pokemon[]

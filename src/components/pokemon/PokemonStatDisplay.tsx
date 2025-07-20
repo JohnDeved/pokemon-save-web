@@ -1,8 +1,8 @@
 import React from 'react'
-import { Skeleton } from '../common'
-import type { Pokemon } from '../../types'
-import { Slider } from '../ui/slider'
 import { calculateTotalStatsDirect } from '../../lib/parser/utils'
+import type { Pokemon } from '../../types'
+import { Skeleton } from '../common'
+import { Slider } from '../ui/slider'
 
 // Constants for stat calculations
 const MAX_EV = 252
@@ -26,7 +26,7 @@ interface EVSliderProps {
 
 const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider ({ value, onChange, maxVisualValue }) {
   const handleValueChange = React.useCallback((val: number[]) => {
-    onChange(val[0])
+    onChange(val[0]!)
   }, [onChange])
   return (
     <Slider

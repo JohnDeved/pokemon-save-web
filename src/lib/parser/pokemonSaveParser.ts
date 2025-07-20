@@ -5,16 +5,16 @@
 
 import {
   CONSTANTS,
-  createPokemonMoves,
   createMoveData,
+  createPokemonMoves,
 } from './types.js'
 
 import type {
+  MoveData,
   PlayTimeData,
   PokemonMoves,
-  SectorInfo,
   SaveData,
-  MoveData,
+  SectorInfo,
 } from './types.js'
 
 // Import character map for decoding text
@@ -171,15 +171,24 @@ export class PokemonData {
   }
 
   get natureModifiers (): { increased: number, decreased: number } {
-    return natureEffects[this.nature] || { increased: 0, decreased: 0 }
+    // Fallback to {0,0} if nature is not found
+    return natureEffects[this.nature] ?? { increased: 0, decreased: 0 }
   }
 
   get natureModifiersString (): { increased: string, decreased: string } {
     const { increased, decreased } = this.natureModifiers
     return {
-      increased: statStrings[increased] || 'Unknown',
-      decreased: statStrings[decreased] || 'Unknown',
+      increased: statStrings[increased] ?? 'Unknown',
+      decreased: statStrings[decreased] ?? 'Unknown',
     }
+  }
+
+  get natureModifiersArray (): readonly number[] { // usage for statsArray
+    // Nature modifiers: [hp, atk, def, spe, spa, spd]
+    const { increased, decreased } = this.natureModifiers
+    return this.stats.map((_, i) =>
+      i === increased ? 1.1 : i === decreased ? 0.9 : 1,
+    )
   }
 
   get abilityNumber (): number {
@@ -208,12 +217,12 @@ export class PokemonData {
 
   set stats (values: readonly number[]) {
     if (values.length !== 6) throw new Error('Stats array must have 6 values')
-    this.maxHp = values[0]
-    this.attack = values[1]
-    this.defense = values[2]
-    this.speed = values[3]
-    this.spAttack = values[4]
-    this.spDefense = values[5]
+    this.maxHp = values[0]!
+    this.attack = values[1]!
+    this.defense = values[2]!
+    this.speed = values[3]!
+    this.spAttack = values[4]!
+    this.spDefense = values[5]!
   }
 
   get moves (): {
@@ -243,12 +252,12 @@ export class PokemonData {
 
   set evs (values: readonly number[]) {
     if (values.length !== 6) throw new Error('EVs array must have 6 values')
-    this.hpEV = values[0]
-    this.atkEV = values[1]
-    this.defEV = values[2]
-    this.speEV = values[3]
-    this.spaEV = values[4]
-    this.spdEV = values[5]
+    this.hpEV = values[0]!
+    this.atkEV = values[1]!
+    this.defEV = values[2]!
+    this.speEV = values[3]!
+    this.spaEV = values[4]!
+    this.spdEV = values[5]!
   }
 
   get ivs (): readonly number[] {
@@ -259,17 +268,9 @@ export class PokemonData {
     if (values.length !== 6) throw new Error('IVs array must have 6 values')
     let packed = 0
     for (let i = 0; i < 6; i++) {
-      packed |= (values[i] & 0x1F) << (i * 5)
+      packed |= (values[i]! & 0x1F) << (i * 5)
     }
     this.ivData = packed
-  }
-
-  get natureModifiersArray (): readonly number[] { // usage for statsArray
-    // Nature modifiers: [hp, atk, def, spe, spa, spd]
-    const { increased, decreased } = this.natureModifiers
-    return this.stats.map((_, i) =>
-      i === increased ? 1.1 : i === decreased ? 0.9 : 1,
-    )
   }
 
   get totalEVs (): number {
@@ -313,31 +314,24 @@ export class PokemonData {
 }
 
 /**
- * Character decoder for Pokemon text data
+ * Decode Pokemon character-encoded text to string
  */
-class PokemonTextDecoder {
-  private static readonly charMap: Record<string, string> = charMap
+function decodePokemonText (bytes: Uint8Array): string {
+  const result: string[] = []
 
-  /**
-   * Decode Pokemon character-encoded text to string
-   */
-  static decode (bytes: Uint8Array): string {
-    const result: string[] = []
-
-    for (const byte of bytes) {
-      if (byte === 0xFF) {
-        // End of string marker
-        break
-      }
-
-      const char = this.charMap[byte.toString()]
-      if (char) {
-        result.push(char)
-      }
+  for (const byte of bytes) {
+    if (byte === 0xFF) {
+      // End of string marker
+      break
     }
 
-    return result.join('').trim()
+    const char = charMap[byte.toString() as keyof typeof charMap]
+    if (char) {
+      result.push(char)
+    }
   }
+
+  return result.join('').trim()
 }
 
 /**
@@ -361,6 +355,8 @@ export class PokemonSaveParser {
    */
   async loadSaveFile (input: File | ArrayBuffer | FileSystemFileHandle): Promise<void> {
     try {
+      // Always clear sectorMap before loading new data to avoid stale state
+      this.sectorMap.clear()
       let buffer: ArrayBuffer
 
       // Only check instanceof FileSystemFileHandle if it exists (browser)
@@ -495,7 +491,8 @@ export class PokemonSaveParser {
 
     const saveblock1Sectors = [1, 2, 3, 4].filter(id => this.sectorMap.has(id))
     if (saveblock1Sectors.length === 0) {
-      throw new Error('No SaveBlock1 sectors found')
+      // Instead of throwing, return a zero-filled buffer to allow parsing to continue gracefully
+      return new Uint8Array(CONSTANTS.SAVEBLOCK1_SIZE)
     }
 
     const saveblock1Data = new Uint8Array(CONSTANTS.SAVEBLOCK1_SIZE)
@@ -567,7 +564,7 @@ export class PokemonSaveParser {
    */
   private parsePlayerName (saveblock2Data: Uint8Array): string {
     const playerNameBytes = saveblock2Data.slice(0, 8)
-    return PokemonTextDecoder.decode(playerNameBytes)
+    return decodePokemonText(playerNameBytes)
   }
 
   /**
@@ -625,7 +622,7 @@ export class PokemonSaveParser {
     for (let i = 0; i < party.length; i++) {
       const offset = CONSTANTS.PARTY_START_OFFSET + i * CONSTANTS.PARTY_POKEMON_SIZE
       // Use the most up-to-date view data for each Pokemon
-      updated.set(party[i].view.getBytes(0, CONSTANTS.PARTY_POKEMON_SIZE), offset)
+      updated.set(party[i]!.view.getBytes(0, CONSTANTS.PARTY_POKEMON_SIZE), offset)
     }
     return updated
   }
