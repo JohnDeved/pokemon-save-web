@@ -1,6 +1,4 @@
 #!/usr/bin/env tsx
-// Usage: tsx cli.ts <savefile.sav> [--debug] [--graph]
-// --debug: show raw bytes; --graph: show colored hex/field graph
 import fs from 'fs';
 import path from 'path';
 import PokemonSaveParser, { PokemonData } from './pokemonSaveParser';
@@ -166,7 +164,20 @@ if (toStringArg) {
 }
 const savePath = argv.find(arg=>arg.match(/\.sav$/i)&&fs.existsSync(path.resolve(arg)));
 if(!savePath){
-  console.error('Usage: tsx cli.ts <savefile.sav> [--debug] [--graph]');
+  console.error(`\nUsage: tsx cli.ts <savefile.sav> [options]
+
+Options:
+  --debug           Show raw bytes for each party Pokémon after the summary table
+  --graph           Show colored hex/field graph for each party Pokémon (instead of summary table)
+  --toBytes=STRING  Convert a string to GBA byte encoding and print the result
+  --toString=HEX    Convert a space/comma-separated hex byte string to a decoded GBA string
+
+Examples:
+  tsx cli.ts mysave.sav --debug
+  tsx cli.ts mysave.sav --graph
+  tsx cli.ts --toBytes=PIKACHU
+  tsx cli.ts --toString="50 49 4b 41 43 48 55 00"
+`);
   process.exit(1);
 }
 const absPath = path.resolve(savePath);
