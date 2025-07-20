@@ -3,7 +3,7 @@
  * Clean exports for the browser-ready TypeScript parser
  */
 
-export { PokemonSaveParser as default, PokemonSaveParser } from './pokemonSaveParser.js';
+export { PokemonSaveParser as default, PokemonSaveParser } from './pokemonSaveParser.js'
 
 export type {
   PlayTimeData,
@@ -14,7 +14,7 @@ export type {
   PokemonIVs,
   SectorInfo,
   SaveData,
-} from './types.js';
+} from './types.js'
 
 export {
   CONSTANTS,
@@ -30,4 +30,4 @@ export {
   getTotalIVs,
   getMoveIds,
   getPPValues,
-} from './types.js';
+} from './types.js'

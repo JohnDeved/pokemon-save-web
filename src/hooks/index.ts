@@ -1,2 +1,2 @@
-export { usePokemonData } from './usePokemonData';
-export { useSaveFileParser } from './useSaveFileParser';
+export { usePokemonData } from './usePokemonData'
+export { useSaveFileParser } from './useSaveFileParser'

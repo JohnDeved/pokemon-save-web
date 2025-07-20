@@ -1,15 +1,15 @@
-import { useReducer, useCallback, useRef } from 'react';
-import { PokemonSaveParser } from '../lib/parser';
-import type { SaveData } from '../lib/parser/types';
-import { saveAs } from 'file-saver';
-import { toast } from 'sonner';
+import { useReducer, useCallback, useRef } from 'react'
+import { PokemonSaveParser } from '../lib/parser'
+import type { SaveData } from '../lib/parser/types'
+import { saveAs } from 'file-saver'
+import { toast } from 'sonner'
 
 export interface SaveFileParserState {
-  saveData: SaveData | null;
-  isLoading: boolean;
-  error: string | null;
-  hasFile: boolean;
-  lastParseFailed: boolean;
+  saveData: SaveData | null
+  isLoading: boolean
+  error: string | null
+  hasFile: boolean
+  lastParseFailed: boolean
 }
 
 export const useSaveFileParser = () => {
@@ -19,18 +19,18 @@ export const useSaveFileParser = () => {
     error: null,
     hasFile: false,
     lastParseFailed: false,
-  };
+  }
 
   type Action =
     | { type: 'PARSE_START' }
-    | { type: 'PARSE_SUCCESS'; saveData: SaveData }
-    | { type: 'PARSE_ERROR'; error: string }
-    | { type: 'CLEAR' };
+    | { type: 'PARSE_SUCCESS', saveData: SaveData }
+    | { type: 'PARSE_ERROR', error: string }
+    | { type: 'CLEAR' }
 
-  function reducer(state: SaveFileParserState, action: Action): SaveFileParserState {
+  function reducer (state: SaveFileParserState, action: Action): SaveFileParserState {
     switch (action.type) {
       case 'PARSE_START':
-        return { ...state, isLoading: true, error: null, lastParseFailed: false };
+        return { ...state, isLoading: true, error: null, lastParseFailed: false }
       case 'PARSE_SUCCESS':
         return {
           saveData: action.saveData,
@@ -38,54 +38,54 @@ export const useSaveFileParser = () => {
           error: null,
           hasFile: true,
           lastParseFailed: false,
-        };
+        }
       case 'PARSE_ERROR':
         return {
           ...state,
           isLoading: false,
           error: action.error,
           lastParseFailed: true,
-        };
+        }
       case 'CLEAR':
-        return { ...initialState };
+        return { ...initialState }
       default:
-        return state;
+        return state
     }
   }
 
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, initialState)
 
-  const parserRef = useRef<PokemonSaveParser | null>(null);
+  const parserRef = useRef<PokemonSaveParser | null>(null)
 
   const parseSaveFile = useCallback(async (file: File) => {
-    dispatch({ type: 'PARSE_START' });
+    dispatch({ type: 'PARSE_START' })
     try {
-      const parser = new PokemonSaveParser();
-      const saveData = await parser.parseSaveFile(file);
-      parserRef.current = parser;
-      dispatch({ type: 'PARSE_SUCCESS', saveData });
-      return saveData;
+      const parser = new PokemonSaveParser()
+      const saveData = await parser.parseSaveFile(file)
+      parserRef.current = parser
+      dispatch({ type: 'PARSE_SUCCESS', saveData })
+      return saveData
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to parse save file';
-      dispatch({ type: 'PARSE_ERROR', error: errorMessage });
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : 'Failed to parse save file'
+      dispatch({ type: 'PARSE_ERROR', error: errorMessage })
+      throw error
     }
-  }, []);
+  }, [])
 
   const clearSaveFile = useCallback(() => {
-    dispatch({ type: 'CLEAR' });
-  }, []);
+    dispatch({ type: 'CLEAR' })
+  }, [])
 
-  type SaveMethod = 'download' | 'saveAs' | 'save';
+  type SaveMethod = 'download' | 'saveAs' | 'save'
   const reconstructAndDownload = useCallback(async (method: SaveMethod = 'download') => {
     if (!state.saveData || !parserRef.current) {
-      throw new Error('No save data loaded');
+      throw new Error('No save data loaded')
     }
 
     // Use the same parser instance
-    const newSave = parserRef.current.reconstructSaveFile(state.saveData.party_pokemon);
-    const blob = new Blob([newSave], { type: 'application/octet-stream' });
-    const defaultFileName = parserRef.current.saveFileName || 'pokemon_save.sav';
+    const newSave = parserRef.current.reconstructSaveFile(state.saveData.party_pokemon)
+    const blob = new Blob([newSave], { type: 'application/octet-stream' })
+    const defaultFileName = parserRef.current.saveFileName || 'pokemon_save.sav'
 
     if (method === 'saveAs') {
       try {
@@ -97,17 +97,17 @@ export const useSaveFileParser = () => {
               accept: { 'application/octet-stream': ['.sav', '.sa2'] },
             },
           ],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
+        })
+        const writable = await handle.createWritable()
+        await writable.write(blob)
+        await writable.close()
         return
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
+        const message = err instanceof Error ? err.message : 'Unknown error'
         return toast.error(message, {
           position: 'bottom-center',
           duration: 5000,
-        });
+        })
       }
     }
 
@@ -116,17 +116,17 @@ export const useSaveFileParser = () => {
         return toast.error('No file handle available for saving', {
           position: 'bottom-center',
           duration: 3000,
-        });
+        })
       }
-      const writable = await parserRef.current.fileHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      return;
+      const writable = await parserRef.current.fileHandle.createWritable()
+      await writable.write(blob)
+      await writable.close()
+      return
     }
 
     // 'download' method always uses file-saver
-    saveAs(blob, defaultFileName);
-  }, [state.saveData]);
+    saveAs(blob, defaultFileName)
+  }, [state.saveData])
 
   return {
     ...state,
@@ -134,5 +134,5 @@ export const useSaveFileParser = () => {
     clearSaveFile,
     reconstructAndDownload,
     parser: parserRef.current,
-  };
+  }
 }
