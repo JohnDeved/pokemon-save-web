@@ -1,5 +1,5 @@
 import { saveAs } from 'file-saver'
-import { useCallback, useReducer, useRef } from 'react'
+import { useReducer, useRef } from 'react'
 import { toast } from 'sonner'
 import { PokemonSaveParser } from '../lib/parser'
 import type { SaveData } from '../lib/parser/types'
@@ -57,7 +57,7 @@ export const useSaveFileParser = () => {
 
   const parserRef = useRef<PokemonSaveParser | null>(null)
 
-  const parseSaveFile = useCallback(async (file: File) => {
+  async function parseSaveFile (file: File) {
     dispatch({ type: 'PARSE_START' })
     try {
       const parser = new PokemonSaveParser()
@@ -70,18 +70,17 @@ export const useSaveFileParser = () => {
       dispatch({ type: 'PARSE_ERROR', error: errorMessage })
       throw error
     }
-  }, [])
+  }
 
-  const clearSaveFile = useCallback(() => {
+  function clearSaveFile () {
     dispatch({ type: 'CLEAR' })
-  }, [])
+  }
 
   type SaveMethod = 'download' | 'saveAs' | 'save'
-  const reconstructAndDownload = useCallback(async (method: SaveMethod = 'download') => {
+  async function reconstructAndDownload (method: SaveMethod = 'download') {
     if (!state.saveData || !parserRef.current) {
       throw new Error('No save data loaded')
     }
-
     // Use the same parser instance
     const newSave = parserRef.current.reconstructSaveFile(state.saveData.party_pokemon)
     const blob = new Blob([newSave], { type: 'application/octet-stream' })
@@ -126,7 +125,8 @@ export const useSaveFileParser = () => {
 
     // 'download' method always uses file-saver
     saveAs(blob, defaultFileName)
-  }, [state.saveData])
+  // ...existing code...
+  }
 
   return {
     ...state,

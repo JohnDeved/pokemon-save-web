@@ -1,4 +1,4 @@
-import React from 'react'
+import { createContext, useContext } from 'react'
 import { cn } from '../../lib/utils'
 
 interface SkeletonProps {
@@ -8,14 +8,14 @@ interface SkeletonProps {
 };
 
 // Context for loading state
-const SkeletonLoadingContext = React.createContext<boolean | undefined>(undefined)
+const SkeletonLoadingContext = createContext<boolean | undefined>(undefined)
 
 export const SkeletonLoadingProvider = ({ loading, children }: { loading: boolean, children: React.ReactNode }) => (
   <SkeletonLoadingContext.Provider value={loading}>{children}</SkeletonLoadingContext.Provider>
 )
 
 function useSkeletonLoading (loading?: boolean) {
-  const contextLoading = React.useContext(SkeletonLoadingContext)
+  const contextLoading = useContext(SkeletonLoadingContext)
   return loading ?? contextLoading ?? true
 }
 
@@ -32,8 +32,10 @@ export const SkeletonText = ({
   const isLoading = useSkeletonLoading(loading)
   const Component = as ?? 'span'
   if (!isLoading) {
-    // If not loading, render children directly
-    return React.createElement(Component, { className, ...props }, children)
+    // If not loading, render children directly using JSX
+    return (
+      <Component className={className} {...props}>{children}</Component>
+    )
   }
 
   // Create props object with proper typing
@@ -43,10 +45,10 @@ export const SkeletonText = ({
     ...props,
   }
 
-  return React.createElement(
-    Component,
-    componentProps,
-    React.createElement('span', { className: 'invisible' }, children ?? 'Placeholder text'),
+  return (
+    <Component {...componentProps}>
+      <span className="invisible">{children ?? 'Placeholder text'}</span>
+    </Component>
   )
 }
 

@@ -2,7 +2,7 @@
 
 always check for code issues and errors after making any changes.  
 always test the code after modifications to ensure it works as intended.  
-testing means running the Node or Python script to observe the output, or building the frontend to verify it compiles.  
+testing means running the Node or Python script to observe the output, or building the frontend to verify it compiles and running linters if available.
 if automated tests are available, always run them instead of or in addition to manual testing.
 if you encounter an error, it is ALWAYS your responsibility to fix it.  
 do not ask obvious questions like "would you like me to fix that?" — the answer is always yes.  

@@ -1,4 +1,3 @@
-import React, { useMemo } from 'react'
 import type { Pokemon } from '../../types'
 import { ScrollableContainer, Skeleton } from '../common'
 
@@ -11,10 +10,9 @@ export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({
   pokemon,
   isLoading = false,
 }) => {
-  const ability = useMemo(() => {
-    if (!pokemon?.details) return null
-    return pokemon.details.abilities.find(a => a.slot === (pokemon.data.abilityNumber + 1))
-  }, [pokemon])
+  const ability = !pokemon?.details
+    ? null
+    : pokemon.details.abilities.find(a => a.slot === (pokemon.data.abilityNumber + 1))
 
   return (
     <Skeleton.LoadingProvider loading={isLoading}>

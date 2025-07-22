@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 
 interface ScrollableContainerProps {
@@ -20,7 +20,7 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
   const [scrollState, setScrollState] = useState<ScrollState>('none')
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const checkScroll = useCallback(() => {
+  function checkScroll () {
     const el = containerRef.current
     if (!el) { setScrollState('none'); return }
     if (el.scrollHeight <= el.clientHeight) { setScrollState('none'); return }
@@ -30,7 +30,7 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
     if (atTop && !atBottom) { setScrollState('bottom'); return }
     if (!atTop && atBottom) { setScrollState('top'); return }
     setScrollState('none')
-  }, [])
+  }
 
   useLayoutEffect(() => {
     checkScroll()

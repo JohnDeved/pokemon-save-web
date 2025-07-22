@@ -1,4 +1,3 @@
-import React from 'react'
 import { CONSTANTS } from '../../lib/parser'
 import type { Pokemon } from '../../types'
 import { PokemonStatus } from './PokemonStatus'

@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber'
-import { memo, useMemo } from 'react'
+import { useMemo } from 'react'
 import { ShaderMaterial } from 'three'
 
 import fragmentShader from '../../glsl/shader.glsl?raw'
@@ -10,24 +10,22 @@ const uniforms = {
   resolution: { value: [window.innerWidth, window.innerHeight] },
 }
 
-const Scene = memo(function Scene () {
+const Scene = () => {
   const material = useMemo(
     () => new ShaderMaterial({ uniforms, fragmentShader, vertexShader }),
     [],
   )
-
   useFrame((_, delta) => {
     uniforms.time.value += delta
     uniforms.resolution.value = [window.innerWidth, window.innerHeight]
   })
-
   return (
     <mesh>
       <planeGeometry args={[2, 2]}/>
       <primitive object={material}/>
     </mesh>
   )
-})
+}
 
 export const ShaderBackground = () => {
   return (

@@ -1,8 +1,8 @@
-import React from 'react'
 import { calculateTotalStatsDirect } from '../../lib/parser/utils'
 import type { Pokemon } from '../../types'
 import { Skeleton } from '../common'
 import { Slider } from '../ui/slider'
+import { useState } from 'react'
 
 // Constants for stat calculations
 const MAX_EV = 252
@@ -24,10 +24,10 @@ interface EVSliderProps {
   maxVisualValue?: number
 }
 
-const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider ({ value, onChange, maxVisualValue }) {
-  const handleValueChange = React.useCallback((val: number[]) => {
+const EVSlider: React.FC<EVSliderProps> = ({ value, onChange, maxVisualValue }) => {
+  const handleValueChange = (val: number[]) => {
     onChange(val[0]!)
-  }, [onChange])
+  }
   return (
     <Slider
       value={[value]}
@@ -37,7 +37,7 @@ const EVSlider: React.FC<EVSliderProps> = React.memo(function EVSlider ({ value,
       maxVisualValue={maxVisualValue}
     />
   )
-})
+}
 
 export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
   pokemon,
@@ -53,22 +53,22 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
   const natureModifier = pokemon?.data.natureModifiersArray
 
   // Track which IV is being hovered for preview
-  const [hoveredIvIndex, setHoveredIvIndex] = React.useState<number | null>(null)
+  const [hoveredIvIndex, setHoveredIvIndex] = useState<number | null>(null)
 
   // Handler for EV changes - update parent state immediately
-  const handleEvChange = React.useCallback((statIndex: number, newValue: number) => {
+  function handleEvChange (statIndex: number, newValue: number) {
     if (typeof pokemon?.id !== 'number') return
     setEvIndex(pokemon.id, statIndex, newValue)
-  }, [pokemon?.id, setEvIndex])
+  }
 
   // Handler for IV clicks - set to max (31) when clicked
-  const handleIvClick = React.useCallback((statIndex: number) => {
+  function handleIvClick (statIndex: number) {
     if (typeof pokemon?.id !== 'number') return
     setIvIndex(pokemon.id, statIndex, 31)
-  }, [pokemon?.id, setIvIndex])
+  }
 
   // Calculate what the total stat would be with max IV (31)
-  const calculatePreviewStat = React.useCallback((statIndex: number, currentIv: number) => {
+  function calculatePreviewStat (statIndex: number, currentIv: number) {
     if (currentIv === MAX_IV || !pokemon?.data || !baseStats) return null
     // Create a copy of IVs with the selected stat set to MAX_IV
     const currentIvs = [...pokemon.data.ivs]
@@ -76,7 +76,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
     // Use calculateTotalStatsDirect for stat calculation
     const newStats = calculateTotalStatsDirect(baseStats, currentIvs, pokemon.data.evs, pokemon.data.level, pokemon.data.nature)
     return newStats[statIndex]
-  }, [pokemon?.data, baseStats])
+  }
 
   return (
     <Skeleton.LoadingProvider loading={isLoading}>

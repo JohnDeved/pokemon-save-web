@@ -1,4 +1,4 @@
-import React from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from '../../lib/utils'
 import type { Pokemon } from '../../types'
 import { Card } from '../common'
@@ -16,10 +16,10 @@ export interface PokemonStatusProps {
 }
 
 const useGifFrame = (gifUrl: string) => {
-  const [staticFrameSrc, setStaticFrameSrc] = React.useState<string | null>(null)
-  const [isLoading, setIsLoading] = React.useState(true)
+  const [staticFrameSrc, setStaticFrameSrc] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Reset state if the URL changes
     setIsLoading(true)
     setStaticFrameSrc(null)
@@ -71,8 +71,8 @@ const PokemonSprite: React.FC<{
   const { staticFrameSrc } = useGifFrame(isGif ? src : '')
   // If paused and GIF, show static frame; else show src
   const displaySrc = paused && isGif && staticFrameSrc ? staticFrameSrc : src
-  const [imgSrc, setImgSrc] = React.useState(displaySrc)
-  React.useEffect(() => setImgSrc(displaySrc), [displaySrc])
+  const [imgSrc, setImgSrc] = useState(displaySrc)
+  useEffect(() => setImgSrc(displaySrc), [displaySrc])
   const handleError = () => setImgSrc(fallbackSrc)
 
   return (

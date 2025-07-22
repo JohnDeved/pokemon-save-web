@@ -17,31 +17,24 @@ const Slider = ({
   maxVisualValue?: number
 }) => {
   const sliderRef = React.useRef<HTMLDivElement>(null)
-  const _values = React.useMemo(
-    () =>
-      Array.isArray(value)
-        ? value
-        : Array.isArray(defaultValue)
-          ? defaultValue
-          : [min, max],
-    [value, defaultValue, min, max],
-  )
+  const _values = Array.isArray(value)
+    ? value
+    : Array.isArray(defaultValue)
+      ? defaultValue
+      : [min, max]
 
-  const handleWheel = React.useCallback(
-    (e: WheelEvent) => {
-      if (typeof value === 'undefined' || !Array.isArray(value)) return
-      if (props.disabled) return
-      e.preventDefault()
-      const delta = Math.sign(e.deltaY) * (e.shiftKey ? 10 : 1)
-      // Clamp to maxVisualValue if provided
-      const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max
-      const newValue = Math.max(min, Math.min(upperLimit, value[0]! - delta))
-      if (props.onValueChange) {
-        props.onValueChange([newValue])
-      }
-    },
-    [value, min, max, maxVisualValue, props],
-  )
+  function handleWheel (e: WheelEvent) {
+    if (typeof value === 'undefined' || !Array.isArray(value)) return
+    if (props.disabled) return
+    e.preventDefault()
+    const delta = Math.sign(e.deltaY) * (e.shiftKey ? 10 : 1)
+    // Clamp to maxVisualValue if provided
+    const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max
+    const newValue = Math.max(min, Math.min(upperLimit, value[0]! - delta))
+    if (props.onValueChange) {
+      props.onValueChange([newValue])
+    }
+  }
 
   React.useEffect(() => {
     const sliderEl = sliderRef.current
@@ -58,11 +51,12 @@ const Slider = ({
     : 100
 
   // Clamp controlled value to maxVisualValue
-  const clampedValue = React.useMemo(() => {
-    if (!Array.isArray(value)) return value
-    const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max
-    return value.map(v => Math.max(min, Math.min(upperLimit, v)))
-  }, [value, min, max, maxVisualValue])
+  const clampedValue = !Array.isArray(value)
+    ? value
+    : value.map(v => {
+      const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max
+      return Math.max(min, Math.min(upperLimit, v))
+    })
 
   return (
     <SliderPrimitive.Root
