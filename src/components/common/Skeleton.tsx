@@ -5,7 +5,7 @@ interface SkeletonProps {
   className?: string
   loading?: boolean // Indicates if skeleton should be shown
   children?: React.ReactNode
-}
+};
 
 // Context for loading state
 const SkeletonLoadingContext = React.createContext<boolean | undefined>(undefined)
@@ -16,7 +16,7 @@ export const SkeletonLoadingProvider = ({ loading, children }: { loading: boolea
 
 function useSkeletonLoading (loading?: boolean) {
   const contextLoading = React.useContext(SkeletonLoadingContext)
-  return loading !== undefined ? loading : contextLoading ?? true
+  return loading ?? contextLoading ?? true
 }
 
 // Mirrored text that maintains exact text dimensions
