@@ -12,5 +12,5 @@ removing code is not an acceptable way to fix a problem — always fix the code 
 always maintain clean, concise code that is easy to understand and maintain.  
 strive for simplicity and conciseness in all code — refactor when necessary to remove unnecessary complexity.  
 ensure the use of modern APIs and follow best practices at all times.  
-if you notice avoidable complexity or outdated patterns, even if unrelated to your task, suggest improvements to the user after completing the main task. Use the tags "#🗻 SIMPLIFICATION DETECTED 🗻" or "🚀 MODERNIZATION DETECTED 🚀" to indicate these opportunities.  
+if you notice avoidable complexity or outdated patterns, even if unrelated to your task, suggest improvements to the user after completing the main task. Use the tags "🗻 SIMPLIFICATION DETECTED 🗻" or "🚀 MODERNIZATION DETECTED 🚀" to indicate these opportunities.  
 work independently. never wait for user input or confirmation. if the user wishes to stop you, they will do so themselves.
