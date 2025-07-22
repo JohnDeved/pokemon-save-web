@@ -21,7 +21,6 @@ import { calculateTotalStats, natures } from '@/lib/parser/utils'
 import { useSaveFileParser } from './useSaveFileParser'
 
 // --- Constants ---
-const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
 const MAX_EV_PER_STAT = 252
 const MAX_TOTAL_EVS = 508
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN'
@@ -165,12 +164,19 @@ export const usePokemonData = () => {
     if (!saveData?.party_pokemon) return []
     return saveData.party_pokemon.map((parsedPokemon, index) => {
       const isShiny = parsedPokemon.shinyNumber > 0
+      const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
       const spriteUrl = isShiny
         ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
         : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
+
+      const SPRITE_ANI_BASE_URL = '/sprites'
+      const spriteAniUrl = isShiny
+        ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif`
+        : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
       return {
         id: index,
         spriteUrl,
+        spriteAniUrl,
         data: parsedPokemon,
       }
     })

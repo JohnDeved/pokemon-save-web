@@ -15,6 +15,94 @@ export interface PokemonStatusProps {
   isActive: boolean
 }
 
+const useGifFrame = (gifUrl: string) => {
+  const [staticFrameSrc, setStaticFrameSrc] = React.useState<string | null>(null)
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    // Reset state if the URL changes
+    setIsLoading(true)
+    setStaticFrameSrc(null)
+
+    if (!gifUrl) {
+      setIsLoading(false)
+      return
+    }
+
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const context = canvas.getContext('2d')
+      if (context) {
+        context.drawImage(img, 0, 0)
+        setStaticFrameSrc(canvas.toDataURL('image/png'))
+      } else {
+        setStaticFrameSrc(gifUrl) // fallback if context is null
+      }
+      setIsLoading(false)
+    }
+
+    img.onerror = () => {
+      console.error('Failed to load GIF for processing.')
+      setStaticFrameSrc(gifUrl) // Fallback to original on error
+      setIsLoading(false)
+    }
+
+    img.src = gifUrl
+  }, [gifUrl]) // Re-run the effect if the gifUrl changes.
+
+  return { staticFrameSrc, isLoading }
+}
+
+// Sprite display component
+const PokemonSprite: React.FC<{
+  src: string
+  fallbackSrc: string
+  alt?: string
+  paused?: boolean
+}> = ({ src, fallbackSrc, alt, paused }) => {
+  // Determine if the src is a GIF
+  const isGif = src && src.toLowerCase().endsWith('.gif')
+  // Use the useGifFrame hook only for GIFs
+  const { staticFrameSrc } = useGifFrame(isGif ? src : '')
+  // If paused and GIF, show static frame; else show src
+  const displaySrc = paused && isGif && staticFrameSrc ? staticFrameSrc : src
+  const [imgSrc, setImgSrc] = React.useState(displaySrc)
+  React.useEffect(() => setImgSrc(displaySrc), [displaySrc])
+  const handleError = () => setImgSrc(fallbackSrc)
+
+  return (
+    <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center relative">
+      {/* Blurred background image, not upscaled */}
+      <img
+        src={imgSrc}
+        className={cn(
+          'absolute z-0 opacity-40 blur-md object-contain',
+          '[image-rendering:pixelated]',
+          'max-w-[96px] max-h-[96px]',
+        )}
+        onError={handleError}
+        aria-hidden="true"
+      />
+      {/* Main sprite image, not upscaled */}
+      <img
+        src={imgSrc}
+        className={cn(
+          'z-10 object-contain transition-transform duration-300',
+          '[image-rendering:pixelated]',
+          'max-w-[96px] max-h-[96px]',
+        )}
+        onError={handleError}
+        alt={alt}
+      />
+    </div>
+  )
+}
+
 // Component for a single Pokémon's status display on the left
 export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive }) => {
   const hpPercentage = (pokemon.data.currentHp / pokemon.data.maxHp) * 100
@@ -28,27 +116,16 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
     ? 'bg-slate-800/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30'
     : 'hover:bg-slate-800/80'
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const target = e.target as HTMLImageElement
-    target.onerror = null
-    target.src = `https://placehold.co/96x96/334155/94a3b8?text=${String(pokemon.data.speciesId).padStart(3, '0')}`
-  }
+  const fallbackSrc = `https://placehold.co/96x96/334155/94a3b8?text=${String(pokemon.data.speciesId).padStart(3, '0')}`
 
   return (
     <Card className={cn('flex items-center p-3 transition-all duration-300', containerClasses)}>
-      <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center relative">
-        <img
-          src={pokemon.spriteUrl}
-          className={cn('absolute z-0 w-full blur-md opacity-40 h-full object-contain transition-transform duration-300', 'scale-130')}
-          onError={handleImageError}
-        />
-        <img
-          src={pokemon.spriteUrl}
-          alt={pokemon.data.nickname}
-          className={cn('z-10 w-full h-full object-contain transition-transform duration-300', isActive ? 'scale-110' : 'group-hover:scale-110')}
-          onError={handleImageError}
-        />
-      </div>
+      <PokemonSprite
+        src={pokemon.spriteAniUrl}
+        fallbackSrc={fallbackSrc}
+        alt={pokemon.data.nickname}
+        paused={!isActive}
+      />
       <div className="flex-grow">
         <div className="flex justify-between items-center text-sm">
           <h3 className="text-white">{pokemon.data.nickname}</h3>

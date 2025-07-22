@@ -22,6 +22,10 @@ export function mapSpeciesToPokeId (speciesId: number): number {
   return maps.pokemonMap[speciesId.toString()]?.id ?? speciesId
 }
 
+export function mapSpeciesToNameId (speciesId: number): string | undefined {
+  return maps.pokemonMap[speciesId.toString()]?.id_name
+}
+
 export function mapMoveToPokeId (moveId: number): number {
   return maps.moveMap[moveId.toString()]?.id ?? moveId
 }

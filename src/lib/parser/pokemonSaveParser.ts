@@ -19,7 +19,7 @@ import type {
 
 // Import character map for decoding text
 import charMap from './pokemon_charmap.json'
-import { bytesToGbaString, getPokemonNature, mapItemToNameId, mapItemToPokeId, mapMoveToPokeId, mapSpeciesToPokeId, natureEffects, statStrings } from './utils'
+import { bytesToGbaString, getPokemonNature, mapItemToNameId, mapItemToPokeId, mapMoveToPokeId, mapSpeciesToNameId, mapSpeciesToPokeId, natureEffects, statStrings } from './utils'
 
 /**
  * DataView wrapper for little-endian operations with bounds checking
@@ -113,6 +113,7 @@ export class PokemonData {
   get otNameRaw () { return this.view.getBytes(0x14, CONSTANTS.POKEMON_TRAINER_NAME_LENGTH) }
   get currentHp () { return this.view.getUint16(0x23) }
   get speciesId () { return mapSpeciesToPokeId(this.view.getUint16(0x28)) }
+  get nameId () { return mapSpeciesToNameId(this.view.getUint16(0x28)) }
   get item () { return mapItemToPokeId(this.view.getUint16(0x2A)) }
   get itemIdName () { return mapItemToNameId(this.view.getUint16(0x2A)) }
   get move1 () { return mapMoveToPokeId(this.view.getUint16(0x34)) }
