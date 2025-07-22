@@ -116,13 +116,11 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
     ? 'bg-slate-800/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30'
     : 'hover:bg-slate-800/80'
 
-  const fallbackSrc = `https://placehold.co/96x96/334155/94a3b8?text=${String(pokemon.data.speciesId).padStart(3, '0')}`
-
   return (
     <Card className={cn('flex items-center p-3 transition-all duration-300', containerClasses)}>
       <PokemonSprite
         src={pokemon.spriteAniUrl}
-        fallbackSrc={fallbackSrc}
+        fallbackSrc={pokemon.spriteUrl}
         alt={pokemon.data.nickname}
         paused={!isActive}
       />
