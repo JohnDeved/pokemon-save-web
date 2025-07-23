@@ -533,8 +533,14 @@ end
 ---@param port number
 ---@param callback? fun(port: number)
 function HttpServer:listen(port, callback)
+    -- Check if ROM is loaded before starting server
+    if not emu or not emu.romSize or emu:romSize() == 0 then
+        console:error("[ERROR] No ROM loaded. HTTP server will not start.")
+        return
+    end
+
     local server, err
-    
+
     -- Try to bind to the port, incrementing if in use
     repeat
         server, err = socket.bind(nil, port)
@@ -545,7 +551,7 @@ function HttpServer:listen(port, callback)
             return
         end
     until server
-    
+
     -- Start listening
     local ok, listen_err = server:listen()
     if listen_err then
@@ -553,10 +559,10 @@ function HttpServer:listen(port, callback)
         console:log("Error listening: " .. tostring(listen_err))
         return
     end
-    
+
     self.server = server
     server:add("received", function() self:_accept_client() end)
-    
+
     if callback then callback(port) end
 end
 
@@ -601,6 +607,10 @@ app:websocket("/ws", function(ws)
 end)
 
 -- Start server
-app:listen(7102, function(port)
-    console:log("🚀 mGBA HTTP Server started on port " .. port)
+-- Start server only after ROM is loaded
+console:log("Starting mGBA HTTP Server... waiting for ROM load...")
+callbacks:add("start", function()
+    app:listen(7102, function(port)
+        console:log("🚀 mGBA HTTP Server started on port " .. port)
+    end)
 end)

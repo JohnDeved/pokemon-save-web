@@ -7,8 +7,20 @@
 ---@field SOCKERR table<string, number>
 C = C
 
+---@alias CallbackName
+---| 'alarm'              # An in-game alarm went off
+---| 'crashed'            # The emulation crashed
+---| 'frame'              # The emulation finished a frame
+---| 'keysRead'           # The emulation is about to read the key input
+---| 'reset'              # The emulation has been reset
+---| 'savedataUpdated'    # The emulation has just finished modifying save data
+---| 'sleep'              # The emulation has used the sleep feature to enter a low-power mode
+---| 'shutdown'           # The emulation has been powered off
+---| 'start'              # The emulation has started
+---| 'stop'               # The emulation has voluntarily shut down
+
 ---@class CallbackManager
----@field add fun(self: CallbackManager, callback: string, fn: function): number
+---@field add fun(self: CallbackManager, callback: CallbackName, fn: function): number
 ---@field remove fun(self: CallbackManager, cbid: number): nil
 callbacks = callbacks
 
