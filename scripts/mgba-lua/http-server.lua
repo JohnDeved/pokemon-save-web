@@ -78,54 +78,14 @@ function HttpServer.cors(origin)
     end
 end
 
---- WebSocket key generation for handshake.
----@param key string
+--- Converts binary data to Base64.
+---@param data string
 ---@return string
--- Minimal SHA-1 and base64 helpers (from pure_lua_SHA, simplified for mGBA)
--- Minimal base64 decoder
-local function base64decode(data)
-    local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    data = data:gsub('[^'..b..'=]', '')
-    local decoded = {}
-    local i = 1
-    while i <= #data do
-        local c1 = b:find(data:sub(i,i),1,true)
-        local c2 = b:find(data:sub(i+1,i+1),1,true)
-        local c3 = b:find(data:sub(i+2,i+2),1,true)
-        local c4 = b:find(data:sub(i+3,i+3),1,true)
-        if not c1 or not c2 then break end
-        local n = ((c1-1) << 18) + ((c2-1) << 12)
-        local a = string.char((n >> 16) & 0xFF)
-        table.insert(decoded, a)
-        if c3 and data:sub(i+2,i+2) ~= '=' then
-            n = n + ((c3-1) << 6)
-            local bchar = string.char((n >> 8) & 0xFF)
-            table.insert(decoded, bchar)
-        end
-        if c4 and data:sub(i+3,i+3) ~= '=' then
-            n = n + (c4-1)
-            local cchar = string.char(n & 0xFF)
-            table.insert(decoded, cchar)
-        end
-        i = i + 4
-    end
-    return table.concat(decoded)
-end
-local function hex2bin(hex)
-    return (hex:gsub('..', function(cc)
-        return string.char(tonumber(cc, 16))
-    end))
-end
-
 local function bin2base64(data)
     local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    local s = ''
-    local len = #data
-    local i = 1
+    local s, i, len = '', 1, #data
     while i <= len do
-        local c1 = data:byte(i) or 0
-        local c2 = data:byte(i+1) or 0
-        local c3 = data:byte(i+2) or 0
+        local c1, c2, c3 = data:byte(i) or 0, data:byte(i+1) or 0, data:byte(i+2) or 0
         local n = c1 * 65536 + c2 * 256 + c3
         s = s .. b:sub(math.floor(n/262144)%64+1, math.floor(n/262144)%64+1)
               .. b:sub(math.floor(n/4096)%64+1, math.floor(n/4096)%64+1)
@@ -134,49 +94,41 @@ local function bin2base64(data)
         i = i + 3
     end
     local pad = len % 3
-    if pad == 1 then
-        s = s:sub(1, #s-2) .. '=='
-    elseif pad == 2 then
-        s = s:sub(1, #s-1) .. '='
-    end
+    if pad == 1 then s = s:sub(1, #s-2) .. '=='
+    elseif pad == 2 then s = s:sub(1, #s-1) .. '=' end
     return s
 end
 
--- Pure Lua SHA-1 (minimal, from Egor Skriptunoff's pure_lua_SHA)
+--- Converts hexadecimal string to binary.
+---@param hex string
+---@return string
+local function hex2bin(hex)
+    return (hex:gsub('..', function(cc) return string.char(tonumber(cc, 16)) end))
+end
 
--- Minimal, known-correct pure Lua SHA-1 (public domain, Lua 5.1 compatible)
-local function rol(n, b)
-    return ((n << b) | (n >> (32 - b))) & 0xFFFFFFFF
-end
-local function tobytes(str)
-    local t = {}
-    for i = 1, #str do t[i] = str:byte(i) end
-    return t
-end
+--- Computes SHA-1 hash of a string.
+--- @param msg string
+--- @return string
 local function sha1(msg)
     local H = {0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0}
-    local bytes = tobytes(msg)
-    local ml = #bytes * 8
+    local bytes, ml = {}, #msg * 8
+    for i = 1, #msg do bytes[i] = msg:byte(i) end
     table.insert(bytes, 0x80)
     while (#bytes % 64) ~= 56 do table.insert(bytes, 0) end
     for i = 1, 8 do table.insert(bytes, (ml >> (8 * (8 - i))) & 0xFF) end
     for i = 1, #bytes, 64 do
         local w = {}
-        for j = 0, 15 do
-            w[j+1] = (bytes[i+4*j] << 24 | bytes[i+4*j+1] << 16 | bytes[i+4*j+2] << 8 | bytes[i+4*j+3]) & 0xFFFFFFFF
-        end
-        for j = 17, 80 do
-            w[j] = rol(w[j-3] ~ w[j-8] ~ w[j-14] ~ w[j-16], 1)
-        end
+        for j = 0, 15 do w[j+1] = (bytes[i+4*j] << 24 | bytes[i+4*j+1] << 16 | bytes[i+4*j+2] << 8 | bytes[i+4*j+3]) & 0xFFFFFFFF end
+        for j = 17, 80 do w[j] = ((w[j-3] ~ w[j-8] ~ w[j-14] ~ w[j-16]) << 1 | (w[j-3] ~ w[j-8] ~ w[j-14] ~ w[j-16]) >> 31) & 0xFFFFFFFF end
         local a, b, c, d, e = H[1], H[2], H[3], H[4], H[5]
         for j = 1, 80 do
-            local f, k
-            if j <= 20 then f = (b & c) | (~b & d); k = 0x5A827999
-            elseif j <= 40 then f = b ~ c ~ d; k = 0x6ED9EBA1
-            elseif j <= 60 then f = (b & c) | (b & d) | (c & d); k = 0x8F1BBCDC
-            else f = b ~ c ~ d; k = 0xCA62C1D6 end
-            local temp = (rol(a,5) + f + e + k + w[j]) & 0xFFFFFFFF
-            e = d; d = c; c = rol(b,30); b = a; a = temp
+            local f, k = 0, 0
+            if j <= 20 then f, k = (b & c) | (~b & d), 0x5A827999
+            elseif j <= 40 then f, k = b ~ c ~ d, 0x6ED9EBA1
+            elseif j <= 60 then f, k = (b & c) | (b & d) | (c & d), 0x8F1BBCDC
+            else f, k = b ~ c ~ d, 0xCA62C1D6 end
+            local temp = (((a << 5) | (a >> 27)) + f + e + k + w[j]) & 0xFFFFFFFF
+            e, d, c, b, a = d, c, (b << 30 | b >> 2) & 0xFFFFFFFF, a, temp
         end
         H[1] = (H[1] + a) & 0xFFFFFFFF
         H[2] = (H[2] + b) & 0xFFFFFFFF
@@ -187,6 +139,9 @@ local function sha1(msg)
     return string.format('%08x%08x%08x%08x%08x',H[1],H[2],H[3],H[4],H[5])
 end
 
+--- Generates WebSocket accept key.
+--- @param key string
+--- @return string
 function HttpServer.generateWebSocketAccept(key)
     local magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
     -- Per RFC6455, concatenate the original base64 key (not decoded) with the magic string
@@ -194,11 +149,6 @@ function HttpServer.generateWebSocketAccept(key)
     local sha1hex = sha1(concat)
     local sha1bin = hex2bin(sha1hex)
     local accept = bin2base64(sha1bin)
-    console:log("[WS DEBUG] Key: " .. tostring(key))
-    console:log("[WS DEBUG] Concat: " .. tostring(concat))
-    console:log("[WS DEBUG] SHA1 hex: " .. tostring(sha1hex))
-    console:log("[WS DEBUG] SHA1 bin: " .. tostring(sha1bin))
-    console:log("[WS DEBUG] Accept: " .. tostring(accept))
     return accept
 end
 
@@ -304,7 +254,7 @@ function HttpServer:_parse_request(request_str)
     for k, v in string.gmatch(header_part, "([%w-]+):%s*([^\r\n]+)") do
         headers[string.lower(k)] = v
     end
-    console:log("[WS DEBUG] Parsed headers: " .. HttpServer.jsonStringify(headers))
+    -- Debug log removed for conciseness
 
     return { method = method, path = path, headers = headers, body = body }
 end
@@ -383,7 +333,7 @@ function HttpServer:_handle_client_data(clientId)
     until data:find("\r\n\r\n") or not chunk
 
     if data == "" then return end
-    console:log("[WS DEBUG] Raw request data: " .. data)
+    -- Debug log removed for conciseness
 
     -- Parse and handle request
     local req = self:_parse_request(data)
@@ -438,9 +388,6 @@ function HttpServer:_is_websocket_request(req)
     local is_ws = req.headers.upgrade == "websocket" and 
            req.headers.connection and req.headers.connection:lower():find("upgrade") ~= nil and
            req.headers["sec-websocket-key"] ~= nil
-    if is_ws then
-        console:log("[WS DEBUG] WebSocket upgrade request detected.")
-    end
     return is_ws
 end
 
@@ -451,7 +398,6 @@ end
 function HttpServer:_handle_websocket_upgrade(clientId, req)
     local client = self.clients[clientId]
     if not client then return end
-    console:log("[WS DEBUG] Entered _handle_websocket_upgrade for client " .. tostring(clientId))
     local wsKey = req.headers["sec-websocket-key"]
     local accept = HttpServer.generateWebSocketAccept(wsKey)
     local response = "HTTP/1.1 101 Switching Protocols\r\n" ..

@@ -51,9 +51,6 @@ util = util
 
 ---@class CoreAdapter : Core
 ---@field memory table<string, MemoryDomain>
-
--- Global emu instance (available when a game is loaded)
--- emu is of type CoreAdapter and provided by mGBA
 emu = emu
 
 ---@class SocketInstance
