@@ -606,21 +606,42 @@ end)
 -- WebSocket route
 app:websocket("/ws", function(ws)
     console:log("WebSocket connected: " .. ws.path)
-    
-    ws.onMessage = function(data)
-        console:log("WebSocket received: " .. data)
-        ws:send("Echo: " .. data)
+
+    ws.onMessage = function(code)
+        local function safe_eval()
+            console:log("WebSocket eval request: " .. tostring(code))
+            local chunk = code
+            if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end)") then
+                chunk = "return " .. code
+            end
+            local fn, err = load(chunk, "websocket-eval")
+            if not fn then
+                ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
+                return
+            end
+            local ok, result = pcall(fn)
+            if ok then
+                ws:send(HttpServer.jsonStringify({result = result}))
+            else
+                ws:send(HttpServer.jsonStringify({error = tostring(result)}))
+                console:error("[WebSocket Eval Error] " .. tostring(result))
+            end
+        end
+        local ok, err = pcall(safe_eval)
+        if not ok then
+            ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
+            console:error("[WebSocket Handler Error] " .. tostring(err))
+        end
     end
-    
+
     ws.onClose = function()
         console:log("WebSocket disconnected: " .. ws.path)
     end
-    
-    ws:send("Welcome to WebSocket!")
+
+    ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
 end)
 
 -- Start server
--- Start server only after ROM is loaded
 app:listen(7102, function(port)
     console:log("🚀 mGBA HTTP Server started on port " .. port)
 end)
