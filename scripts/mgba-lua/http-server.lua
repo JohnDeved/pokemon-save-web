@@ -533,37 +533,50 @@ end
 ---@param port number
 ---@param callback? fun(port: number)
 function HttpServer:listen(port, callback)
-    -- Check if ROM is loaded before starting server
-    if not emu or not emu.romSize or emu:romSize() == 0 then
-        console:error("[ERROR] No ROM loaded. HTTP server will not start.")
-        return
-    end
+    local function start_server()
+        local server, err
 
-    local server, err
+        -- Try to bind to the port, incrementing if in use
+        repeat
+            server, err = socket.bind(nil, port)
+            if err == socket.ERRORS.ADDRESS_IN_USE then
+                port = port + 1
+            elseif err then
+                console:log("Error binding server: " .. tostring(err))
+                return
+            end
+        until server
 
-    -- Try to bind to the port, incrementing if in use
-    repeat
-        server, err = socket.bind(nil, port)
-        if err == socket.ERRORS.ADDRESS_IN_USE then
-            port = port + 1
-        elseif err then
-            console:log("Error binding server: " .. tostring(err))
+        -- Start listening
+        local ok, listen_err = server:listen()
+        if listen_err then
+            server:close()
+            console:log("Error listening: " .. tostring(listen_err))
             return
         end
-    until server
 
-    -- Start listening
-    local ok, listen_err = server:listen()
-    if listen_err then
-        server:close()
-        console:log("Error listening: " .. tostring(listen_err))
-        return
+        self.server = server
+        server:add("received", function() self:_accept_client() end)
+
+        if callback then callback(port) end
     end
 
-    self.server = server
-    server:add("received", function() self:_accept_client() end)
-
-    if callback then callback(port) end
+    if emu and emu.romSize and emu:romSize() > 0 then
+        -- ROM is already loaded, start server immediately
+        start_server()
+    else
+        -- ROM not loaded, register callback to start server later
+        console:log("🕹️ mGBA HTTP Server is initializing. Waiting for ROM to be loaded in the emulator...")
+        local cbid
+        cbid = callbacks:add("start", function()
+            if not emu or not emu.romSize or emu:romSize() == 0 then
+                console:error("[ERROR] No ROM loaded. HTTP server will not start.")
+                return
+            end
+            start_server()
+            callbacks:remove(cbid)
+        end)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -608,9 +621,6 @@ end)
 
 -- Start server
 -- Start server only after ROM is loaded
-console:log("Starting mGBA HTTP Server... waiting for ROM load...")
-callbacks:add("start", function()
-    app:listen(7102, function(port)
-        console:log("🚀 mGBA HTTP Server started on port " .. port)
-    end)
+app:listen(7102, function(port)
+    console:log("🚀 mGBA HTTP Server started on port " .. port)
 end)
