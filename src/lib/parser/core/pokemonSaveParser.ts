@@ -178,12 +178,39 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
+    console.log(`[buildSectorMap] activeSlotStart: ${this.activeSlotStart}, sectorsPerSlot: ${this.config.offsets.sectorsPerSlot}`)
+    
+    // First scan the active slot
     for (let i = this.activeSlotStart; i < this.activeSlotStart + this.config.offsets.sectorsPerSlot; i++) {
       const info = this.getSectorInfo(i)
+      console.log(`[buildSectorMap] Active slot sector ${i}: id=${info.id}, valid=${info.valid}`)
       if (info.valid) {
         this.sectorMap.set(info.id, i)
+        console.log(`[buildSectorMap] Added mapping: sector ID ${info.id} -> physical index ${i}`)
       }
     }
+    
+    // If we're missing critical sectors (1-4), scan all sectors to find them
+    const criticalSectors = [1, 2, 3, 4]
+    const missingSectors = criticalSectors.filter(id => !this.sectorMap.has(id))
+    
+    if (missingSectors.length > 0) {
+      console.log(`[buildSectorMap] Missing critical sectors: ${missingSectors.join(', ')}, scanning all sectors...`)
+      
+      for (let i = 0; i < this.config.offsets.totalSectors; i++) {
+        if (i >= this.activeSlotStart && i < this.activeSlotStart + this.config.offsets.sectorsPerSlot) {
+          continue // Already scanned this sector
+        }
+        
+        const info = this.getSectorInfo(i)
+        if (info.valid && missingSectors.includes(info.id)) {
+          this.sectorMap.set(info.id, i)
+          console.log(`[buildSectorMap] Found missing sector: ID ${info.id} -> physical index ${i}`)
+        }
+      }
+    }
+    
+    console.log(`[buildSectorMap] Final sector map:`, Array.from(this.sectorMap.entries()))
   }
 
   /**
@@ -212,34 +239,44 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
+    console.log(`[parsePartyPokemon] SaveBlock1 size: ${saveblock1Data.length}, expected: ${this.config.offsets.saveblock1Size}`)
+    console.log(`[parsePartyPokemon] Party start offset: ${this.config.offsets.partyStartOffset}, Pokemon size: ${this.config.offsets.partyPokemonSize}`)
+
     const partyPokemon: PokemonDataInterface[] = []
 
     for (let slot = 0; slot < this.config.offsets.maxPartySize; slot++) {
       const offset = this.config.offsets.partyStartOffset + slot * this.config.offsets.partyPokemonSize
       const data = saveblock1Data.slice(offset, offset + this.config.offsets.partyPokemonSize)
 
+      console.log(`[parsePartyPokemon] Slot ${slot}: offset=${offset}, data.length=${data.length}`)
+
       if (data.length < this.config.offsets.partyPokemonSize) {
+        console.log(`[parsePartyPokemon] Slot ${slot}: Insufficient data length`)
         break
       }
 
       try {
         const pokemon = this.config.createPokemonData(data)
+        console.log(`[parsePartyPokemon] Slot ${slot}: speciesId=${pokemon.speciesId}`)
         // Check if Pokemon slot is empty (species ID = 0)
         if (pokemon.speciesId === 0) {
+          console.log(`[parsePartyPokemon] Slot ${slot}: Empty slot (species ID = 0)`)
           break
         }
         partyPokemon.push(pokemon)
+        console.log(`[parsePartyPokemon] Slot ${slot}: Added Pokemon (total: ${partyPokemon.length})`)
       } catch (error) {
         console.warn(`Failed to parse Pokemon at slot ${slot}:`, error)
         break
       }
     }
 
+    console.log(`[parsePartyPokemon] Final party size: ${partyPokemon.length}`)
     return partyPokemon
   }
 
   /**
-   * Get SaveBlock1 data (sectors 1-4)
+   * Get SaveBlock1 data (sectors 1-4, or equivalent based on available sectors)
    */
   private getSaveBlock1 (): Uint8Array {
     if (!this.saveData || !this.config) {
@@ -249,7 +286,35 @@ export class PokemonSaveParser {
     const saveblock1 = new Uint8Array(this.config.offsets.saveblock1Size)
     let offset = 0
 
-    for (let sectorId = 1; sectorId <= 4; sectorId++) {
+    // Try standard sectors 1-4 first
+    let saveblock1Sectors = [1, 2, 3, 4]
+    let sectorsFound = saveblock1Sectors.filter(id => this.sectorMap.has(id))
+    
+    // If we don't have sectors 1-4, find the first 4 consecutive sectors we do have
+    if (sectorsFound.length < 4) {
+      console.log(`[getSaveBlock1] Standard sectors 1-4 not found, looking for alternatives...`)
+      const availableSectors = Array.from(this.sectorMap.keys()).sort((a, b) => a - b)
+      console.log(`[getSaveBlock1] Available sectors: ${availableSectors.join(', ')}`)
+      
+      // Try to find 4 consecutive sectors
+      for (let i = 0; i <= availableSectors.length - 4; i++) {
+        const consecutive = availableSectors.slice(i, i + 4)
+        const isConsecutive = consecutive.every((val, idx) => idx === 0 || val === consecutive[idx - 1]! + 1)
+        if (isConsecutive) {
+          saveblock1Sectors = consecutive
+          console.log(`[getSaveBlock1] Using consecutive sectors: ${saveblock1Sectors.join(', ')}`)
+          break
+        }
+      }
+      
+      // If no consecutive sectors, just use the first 4
+      if (saveblock1Sectors.length !== 4 || !saveblock1Sectors.every(id => this.sectorMap.has(id))) {
+        saveblock1Sectors = availableSectors.slice(0, 4)
+        console.log(`[getSaveBlock1] Using first 4 available sectors: ${saveblock1Sectors.join(', ')}`)
+      }
+    }
+
+    for (const sectorId of saveblock1Sectors) {
       const sectorIndex = this.sectorMap.get(sectorId)
       if (sectorIndex === undefined) {
         throw new Error(`Sector ${sectorId} not found`)
@@ -303,7 +368,9 @@ export class PokemonSaveParser {
 
     return {
       partyPokemon,
+      party_pokemon: partyPokemon, // For backward compatibility
       playTime,
+      play_time: playTime, // For backward compatibility
     }
   }
 
@@ -312,6 +379,14 @@ export class PokemonSaveParser {
    */
   getGameConfig (): GameConfig | null {
     return this.config
+  }
+
+  /**
+   * Set the game configuration manually
+   * Useful for testing or when auto-detection fails
+   */
+  setGameConfig (config: GameConfig): void {
+    this.config = config
   }
 
   /**

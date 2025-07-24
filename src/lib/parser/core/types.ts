@@ -62,7 +62,9 @@ export interface SectorInfo {
 // Simplified parsed save data interface for current implementation
 export interface ParsedSaveData {
   readonly partyPokemon: readonly PokemonDataInterface[]
-  readonly playTime: PlayTimeData
+  readonly party_pokemon: readonly PokemonDataInterface[] // For backward compatibility
+  readonly playTime: readonly PlayTimeData
+  readonly play_time: readonly PlayTimeData // For backward compatibility
 }
 
 // Complete save data structure
