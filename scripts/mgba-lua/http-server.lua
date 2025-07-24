@@ -87,10 +87,10 @@ local function bin2base64(data)
     while i <= len do
         local c1, c2, c3 = data:byte(i) or 0, data:byte(i+1) or 0, data:byte(i+2) or 0
         local n = c1 * 65536 + c2 * 256 + c3
-        s = s .. b:sub(math.floor(n/262144)%64+1, math.floor(n/262144)%64+1)
-              .. b:sub(math.floor(n/4096)%64+1, math.floor(n/4096)%64+1)
-              .. b:sub(math.floor(n/64)%64+1, math.floor(n/64)%64+1)
-              .. b:sub(n%64+1, n%64+1)
+        local shifts = {18, 12, 6, 0}
+        for j = 1, 4 do
+            s = s .. b:sub(((n >> shifts[j]) & 63) + 1, ((n >> shifts[j]) & 63) + 1)
+        end
         i = i + 3
     end
     local pad = len % 3
@@ -145,11 +145,7 @@ end
 function HttpServer.generateWebSocketAccept(key)
     local magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
     -- Per RFC6455, concatenate the original base64 key (not decoded) with the magic string
-    local concat = key .. magic
-    local sha1hex = sha1(concat)
-    local sha1bin = hex2bin(sha1hex)
-    local accept = bin2base64(sha1bin)
-    return accept
+    return bin2base64(hex2bin(sha1(key .. magic)))
 end
 
 --- Creates WebSocket frame.
@@ -223,16 +219,16 @@ end
 function HttpServer:_cleanup_client(clientId)
     local client = self.clients[clientId]
     if client then
-        self.clients[clientId] = nil
         client:close()
+        self.clients[clientId] = nil
     end
     
     -- Clean up WebSocket if exists
     local ws = self.websockets[clientId]
-    if ws and ws.onClose then
-        ws.onClose()
+    if ws then
+        if ws.onClose then ws.onClose() end
+        self.websockets[clientId] = nil
     end
-    self.websockets[clientId] = nil
 end
 
 
@@ -254,7 +250,6 @@ function HttpServer:_parse_request(request_str)
     for k, v in string.gmatch(header_part, "([%w-]+):%s*([^\r\n]+)") do
         headers[string.lower(k)] = v
     end
-    -- Debug log removed for conciseness
 
     return { method = method, path = path, headers = headers, body = body }
 end
@@ -333,7 +328,6 @@ function HttpServer:_handle_client_data(clientId)
     until data:find("\r\n\r\n") or not chunk
 
     if data == "" then return end
-    -- Debug log removed for conciseness
 
     -- Parse and handle request
     local req = self:_parse_request(data)
@@ -385,10 +379,9 @@ end
 ---@return boolean
 ---@private
 function HttpServer:_is_websocket_request(req)
-    local is_ws = req.headers.upgrade == "websocket" and 
+    return req.headers.upgrade == "websocket" and 
            req.headers.connection and req.headers.connection:lower():find("upgrade") ~= nil and
            req.headers["sec-websocket-key"] ~= nil
-    return is_ws
 end
 
 --- Handles WebSocket upgrade handshake.
@@ -398,12 +391,14 @@ end
 function HttpServer:_handle_websocket_upgrade(clientId, req)
     local client = self.clients[clientId]
     if not client then return end
+    
     local wsKey = req.headers["sec-websocket-key"]
     local accept = HttpServer.generateWebSocketAccept(wsKey)
     local response = "HTTP/1.1 101 Switching Protocols\r\n" ..
                     "Upgrade: websocket\r\n" ..
                     "Connection: Upgrade\r\n" ..
                     "Sec-WebSocket-Accept: " .. accept .. "\r\n\r\n"
+    
     local ok, err = client:send(response)
     if not ok then
         console:log("[ERROR] WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
