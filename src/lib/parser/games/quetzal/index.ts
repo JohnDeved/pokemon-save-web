@@ -1,1 +1,1 @@
-export { QuetzalConfig } from './config.js'
+export { QuetzalConfig } from './config'

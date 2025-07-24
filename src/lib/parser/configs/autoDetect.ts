@@ -3,9 +3,9 @@
  * Based on save file characteristics
  */
 
-import type { GameConfig } from './GameConfig.js'
-import { QuetzalConfig } from '../games/quetzal/index.js'
-import { VanillaConfig } from '../games/vanilla/index.js'
+import type { GameConfig } from './GameConfig'
+import { QuetzalConfig } from '../games/quetzal/index'
+import { VanillaConfig } from '../games/vanilla/index'
 
 /**
  * Available game configurations

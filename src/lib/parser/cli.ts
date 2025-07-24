@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 import fs from 'fs'
 import path from 'path'
-import { PokemonSaveParser } from './core/pokemonSaveParser.js'
-import type { BasePokemonData } from './core/pokemonData.js'
-import type { SaveData } from './core/types.js'
-import { bytesToGbaString, gbaStringToBytes } from './core/utils.js'
+import { PokemonSaveParser } from './core/pokemonSaveParser'
+import type { BasePokemonData } from './core/pokemonData'
+import type { SaveData } from './core/types'
+import { bytesToGbaString, gbaStringToBytes } from './core/utils'
 
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [

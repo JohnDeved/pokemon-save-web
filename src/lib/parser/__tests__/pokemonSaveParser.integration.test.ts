@@ -7,11 +7,11 @@ import { readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { autoDetectGameConfig } from '../configs/autoDetect.js'
-import { PokemonSaveParser } from '../core/pokemonSaveParser.js'
-import { QuetzalConfig } from '../games/quetzal/index.js'
-import type { SaveData } from '../core/types.js'
-import { calculateTotalStats } from '../core/utils.js'
+import { autoDetectGameConfig } from '../configs/autoDetect'
+import { PokemonSaveParser } from '../core/pokemonSaveParser'
+import { QuetzalConfig } from '../games/quetzal/index'
+import type { SaveData } from '../core/types'
+import { calculateTotalStats } from '../core/utils'
 
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)

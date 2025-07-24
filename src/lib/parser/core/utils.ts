@@ -3,7 +3,7 @@
  * Modern utilities for Pokemon data processing
  */
 
-import type { BasePokemonData } from './pokemonData.js'
+import type { BasePokemonData } from './pokemonData'
 import charmapData from '../data/pokemon_charmap.json'
 
 // Convert charmap keys from strings to numbers for faster lookup

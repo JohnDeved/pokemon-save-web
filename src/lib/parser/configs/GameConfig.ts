@@ -4,7 +4,7 @@
  */
 
 // Import types from core module
-import type { BasePokemonData } from '../core/pokemonData.js'
+import type { BasePokemonData } from '../core/pokemonData'
 
 // Simplified mapping interfaces using inheritance
 interface BaseMapping {

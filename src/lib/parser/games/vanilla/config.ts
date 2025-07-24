@@ -4,8 +4,8 @@
  * This is a minimal example implementation
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig.js'
-import { BasePokemonData } from '../../core/pokemonData.js'
+import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig'
+import { BasePokemonData } from '../../core/pokemonData'
 
 /**
  * Vanilla Pokemon Emerald data implementation

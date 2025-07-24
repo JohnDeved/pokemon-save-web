@@ -1,1 +1,1 @@
-export { VanillaConfig } from './config.js'
+export { VanillaConfig } from './config'

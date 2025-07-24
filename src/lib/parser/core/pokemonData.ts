@@ -3,11 +3,11 @@
  * This addresses the issue where PokemonData was hardcoded for Quetzal-specific logic
  */
 
-import type { GameConfig } from '../configs/GameConfig.js'
-import type { MoveData, PokemonMoves } from './types.js'
-import { createMoveData, createPokemonMoves } from './types.js'
-import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils.js'
-import { SafeDataView } from './safeDataView.js'
+import type { GameConfig } from '../configs/GameConfig'
+import type { MoveData, PokemonMoves } from './types'
+import { createMoveData, createPokemonMoves } from './types'
+import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils'
+import { SafeDataView } from './safeDataView'
 
 /**
  * Base Pokemon data class with common functionality

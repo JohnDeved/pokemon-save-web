@@ -3,7 +3,7 @@
  * Port of poke_types.py with modern TypeScript features
  */
 
-import type { BasePokemonData } from './pokemonData.js'
+import type { BasePokemonData } from './pokemonData'
 
 // Core data structures
 export interface PlayTimeData {

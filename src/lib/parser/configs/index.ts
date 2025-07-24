@@ -1,2 +1,2 @@
-export type { GameConfig } from './GameConfig.js'
-export { autoDetectGameConfig } from './autoDetect.js'
+export type { GameConfig } from './GameConfig'
+export { autoDetectGameConfig } from './autoDetect'

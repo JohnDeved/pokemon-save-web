@@ -7,12 +7,12 @@ import type {
   PlayTimeData,
   SaveData,
   SectorInfo,
-} from './types.js'
+} from './types'
 
-import type { GameConfig } from '../configs/GameConfig.js'
-import type { BasePokemonData } from './pokemonData.js'
-import { autoDetectGameConfig } from '../configs/autoDetect.js'
-import { SafeDataView } from './safeDataView.js'
+import type { GameConfig } from '../configs/GameConfig'
+import type { BasePokemonData } from './pokemonData'
+import { autoDetectGameConfig } from '../configs/autoDetect'
+import { SafeDataView } from './safeDataView'
 
 // Import character map for decoding text
 import charMap from '../data/pokemon_charmap.json'
