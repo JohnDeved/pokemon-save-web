@@ -3,7 +3,7 @@
  * Contains all Quetzal-specific offsets, mappings, and parsing logic
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig'
+import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
 import { BasePokemonData } from '../../core/pokemonData'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
@@ -14,8 +14,8 @@ import pokemonMapData from './data/pokemon_map.json'
  * Handles Quetzal's unencrypted IVs and custom shiny system
  */
 class QuetzalPokemonData extends BasePokemonData {
-  get ivData () { return this.view.getUint32(this.config.offsets.pokemonData.ivData) }
-  set ivData (value) { this.view.setUint32(this.config.offsets.pokemonData.ivData, value) }
+  get ivData () { return this.view.getUint32(this.config.offsets.pokemonData.ivData, true) }
+  set ivData (value) { this.view.setUint32(this.config.offsets.pokemonData.ivData, value, true) }
 
   get ivs (): readonly number[] {
     // Quetzal uses unencrypted IV data

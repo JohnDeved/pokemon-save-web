@@ -9,12 +9,12 @@ export type * from './core/types'
 export * from './core/utils'
 
 // Configuration system
-export type { GameConfig } from './configs/GameConfig'
-export { autoDetectGameConfig } from './configs/autoDetect'
+export type { GameConfig } from './core/types'
+export { autoDetectGameConfig } from './core/autoDetect'
 
 // Game-specific configurations
-export { QuetzalConfig } from './games/quetzal/index'
-export { VanillaConfig } from './games/vanilla/index'
+export { QuetzalConfig } from './games/quetzal/config'
+export { VanillaConfig } from './games/vanilla/config'
 
 // Base Pokemon data class (for extending with new games)
 export { BasePokemonData } from './core/pokemonData'

@@ -3,18 +3,8 @@
  * Based on save file characteristics
  */
 
-import type { GameConfig } from './GameConfig'
-import { QuetzalConfig } from '../games/quetzal/index'
-import { VanillaConfig } from '../games/vanilla/index'
-
-/**
- * Available game configurations
- * Order matters - specific ROM hacks should come before vanilla
- */
-const AVAILABLE_CONFIGS: ReadonlyArray<() => GameConfig> = [
-  () => new QuetzalConfig(),
-  () => new VanillaConfig(),
-] as const
+import type { GameConfig } from '../core/types'
+import { AVAILABLE_CONFIGS } from '../games/registry'
 
 /**
  * Automatically detect the appropriate GameConfig for a save file

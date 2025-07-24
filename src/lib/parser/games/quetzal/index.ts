@@ -1,1 +1,0 @@
-export { QuetzalConfig } from './config'

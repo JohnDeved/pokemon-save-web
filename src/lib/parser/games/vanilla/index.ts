@@ -1,1 +1,0 @@
-export { VanillaConfig } from './config'

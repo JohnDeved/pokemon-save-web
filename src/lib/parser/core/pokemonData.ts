@@ -3,11 +3,10 @@
  * This addresses the issue where PokemonData was hardcoded for Quetzal-specific logic
  */
 
-import type { GameConfig } from '../configs/GameConfig'
+import type { GameConfig } from '../core/types'
 import type { MoveData, PokemonMoves } from './types'
 import { createMoveData, createPokemonMoves } from './types'
 import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils'
-import { SafeDataView } from './safeDataView'
 
 /**
  * Base Pokemon data class with common functionality
@@ -15,31 +14,41 @@ import { SafeDataView } from './safeDataView'
  * All offsets are now driven by the injected GameConfig
  */
 export abstract class BasePokemonData {
-  protected readonly view: SafeDataView
+  protected readonly view: DataView
   protected readonly config: GameConfig
 
   constructor (protected readonly data: Uint8Array, config: GameConfig) {
     if (data.length < config.offsets.partyPokemonSize) {
       throw new Error(`Insufficient data for Pokemon: ${data.length} bytes`)
     }
-    this.view = new SafeDataView(data.buffer, data.byteOffset, data.byteLength)
+    this.view = new DataView(data.buffer, data.byteOffset, data.byteLength)
     this.config = config
   }
 
   // Basic properties using config-driven offsets
-  get personality () { return this.view.getUint32(this.config.offsets.pokemonData.personality) }
-  get otId () { return this.view.getUint32(this.config.offsets.pokemonData.otId) }
-  private get nicknameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.nickname, this.config.offsets.pokemonNicknameLength) }
-  private get otNameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.otName, this.config.offsets.pokemonTrainerNameLength) }
-  get currentHp () { return this.view.getUint16(this.config.offsets.pokemonData.currentHp) }
-  get speciesId () { return this.mapSpeciesToPokeId(this.view.getUint16(this.config.offsets.pokemonData.species)) }
-  get nameId () { return this.mapSpeciesToNameId(this.view.getUint16(this.config.offsets.pokemonData.species)) }
-  get item () { return this.mapItemToPokeId(this.view.getUint16(this.config.offsets.pokemonData.item)) }
-  get itemIdName () { return this.mapItemToNameId(this.view.getUint16(this.config.offsets.pokemonData.item)) }
-  get move1 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move1)) }
-  get move2 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move2)) }
-  get move3 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move3)) }
-  get move4 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move4)) }
+  get personality () { return this.view.getUint32(this.config.offsets.pokemonData.personality, true) }
+  get otId () { return this.view.getUint32(this.config.offsets.pokemonData.otId, true) }
+  private get nicknameRaw () {
+    const offset = this.config.offsets.pokemonData.nickname
+    const length = this.config.offsets.pokemonNicknameLength
+    return new Uint8Array(this.view.buffer, this.view.byteOffset + offset, length)
+  }
+
+  private get otNameRaw () {
+    const offset = this.config.offsets.pokemonData.otName
+    const length = this.config.offsets.pokemonTrainerNameLength
+    return new Uint8Array(this.view.buffer, this.view.byteOffset + offset, length)
+  }
+
+  get currentHp () { return this.view.getUint16(this.config.offsets.pokemonData.currentHp, true) }
+  get speciesId () { return this.mapSpeciesToPokeId(this.view.getUint16(this.config.offsets.pokemonData.species, true)) }
+  get nameId () { return this.mapSpeciesToNameId(this.view.getUint16(this.config.offsets.pokemonData.species, true)) }
+  get item () { return this.mapItemToPokeId(this.view.getUint16(this.config.offsets.pokemonData.item, true)) }
+  get itemIdName () { return this.mapItemToNameId(this.view.getUint16(this.config.offsets.pokemonData.item, true)) }
+  get move1 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move1, true)) }
+  get move2 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move2, true)) }
+  get move3 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move3, true)) }
+  get move4 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move4, true)) }
   get pp1 () { return this.view.getUint8(this.config.offsets.pokemonData.pp1) }
   get pp2 () { return this.view.getUint8(this.config.offsets.pokemonData.pp2) }
   get pp3 () { return this.view.getUint8(this.config.offsets.pokemonData.pp3) }
@@ -58,18 +67,18 @@ export abstract class BasePokemonData {
   set spdEV (value) { this.view.setUint8(this.config.offsets.pokemonData.spdEV, value) }
   get status () { return this.view.getUint8(this.config.offsets.pokemonData.status) }
   get level () { return this.view.getUint8(this.config.offsets.pokemonData.level) }
-  get maxHp () { return this.view.getUint16(this.config.offsets.pokemonData.maxHp) }
-  set maxHp (value) { this.view.setUint16(this.config.offsets.pokemonData.maxHp, value) }
-  get attack () { return this.view.getUint16(this.config.offsets.pokemonData.attack) }
-  set attack (value) { this.view.setUint16(this.config.offsets.pokemonData.attack, value) }
-  get defense () { return this.view.getUint16(this.config.offsets.pokemonData.defense) }
-  set defense (value) { this.view.setUint16(this.config.offsets.pokemonData.defense, value) }
-  get speed () { return this.view.getUint16(this.config.offsets.pokemonData.speed) }
-  set speed (value) { this.view.setUint16(this.config.offsets.pokemonData.speed, value) }
-  get spAttack () { return this.view.getUint16(this.config.offsets.pokemonData.spAttack) }
-  set spAttack (value) { this.view.setUint16(this.config.offsets.pokemonData.spAttack, value) }
-  get spDefense () { return this.view.getUint16(this.config.offsets.pokemonData.spDefense) }
-  set spDefense (value) { this.view.setUint16(this.config.offsets.pokemonData.spDefense, value) }
+  get maxHp () { return this.view.getUint16(this.config.offsets.pokemonData.maxHp, true) }
+  set maxHp (value) { this.view.setUint16(this.config.offsets.pokemonData.maxHp, value, true) }
+  get attack () { return this.view.getUint16(this.config.offsets.pokemonData.attack, true) }
+  set attack (value) { this.view.setUint16(this.config.offsets.pokemonData.attack, value, true) }
+  get defense () { return this.view.getUint16(this.config.offsets.pokemonData.defense, true) }
+  set defense (value) { this.view.setUint16(this.config.offsets.pokemonData.defense, value, true) }
+  get speed () { return this.view.getUint16(this.config.offsets.pokemonData.speed, true) }
+  set speed (value) { this.view.setUint16(this.config.offsets.pokemonData.speed, value, true) }
+  get spAttack () { return this.view.getUint16(this.config.offsets.pokemonData.spAttack, true) }
+  set spAttack (value) { this.view.setUint16(this.config.offsets.pokemonData.spAttack, value, true) }
+  get spDefense () { return this.view.getUint16(this.config.offsets.pokemonData.spDefense, true) }
+  set spDefense (value) { this.view.setUint16(this.config.offsets.pokemonData.spDefense, value, true) }
   get rawBytes () { return new Uint8Array(this.data) }
 
   // Mapping functions that use the injected config

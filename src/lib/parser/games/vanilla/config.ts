@@ -4,7 +4,7 @@
  * This is a minimal example implementation
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig'
+import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
 import { BasePokemonData } from '../../core/pokemonData'
 
 /**
@@ -19,7 +19,7 @@ class VanillaPokemonData extends BasePokemonData {
 
   get ivs (): readonly number[] {
     // Vanilla Pokemon Emerald uses encrypted IV data
-    const encrypted = this.view.getUint32(this.config.offsets.pokemonData.ivData)
+    const encrypted = this.view.getUint32(this.config.offsets.pokemonData.ivData, true)
     const decrypted = encrypted ^ this.encryptionKey
     return Array.from({ length: 6 }, (_, i) => (decrypted >>> (i * 5)) & 0x1F)
   }
@@ -32,7 +32,7 @@ class VanillaPokemonData extends BasePokemonData {
     }
     // Encrypt the data before storing
     const encrypted = packed ^ this.encryptionKey
-    this.view.setUint32(this.config.offsets.pokemonData.ivData, encrypted)
+    this.view.setUint32(this.config.offsets.pokemonData.ivData, encrypted, true)
   }
 
   get shinyNumber (): number {

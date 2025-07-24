@@ -69,6 +69,126 @@ export interface SaveData {
   readonly rawSaveData: Uint8Array // Add raw save data for rehydration
 }
 
+// GameConfig interfaces for dependency injection
+
+// Simplified mapping interfaces using inheritance
+interface BaseMapping {
+  readonly name: string
+  readonly id_name: string
+}
+
+export interface PokemonMapping extends BaseMapping {
+  readonly id: number
+}
+
+export interface ItemMapping extends BaseMapping {
+  readonly id: number | null // Allow null for unmapped items
+}
+
+export interface MoveMapping extends BaseMapping {
+  readonly id: number | null // Allow null for unmapped moves
+}
+
+// Modern offset structure with logical groupings
+interface GameOffsets {
+  // Save file structure
+  readonly sectorSize: number
+  readonly sectorDataSize: number
+  readonly sectorFooterSize: number
+  readonly saveblock1Size: number
+  readonly sectorsPerSlot: number
+  readonly totalSectors: number
+
+  // Party configuration
+  readonly partyStartOffset: number
+  readonly partyPokemonSize: number
+  readonly maxPartySize: number
+
+  // String lengths
+  readonly pokemonNicknameLength: number
+  readonly pokemonTrainerNameLength: number
+
+  // Play time offsets
+  readonly playTimeHours: number
+  readonly playTimeMinutes: number
+  readonly playTimeSeconds: number
+
+  // Pokemon data field offsets
+  readonly pokemonData: {
+    // Core identification
+    readonly personality: number
+    readonly otId: number
+    readonly species: number
+    readonly nickname: number
+    readonly otName: number
+
+    // Stats and battle data
+    readonly currentHp: number
+    readonly maxHp: number
+    readonly attack: number
+    readonly defense: number
+    readonly speed: number
+    readonly spAttack: number
+    readonly spDefense: number
+    readonly status: number
+    readonly level: number
+    readonly item: number
+
+    // Moves and PP
+    readonly move1: number
+    readonly move2: number
+    readonly move3: number
+    readonly move4: number
+    readonly pp1: number
+    readonly pp2: number
+    readonly pp3: number
+    readonly pp4: number
+
+    // Training data
+    readonly hpEV: number
+    readonly atkEV: number
+    readonly defEV: number
+    readonly speEV: number
+    readonly spaEV: number
+    readonly spdEV: number
+    readonly ivData: number
+  }
+}
+
+// Simplified mappings interface
+interface GameMappings {
+  readonly pokemon: ReadonlyMap<number, PokemonMapping>
+  readonly items: ReadonlyMap<number, ItemMapping>
+  readonly moves: ReadonlyMap<number, MoveMapping>
+}
+
+/**
+ * Modern GameConfig interface with improved type safety and organization
+ * Provides game-specific configurations through dependency injection
+ */
+export interface GameConfig {
+  /** Human-readable name of the Pokemon game/ROM hack */
+  readonly name: string
+
+  /** Unique signature for game detection */
+  readonly signature: number
+
+  /** Memory offsets for save file parsing */
+  readonly offsets: GameOffsets
+
+  /** ID mappings for Pokemon, items, and moves */
+  readonly mappings: GameMappings
+
+  /** Determine which save slot is currently active */
+  determineActiveSlot(getCounterSum: (range: number[]) => number): number
+
+  /** Check if this config can handle the given save data */
+  canHandle(saveData: Uint8Array): boolean
+
+  /** Create game-specific Pokemon data instance */
+  createPokemonData(data: Uint8Array): BasePokemonData
+}
+
 // Legacy constants for backward compatibility
 // These are now provided via GameConfig dependency injection
 export const CONSTANTS = {
@@ -98,40 +218,3 @@ export const createPokemonMoves = (
   move3: createMoveData(move3_id, pp3),
   move4: createMoveData(move4_id, pp4),
 })
-
-export const createPokemonEVs = (
-  hp: number, attack: number, defense: number,
-  speed: number, sp_attack: number, sp_defense: number,
-): PokemonEVs => ({ hp, attack, defense, speed, sp_attack, sp_defense })
-
-export const createPokemonIVs = (
-  hp: number, attack: number, defense: number,
-  speed: number, sp_attack: number, sp_defense: number,
-): PokemonIVs => ({ hp, attack, defense, speed, sp_attack, sp_defense })
-
-export const createPokemonStats = (
-  hp: number, attack: number, defense: number,
-  speed: number, sp_attack: number, sp_defense: number,
-): PokemonStats => ({ hp, attack, defense, speed, sp_attack, sp_defense })
-
-// Utility functions for working with structured data
-export const pokemonEVsToArray = (evs: PokemonEVs): readonly number[] =>
-  [evs.hp, evs.attack, evs.defense, evs.speed, evs.sp_attack, evs.sp_defense]
-
-export const pokemonIVsToArray = (ivs: PokemonIVs): readonly number[] =>
-  [ivs.hp, ivs.attack, ivs.defense, ivs.speed, ivs.sp_attack, ivs.sp_defense]
-
-export const pokemonStatsToArray = (stats: PokemonStats): readonly number[] =>
-  [stats.hp, stats.attack, stats.defense, stats.speed, stats.sp_attack, stats.sp_defense]
-
-export const getTotalEVs = (evs: PokemonEVs): number =>
-  evs.hp + evs.attack + evs.defense + evs.speed + evs.sp_attack + evs.sp_defense
-
-export const getTotalIVs = (ivs: PokemonIVs): number =>
-  ivs.hp + ivs.attack + ivs.defense + ivs.speed + ivs.sp_attack + ivs.sp_defense
-
-export const getMoveIds = (moves: PokemonMoves): readonly number[] =>
-  [moves.move1.id, moves.move2.id, moves.move3.id, moves.move4.id]
-
-export const getPPValues = (moves: PokemonMoves): readonly number[] =>
-  [moves.move1.pp, moves.move2.pp, moves.move3.pp, moves.move4.pp]

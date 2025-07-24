@@ -9,10 +9,9 @@ import type {
   SectorInfo,
 } from './types'
 
-import type { GameConfig } from '../configs/GameConfig'
+import type { GameConfig } from '../core/types'
 import type { BasePokemonData } from './pokemonData'
-import { autoDetectGameConfig } from '../configs/autoDetect'
-import { SafeDataView } from './safeDataView'
+import { autoDetectGameConfig } from './autoDetect'
 
 // Import character map for decoding text
 import charMap from '../data/pokemon_charmap.json'
@@ -123,16 +122,16 @@ export class PokemonSaveParser {
     }
 
     try {
-      const view = new SafeDataView(
+      const view = new DataView(
         this.saveData.buffer,
         this.saveData.byteOffset + footerOffset,
         this.config.offsets.sectorFooterSize,
       )
 
-      const sectorId = view.getUint16(0)
-      const checksum = view.getUint16(2)
-      const signature = view.getUint32(4)
-      const counter = view.getUint32(8)
+      const sectorId = view.getUint16(0, true)
+      const checksum = view.getUint16(2, true)
+      const signature = view.getUint32(4, true)
+      const counter = view.getUint32(8, true)
 
       if (signature !== this.config.signature) {
         return { id: sectorId, checksum, counter, valid: false }
@@ -298,10 +297,10 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    const view = new SafeDataView(saveblock2Data.buffer, saveblock2Data.byteOffset)
+    const view = new DataView(saveblock2Data.buffer, saveblock2Data.byteOffset)
 
     return {
-      hours: view.getUint32(this.config.offsets.playTimeHours), // playTimeHours offset
+      hours: view.getUint32(this.config.offsets.playTimeHours, true), // playTimeHours offset
       minutes: view.getUint8(this.config.offsets.playTimeMinutes), // playTimeMinutes offset
       seconds: view.getUint8(this.config.offsets.playTimeSeconds), // playTimeSeconds offset
     }
@@ -320,12 +319,12 @@ export class PokemonSaveParser {
     }
 
     let checksum = 0
-    const view = new SafeDataView(sectorData.buffer, sectorData.byteOffset)
+    const view = new DataView(sectorData.buffer, sectorData.byteOffset)
 
     for (let i = 0; i < this.config.offsets.sectorDataSize; i += 4) {
       if (i + 4 <= sectorData.length) {
         try {
-          const value = view.getUint32(i)
+          const value = view.getUint32(i, true)
           checksum += value
         } catch {
           break
@@ -423,8 +422,8 @@ export class PokemonSaveParser {
       // Recalculate checksum for this sector
       const checksum = this.calculateSectorChecksum(data)
       const footerOffset = startOffset + this.config!.offsets.sectorSize - this.config!.offsets.sectorFooterSize
-      const view = new SafeDataView(newSave.buffer, newSave.byteOffset + footerOffset, this.config!.offsets.sectorFooterSize)
-      view.setUint16(2, checksum)
+      const view = new DataView(newSave.buffer, newSave.byteOffset + footerOffset, this.config!.offsets.sectorFooterSize)
+      view.setUint16(2, checksum, true)
     }
 
     // Write SaveBlock1 (sectors 1-4)

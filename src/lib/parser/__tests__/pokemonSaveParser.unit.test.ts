@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { PokemonSaveParser } from '../core/pokemonSaveParser'
-import { QuetzalConfig } from '../games/quetzal/index'
+import { QuetzalConfig } from '../games/quetzal/config'
 import { CONSTANTS } from '../core/types'
 import { bytesToGbaString } from '../core/utils'
 
