@@ -1,50 +1,21 @@
 /**
  * Integration utilities for Pokemon Save Parser
- * Converts parsed save data to formats expected by the existing app
+ * Modern utilities for Pokemon data processing
  */
 
 import charmapData from '../data/pokemon_charmap.json'
-import type { PokemonDataInterface } from '../configs/GameConfig.js'
-
-// Legacy exports for backward compatibility - these functions now require GameConfig to be passed
-// For new code, use the mapping functions directly from PokemonDataInterface class
-
-// make the mappings more type-safe by using string keys
-
-// Legacy functions - deprecated, use GameConfig mappings instead
-export function mapSpeciesToPokeId (speciesId: number): number {
-  console.warn('mapSpeciesToPokeId is deprecated. Use GameConfig mappings directly.')
-  return speciesId
-}
-
-export function mapSpeciesToNameId (_speciesId: number): string | undefined {
-  console.warn('mapSpeciesToNameId is deprecated. Use GameConfig mappings directly.')
-  return undefined
-}
-
-export function mapMoveToPokeId (moveId: number): number {
-  console.warn('mapMoveToPokeId is deprecated. Use GameConfig mappings directly.')
-  return moveId
-}
-
-export function mapItemToPokeId (itemId: number): number {
-  console.warn('mapItemToPokeId is deprecated. Use GameConfig mappings directly.')
-  return itemId
-}
-
-export function mapItemToNameId (_itemId: number): string | undefined {
-  console.warn('mapItemToNameId is deprecated. Use GameConfig mappings directly.')
-  return undefined
-}
-
-export function getItemSpriteUrl (itemIdName: string): string {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${itemIdName}.png`
-}
 
 // Convert charmap keys from strings to numbers for faster lookup
 const charmap: Record<number, string> = {}
 for (const [key, value] of Object.entries(charmapData)) {
   charmap[parseInt(key, 10)] = value
+}
+
+/**
+ * Get sprite URL for a Pokemon item
+ */
+export function getItemSpriteUrl (itemIdName: string): string {
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${itemIdName}.png`
 }
 
 /**
@@ -202,10 +173,21 @@ export function getNatureModifier (nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats (pokemon: PokemonDataInterface, baseStats: number[]): number[] {
-  const { level, ivs, evs, nature } = pokemon
-  // Cast readonly arrays to mutable arrays for compatibility
-  return calculateTotalStatsDirect(baseStats, ivs, evs, level, nature)
+export function calculateTotalStats (pokemon: PokemonDataInterface, baseStats: readonly number[]): readonly number[] {
+  // Extract properties with type guards for safety
+  const level = Number(pokemon.level)
+  const nature = String(pokemon.nature)
+
+  // Type-safe array conversion
+  const ivs: number[] = []
+  const evs: number[] = []
+
+  for (let i = 0; i < 6; i++) {
+    ivs.push(Number(pokemon.ivs[i] ?? 0))
+    evs.push(Number(pokemon.evs[i] ?? 0))
+  }
+
+  return calculateTotalStatsDirect([...baseStats], ivs, evs, level, nature)
 }
 
 /**
@@ -255,7 +237,7 @@ export function calculateTotalStatsDirect (
  */
 export function updatePartyInSaveblock1 (
   saveblock1: Uint8Array,
-  party: PokemonDataInterface[],
+  party: readonly PokemonDataInterface[],
   partyStartOffset: number,
   partyPokemonSize: number,
   saveblock1Size: number,
@@ -270,7 +252,14 @@ export function updatePartyInSaveblock1 (
   const updated = new Uint8Array(saveblock1)
   for (let i = 0; i < party.length; i++) {
     const offset = partyStartOffset + i * partyPokemonSize
-    updated.set(party[i]!.rawBytes, offset)
+    const pokemon = party[i]
+    if (pokemon?.rawBytes) {
+      // Type-safe conversion to Uint8Array
+      const rawBytes = pokemon.rawBytes
+      if (rawBytes instanceof Uint8Array) {
+        updated.set(rawBytes, offset)
+      }
+    }
   }
   return updated
 }

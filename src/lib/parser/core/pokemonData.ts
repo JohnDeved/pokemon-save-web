@@ -7,66 +7,7 @@ import type { PokemonDataInterface, GameConfig } from '../configs/GameConfig.js'
 import type { MoveData, PokemonMoves } from './types.js'
 import { createMoveData, createPokemonMoves } from './types.js'
 import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils.js'
-
-/**
- * DataView wrapper for little-endian operations with bounds checking
- */
-class SafeDataView {
-  private readonly view: DataView
-
-  constructor (buffer: ArrayBuffer, byteOffset = 0, byteLength?: number) {
-    this.view = new DataView(buffer, byteOffset, byteLength)
-  }
-
-  getUint8 (byteOffset: number): number {
-    if (byteOffset >= this.view.byteLength) {
-      throw new RangeError(`Offset ${byteOffset} out of bounds`)
-    }
-    return this.view.getUint8(byteOffset)
-  }
-
-  getUint16 (byteOffset: number, littleEndian = true): number {
-    if (byteOffset + 1 >= this.view.byteLength) {
-      throw new RangeError(`Offset ${byteOffset} out of bounds`)
-    }
-    return this.view.getUint16(byteOffset, littleEndian)
-  }
-
-  getUint32 (byteOffset: number, littleEndian = true): number {
-    if (byteOffset + 3 >= this.view.byteLength) {
-      throw new RangeError(`Offset ${byteOffset} out of bounds`)
-    }
-    return this.view.getUint32(byteOffset, littleEndian)
-  }
-
-  setUint8 (byteOffset: number, value: number): void {
-    if (byteOffset >= this.view.byteLength) {
-      throw new RangeError(`Offset ${byteOffset} out of bounds`)
-    }
-    this.view.setUint8(byteOffset, value)
-  }
-
-  setUint16 (byteOffset: number, value: number, littleEndian = true): void {
-    if (byteOffset + 1 >= this.view.byteLength) {
-      throw new RangeError(`Offset ${byteOffset} out of bounds`)
-    }
-    this.view.setUint16(byteOffset, value, littleEndian)
-  }
-
-  setUint32 (byteOffset: number, value: number, littleEndian = true): void {
-    if (byteOffset + 3 >= this.view.byteLength) {
-      throw new RangeError(`Offset ${byteOffset} out of bounds`)
-    }
-    this.view.setUint32(byteOffset, value, littleEndian)
-  }
-
-  getBytes (byteOffset: number, length: number): Uint8Array {
-    if (byteOffset + length > this.view.byteLength) {
-      throw new RangeError(`Range ${byteOffset}-${byteOffset + length} out of bounds`)
-    }
-    return new Uint8Array(this.view.buffer, this.view.byteOffset + byteOffset, length)
-  }
-}
+import { SafeDataView } from './safeDataView.js'
 
 /**
  * Base Pokemon data class with common functionality
@@ -88,8 +29,8 @@ export abstract class BasePokemonData implements PokemonDataInterface {
   // Basic properties using config-driven offsets
   get personality () { return this.view.getUint32(this.config.offsets.pokemonData.personality) }
   get otId () { return this.view.getUint32(this.config.offsets.pokemonData.otId) }
-  get nicknameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.nickname, this.config.offsets.pokemonNicknameLength) }
-  get otNameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.otName, this.config.offsets.pokemonTrainerNameLength) }
+  private get nicknameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.nickname, this.config.offsets.pokemonNicknameLength) }
+  private get otNameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.otName, this.config.offsets.pokemonTrainerNameLength) }
   get currentHp () { return this.view.getUint16(this.config.offsets.pokemonData.currentHp) }
   get speciesId () { return this.mapSpeciesToPokeId(this.view.getUint16(this.config.offsets.pokemonData.species)) }
   get nameId () { return this.mapSpeciesToNameId(this.view.getUint16(this.config.offsets.pokemonData.species)) }

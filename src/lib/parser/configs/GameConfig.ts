@@ -27,43 +27,25 @@ export interface MoveMapping {
 
 // Forward declaration for PokemonDataInterface
 export interface PokemonDataInterface {
-  // Basic properties
+  // Core identification
   readonly personality: number
   readonly otId: number
-  readonly nicknameRaw: Uint8Array
-  readonly otNameRaw: Uint8Array
-  readonly currentHp: number
+  readonly otId_str: string
   readonly speciesId: number
   readonly nameId: string | undefined
-  readonly item: number
-  readonly itemIdName: string | undefined
   readonly level: number
+  readonly nickname: string
+  readonly otName: string
   readonly rawBytes: Uint8Array
 
-  // Stats
+  // Health and status
+  readonly currentHp: number
   readonly maxHp: number
-  readonly attack: number
-  readonly defense: number
-  readonly speed: number
-  readonly spAttack: number
-  readonly spDefense: number
-  readonly stats: readonly number[]
+  readonly status: number
 
-  // EVs and IVs
-  readonly evs: readonly number[]
-  readonly ivs: readonly number[]
-  readonly totalEVs: number
-  readonly totalIVs: number
-
-  // Moves - both individual and grouped access
-  readonly move1: number
-  readonly move2: number
-  readonly move3: number
-  readonly move4: number
-  readonly pp1: number
-  readonly pp2: number
-  readonly pp3: number
-  readonly pp4: number
+  // Items and moves
+  readonly item: number
+  readonly itemIdName: string | undefined
   readonly moveIds: readonly number[]
   readonly ppValues: readonly number[]
   readonly moves: {
@@ -74,7 +56,31 @@ export interface PokemonDataInterface {
   }
   readonly moves_data: PokemonMoves
 
-  // Individual EV access
+  // Individual move access (for compatibility)
+  readonly move1: number
+  readonly move2: number
+  readonly move3: number
+  readonly move4: number
+  readonly pp1: number
+  readonly pp2: number
+  readonly pp3: number
+  readonly pp4: number
+
+  // Combat stats
+  readonly stats: readonly number[]
+  readonly attack: number
+  readonly defense: number
+  readonly speed: number
+  readonly spAttack: number
+  readonly spDefense: number
+
+  // Training values
+  readonly evs: readonly number[]
+  readonly ivs: readonly number[]
+  readonly totalEVs: number
+  readonly totalIVs: number
+
+  // Individual EV access (for compatibility)
   readonly hpEV: number
   readonly atkEV: number
   readonly defEV: number
@@ -82,7 +88,7 @@ export interface PokemonDataInterface {
   readonly spaEV: number
   readonly spdEV: number
 
-  // Nature and abilities
+  // Nature and characteristics
   readonly nature: string
   readonly natureRaw: number
   readonly natureModifiers: { increased: number, decreased: number }
@@ -90,17 +96,12 @@ export interface PokemonDataInterface {
   readonly natureModifiersArray: readonly number[]
   readonly abilityNumber: number
 
-  // Shiny status (game-specific implementations)
+  // Special properties (game-specific)
   readonly isShiny: boolean
   readonly shinyNumber: number
-  readonly isRadiant: boolean // Available in all games, but only meaningful in some like Quetzal
+  readonly isRadiant: boolean // Meaningful only in games like Quetzal
 
-  // Computed properties
-  readonly otId_str: string
-  readonly nickname: string
-  readonly otName: string
-
-  // Setters
+  // Mutation methods
   setStats(values: readonly number[]): void
   setEvs(values: readonly number[]): void
   setIvs(values: readonly number[]): void
