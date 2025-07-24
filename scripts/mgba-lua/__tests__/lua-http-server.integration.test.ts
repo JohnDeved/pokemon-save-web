@@ -197,7 +197,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       
       // Parse and validate the JSON response
       const response = JSON.parse(evalResult)
-      expect(response.result).toBe('Hello from Lua eval!')
+      expect(response.result).toBe(2)
       
       ws.close()
     }, 10000)

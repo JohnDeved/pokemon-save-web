@@ -14,13 +14,13 @@ local test_port = tonumber(arg[1]) or 7102
 -- Simple mGBA API Mocks
 --------------------------------------------------------------------------------
 
--- Mock console API - simplified version
+-- Mock console API
 _G.console = {
     log = function(self, msg) print("[CONSOLE] " .. tostring(msg)); io.flush() end,
     error = function(self, msg) print("[ERROR] " .. tostring(msg)); io.flush() end
 }
 
--- Mock socket API with embedded state
+-- Mock socket API with better WebSocket support
 _G.socket = {
     ERRORS = {
         AGAIN = "again",
@@ -42,7 +42,6 @@ _G.socket = {
             return nil, err:find("already in use") and _G.socket.ERRORS.ADDRESS_IN_USE or err
         end
         
-        -- Create simplified mock server
         local mock_server = {
             _socket = server, _callbacks = {},
             
@@ -88,19 +87,18 @@ local ok, exec_err = pcall(chunk)
 if not ok then print("ERROR: Failed to execute: " .. tostring(exec_err)); os.exit(1) end
 print("HTTP server loaded successfully")
 
--- Simple event loop that uses lua socket callbacks directly
+-- Connection handling function
 local function handle_connection()
     if _G.socket._server and _G.socket._server._socket then
         local client = _G.socket._server._socket:accept()
         if client then
-            -- Read HTTP request data synchronously
+            -- Read HTTP request data
             client:settimeout(2.0)
             local request_data = ""
             repeat
                 local chunk = client:receive(1)
                 if chunk then
                     request_data = request_data .. chunk
-                    -- Check if we have complete HTTP headers
                     if request_data:find("\r\n\r\n") then
                         local content_length = request_data:match("content%-length:%s*(%d+)")
                         if content_length then
@@ -115,7 +113,6 @@ local function handle_connection()
             until not chunk or #request_data > 4096
             
             if #request_data > 0 then
-                -- Wrap client with mgba-style API
                 local mock_client = {
                     _socket = client, _callbacks = {}, _buffer = request_data, _is_websocket = false,
                     add = function(self, event, callback) 
@@ -147,17 +144,17 @@ local function handle_connection()
     end
 end
 
--- Event loop that properly waits for connections
+-- Event loop
 local loop_count = 0
 while _G.socket._running and loop_count < 10000 do
     loop_count = loop_count + 1
     handle_connection()
     
-    -- Handle ongoing WebSocket data for existing connections
+    -- Handle WebSocket data for connected clients
     for i = #_G.socket._clients, 1, -1 do
         local mock_client = _G.socket._clients[i]
         if mock_client._is_websocket then
-            mock_client._socket:settimeout(0)  -- Non-blocking
+            mock_client._socket:settimeout(0)
             local data, err = mock_client._socket:receive(1024)
             if data then
                 mock_client._buffer = data
