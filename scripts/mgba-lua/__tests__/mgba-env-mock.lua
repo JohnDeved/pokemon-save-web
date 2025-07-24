@@ -15,15 +15,67 @@ local test_port = tonumber(arg[1]) or 7102
 -- Mock mGBA APIs
 --------------------------------------------------------------------------------
 
+-- Helper function to convert Lua tables to string (like JSON.stringify)
+local function table_to_string(t, depth)
+    depth = depth or 0
+    if depth > 3 then return "..." end -- Prevent infinite recursion
+    
+    if type(t) ~= "table" then
+        if type(t) == "string" then
+            return '"' .. t .. '"'
+        else
+            return tostring(t)
+        end
+    end
+    
+    local parts = {}
+    local is_array = true
+    local max_n = 0
+    
+    -- Check if it's an array-like table
+    for k, v in pairs(t) do
+        if type(k) ~= "number" then
+            is_array = false
+            break
+        else
+            max_n = math.max(max_n, k)
+        end
+    end
+    
+    if is_array and max_n > 0 then
+        for i = 1, max_n do
+            table.insert(parts, table_to_string(t[i], depth + 1))
+        end
+        return "[" .. table.concat(parts, ",") .. "]"
+    else
+        for k, v in pairs(t) do
+            local key_str = type(k) == "string" and k or "[" .. tostring(k) .. "]"
+            table.insert(parts, key_str .. ":" .. table_to_string(v, depth + 1))
+        end
+        return "{" .. table.concat(parts, ",") .. "}"
+    end
+end
+
 -- Mock console API
 _G.console = {
     log = function(msg)
-        local str_msg = tostring(msg)
+        local str_msg
+        if type(msg) == "table" then
+            str_msg = table_to_string(msg)
+        else
+            str_msg = tostring(msg)
+        end
         print("[CONSOLE] " .. str_msg)
         io.flush() -- Ensure output is flushed immediately
     end,
     error = function(msg)
-        print("[ERROR] " .. tostring(msg))
+        local str_msg
+        if type(msg) == "table" then
+            str_msg = table_to_string(msg)
+        else
+            str_msg = tostring(msg)
+        end
+        print("[ERROR] " .. str_msg)
         io.flush()
     end
 }
@@ -112,10 +164,17 @@ _G.socket = {
                         add = function(self, event, callback)
                             print("[MOCK] Adding " .. event .. " callback to client " .. self._id)
                             self._callbacks[event] = callback
+                            
+                            -- If this is the "received" callback and we already have data, trigger it immediately
+                            if event == "received" and #self._data_buffer > 0 and not self._callback_triggered then
+                                print("[MOCK] Client " .. self._id .. " has buffered data, triggering received callback immediately")
+                                self._callback_triggered = true
+                                callback()
+                            end
                         end,
                         
                         receive = function(self, count)
-                            -- Return data from buffer
+                            -- Return data from buffer that was populated by the event loop
                             if #self._data_buffer > 0 then
                                 if count and count > 0 then
                                     if #self._data_buffer >= count then
@@ -142,7 +201,11 @@ _G.socket = {
                         
                         send = function(self, data)
                             print("[MOCK] Client " .. self._id .. " sending " .. #data .. " bytes")
-                            return self._socket:send(data)
+                            local result, err = self._socket:send(data)
+                            if not result then
+                                print("[MOCK] Client " .. self._id .. " send failed: " .. tostring(err))
+                            end
+                            return result, err
                         end,
                         
                         close = function(self)
@@ -300,31 +363,58 @@ while SERVER_STATE.running do
         end
     end
     
-    -- Check for data on existing client connections and buffer it immediately
+    -- Check for data on existing client connections and trigger their callbacks
+    local clients_to_remove = {}
     for client_id, mock_client in pairs(SERVER_STATE.clients) do
-        if mock_client._socket and not mock_client._buffer_complete then
-            -- Continuously buffer data as it arrives
-            mock_client._socket:settimeout(0)
-            local data, err = mock_client._socket:receive("*a")
-            if data and #data > 0 then
-                mock_client._data_buffer = mock_client._data_buffer .. data
-                print("[MOCK] Client " .. client_id .. " buffered " .. #data .. " bytes, total: " .. #mock_client._data_buffer)
+        if mock_client._socket and mock_client._callbacks.received then
+            -- Use select to check if data is ready for reading
+            local ready = socket.select({mock_client._socket}, nil, 0)
+            if ready and #ready > 0 then
+                print("[MOCK] Client " .. client_id .. " has data ready to read")
+                -- Set a longer timeout to ensure we can read the data
+                mock_client._socket:settimeout(1.0)
                 
-                -- Check if we have a complete HTTP request
-                if mock_client._data_buffer:find("\r\n\r\n") then
-                    mock_client._buffer_complete = true
-                    print("[MOCK] Client " .. client_id .. " has complete HTTP request, triggering callback if not already triggered")
-                    if mock_client._callbacks.received and not mock_client._callback_triggered then
-                        mock_client._callback_triggered = true
-                        mock_client._callbacks.received()
+                -- Try to read the data piece by piece
+                local total_data = ""
+                repeat
+                    local chunk, err = mock_client._socket:receive(1)
+                    if chunk then
+                        total_data = total_data .. chunk
+                        -- Stop if we have a complete HTTP request (ends with \r\n\r\n)
+                        if total_data:find("\r\n\r\n") then
+                            break
+                        end
+                    else
+                        if err == "closed" then
+                            print("[MOCK] Client " .. client_id .. " connection closed during read")
+                            table.insert(clients_to_remove, client_id)
+                        end
+                        break
                     end
-                end
-            elseif err and err ~= "timeout" then
-                print("[MOCK] Client " .. client_id .. " disconnected while buffering: " .. tostring(err))
-                if mock_client._callbacks.error then
-                    mock_client._callbacks.error()
+                until #total_data > 2048 -- Safety limit
+                
+                if #total_data > 0 then
+                    print("[MOCK] Client " .. client_id .. " received " .. #total_data .. " bytes of data:")
+                    print("[MOCK] Data preview: " .. string.sub(total_data, 1, 100):gsub("\r", "\\r"):gsub("\n", "\\n"))
+                    -- Store the data in the buffer for the receive() function to use
+                    mock_client._data_buffer = mock_client._data_buffer .. total_data
+                    print("[MOCK] Client " .. client_id .. " buffer now has " .. #mock_client._data_buffer .. " bytes, triggering received callback")
+                    mock_client._callbacks.received()
+                else
+                    print("[MOCK] Client " .. client_id .. " no data received")
                 end
             end
+        end
+    end
+    
+    -- Remove closed clients
+    for _, client_id in ipairs(clients_to_remove) do
+        print("[MOCK] Removing closed client " .. client_id)
+        if SERVER_STATE.clients[client_id] then
+            if SERVER_STATE.clients[client_id]._socket then
+                SERVER_STATE.clients[client_id]._socket:close()
+            end
+            SERVER_STATE.clients[client_id] = nil
         end
     end
     

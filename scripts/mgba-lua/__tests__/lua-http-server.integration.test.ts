@@ -81,6 +81,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
   describe('HTTP Endpoints', () => {
     it('should handle GET / and return welcome message', async () => {
       const response = await fetch(`${baseUrl}/`)
+      console.log('Response headers for GET /:', Object.fromEntries(response.headers.entries()))
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('text/plain')
       expect(response.headers.get('access-control-allow-origin')).toBe('*')
@@ -91,6 +92,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
 
     it('should handle GET /json and return JSON with CORS headers', async () => {
       const response = await fetch(`${baseUrl}/json`)
+      console.log('Response headers for GET /json:', Object.fromEntries(response.headers.entries()))
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('application/json')
       expect(response.headers.get('access-control-allow-origin')).toBe('*')
