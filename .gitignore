@@ -26,4 +26,9 @@ dist-ssr
 # Million Lint
 .million
 
+# Node.js native addon build artifacts
+scripts/mgba-lua/__tests__/mgba-bridge/build/
+scripts/mgba-lua/__tests__/mgba-bridge/node_modules/
+scripts/mgba-lua/__tests__/simple_mgba_runner
+
 
