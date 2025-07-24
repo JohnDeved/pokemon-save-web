@@ -17,7 +17,9 @@ export { QuetzalConfig } from './games/quetzal/index.js'
 export { VanillaConfig } from './games/vanilla/index.js'
 
 // Pokemon data implementations
-export { QuetzalPokemonData, VanillaPokemonData, BasePokemonData } from './core/pokemonData.js'
+export { BasePokemonData } from './core/pokemonData.js'
+export { QuetzalPokemonData } from './games/quetzal/pokemonData.js'
+export { VanillaPokemonData } from './games/vanilla/pokemonData.js'
 
 // Legacy constants for backward compatibility
 export { CONSTANTS } from './core/types.js'

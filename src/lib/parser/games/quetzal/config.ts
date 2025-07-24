@@ -80,26 +80,20 @@ export class QuetzalConfig implements GameConfig {
 
   private createItemMap (): ReadonlyMap<number, ItemMapping> {
     const map = new Map<number, ItemMapping>()
-    const data = itemMapData as Record<string, ItemMapping>
+    const data = itemMapData as Record<string, { name: string, id_name: string, id: number | null }>
 
     for (const [key, value] of Object.entries(data)) {
-      // Skip entries with null IDs
-      if (value.id !== null) {
-        map.set(parseInt(key, 10), value)
-      }
+      map.set(parseInt(key, 10), value)
     }
     return map
   }
 
   private createMoveMap (): ReadonlyMap<number, MoveMapping> {
     const map = new Map<number, MoveMapping>()
-    const data = moveMapData as Record<string, MoveMapping>
+    const data = moveMapData as Record<string, { name: string, id_name: string, id: number | null }>
 
     for (const [key, value] of Object.entries(data)) {
-      // Skip entries with null IDs
-      if (value.id !== null) {
-        map.set(parseInt(key, 10), value)
-      }
+      map.set(parseInt(key, 10), value)
     }
     return map
   }

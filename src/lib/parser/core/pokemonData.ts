@@ -120,7 +120,7 @@ export abstract class BasePokemonData implements PokemonDataInterface {
   set natureRaw (value: number) {
     // Setting nature would require modifying the personality value
     // This is a complex operation that affects other properties
-    throw new Error('Setting nature directly is not supported. Modify personality instead.')
+    throw new Error(`Setting nature to ${value} directly is not supported. Modify personality instead.`)
   }
 
   get natureModifiers (): { increased: number, decreased: number } {
