@@ -9,7 +9,7 @@ export type * from './core/types.js'
 export * from './core/utils.js'
 
 // Configuration system
-export type { GameConfig, PokemonDataInterface } from './configs/GameConfig.js'
+export type { GameConfig } from './configs/GameConfig.js'
 export { autoDetectGameConfig } from './configs/autoDetect.js'
 
 // Game-specific configurations

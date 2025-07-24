@@ -3,7 +3,7 @@
  * This addresses the issue where PokemonData was hardcoded for Quetzal-specific logic
  */
 
-import type { PokemonDataInterface, GameConfig } from '../configs/GameConfig.js'
+import type { GameConfig } from '../configs/GameConfig.js'
 import type { MoveData, PokemonMoves } from './types.js'
 import { createMoveData, createPokemonMoves } from './types.js'
 import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils.js'
@@ -14,7 +14,7 @@ import { SafeDataView } from './safeDataView.js'
  * Contains shared logic for stats, EVs, mappings, etc.
  * All offsets are now driven by the injected GameConfig
  */
-export abstract class BasePokemonData implements PokemonDataInterface {
+export abstract class BasePokemonData {
   protected readonly view: SafeDataView
   protected readonly config: GameConfig
 

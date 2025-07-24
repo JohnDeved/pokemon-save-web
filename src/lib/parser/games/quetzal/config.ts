@@ -3,7 +3,8 @@
  * Contains all Quetzal-specific offsets, mappings, and parsing logic
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping, PokemonDataInterface } from '../../configs/GameConfig.js'
+import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig.js'
+import type { BasePokemonData } from '../../core/pokemonData.js'
 import { QuetzalPokemonData } from './pokemonData.js'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
@@ -101,7 +102,7 @@ export class QuetzalConfig implements GameConfig {
   /**
    * Create Quetzal-specific Pokemon data instance
    */
-  createPokemonData (data: Uint8Array): PokemonDataInterface {
+  createPokemonData (data: Uint8Array): BasePokemonData {
     return new QuetzalPokemonData(data, this)
   }
 

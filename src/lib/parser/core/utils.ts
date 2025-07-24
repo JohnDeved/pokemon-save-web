@@ -3,7 +3,7 @@
  * Modern utilities for Pokemon data processing
  */
 
-import type { PokemonDataInterface } from '../configs/GameConfig.js'
+import type { BasePokemonData } from './pokemonData.js'
 import charmapData from '../data/pokemon_charmap.json'
 
 // Convert charmap keys from strings to numbers for faster lookup
@@ -120,7 +120,7 @@ export function getPokemonNature (personality: number): string {
   return natures[(personality & 0xFF) % 25]!
 }
 
-export function setPokemonNature (pokemon: PokemonDataInterface, nature: string): void {
+export function setPokemonNature (pokemon: BasePokemonData, nature: string): void {
   // Find the index of the nature in the natures array
   const natureIndex = natures.indexOf(nature)
   if (natureIndex === -1) {
@@ -174,7 +174,7 @@ export function getNatureModifier (nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats (pokemon: PokemonDataInterface, baseStats: readonly number[]): readonly number[] {
+export function calculateTotalStats (pokemon: BasePokemonData, baseStats: readonly number[]): readonly number[] {
   // Extract properties with type guards for safety
   const level = Number(pokemon.level)
   const nature = String(pokemon.nature)
@@ -227,10 +227,10 @@ export function calculateTotalStatsDirect (
 }
 
 /**
- * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonDataInterface array.
+ * Update the party Pokémon in a SaveBlock1 buffer with the given BasePokemonData array.
  * Returns a new Uint8Array with the updated party data.
  * @param saveblock1 The original SaveBlock1 buffer
- * @param party Array of PokemonDataInterface (max length = maxPartySize)
+ * @param party Array of BasePokemonData (max length = maxPartySize)
  * @param partyStartOffset Offset where party data starts
  * @param partyPokemonSize Size of each Pokemon data structure
  * @param saveblock1Size Expected size of SaveBlock1
@@ -238,7 +238,7 @@ export function calculateTotalStatsDirect (
  */
 export function updatePartyInSaveblock1 (
   saveblock1: Uint8Array,
-  party: readonly PokemonDataInterface[],
+  party: readonly BasePokemonData[],
   partyStartOffset: number,
   partyPokemonSize: number,
   saveblock1Size: number,

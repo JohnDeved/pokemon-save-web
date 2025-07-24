@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { PokemonDataInterface } from './lib/parser'
+import type { BasePokemonData } from './lib/parser'
 
 // --- Zod schemas for API validation ---
 export const PokemonTypeSchema = z.enum([
@@ -123,7 +123,7 @@ export interface UIPokemonData {
   readonly id: number // UI index for React keys
   readonly spriteUrl: string // UI sprite URL
   readonly spriteAniUrl: string // UI animated sprite URL
-  readonly data: PokemonDataInterface
+  readonly data: BasePokemonData
   details?: PokemonDetails // Optional, for loaded details (types, abilities, moves, baseStats)
 }
 

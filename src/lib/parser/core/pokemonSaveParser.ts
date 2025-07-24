@@ -9,7 +9,8 @@ import type {
   SectorInfo,
 } from './types.js'
 
-import type { GameConfig, PokemonDataInterface } from '../configs/GameConfig.js'
+import type { GameConfig } from '../configs/GameConfig.js'
+import type { BasePokemonData } from './pokemonData.js'
 import { autoDetectGameConfig } from '../configs/autoDetect.js'
 import { SafeDataView } from './safeDataView.js'
 
@@ -250,12 +251,12 @@ export class PokemonSaveParser {
   /**
    * Parse party Pokemon from SaveBlock1 data
    */
-  private parsePartyPokemon (saveblock1Data: Uint8Array): PokemonDataInterface[] {
+  private parsePartyPokemon (saveblock1Data: Uint8Array): BasePokemonData[] {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
 
-    const partyPokemon: PokemonDataInterface[] = []
+    const partyPokemon: BasePokemonData[] = []
 
     for (let slot = 0; slot < this.config.offsets.maxPartySize; slot++) {
       const offset = this.config.offsets.partyStartOffset + slot * this.config.offsets.partyPokemonSize
@@ -341,7 +342,7 @@ export class PokemonSaveParser {
    * @param saveblock1 The original SaveBlock1 buffer
    * @param party Array of PokemonData (max length = config.offsets.maxPartySize)
    */
-  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly PokemonDataInterface[]): Uint8Array {
+  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly BasePokemonData[]): Uint8Array {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -407,7 +408,7 @@ export class PokemonSaveParser {
    *
    * @param partyPokemon Array of PokemonData to update party in SaveBlock1
    */
-  reconstructSaveFile (partyPokemon: readonly PokemonDataInterface[]): Uint8Array {
+  reconstructSaveFile (partyPokemon: readonly BasePokemonData[]): Uint8Array {
     if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
     const baseSaveblock1 = this.extractSaveblock1()
     const updatedSaveblock1 = this.updatePartyInSaveblock1(baseSaveblock1, partyPokemon)
