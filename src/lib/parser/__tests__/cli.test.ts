@@ -36,11 +36,11 @@ describe('Parser CLI Tests', () => {
   describe('Command line argument parsing', () => {
     it('should show usage when no arguments provided', () => {
       expect(() => {
-        execSync(`tsx "${cliPath}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}"`, { encoding: 'utf8', stdio: 'pipe' })
       }).toThrow()
 
       try {
-        execSync(`tsx "${cliPath}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: any) {
         const output = error.stderr || error.stdout
         expect(output).toContain('Usage: tsx cli.ts <savefile.sav> [options]')
@@ -54,11 +54,11 @@ describe('Parser CLI Tests', () => {
 
     it('should show usage when invalid file provided', () => {
       expect(() => {
-        execSync(`tsx "${cliPath}" nonexistent.sav`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" nonexistent.sav`, { encoding: 'utf8', stdio: 'pipe' })
       }).toThrow()
 
       try {
-        execSync(`tsx "${cliPath}" nonexistent.sav`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" nonexistent.sav`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: any) {
         const output = error.stderr || error.stdout
         expect(output).toContain('Usage: tsx cli.ts <savefile.sav> [options]')
@@ -71,11 +71,11 @@ describe('Parser CLI Tests', () => {
       writeFileSync(tempFile, 'test content')
 
       expect(() => {
-        execSync(`tsx "${cliPath}" "${tempFile}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" "${tempFile}"`, { encoding: 'utf8', stdio: 'pipe' })
       }).toThrow()
 
       try {
-        execSync(`tsx "${cliPath}" "${tempFile}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" "${tempFile}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: any) {
         const output = error.stderr || error.stdout
         expect(output).toContain('Usage: tsx cli.ts <savefile.sav> [options]')
@@ -161,11 +161,11 @@ describe('Parser CLI Tests', () => {
       writeFileSync(corruptedSavePath, Buffer.alloc(1000, 0xFF)) // 1KB of 0xFF bytes
 
       expect(() => {
-        execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       }).toThrow()
 
       try {
-        execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: any) {
         expect(error.stderr || error.stdout).toContain('Failed to parse save file:')
         expect(error.status).toBe(1)
@@ -177,11 +177,11 @@ describe('Parser CLI Tests', () => {
       writeFileSync(emptySavePath, Buffer.alloc(0))
 
       expect(() => {
-        execSync(`tsx "${cliPath}" "${emptySavePath}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" "${emptySavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       }).toThrow()
 
       try {
-        execSync(`tsx "${cliPath}" "${emptySavePath}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" "${emptySavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: any) {
         expect(error.stderr || error.stdout).toContain('Failed to parse save file:')
         expect(error.status).toBe(1)
@@ -193,11 +193,11 @@ describe('Parser CLI Tests', () => {
       writeFileSync(smallSavePath, Buffer.alloc(100, 0x00)) // 100 bytes
 
       expect(() => {
-        execSync(`tsx "${cliPath}" "${smallSavePath}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" "${smallSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       }).toThrow()
 
       try {
-        execSync(`tsx "${cliPath}" "${smallSavePath}"`, { encoding: 'utf8' })
+        execSync(`tsx "${cliPath}" "${smallSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: any) {
         expect(error.stderr || error.stdout).toContain('Failed to parse save file:')
         expect(error.status).toBe(1)
