@@ -1,0 +1,271 @@
+/**
+ * Integration tests for the Lua HTTP server using real Lua TCP sockets
+ * Tests the actual HTTP endpoints and WebSocket functionality by running the Lua server
+ * and making real HTTP/WebSocket connections to it
+ */
+
+import { spawn, ChildProcess } from 'child_process'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'url'
+import WebSocket from 'ws'
+
+// Handle ES modules in Node.js
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+describe('Lua HTTP Server - Real Integration Tests', () => {
+  let serverProcess: ChildProcess | null = null
+  let serverPort: number = 7300 + Math.floor(Math.random() * 100) // Random port to avoid conflicts
+  let baseUrl: string
+
+  beforeAll(async () => {
+    // Start the actual Lua HTTP server
+    const luaServerPath = resolve(__dirname, 'simple-http-server.lua')
+    
+    serverProcess = spawn('lua5.3', [luaServerPath, serverPort.toString()], {
+      cwd: __dirname,
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+
+    // Wait for server to start
+    await new Promise<void>((resolve, reject) => {
+      let output = ''
+      const timeout = setTimeout(() => reject(new Error('Lua server start timeout')), 10000)
+      
+      serverProcess!.stdout?.on('data', (data) => {
+        output += data.toString()
+        console.log('[Lua Server]', data.toString().trim())
+        if (output.includes('Server started on port')) {
+          clearTimeout(timeout)
+          // Extract actual port from output
+          const match = output.match(/Server started on port (\d+)/)
+          if (match) {
+            serverPort = parseInt(match[1])
+            baseUrl = `http://127.0.0.1:${serverPort}`
+            resolve()
+          }
+        }
+      })
+      
+      serverProcess!.stderr?.on('data', (data) => {
+        console.error('[Lua Server Error]', data.toString())
+      })
+      
+      serverProcess!.on('error', reject)
+      serverProcess!.on('exit', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Lua server exited with code ${code}`))
+        }
+      })
+    })
+  }, 15000)
+
+  afterAll(async () => {
+    if (serverProcess) {
+      serverProcess.kill('SIGTERM')
+      // Wait for process to exit
+      await new Promise<void>((resolve) => {
+        serverProcess!.on('exit', () => resolve())
+        // Force kill if it doesn't exit gracefully
+        setTimeout(() => {
+          if (serverProcess && !serverProcess.killed) {
+            serverProcess.kill('SIGKILL')
+          }
+          resolve()
+        }, 2000)
+      })
+    }
+  })
+
+  describe('HTTP Endpoints', () => {
+    it('should handle GET / and return welcome message', async () => {
+      const response = await fetch(`${baseUrl}/`)
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-type')).toBe('text/plain')
+      expect(response.headers.get('access-control-allow-origin')).toBe('*')
+      
+      const text = await response.text()
+      expect(text).toBe('Welcome to mGBA HTTP Server!')
+    })
+
+    it('should handle GET /json and return JSON with CORS headers', async () => {
+      const response = await fetch(`${baseUrl}/json`)
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-type')).toBe('application/json')
+      expect(response.headers.get('access-control-allow-origin')).toBe('*')
+      
+      const json = await response.json()
+      expect(json).toHaveProperty('message', 'Hello, JSON!')
+      expect(json).toHaveProperty('timestamp')
+      expect(typeof json.timestamp).toBe('number')
+    })
+
+    it('should handle POST /echo and echo the request body', async () => {
+      const testData = { test: 'data', number: 42 }
+      const response = await fetch(`${baseUrl}/echo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(testData)
+      })
+      
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-type')).toBe('application/json')
+      
+      const echoed = await response.json()
+      expect(echoed).toEqual(testData)
+    })
+
+    it('should return 404 for unknown routes', async () => {
+      const response = await fetch(`${baseUrl}/unknown`)
+      expect(response.status).toBe(404)
+      
+      const text = await response.text()
+      expect(text).toBe('Not Found')
+    })
+
+    it('should include CORS headers in all responses', async () => {
+      const responses = await Promise.all([
+        fetch(`${baseUrl}/`),
+        fetch(`${baseUrl}/json`),
+        fetch(`${baseUrl}/echo`, { method: 'POST', body: '{}' })
+      ])
+
+      responses.forEach(response => {
+        expect(response.headers.get('access-control-allow-origin')).toBe('*')
+        expect(response.headers.get('access-control-allow-methods')).toBe('GET, POST, OPTIONS')
+        expect(response.headers.get('access-control-allow-headers')).toBe('Content-Type')
+      })
+    })
+  })
+
+  describe('WebSocket Functionality', () => {
+    it('should handle WebSocket handshake and send welcome message', async () => {
+      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
+      
+      // Wait for connection and welcome message
+      const welcomeMessage = await new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Welcome message timeout')), 5000)
+        
+        ws.on('open', () => {
+          console.log('[Test] WebSocket connected')
+        })
+        
+        ws.on('message', (data) => {
+          clearTimeout(timeout)
+          resolve(data.toString())
+        })
+        
+        ws.on('error', reject)
+      })
+      
+      expect(welcomeMessage).toBe('Welcome to WebSocket Eval! Send Lua code to execute.')
+      
+      ws.close()
+    })
+
+    it('should handle WebSocket eval functionality with simple expressions', async () => {
+      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
+      
+      await new Promise<void>((resolve, reject) => {
+        ws.on('open', resolve)
+        ws.on('error', reject)
+      })
+      
+      // Skip welcome message
+      await new Promise<void>((resolve) => {
+        ws.on('message', () => resolve())
+      })
+      
+      // Send code to evaluate
+      const responses: string[] = []
+      ws.on('message', (data) => {
+        responses.push(data.toString())
+      })
+      
+      ws.send('2 + 2')
+      
+      // Wait for response
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      expect(responses.length).toBeGreaterThan(0)
+      const response = JSON.parse(responses[0])
+      expect(response).toHaveProperty('result', 4)
+      
+      ws.close()
+    })
+
+    it('should handle WebSocket eval errors gracefully', async () => {
+      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
+      
+      await new Promise<void>((resolve, reject) => {
+        ws.on('open', resolve)
+        ws.on('error', reject)
+      })
+      
+      // Skip welcome message
+      await new Promise<void>((resolve) => {
+        ws.on('message', () => resolve())
+      })
+      
+      // Send invalid code
+      const responses: string[] = []
+      ws.on('message', (data) => {
+        responses.push(data.toString())
+      })
+      
+      ws.send('invalid syntax here }')
+      
+      // Wait for response
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      expect(responses.length).toBeGreaterThan(0)
+      const response = JSON.parse(responses[0])
+      expect(response).toHaveProperty('error')
+      expect(typeof response.error).toBe('string')
+      
+      ws.close()
+    })
+
+    it('should handle multiple WebSocket eval requests', async () => {
+      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
+      
+      await new Promise<void>((resolve, reject) => {
+        ws.on('open', resolve)
+        ws.on('error', reject)
+      })
+      
+      // Skip welcome message
+      await new Promise<void>((resolve) => {
+        ws.on('message', () => resolve())
+      })
+      
+      const responses: string[] = []
+      ws.on('message', (data) => {
+        responses.push(data.toString())
+      })
+      
+      // Send multiple eval requests
+      ws.send('1 + 1')
+      ws.send('3 * 4')
+      ws.send('"hello" .. " world"')
+      
+      // Wait for all responses
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      expect(responses.length).toBe(3)
+      
+      const result1 = JSON.parse(responses[0])
+      const result2 = JSON.parse(responses[1])
+      const result3 = JSON.parse(responses[2])
+      
+      expect(result1).toHaveProperty('result', 2)
+      expect(result2).toHaveProperty('result', 12)
+      expect(result3).toHaveProperty('result', 'hello world')
+      
+      ws.close()
+    })
+  })
+})
