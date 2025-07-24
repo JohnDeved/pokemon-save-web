@@ -1,8 +1,16 @@
 {
   "name": "pokemon-save-web",
-  "private": true,
+  "private": false,
   "version": "0.0.0",
   "type": "module",
+  "bin": {
+    "pokemon-save-parser": "bin/pokemon-save-parser"
+  },
+  "files": [
+    "bin/",
+    "src/lib/parser/",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -38,6 +46,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.11",
     "three": "^0.178.0",
+    "tsx": "^4.20.3",
     "zod": "^3.25.67"
   },
   "devDependencies": {
