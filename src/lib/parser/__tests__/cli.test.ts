@@ -49,7 +49,7 @@ describe('Parser CLI Tests', () => {
         expect(output).toContain('--graph')
         expect(output).toContain('--toBytes')
         expect(output).toContain('--toString')
-        expect(error.status).toBe(1)
+        expect(execError.status).toBe(1)
       }
     })
 
