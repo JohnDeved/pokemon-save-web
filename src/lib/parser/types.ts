@@ -69,7 +69,8 @@ export interface SaveData {
   readonly rawSaveData: Uint8Array // Add raw save data for rehydration
 }
 
-// Constants
+// Legacy constants for backward compatibility
+// These are now provided via GameConfig dependency injection
 export const CONSTANTS = {
   SECTOR_SIZE: 4096,
   SECTOR_DATA_SIZE: 3968,

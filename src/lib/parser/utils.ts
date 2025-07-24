@@ -3,39 +3,38 @@
  * Converts parsed save data to formats expected by the existing app
  */
 
-import itemMap from './mappings/item_map.json'
-import moveMap from './mappings/move_map.json'
-import pokemonMap from './mappings/pokemon_map.json'
 import charmapData from './pokemon_charmap.json'
 import type { PokemonData } from './pokemonSaveParser'
-import { CONSTANTS } from './types'
+
+// Legacy exports for backward compatibility - these functions now require GameConfig to be passed
+// For new code, use the mapping functions directly from PokemonData class
 
 // make the mappings more type-safe by using string keys
 
-const maps = {
-  itemMap: itemMap as Record<string, typeof itemMap[keyof typeof itemMap]>,
-  moveMap: moveMap as Record<string, typeof moveMap[keyof typeof moveMap]>,
-  pokemonMap: pokemonMap as Record<string, typeof pokemonMap[keyof typeof pokemonMap]>,
-}
-
+// Legacy functions - deprecated, use GameConfig mappings instead
 export function mapSpeciesToPokeId (speciesId: number): number {
-  return maps.pokemonMap[speciesId.toString()]?.id ?? speciesId
+  console.warn('mapSpeciesToPokeId is deprecated. Use GameConfig mappings directly.')
+  return speciesId
 }
 
 export function mapSpeciesToNameId (speciesId: number): string | undefined {
-  return maps.pokemonMap[speciesId.toString()]?.id_name
+  console.warn('mapSpeciesToNameId is deprecated. Use GameConfig mappings directly.')
+  return undefined
 }
 
 export function mapMoveToPokeId (moveId: number): number {
-  return maps.moveMap[moveId.toString()]?.id ?? moveId
+  console.warn('mapMoveToPokeId is deprecated. Use GameConfig mappings directly.')
+  return moveId
 }
 
 export function mapItemToPokeId (itemId: number): number {
-  return maps.itemMap[itemId.toString()]?.id ?? itemId
+  console.warn('mapItemToPokeId is deprecated. Use GameConfig mappings directly.')
+  return itemId
 }
 
 export function mapItemToNameId (itemId: number): string | undefined {
-  return maps.itemMap[itemId.toString()]?.id_name
+  console.warn('mapItemToNameId is deprecated. Use GameConfig mappings directly.')
+  return undefined
 }
 
 export function getItemSpriteUrl (itemIdName: string): string {
@@ -248,18 +247,29 @@ export function calculateTotalStatsDirect (
  * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonData array.
  * Returns a new Uint8Array with the updated party data.
  * @param saveblock1 The original SaveBlock1 buffer
- * @param party Array of PokemonData (max length = CONSTANTS.MAX_PARTY_SIZE)
+ * @param party Array of PokemonData (max length = maxPartySize)
+ * @param partyStartOffset Offset where party data starts
+ * @param partyPokemonSize Size of each Pokemon data structure
+ * @param saveblock1Size Expected size of SaveBlock1
+ * @param maxPartySize Maximum party size
  */
-export function updatePartyInSaveblock1 (saveblock1: Uint8Array, party: PokemonData[]): Uint8Array {
-  if (saveblock1.length < CONSTANTS.SAVEBLOCK1_SIZE) {
-    throw new Error(`SaveBlock1 must be at least ${CONSTANTS.SAVEBLOCK1_SIZE} bytes`)
+export function updatePartyInSaveblock1 (
+  saveblock1: Uint8Array, 
+  party: PokemonData[],
+  partyStartOffset: number,
+  partyPokemonSize: number,
+  saveblock1Size: number,
+  maxPartySize: number
+): Uint8Array {
+  if (saveblock1.length < saveblock1Size) {
+    throw new Error(`SaveBlock1 must be at least ${saveblock1Size} bytes`)
   }
-  if (party.length > CONSTANTS.MAX_PARTY_SIZE) {
-    throw new Error(`Party size cannot exceed ${CONSTANTS.MAX_PARTY_SIZE}`)
+  if (party.length > maxPartySize) {
+    throw new Error(`Party size cannot exceed ${maxPartySize}`)
   }
   const updated = new Uint8Array(saveblock1)
   for (let i = 0; i < party.length; i++) {
-    const offset = CONSTANTS.PARTY_START_OFFSET + i * CONSTANTS.PARTY_POKEMON_SIZE
+    const offset = partyStartOffset + i * partyPokemonSize
     updated.set(party[i]!.rawBytes, offset)
   }
   return updated
