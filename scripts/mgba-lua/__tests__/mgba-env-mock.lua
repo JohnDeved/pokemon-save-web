@@ -147,7 +147,13 @@ local function handle_connection()
                             -- Start a background thread to monitor WebSocket data
                             if not self._ws_thread then
                                 self._ws_thread = coroutine.create(function()
+                                    print("[DEBUG] WebSocket monitor thread started")
+                                    local iteration = 0
                                     while self._is_websocket and self._socket do
+                                        iteration = iteration + 1
+                                        if iteration % 1000 == 0 then
+                                            print("[DEBUG] WebSocket thread iteration", iteration, "checking for data")
+                                        end
                                         self._socket:settimeout(0.001)
                                         local ws_data, err = self._socket:receive(1024)
                                         if ws_data then
@@ -226,6 +232,9 @@ while _G.socket._running and loop_count < 10000 do
     end
     
     -- Run WebSocket monitoring threads
+    if #websocket_threads > 0 and loop_count % 100 == 0 then
+        print("[DEBUG] Running", #websocket_threads, "WebSocket threads at loop", loop_count)
+    end
     for i = #websocket_threads, 1, -1 do
         local thread = websocket_threads[i]
         if thread and coroutine.status(thread) ~= "dead" then
