@@ -131,6 +131,38 @@ export interface GameConfig {
     readonly playTimeHours: number
     readonly playTimeMinutes: number
     readonly playTimeSeconds: number
+    readonly pokemonData: {
+      readonly personality: number
+      readonly otId: number
+      readonly nickname: number
+      readonly otName: number
+      readonly currentHp: number
+      readonly species: number
+      readonly item: number
+      readonly move1: number
+      readonly move2: number
+      readonly move3: number
+      readonly move4: number
+      readonly pp1: number
+      readonly pp2: number
+      readonly pp3: number
+      readonly pp4: number
+      readonly hpEV: number
+      readonly atkEV: number
+      readonly defEV: number
+      readonly speEV: number
+      readonly spaEV: number
+      readonly spdEV: number
+      readonly ivData: number
+      readonly status: number
+      readonly level: number
+      readonly maxHp: number
+      readonly attack: number
+      readonly defense: number
+      readonly speed: number
+      readonly spAttack: number
+      readonly spDefense: number
+    }
   }
   readonly mappings: {
     readonly pokemon: ReadonlyMap<number, PokemonMapping>

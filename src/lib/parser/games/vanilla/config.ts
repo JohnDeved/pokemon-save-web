@@ -5,7 +5,7 @@
  */
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping, PokemonDataInterface } from '../../configs/GameConfig.js'
-import { VanillaPokemonData } from '../../core/pokemonData.js'
+import { VanillaPokemonData } from './pokemonData.js'
 
 export class VanillaConfig implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
@@ -26,6 +26,38 @@ export class VanillaConfig implements GameConfig {
     playTimeHours: 0x0E, // Different from Quetzal
     playTimeMinutes: 0x0F, // Different from Quetzal
     playTimeSeconds: 0x10, // Different from Quetzal
+    pokemonData: {
+      personality: 0x00,
+      otId: 0x04,
+      nickname: 0x08,
+      otName: 0x14,
+      currentHp: 0x23,
+      species: 0x28,
+      item: 0x2A,
+      move1: 0x34,
+      move2: 0x36,
+      move3: 0x38,
+      move4: 0x3A,
+      pp1: 0x3C,
+      pp2: 0x3D,
+      pp3: 0x3E,
+      pp4: 0x3F,
+      hpEV: 0x40,
+      atkEV: 0x41,
+      defEV: 0x42,
+      speEV: 0x43,
+      spaEV: 0x44,
+      spdEV: 0x45,
+      ivData: 0x50,
+      status: 0x57,
+      level: 0x58,
+      maxHp: 0x5A,
+      attack: 0x5C,
+      defense: 0x5E,
+      speed: 0x60,
+      spAttack: 0x62,
+      spDefense: 0x64,
+    },
   } as const
 
   readonly mappings = {

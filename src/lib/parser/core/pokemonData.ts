@@ -71,6 +71,7 @@ class SafeDataView {
 /**
  * Base Pokemon data class with common functionality
  * Contains shared logic for stats, EVs, mappings, etc.
+ * All offsets are now driven by the injected GameConfig
  */
 export abstract class BasePokemonData implements PokemonDataInterface {
   protected readonly view: SafeDataView
@@ -84,52 +85,50 @@ export abstract class BasePokemonData implements PokemonDataInterface {
     this.config = config
   }
 
-  // Basic properties (same for all games)
-  get personality () { return this.view.getUint32(0x00) }
-  get natureRaw () { return this.view.getUint8(0x00) }
-  set natureRaw (value: number) { this.view.setUint8(0x00, value) }
-  get otId () { return this.view.getUint32(0x04) }
-  get nicknameRaw () { return this.view.getBytes(0x08, this.config.offsets.pokemonNicknameLength) }
-  get otNameRaw () { return this.view.getBytes(0x14, this.config.offsets.pokemonTrainerNameLength) }
-  get currentHp () { return this.view.getUint16(0x23) }
-  get speciesId () { return this.mapSpeciesToPokeId(this.view.getUint16(0x28)) }
-  get nameId () { return this.mapSpeciesToNameId(this.view.getUint16(0x28)) }
-  get item () { return this.mapItemToPokeId(this.view.getUint16(0x2A)) }
-  get itemIdName () { return this.mapItemToNameId(this.view.getUint16(0x2A)) }
-  get move1 () { return this.mapMoveToPokeId(this.view.getUint16(0x34)) }
-  get move2 () { return this.mapMoveToPokeId(this.view.getUint16(0x36)) }
-  get move3 () { return this.mapMoveToPokeId(this.view.getUint16(0x38)) }
-  get move4 () { return this.mapMoveToPokeId(this.view.getUint16(0x3A)) }
-  get pp1 () { return this.view.getUint8(0x3C) }
-  get pp2 () { return this.view.getUint8(0x3D) }
-  get pp3 () { return this.view.getUint8(0x3E) }
-  get pp4 () { return this.view.getUint8(0x3F) }
-  get hpEV () { return this.view.getUint8(0x40) }
-  set hpEV (value) { this.view.setUint8(0x40, value) }
-  get atkEV () { return this.view.getUint8(0x41) }
-  set atkEV (value) { this.view.setUint8(0x41, value) }
-  get defEV () { return this.view.getUint8(0x42) }
-  set defEV (value) { this.view.setUint8(0x42, value) }
-  get speEV () { return this.view.getUint8(0x43) }
-  set speEV (value) { this.view.setUint8(0x43, value) }
-  get spaEV () { return this.view.getUint8(0x44) }
-  set spaEV (value) { this.view.setUint8(0x44, value) }
-  get spdEV () { return this.view.getUint8(0x45) }
-  set spdEV (value) { this.view.setUint8(0x45, value) }
-  get status () { return this.view.getUint8(0x57) }
-  get level () { return this.view.getUint8(0x58) }
-  get maxHp () { return this.view.getUint16(0x5A) }
-  set maxHp (value) { this.view.setUint16(0x5A, value) }
-  get attack () { return this.view.getUint16(0x5C) }
-  set attack (value) { this.view.setUint16(0x5C, value) }
-  get defense () { return this.view.getUint16(0x5E) }
-  set defense (value) { this.view.setUint16(0x5E, value) }
-  get speed () { return this.view.getUint16(0x60) }
-  set speed (value) { this.view.setUint16(0x60, value) }
-  get spAttack () { return this.view.getUint16(0x62) }
-  set spAttack (value) { this.view.setUint16(0x62, value) }
-  get spDefense () { return this.view.getUint16(0x64) }
-  set spDefense (value) { this.view.setUint16(0x64, value) }
+  // Basic properties using config-driven offsets
+  get personality () { return this.view.getUint32(this.config.offsets.pokemonData.personality) }
+  get otId () { return this.view.getUint32(this.config.offsets.pokemonData.otId) }
+  get nicknameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.nickname, this.config.offsets.pokemonNicknameLength) }
+  get otNameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.otName, this.config.offsets.pokemonTrainerNameLength) }
+  get currentHp () { return this.view.getUint16(this.config.offsets.pokemonData.currentHp) }
+  get speciesId () { return this.mapSpeciesToPokeId(this.view.getUint16(this.config.offsets.pokemonData.species)) }
+  get nameId () { return this.mapSpeciesToNameId(this.view.getUint16(this.config.offsets.pokemonData.species)) }
+  get item () { return this.mapItemToPokeId(this.view.getUint16(this.config.offsets.pokemonData.item)) }
+  get itemIdName () { return this.mapItemToNameId(this.view.getUint16(this.config.offsets.pokemonData.item)) }
+  get move1 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move1)) }
+  get move2 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move2)) }
+  get move3 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move3)) }
+  get move4 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.move4)) }
+  get pp1 () { return this.view.getUint8(this.config.offsets.pokemonData.pp1) }
+  get pp2 () { return this.view.getUint8(this.config.offsets.pokemonData.pp2) }
+  get pp3 () { return this.view.getUint8(this.config.offsets.pokemonData.pp3) }
+  get pp4 () { return this.view.getUint8(this.config.offsets.pokemonData.pp4) }
+  get hpEV () { return this.view.getUint8(this.config.offsets.pokemonData.hpEV) }
+  set hpEV (value) { this.view.setUint8(this.config.offsets.pokemonData.hpEV, value) }
+  get atkEV () { return this.view.getUint8(this.config.offsets.pokemonData.atkEV) }
+  set atkEV (value) { this.view.setUint8(this.config.offsets.pokemonData.atkEV, value) }
+  get defEV () { return this.view.getUint8(this.config.offsets.pokemonData.defEV) }
+  set defEV (value) { this.view.setUint8(this.config.offsets.pokemonData.defEV, value) }
+  get speEV () { return this.view.getUint8(this.config.offsets.pokemonData.speEV) }
+  set speEV (value) { this.view.setUint8(this.config.offsets.pokemonData.speEV, value) }
+  get spaEV () { return this.view.getUint8(this.config.offsets.pokemonData.spaEV) }
+  set spaEV (value) { this.view.setUint8(this.config.offsets.pokemonData.spaEV, value) }
+  get spdEV () { return this.view.getUint8(this.config.offsets.pokemonData.spdEV) }
+  set spdEV (value) { this.view.setUint8(this.config.offsets.pokemonData.spdEV, value) }
+  get status () { return this.view.getUint8(this.config.offsets.pokemonData.status) }
+  get level () { return this.view.getUint8(this.config.offsets.pokemonData.level) }
+  get maxHp () { return this.view.getUint16(this.config.offsets.pokemonData.maxHp) }
+  set maxHp (value) { this.view.setUint16(this.config.offsets.pokemonData.maxHp, value) }
+  get attack () { return this.view.getUint16(this.config.offsets.pokemonData.attack) }
+  set attack (value) { this.view.setUint16(this.config.offsets.pokemonData.attack, value) }
+  get defense () { return this.view.getUint16(this.config.offsets.pokemonData.defense) }
+  set defense (value) { this.view.setUint16(this.config.offsets.pokemonData.defense, value) }
+  get speed () { return this.view.getUint16(this.config.offsets.pokemonData.speed) }
+  set speed (value) { this.view.setUint16(this.config.offsets.pokemonData.speed, value) }
+  get spAttack () { return this.view.getUint16(this.config.offsets.pokemonData.spAttack) }
+  set spAttack (value) { this.view.setUint16(this.config.offsets.pokemonData.spAttack, value) }
+  get spDefense () { return this.view.getUint16(this.config.offsets.pokemonData.spDefense) }
+  set spDefense (value) { this.view.setUint16(this.config.offsets.pokemonData.spDefense, value) }
   get rawBytes () { return new Uint8Array(this.data) }
 
   // Mapping functions that use the injected config
@@ -170,6 +169,17 @@ export abstract class BasePokemonData implements PokemonDataInterface {
 
   get nature (): string {
     return getPokemonNature(this.personality)
+  }
+
+  get natureRaw (): number {
+    // Nature is calculated from personality, not stored separately
+    return (this.personality & 0xFF) % 25
+  }
+
+  set natureRaw (value: number) {
+    // Setting nature would require modifying the personality value
+    // This is a complex operation that affects other properties
+    throw new Error('Setting nature directly is not supported. Modify personality instead.')
   }
 
   get natureModifiers (): { increased: number, decreased: number } {
@@ -310,90 +320,4 @@ export abstract class BasePokemonData implements PokemonDataInterface {
   abstract get isShiny (): boolean
   abstract get shinyNumber (): number
   abstract get isRadiant (): boolean
-}
-
-/**
- * Quetzal-specific Pokemon data implementation
- * Handles Quetzal's unencrypted IVs and custom shiny system
- */
-export class QuetzalPokemonData extends BasePokemonData {
-  get ivData () { return this.view.getUint32(0x50) }
-  set ivData (value) { this.view.setUint32(0x50, value) }
-
-  get ivs (): readonly number[] {
-    // Quetzal uses unencrypted IV data
-    return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F)
-  }
-
-  set ivs (values: readonly number[]) {
-    if (values.length !== 6) throw new Error('IVs array must have 6 values')
-    let packed = 0
-    for (let i = 0; i < 6; i++) {
-      packed |= (values[i]! & 0x1F) << (i * 5)
-    }
-    this.ivData = packed
-  }
-
-  get shinyNumber (): number {
-    // Quetzal-specific: the 2nd byte of personality determines shininess
-    return (this.personality >> 8) & 0xFF
-  }
-
-  get isShiny (): boolean {
-    return this.shinyNumber === 1
-  }
-
-  get isRadiant (): boolean {
-    // Quetzal-specific feature: radiant Pokemon
-    return this.shinyNumber === 2
-  }
-}
-
-/**
- * Vanilla Pokemon Emerald data implementation
- * Handles encrypted Pokemon data and standard Gen 3 shiny calculation
- */
-export class VanillaPokemonData extends BasePokemonData {
-  private get encryptionKey (): number {
-    // Standard Pokemon encryption key: personality XOR OT ID
-    return this.personality ^ this.otId
-  }
-
-  get ivs (): readonly number[] {
-    // Vanilla Pokemon Emerald uses encrypted IV data
-    const encrypted = this.view.getUint32(0x50)
-    const decrypted = encrypted ^ this.encryptionKey
-    return Array.from({ length: 6 }, (_, i) => (decrypted >>> (i * 5)) & 0x1F)
-  }
-
-  set ivs (values: readonly number[]) {
-    if (values.length !== 6) throw new Error('IVs array must have 6 values')
-    let packed = 0
-    for (let i = 0; i < 6; i++) {
-      packed |= (values[i]! & 0x1F) << (i * 5)
-    }
-    // Encrypt the data before storing
-    const encrypted = packed ^ this.encryptionKey
-    this.view.setUint32(0x50, encrypted)
-  }
-
-  get shinyNumber (): number {
-    // Standard Gen 3 shiny calculation
-    const trainerId = this.otId & 0xFFFF
-    const secretId = (this.otId >> 16) & 0xFFFF
-    const personalityLow = this.personality & 0xFFFF
-    const personalityHigh = (this.personality >> 16) & 0xFFFF
-    return trainerId ^ secretId ^ personalityLow ^ personalityHigh
-  }
-
-  get isShiny (): boolean {
-    // Standard Gen 3: Pokemon is shiny if shiny value < 8
-    return this.shinyNumber < 8
-  }
-
-  // eslint-disable-next-line @typescript-eslint/class-literal-property-style
-  get isRadiant (): boolean {
-    // Vanilla Pokemon don't have radiant status
-    return false
-  }
 }
