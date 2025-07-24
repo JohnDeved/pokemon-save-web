@@ -9,7 +9,6 @@ A modern TypeScript library for parsing and editing Pokemon save files with depe
 - **Auto-detection** - Automatically detects game type from save file characteristics
 - **Dependency injection** - Clean separation of game-specific logic and data
 - **Real-time editing** - Parse, modify, and reconstruct save files
-- **Comprehensive tests** - 28 tests ensuring reliability and accuracy
 
 ## Quick Start
 
@@ -40,100 +39,49 @@ console.log(`IVs: ${firstPokemon.ivs}`)
 - **`BasePokemonData`** - Abstract base class for Pokemon data with common functionality
 - **Auto-detection** - Automatically selects appropriate game configuration
 
-### Supported Games
+## Supported Games
 
 - **Pokemon Quetzal** - Full support with unencrypted IVs and custom shiny logic
 - **Pokemon Emerald (Vanilla)** - Basic support with encrypted data handling
 
-### File Structure
+## Adding Game Support
 
-```
-src/lib/parser/
-├── core/                    # Core parser logic
-│   ├── pokemonSaveParser.ts # Main parser class
-│   ├── pokemonData.ts       # Abstract Pokemon data class
-│   ├── types.ts             # TypeScript interfaces and GameConfig
-│   ├── utils.ts             # Utility functions
-│   └── autoDetect.ts        # Game auto-detection
-├── games/                   # Game-specific configurations
-│   ├── registry.ts          # Available game configurations
-│   ├── quetzal/            # Pokemon Quetzal support
-│   │   ├── config.ts       # Quetzal configuration and Pokemon data
-│   │   └── data/           # Quetzal mappings (pokemon, items, moves)
-│   └── vanilla/            # Pokemon Emerald support
-│       └── config.ts       # Vanilla configuration and Pokemon data
-├── data/                   # Shared data files
-│   └── pokemon_charmap.json
-└── __tests__/              # Comprehensive test suite
-```
+The parser uses a flexible GameConfig system for adding support for new Pokemon games:
 
-## Adding New Game Support
+### Required Components
 
-1. **Create a new game configuration:**
+1. **Configuration Class** - Implement the GameConfig interface
+   - Define game name and signature
+   - Set up memory offsets for save data structure
+   - Create ID mappings (Pokemon, items, moves)
+   - Implement game detection logic
+   - Handle save slot selection
 
+2. **Pokemon Data Class** - Extend BasePokemonData
+   - Implement IV reading logic
+   - Handle shiny detection
+   - Define game-specific stat calculations
+
+3. **Registry** - Add your config to the available configurations list
+
+Basic structure:
 ```typescript
+// 1. GameConfig implementation
 export class MyGameConfig implements GameConfig {
-  readonly name = 'My Pokemon Game'
-  readonly signature = 0x12345678
-  
-  readonly offsets = {
-    // Define all memory offsets...
-  }
-  
-  readonly mappings = {
-    // Define ID mappings...
-  }
-  
-  determineActiveSlot(getCounterSum) {
-    // Implement slot detection logic
-  }
-  
-  canHandle(saveData) {
-    // Implement detection logic
-  }
-  
-  createPokemonData(data) {
-    return new MyGamePokemonData(data, this)
-  }
+  // Define offsets, mappings, detection logic
 }
-```
 
-2. **Create game-specific Pokemon data class:**
-
-```typescript
+// 2. Pokemon data class  
 class MyGamePokemonData extends BasePokemonData {
-  get ivs() {
-    // Implement IV reading logic
-  }
-  
-  get isShiny() {
-    // Implement shiny detection
-  }
-  
-  // Add game-specific properties...
+  // Implement game-specific data reading
 }
-```
 
-3. **Register in games registry:**
-
-```typescript
-// games/registry.ts
+// 3. Register in games/registry.ts
 export const AVAILABLE_CONFIGS = [
   () => new MyGameConfig(),
-  () => new QuetzalConfig(),
-  () => new VanillaConfig(),
+  // ... existing configs
 ]
 ```
-
-## Configuration System
-
-The `GameConfig` interface provides:
-
-- **Memory offsets** - All save file structure information
-- **ID mappings** - Pokemon, item, and move ID translations  
-- **Active slot detection** - Logic for determining current save
-- **Game detection** - Signature-based save file recognition
-- **Pokemon data factory** - Creates appropriate Pokemon data instances
 
 ## API Reference
 
@@ -167,36 +115,4 @@ abstract class BasePokemonData {
   abstract get isShiny(): boolean
   abstract get shinyNumber(): number
 }
-```
-
-## Testing
-
-Run the test suite:
-
-```bash
-npm test
-```
-
-Tests include:
-- Unit tests for core functionality
-- Integration tests with real save files
-- Auto-detection validation
-- Save file reconstruction verification
-
-## Dependencies
-
-- **TypeScript** - Type safety and modern JavaScript features
-- **Vitest** - Fast testing framework
-- **ESLint** - Code quality and consistency
-
-## Legacy Support
-
-The library maintains backward compatibility with existing code:
-
-```typescript
-// Legacy constants still available
-import { CONSTANTS } from './parser'
-
-// Old parsing patterns continue to work
-const parser = new PokemonSaveParser()
 ```
