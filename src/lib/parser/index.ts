@@ -16,10 +16,8 @@ export { autoDetectGameConfig } from './configs/autoDetect.js'
 export { QuetzalConfig } from './games/quetzal/index.js'
 export { VanillaConfig } from './games/vanilla/index.js'
 
-// Pokemon data implementations
+// Base Pokemon data class (for extending with new games)
 export { BasePokemonData } from './core/pokemonData.js'
-export { QuetzalPokemonData } from './games/quetzal/pokemonData.js'
-export { VanillaPokemonData } from './games/vanilla/pokemonData.js'
 
 // Legacy constants for backward compatibility
 export { CONSTANTS } from './core/types.js'
