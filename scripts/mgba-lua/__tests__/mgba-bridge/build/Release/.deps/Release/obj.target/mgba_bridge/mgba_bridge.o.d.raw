@@ -1,0 +1,9 @@
+Release/obj.target/mgba_bridge/mgba_bridge.o: ../mgba_bridge.cpp \
+ /home/runner/work/pokemon-save-web/pokemon-save-web/scripts/mgba-lua/__tests__/mgba-bridge/node_modules/node-addon-api/napi.h \
+ /home/runner/.cache/node-gyp/20.19.4/include/node/node_api.h \
+ /home/runner/.cache/node-gyp/20.19.4/include/node/js_native_api.h \
+ /home/runner/.cache/node-gyp/20.19.4/include/node/js_native_api_types.h \
+ /home/runner/.cache/node-gyp/20.19.4/include/node/node_api_types.h \
+ /home/runner/work/pokemon-save-web/pokemon-save-web/scripts/mgba-lua/__tests__/mgba-bridge/node_modules/node-addon-api/napi-inl.h \
+ /home/runner/work/pokemon-save-web/pokemon-save-web/scripts/mgba-lua/__tests__/mgba-bridge/node_modules/node-addon-api/napi.h \
+ /home/runner/work/pokemon-save-web/pokemon-save-web/scripts/mgba-lua/__tests__/mgba-bridge/node_modules/node-addon-api/napi-inl.deprecated.h
