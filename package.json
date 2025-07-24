@@ -1,8 +1,15 @@
 {
   "name": "pokemon-save-web",
-  "private": true,
+  "private": false,
   "version": "0.0.0",
   "type": "module",
+  "bin": {
+    "pokemon-save-parser": "src/lib/parser/cli.ts"
+  },
+  "files": [
+    "src/lib/parser/",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
