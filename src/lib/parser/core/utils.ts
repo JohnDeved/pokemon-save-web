@@ -1,51 +1,22 @@
 /**
  * Integration utilities for Pokemon Save Parser
- * Converts parsed save data to formats expected by the existing app
+ * Modern utilities for Pokemon data processing
  */
 
-import itemMap from './mappings/item_map.json'
-import moveMap from './mappings/move_map.json'
-import pokemonMap from './mappings/pokemon_map.json'
-import charmapData from './pokemon_charmap.json'
-import type { PokemonData } from './pokemonSaveParser'
-import { CONSTANTS } from './types'
-
-// make the mappings more type-safe by using string keys
-
-const maps = {
-  itemMap: itemMap as Record<string, typeof itemMap[keyof typeof itemMap]>,
-  moveMap: moveMap as Record<string, typeof moveMap[keyof typeof moveMap]>,
-  pokemonMap: pokemonMap as Record<string, typeof pokemonMap[keyof typeof pokemonMap]>,
-}
-
-export function mapSpeciesToPokeId (speciesId: number): number {
-  return maps.pokemonMap[speciesId.toString()]?.id ?? speciesId
-}
-
-export function mapSpeciesToNameId (speciesId: number): string | undefined {
-  return maps.pokemonMap[speciesId.toString()]?.id_name
-}
-
-export function mapMoveToPokeId (moveId: number): number {
-  return maps.moveMap[moveId.toString()]?.id ?? moveId
-}
-
-export function mapItemToPokeId (itemId: number): number {
-  return maps.itemMap[itemId.toString()]?.id ?? itemId
-}
-
-export function mapItemToNameId (itemId: number): string | undefined {
-  return maps.itemMap[itemId.toString()]?.id_name
-}
-
-export function getItemSpriteUrl (itemIdName: string): string {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${itemIdName}.png`
-}
+import type { BasePokemonData } from './pokemonData'
+import charmapData from '../data/pokemon_charmap.json'
 
 // Convert charmap keys from strings to numbers for faster lookup
 const charmap: Record<number, string> = {}
 for (const [key, value] of Object.entries(charmapData)) {
   charmap[parseInt(key, 10)] = value
+}
+
+/**
+ * Get sprite URL for a Pokemon item
+ */
+export function getItemSpriteUrl (itemIdName: string): string {
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${itemIdName}.png`
 }
 
 /**
@@ -149,7 +120,7 @@ export function getPokemonNature (personality: number): string {
   return natures[(personality & 0xFF) % 25]!
 }
 
-export function setPokemonNature (pokemon: PokemonData, nature: string): void {
+export function setPokemonNature (pokemon: BasePokemonData, nature: string): void {
   // Find the index of the nature in the natures array
   const natureIndex = natures.indexOf(nature)
   if (natureIndex === -1) {
@@ -157,7 +128,7 @@ export function setPokemonNature (pokemon: PokemonData, nature: string): void {
   }
 
   // Calculate the new personality value
-  pokemon.natureRaw = natureIndex
+  pokemon.setNatureRaw(natureIndex)
 }
 
 export const natureEffects: Record<string, { increased: number, decreased: number }> = {
@@ -203,10 +174,21 @@ export function getNatureModifier (nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats (pokemon: PokemonData, baseStats: number[]): number[] {
-  const { level, ivs, evs, nature } = pokemon
-  // Cast readonly arrays to mutable arrays for compatibility
-  return calculateTotalStatsDirect(baseStats, ivs, evs, level, nature)
+export function calculateTotalStats (pokemon: BasePokemonData, baseStats: readonly number[]): readonly number[] {
+  // Extract properties with type guards for safety
+  const level = Number(pokemon.level)
+  const nature = String(pokemon.nature)
+
+  // Type-safe array conversion
+  const ivs: number[] = []
+  const evs: number[] = []
+
+  for (let i = 0; i < 6; i++) {
+    ivs.push(Number(pokemon.ivs[i] ?? 0))
+    evs.push(Number(pokemon.evs[i] ?? 0))
+  }
+
+  return calculateTotalStatsDirect([...baseStats], ivs, evs, level, nature)
 }
 
 /**
@@ -245,22 +227,40 @@ export function calculateTotalStatsDirect (
 }
 
 /**
- * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonData array.
+ * Update the party Pokémon in a SaveBlock1 buffer with the given BasePokemonData array.
  * Returns a new Uint8Array with the updated party data.
  * @param saveblock1 The original SaveBlock1 buffer
- * @param party Array of PokemonData (max length = CONSTANTS.MAX_PARTY_SIZE)
+ * @param party Array of BasePokemonData (max length = maxPartySize)
+ * @param partyStartOffset Offset where party data starts
+ * @param partyPokemonSize Size of each Pokemon data structure
+ * @param saveblock1Size Expected size of SaveBlock1
+ * @param maxPartySize Maximum party size
  */
-export function updatePartyInSaveblock1 (saveblock1: Uint8Array, party: PokemonData[]): Uint8Array {
-  if (saveblock1.length < CONSTANTS.SAVEBLOCK1_SIZE) {
-    throw new Error(`SaveBlock1 must be at least ${CONSTANTS.SAVEBLOCK1_SIZE} bytes`)
+export function updatePartyInSaveblock1 (
+  saveblock1: Uint8Array,
+  party: readonly BasePokemonData[],
+  partyStartOffset: number,
+  partyPokemonSize: number,
+  saveblock1Size: number,
+  maxPartySize: number,
+): Uint8Array {
+  if (saveblock1.length < saveblock1Size) {
+    throw new Error(`SaveBlock1 must be at least ${saveblock1Size} bytes`)
   }
-  if (party.length > CONSTANTS.MAX_PARTY_SIZE) {
-    throw new Error(`Party size cannot exceed ${CONSTANTS.MAX_PARTY_SIZE}`)
+  if (party.length > maxPartySize) {
+    throw new Error(`Party size cannot exceed ${maxPartySize}`)
   }
   const updated = new Uint8Array(saveblock1)
   for (let i = 0; i < party.length; i++) {
-    const offset = CONSTANTS.PARTY_START_OFFSET + i * CONSTANTS.PARTY_POKEMON_SIZE
-    updated.set(party[i]!.rawBytes, offset)
+    const offset = partyStartOffset + i * partyPokemonSize
+    const pokemon = party[i]
+    if (pokemon?.rawBytes) {
+      // Type-safe conversion to Uint8Array
+      const rawBytes = pokemon.rawBytes
+      if (rawBytes instanceof Uint8Array) {
+        updated.set(rawBytes, offset)
+      }
+    }
   }
   return updated
 }

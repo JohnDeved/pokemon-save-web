@@ -1,4 +1,4 @@
-import { calculateTotalStatsDirect } from '../../lib/parser/utils'
+import { calculateTotalStatsDirect } from '../../lib/parser/core/utils'
 import type { Pokemon } from '../../types'
 import { Skeleton } from '../common'
 import { Slider } from '../ui/slider'
