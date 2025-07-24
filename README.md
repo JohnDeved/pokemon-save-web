@@ -1,15 +1,6 @@
 # Pokemon Save Web
 
-A modern web-based Pokemon save file editor and parser built with React, TypeScript, and Vite. Supports multiple Pokemon games and ROM hacks through a flexible dependency injection system.
-
-## Features
-
-- **Multi-Game Support** - Pokemon Quetzal and vanilla Pokemon Emerald with auto-detection
-- **Dependency Injection** - Extensible GameConfig system for adding new games/ROM hacks
-- **Browser-Based** - Works entirely in the browser with no server required
-- **Type-Safe** - Full TypeScript implementation with comprehensive type definitions
-- **Modern UI** - Built with React 19 and modern web technologies
-- **CLI Tool** - Command line interface for batch processing and automation
+A web-based Pokemon save file editor, CLI tool, and TypeScript parser core.
 
 ## Quick Start
 
@@ -92,18 +83,6 @@ npx github:JohnDeved/pokemon-save-web save.sav --graph
 - `--toBytes=STRING` - Convert a string to GBA byte encoding
 - `--toString=HEX` - Convert space/comma-separated hex bytes to a decoded GBA string
 
-## Development
-
-```bash
-npm install
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run test         # Run tests with watch mode
-npm run test:run     # Run tests once
-npm run lint         # Lint code
-npm run parse <file> # Parse save file via CLI
-```
-
 ## Adding Game Support
 
 The parser uses a flexible GameConfig system that makes it easy to add support for new Pokemon games and ROM hacks.
@@ -127,21 +106,6 @@ export class MyGameConfig implements GameConfig {
 
 For detailed instructions, see [src/lib/parser/README.md](./src/lib/parser/README.md#adding-game-support).
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Add tests for new functionality
-4. Ensure all tests pass (`npm run test:run`)
-5. Lint your code (`npm run lint`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-**Built with ❤️ for the Pokemon community**
