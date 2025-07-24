@@ -2,18 +2,6 @@
 
 A modern TypeScript library for parsing and editing Pokemon save files with dependency injection for game-specific configurations.
 
-## Table of Contents
-
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [Supported Games](#supported-games)
-- [API Reference](#api-reference)
-- [Adding Game Support](#adding-game-support)
-- [Configuration System](#configuration-system)
-- [Testing](#testing)
-- [Legacy Support](#legacy-support)
-
 ## Features
 
 - **Multi-game support** - Extensible architecture for Pokemon Emerald, ROM hacks like Quetzal, and more
@@ -21,7 +9,6 @@ A modern TypeScript library for parsing and editing Pokemon save files with depe
 - **Auto-detection** - Automatically detects game type from save file characteristics
 - **Dependency injection** - Clean separation of game-specific logic and data
 - **Real-time editing** - Parse, modify, and reconstruct save files
-- **Comprehensive tests** - 28 tests ensuring reliability and accuracy
 
 ## Quick Start
 
@@ -65,12 +52,8 @@ src/lib/parser/
 ├── games/                   # Game-specific configurations
 │   ├── registry.ts          # Available game configurations
 │   ├── quetzal/            # Pokemon Quetzal support
-│   │   ├── config.ts       # Quetzal configuration and Pokemon data
-│   │   └── data/           # Quetzal mappings (pokemon, items, moves)
 │   └── vanilla/            # Pokemon Emerald support
-│       └── config.ts       # Vanilla configuration and Pokemon data
 ├── data/                   # Shared data files
-│   └── pokemon_charmap.json
 └── __tests__/              # Comprehensive test suite
 ```
 
@@ -81,7 +64,9 @@ src/lib/parser/
 
 ## Adding Game Support
 
-### 1. Create Configuration Class
+The parser uses a flexible GameConfig system. Here's how to add support for new Pokemon games:
+
+### Step 1: Create Configuration Class
 
 ```typescript
 export class MyGameConfig implements GameConfig {
@@ -89,7 +74,7 @@ export class MyGameConfig implements GameConfig {
   readonly signature = 0x12345678
   
   readonly offsets = {
-    // Define all memory offsets...
+    // Define all memory offsets for your game
     partyStartOffset: 0x500,
     partyPokemonSize: 104,
     maxPartySize: 6,
@@ -97,87 +82,107 @@ export class MyGameConfig implements GameConfig {
   }
   
   readonly mappings = {
-    // Define ID mappings...
+    // Define ID mappings for your game
     pokemon: this.createPokemonMap(),
     items: this.createItemMap(),
     moves: this.createMoveMap(),
   }
   
-  determineActiveSlot(getCounterSum) {
-    // Implement slot detection logic
+  determineActiveSlot(getCounterSum: (range: number[]) => number): number {
+    // Implement slot detection logic for your game
+    const slot1Range = Array.from({ length: 18 }, (_, i) => i)
+    const slot2Range = Array.from({ length: 18 }, (_, i) => i + 14)
+    const slot1Sum = getCounterSum(slot1Range)
+    const slot2Sum = getCounterSum(slot2Range)
+    return slot2Sum >= slot1Sum ? 14 : 0
   }
   
-  canHandle(saveData) {
-    // Implement detection logic
+  canHandle(saveData: Uint8Array): boolean {
+    // Implement detection logic for your game
+    if (saveData.length < this.offsets.totalSectors * this.offsets.sectorSize) {
+      return false
+    }
+    // Add game-specific signature checks here
+    return this.hasGameSignature(saveData)
   }
   
-  createPokemonData(data) {
+  createPokemonData(data: Uint8Array): BasePokemonData {
     return new MyGamePokemonData(data, this)
   }
 }
 ```
 
-### 2. Create Pokemon Data Class
+### Step 2: Create Pokemon Data Class
 
 ```typescript
 class MyGamePokemonData extends BasePokemonData {
-  get ivs() {
-    // Implement IV reading logic
+  get ivs(): readonly number[] {
+    // Implement IV reading logic for your game
+    const offset = 0x20 // Example offset
+    return [
+      this.data[offset],     // HP
+      this.data[offset + 1], // Attack
+      this.data[offset + 2], // Defense
+      this.data[offset + 3], // Speed
+      this.data[offset + 4], // Sp. Attack
+      this.data[offset + 5], // Sp. Defense
+    ]
   }
   
-  get isShiny() {
-    // Implement shiny detection
+  get isShiny(): boolean {
+    // Implement shiny detection for your game
+    const shinyValue = this.shinyNumber
+    return shinyValue < 8 // Standard shiny threshold
   }
   
-  // Add game-specific properties...
+  get shinyNumber(): number {
+    // Standard shiny calculation
+    const trainerId = this.otId
+    const personalityHigh = (this.personality >>> 16) & 0xFFFF
+    const personalityLow = this.personality & 0xFFFF
+    const trainerIdHigh = (trainerId >>> 16) & 0xFFFF
+    const trainerIdLow = trainerId & 0xFFFF
+    return personalityHigh ^ personalityLow ^ trainerIdHigh ^ trainerIdLow
+  }
 }
 ```
 
-### 3. Register Configuration
+### Step 3: Register Configuration
 
 ```typescript
 // games/registry.ts
 export const AVAILABLE_CONFIGS = [
-  () => new MyGameConfig(),
+  () => new MyGameConfig(),  // Add your config (before more generic ones)
   () => new QuetzalConfig(),
   () => new VanillaConfig(),
 ]
 ```
 
-For detailed instructions, see [../../docs/GameConfig.md](../../docs/GameConfig.md).
-
-## Configuration System
-
-The `GameConfig` interface provides standardized access to:
-
-- **Memory offsets** - All save file structure information
-- **ID mappings** - Pokemon, item, and move ID translations  
-- **Active slot detection** - Logic for determining current save
-- **Game detection** - Signature-based save file recognition
-- **Pokemon data factory** - Creates appropriate Pokemon data instances
-
-### Auto-Detection
-
-The auto-detection system:
-1. Tests each registered config in priority order
-2. Uses `canHandle()` method to identify compatible games
-3. Returns the first matching config
-4. Prioritizes specific ROM hacks over vanilla games
+### Step 4: Add Tests
 
 ```typescript
-import { autoDetectGameConfig } from './core/autoDetect'
-
-const config = autoDetectGameConfig(saveData)
-if (config) {
-  console.log(`Detected: ${config.name}`)
-}
+describe('MyGameConfig', () => {
+  it('should detect compatible save files', () => {
+    const config = new MyGameConfig()
+    const validSaveData = createMockSaveData()
+    expect(config.canHandle(validSaveData)).toBe(true)
+  })
+  
+  it('should parse real save file', async () => {
+    const saveFile = await loadTestSaveFile('my-game-save.sav')
+    const config = new MyGameConfig()
+    const parser = new PokemonSaveParser(saveFile, config)
+    
+    const result = parser.parseSaveData()
+    expect(result.player_name).toBe('EXPECTED_NAME')
+    expect(result.party_pokemon).toHaveLength(6)
+  })
+})
 ```
 
 ## API Reference
 
 ### PokemonSaveParser
-
-The main parser class with auto-detection and file handling capabilities.
 
 ```typescript
 class PokemonSaveParser {
@@ -189,20 +194,7 @@ class PokemonSaveParser {
 }
 ```
 
-**Example Usage:**
-```typescript
-// Auto-detection
-const parser = new PokemonSaveParser()
-const saveData = await parser.parseSaveFile(file)
-
-// Manual config
-const config = new QuetzalConfig()
-const parser = new PokemonSaveParser(undefined, config)
-```
-
 ### BasePokemonData
-
-Abstract base class providing common Pokemon data functionality.
 
 ```typescript
 abstract class BasePokemonData {
@@ -222,79 +214,16 @@ abstract class BasePokemonData {
 }
 ```
 
-### GameConfig Interface
-
-Contract for game-specific configurations.
-
-```typescript
-interface GameConfig {
-  readonly name: string
-  readonly signature: number
-  readonly offsets: GameOffsets
-  readonly mappings: GameMappings
-  
-  determineActiveSlot(getCounterSum: (range: number[]) => number): number
-  canHandle(saveData: Uint8Array): boolean
-  createPokemonData(data: Uint8Array): BasePokemonData
-}
-```
-
 ## Testing
 
-Run the comprehensive test suite:
+Run the test suite:
 
 ```bash
-npm test                # Watch mode
-npm run test:run        # Run once
-npm run test:ui         # Interactive UI
+npm test
 ```
 
-**Test Coverage:**
-- **Unit tests** - Core functionality and components
-- **Integration tests** - Real save files with ground truth validation
-- **Auto-detection** - Game type identification accuracy
-- **Save reconstruction** - Round-trip parsing verification
-
-**Test Files:**
-- `pokemonSaveParser.unit.test.ts` - Parser unit tests
-- `pokemonSaveParser.integration.test.ts` - Integration tests with real saves
-- `cli.test.ts` - Command line interface tests
-
-## Legacy Support
-
-The library maintains backward compatibility:
-
-```typescript
-// Legacy constants still available
-import { CONSTANTS } from './parser'
-
-// Old parsing patterns continue to work
-const parser = new PokemonSaveParser()
-```
-
-## Dependencies
-
-- **TypeScript** - Type safety and modern JavaScript features
-- **Vitest** - Fast testing framework
-- **ESLint** - Code quality and consistency
-
-## Troubleshooting
-
-### Common Issues
-
-**Config Not Detected:**
-- Verify `canHandle()` method implementation
-- Check config registration in `AVAILABLE_CONFIGS`
-- Ensure config is placed before more generic ones
-
-**Parsing Errors:**
-- Verify all offsets are correct for your game
-- Check save file format and structure
-- Test with known good save files
-
-**Type Errors:**
-- Ensure all interface methods are implemented
-- Check mapping types match the interface
-- Verify readonly properties are properly defined
-
-For more detailed troubleshooting, see the main documentation.
+Tests include:
+- Unit tests for core functionality
+- Integration tests with real save files
+- Auto-detection validation
+- Save file reconstruction verification
