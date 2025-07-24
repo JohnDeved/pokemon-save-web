@@ -106,42 +106,36 @@ _G.socket = {
                         _id = client_id,
                         _callbacks = {},
                         _data_buffer = "",
-                        _pending_data = "",
+                        _buffer_complete = false,
+                        _callback_triggered = false,
                         
                         add = function(self, event, callback)
                             print("[MOCK] Adding " .. event .. " callback to client " .. self._id)
                             self._callbacks[event] = callback
-                            
-                            -- Don't trigger received callback immediately - wait for actual data
                         end,
                         
                         receive = function(self, count)
-                            -- Check if we have pending data first
-                            if self._pending_data and #self._pending_data > 0 then
-                                if count then
-                                    if #self._pending_data >= count then
-                                        -- Return requested amount and keep the rest
-                                        local result = self._pending_data:sub(1, count)
-                                        self._pending_data = self._pending_data:sub(count + 1)
-                                        print("[MOCK] Client " .. self._id .. " returning " .. #result .. " bytes from pending data")
+                            -- Return data from buffer
+                            if #self._data_buffer > 0 then
+                                if count and count > 0 then
+                                    if #self._data_buffer >= count then
+                                        local result = self._data_buffer:sub(1, count)
+                                        self._data_buffer = self._data_buffer:sub(count + 1)
+                                        print("[MOCK] Client " .. self._id .. " returning " .. #result .. " bytes, " .. #self._data_buffer .. " remaining")
                                         return result
                                     else
-                                        -- Return all pending data
-                                        local result = self._pending_data
-                                        self._pending_data = ""
-                                        print("[MOCK] Client " .. self._id .. " returning all " .. #result .. " pending bytes")
+                                        local result = self._data_buffer
+                                        self._data_buffer = ""
+                                        print("[MOCK] Client " .. self._id .. " returning all " .. #result .. " bytes")
                                         return result
                                     end
                                 else
-                                    -- Return all pending data
-                                    local result = self._pending_data
-                                    self._pending_data = ""
-                                    print("[MOCK] Client " .. self._id .. " returning all " .. #result .. " pending bytes")
+                                    local result = self._data_buffer
+                                    self._data_buffer = ""
+                                    print("[MOCK] Client " .. self._id .. " returning all " .. #result .. " bytes")
                                     return result
                                 end
                             else
-                                -- No pending data
-                                print("[MOCK] Client " .. self._id .. " no pending data, returning AGAIN")
                                 return nil, _G.socket.ERRORS.AGAIN
                             end
                         end,
@@ -286,9 +280,7 @@ while SERVER_STATE.running do
         local client, err = SERVER_STATE.server._socket:accept()
         if client then
             print("[MOCK] New client connected, setting up pending connection")
-            -- Don't consume the connection here, just note that one is available
-            -- Put the client back by closing it and letting the server accept handle it
-            -- Actually, let's store pending connections
+            -- Store pending connections
             if not SERVER_STATE.pending_clients then
                 SERVER_STATE.pending_clients = {}
             end
@@ -308,20 +300,27 @@ while SERVER_STATE.running do
         end
     end
     
-    -- Check for data on existing client connections
+    -- Check for data on existing client connections and buffer it immediately
     for client_id, mock_client in pairs(SERVER_STATE.clients) do
-        if mock_client._socket and mock_client._callbacks.received then
-            -- Check if there's data available to read
+        if mock_client._socket and not mock_client._buffer_complete then
+            -- Continuously buffer data as it arrives
             mock_client._socket:settimeout(0)
             local data, err = mock_client._socket:receive("*a")
             if data and #data > 0 then
-                -- There's data available, store it and trigger callback
-                mock_client._pending_data = (mock_client._pending_data or "") .. data
-                print("[MOCK] Client " .. client_id .. " received " .. #data .. " bytes of data, triggering received callback")
-                mock_client._callbacks.received()
+                mock_client._data_buffer = mock_client._data_buffer .. data
+                print("[MOCK] Client " .. client_id .. " buffered " .. #data .. " bytes, total: " .. #mock_client._data_buffer)
+                
+                -- Check if we have a complete HTTP request
+                if mock_client._data_buffer:find("\r\n\r\n") then
+                    mock_client._buffer_complete = true
+                    print("[MOCK] Client " .. client_id .. " has complete HTTP request, triggering callback if not already triggered")
+                    if mock_client._callbacks.received and not mock_client._callback_triggered then
+                        mock_client._callback_triggered = true
+                        mock_client._callbacks.received()
+                    end
+                end
             elseif err and err ~= "timeout" then
-                print("[MOCK] Client " .. client_id .. " disconnected: " .. tostring(err))
-                -- Trigger error callback
+                print("[MOCK] Client " .. client_id .. " disconnected while buffering: " .. tostring(err))
                 if mock_client._callbacks.error then
                     mock_client._callbacks.error()
                 end
