@@ -93,6 +93,7 @@ local loop_count = 0
 while _G.socket._running and loop_count < 50000 do
     loop_count = loop_count + 1
     
+    -- Handle new connections
     if _G.socket._server and _G.socket._server._socket then
         local client = _G.socket._server._socket:accept()
         if client then
@@ -116,7 +117,7 @@ while _G.socket._running and loop_count < 50000 do
             
             if #request_data > 0 then
                 local mock_client = {
-                    _socket = client, _callbacks = {}, _buffer = request_data,
+                    _socket = client, _callbacks = {}, _buffer = request_data, _is_websocket = false,
                     add = function(self, event, callback)
                         self._callbacks[event] = callback
                         if event == "received" and #self._buffer > 0 then callback() end
@@ -125,9 +126,22 @@ while _G.socket._running and loop_count < 50000 do
                         if #self._buffer > 0 then
                             local result = self._buffer; self._buffer = ""; return result
                         end
+                        
+                        -- For WebSocket connections, continue reading new data
+                        if self._is_websocket then
+                            local data = self._socket:receive(1024)
+                            if data then return data end
+                        end
+                        
                         return nil, _G.socket.ERRORS.AGAIN
                     end,
-                    send = function(self, data) return self._socket:send(data) end,
+                    send = function(self, data) 
+                        -- Check if this is a WebSocket upgrade response
+                        if data:match("Upgrade: websocket") then
+                            self._is_websocket = true
+                        end
+                        return self._socket:send(data) 
+                    end,
                     close = function(self) self._socket:close() end
                 }
                 
@@ -137,6 +151,24 @@ while _G.socket._running and loop_count < 50000 do
                 end
             else
                 client:close()
+            end
+        end
+    end
+    
+    -- Handle ongoing WebSocket data for existing connections
+    for i = #_G.socket._clients, 1, -1 do
+        local mock_client = _G.socket._clients[i]
+        if mock_client._is_websocket then
+            mock_client._socket:settimeout(0)  -- Non-blocking
+            local data, err = mock_client._socket:receive(1024)
+            if data then
+                mock_client._buffer = data
+                if mock_client._callbacks.received then
+                    mock_client._callbacks.received()
+                end
+            elseif err ~= "timeout" then
+                -- Remove disconnected client
+                table.remove(_G.socket._clients, i)
             end
         end
     end

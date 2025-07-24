@@ -26,7 +26,4 @@ dist-ssr
 # Million Lint
 .million
 
-# Test results and coverage
-test-results.xml
-coverage/
-*.test.log
+

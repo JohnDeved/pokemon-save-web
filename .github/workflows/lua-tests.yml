@@ -92,12 +92,3 @@ jobs:
           # Ensure tests run in CI environment
           CI: true
       
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lua-test-results
-          path: |
-            test-results.xml
-            coverage/
-          retention-days: 7

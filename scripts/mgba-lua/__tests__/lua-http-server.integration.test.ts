@@ -160,5 +160,46 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       
       ws.close()
     })
+
+    it('should handle WebSocket eval functionality', async () => {
+      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
+      
+      // Skip welcome message and test eval
+      const evalResult = await new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Eval test timeout')), 8000)
+        let messageCount = 0
+        
+        ws.on('open', () => {
+          console.log('[Test] WebSocket connected for eval test')
+        })
+        
+        ws.on('message', (data) => {
+          messageCount++
+          console.log(`[Test] Message ${messageCount}:`, data.toString())
+          
+          if (messageCount === 1) {
+            // Skip welcome message, send Lua code
+            console.log('[Test] Received welcome, sending Lua code')
+            ws.send('return "Hello from Lua eval!"')
+          } else {
+            // Should receive eval result as JSON
+            clearTimeout(timeout)
+            console.log('[Test] Received eval response:', data.toString())
+            resolve(data.toString())
+          }
+        })
+        
+        ws.on('error', (err) => {
+          clearTimeout(timeout)
+          reject(err)
+        })
+      })
+      
+      // Parse and validate the JSON response
+      const response = JSON.parse(evalResult)
+      expect(response.result).toBe('Hello from Lua eval!')
+      
+      ws.close()
+    }, 10000)
   })
 })
