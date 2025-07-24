@@ -3,6 +3,8 @@
  * Defines the contract for game-specific parsing configuration
  */
 
+import type { PokemonDataInterface } from '../core/PokemonDataInterface.js'
+
 // Type definitions for mapping objects
 export interface PokemonMapping {
   readonly name: string
@@ -79,4 +81,10 @@ export interface GameConfig {
    * Returns true if this config can handle the given save data
    */
   canHandle(saveData: Uint8Array): boolean
+
+  /**
+   * Create a Pokemon data instance for this game
+   * Factory method that returns the appropriate Pokemon data implementation
+   */
+  createPokemonData(data: Uint8Array): PokemonDataInterface
 }

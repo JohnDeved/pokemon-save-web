@@ -4,3 +4,4 @@
  */
 
 export { VanillaConfig } from './config.js'
+export { VanillaPokemonData } from './VanillaPokemonData.js'

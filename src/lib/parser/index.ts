@@ -4,11 +4,15 @@
  */
 
 // Core parser functionality
-export { PokemonSaveParser as default, PokemonSaveParser, PokemonData } from './core/pokemonSaveParser.js'
+export { PokemonSaveParser as default, PokemonSaveParser } from './core/pokemonSaveParser.js'
+
+// Pokemon data interfaces and base classes
+export type { PokemonDataInterface, RadiantPokemonDataInterface } from './core/PokemonDataInterface.js'
+export { BasePokemonData, SafeDataView } from './core/BasePokemonData.js'
 
 export type {
   MoveData, PlayTimeData, PokemonEVs,
-  PokemonIVs, PokemonMoves, PokemonStats, SaveData, SectorInfo,
+  PokemonIVs, PokemonMoves, PokemonStats, SaveData, ParsedSaveData, SectorInfo,
 } from './core/types.js'
 
 export {
@@ -33,3 +37,7 @@ export type { GameConfig, PokemonMapping, ItemMapping, MoveMapping } from './con
 export { QuetzalConfig } from './configs/index.js'
 export { VanillaConfig } from './configs/index.js'
 export { autoDetectGameConfig, getAllGameConfigs, createGameConfigByName } from './configs/autoDetect.js'
+
+// Game-specific Pokemon data implementations
+export { QuetzalPokemonData } from './games/quetzal/QuetzalPokemonData.js'
+export { VanillaPokemonData } from './games/vanilla/VanillaPokemonData.js'

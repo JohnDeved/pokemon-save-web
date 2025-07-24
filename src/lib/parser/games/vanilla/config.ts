@@ -5,6 +5,8 @@
  */
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig.js'
+import type { PokemonDataInterface } from '../../core/PokemonDataInterface.js'
+import { VanillaPokemonData } from './VanillaPokemonData.js'
 
 export class VanillaConfig implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
@@ -171,5 +173,13 @@ export class VanillaConfig implements GameConfig {
     // For now, this is a fallback that accepts any Emerald-signature save
     // In practice, this should be the last config tried after specific ROM hacks
     return true
+  }
+
+  /**
+   * Create a vanilla Emerald Pokemon data instance
+   * Returns VanillaPokemonData with encrypted data handling and standard shiny calculation
+   */
+  createPokemonData (data: Uint8Array): PokemonDataInterface {
+    return new VanillaPokemonData(data, this)
   }
 }

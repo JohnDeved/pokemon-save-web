@@ -4,6 +4,8 @@
  */
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig.js'
+import type { PokemonDataInterface } from '../../core/PokemonDataInterface.js'
+import { QuetzalPokemonData } from './QuetzalPokemonData.js'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
 import pokemonMapData from './data/pokemon_map.json'
@@ -132,5 +134,13 @@ export class QuetzalConfig implements GameConfig {
     }
 
     return false
+  }
+
+  /**
+   * Create a Quetzal-specific Pokemon data instance
+   * Returns QuetzalPokemonData with unencrypted data handling and radiant support
+   */
+  createPokemonData (data: Uint8Array): PokemonDataInterface {
+    return new QuetzalPokemonData(data, this)
   }
 }
