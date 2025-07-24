@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { PokemonSaveParser } from '../../core/pokemonSaveParser'
-import { QuetzalConfig } from '../../configs/index'
-import { CONSTANTS } from '../../core/types'
-import { bytesToGbaString } from '../../core/utils'
+import { PokemonSaveParser } from '../core/pokemonSaveParser.js'
+import { QuetzalConfig } from '../games/quetzal/index.js'
+import { CONSTANTS } from '../core/types.js'
+import { bytesToGbaString } from '../core/utils.js'
 
 describe('PokemonSaveParser - Unit Tests', () => {
   let parser: PokemonSaveParser

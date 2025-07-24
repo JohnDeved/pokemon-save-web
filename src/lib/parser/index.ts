@@ -1,43 +1,20 @@
 /**
- * Pokemon Save Parser Library
- * Clean exports for the browser-ready TypeScript parser
+ * Main entry point for the Pokemon Save Parser
+ * Provides clean API surface with dependency injection support
  */
 
 // Core parser functionality
-export { PokemonSaveParser as default, PokemonSaveParser } from './core/pokemonSaveParser.js'
+export { PokemonSaveParser, PokemonData } from './core/pokemonSaveParser.js'
+export type * from './core/types.js'
+export * from './core/utils.js'
 
-// Pokemon data interfaces and base classes
-export type { PokemonDataInterface, RadiantPokemonDataInterface } from './core/PokemonDataInterface.js'
-export { BasePokemonData, SafeDataView } from './core/BasePokemonData.js'
+// Configuration system
+export type { GameConfig } from './configs/GameConfig.js'
+export { autoDetectGameConfig } from './configs/autoDetect.js'
 
-export type {
-  MoveData, PlayTimeData, PokemonEVs,
-  PokemonIVs, PokemonMoves, PokemonStats, SaveData, ParsedSaveData, SectorInfo,
-} from './core/types.js'
+// Game-specific configurations
+export { QuetzalConfig } from './games/quetzal/index.js'
+export { VanillaConfig } from './games/vanilla/index.js'
 
-export {
-  CONSTANTS,
-  createMoveData, createPokemonEVs,
-  createPokemonIVs, createPokemonMoves, createPokemonStats, getMoveIds,
-  getPPValues, getTotalEVs,
-  getTotalIVs, pokemonEVsToArray,
-  pokemonIVsToArray,
-  pokemonStatsToArray,
-} from './core/types.js'
-
-// Utility functions
-export {
-  bytesToGbaString, getPokemonNature, natureEffects, statStrings,
-  natures, calculateTotalStats, calculateTotalStatsDirect, getItemSpriteUrl
-} from './core/utils.js'
-
-// Game configuration system
-export type { GameConfig, PokemonMapping, ItemMapping, MoveMapping } from './configs/GameConfig.js'
-
-export { QuetzalConfig } from './configs/index.js'
-export { VanillaConfig } from './configs/index.js'
-export { autoDetectGameConfig, getAllGameConfigs, createGameConfigByName } from './configs/autoDetect.js'
-
-// Game-specific Pokemon data implementations
-export { QuetzalPokemonData } from './games/quetzal/QuetzalPokemonData.js'
-export { VanillaPokemonData } from './games/vanilla/VanillaPokemonData.js'
+// Legacy constants for backward compatibility
+export { CONSTANTS } from './core/types.js'

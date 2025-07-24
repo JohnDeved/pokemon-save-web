@@ -5,8 +5,6 @@
  */
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig.js'
-import type { PokemonDataInterface } from '../../core/PokemonDataInterface.js'
-import { VanillaPokemonData } from './VanillaPokemonData.js'
 
 export class VanillaConfig implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
@@ -27,23 +25,6 @@ export class VanillaConfig implements GameConfig {
     playTimeHours: 0x0E, // Different from Quetzal
     playTimeMinutes: 0x0F, // Different from Quetzal
     playTimeSeconds: 0x10, // Different from Quetzal
-    // Vanilla Emerald Pokemon data structure offsets (same as Quetzal since they share the base)
-    pokemonData: {
-      personality: 0x00,
-      otId: 0x04,
-      nickname: 0x08,
-      otName: 0x14,
-      currentHp: 0x23,
-      speciesId: 0x28,
-      item: 0x2A,
-      moves: [0x34, 0x36, 0x38, 0x3A] as const,
-      ppValues: [0x3C, 0x3D, 0x3E, 0x3F] as const,
-      evs: [0x40, 0x41, 0x42, 0x43, 0x44, 0x45] as const, // hp, atk, def, spe, spa, spd
-      ivData: 0x50,
-      status: 0x57,
-      level: 0x58,
-      stats: [0x5A, 0x5C, 0x5E, 0x60, 0x62, 0x64] as const, // maxHp, atk, def, spe, spa, spd
-    },
   } as const
 
   readonly mappings = {
@@ -173,13 +154,5 @@ export class VanillaConfig implements GameConfig {
     // For now, this is a fallback that accepts any Emerald-signature save
     // In practice, this should be the last config tried after specific ROM hacks
     return true
-  }
-
-  /**
-   * Create a vanilla Emerald Pokemon data instance
-   * Returns VanillaPokemonData with encrypted data handling and standard shiny calculation
-   */
-  createPokemonData (data: Uint8Array): PokemonDataInterface {
-    return new VanillaPokemonData(data, this)
   }
 }
