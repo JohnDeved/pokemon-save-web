@@ -88,37 +88,37 @@ local ok, exec_err = pcall(chunk)
 if not ok then print("ERROR: Failed to execute: " .. tostring(exec_err)); os.exit(1) end
 print("HTTP server loaded successfully")
 
--- Simple event loop for connection handling
-local loop_count = 0
-while _G.socket._running and loop_count < 50000 do
-    loop_count = loop_count + 1
-    
-    -- Handle new connections
+-- Simple event loop that uses lua socket callbacks directly
+local function handle_connection()
     if _G.socket._server and _G.socket._server._socket then
         local client = _G.socket._server._socket:accept()
         if client then
-            client:settimeout(1.0)
+            -- Read HTTP request data synchronously
+            client:settimeout(2.0)
             local request_data = ""
             repeat
                 local chunk = client:receive(1)
                 if chunk then
                     request_data = request_data .. chunk
+                    -- Check if we have complete HTTP headers
                     if request_data:find("\r\n\r\n") then
                         local content_length = request_data:match("content%-length:%s*(%d+)")
                         if content_length then
                             local header_end = request_data:find("\r\n\r\n")
-                            if #request_data >= header_end + 3 + tonumber(content_length) then break end
+                            local body_length = #request_data - (header_end + 3)
+                            if body_length >= tonumber(content_length) then break end
                         else
                             break
                         end
                     end
                 end
-            until not chunk or #request_data > 2048
+            until not chunk or #request_data > 4096
             
             if #request_data > 0 then
+                -- Wrap client with mgba-style API
                 local mock_client = {
                     _socket = client, _callbacks = {}, _buffer = request_data, _is_websocket = false,
-                    add = function(self, event, callback)
+                    add = function(self, event, callback) 
                         self._callbacks[event] = callback
                         if event == "received" and #self._buffer > 0 then callback() end
                     end,
@@ -126,34 +126,32 @@ while _G.socket._running and loop_count < 50000 do
                         if #self._buffer > 0 then
                             local result = self._buffer; self._buffer = ""; return result
                         end
-                        
-                        -- For WebSocket connections, continue reading new data
                         if self._is_websocket then
-                            local data = self._socket:receive(1024)
-                            if data then return data end
+                            local data = self._socket:receive(count or 1024)
+                            return data or nil, data and nil or _G.socket.ERRORS.AGAIN
                         end
-                        
                         return nil, _G.socket.ERRORS.AGAIN
                     end,
                     send = function(self, data) 
-                        -- Check if this is a WebSocket upgrade response
-                        if data:match("Upgrade: websocket") then
-                            self._is_websocket = true
-                        end
+                        if data:match("Upgrade: websocket") then self._is_websocket = true end
                         return self._socket:send(data) 
                     end,
                     close = function(self) self._socket:close() end
                 }
-                
                 table.insert(_G.socket._clients, mock_client)
-                if _G.socket._server._callbacks.received then
-                    _G.socket._server._callbacks.received()
-                end
+                if _G.socket._server._callbacks.received then _G.socket._server._callbacks.received() end
             else
                 client:close()
             end
         end
     end
+end
+
+-- Event loop that properly waits for connections
+local loop_count = 0
+while _G.socket._running and loop_count < 10000 do
+    loop_count = loop_count + 1
+    handle_connection()
     
     -- Handle ongoing WebSocket data for existing connections
     for i = #_G.socket._clients, 1, -1 do
@@ -167,7 +165,6 @@ while _G.socket._running and loop_count < 50000 do
                     mock_client._callbacks.received()
                 end
             elseif err ~= "timeout" then
-                -- Remove disconnected client
                 table.remove(_G.socket._clients, i)
             end
         end

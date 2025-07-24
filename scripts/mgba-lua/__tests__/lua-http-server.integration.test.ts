@@ -180,7 +180,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
           if (messageCount === 1) {
             // Skip welcome message, send Lua code
             console.log('[Test] Received welcome, sending Lua code')
-            ws.send('return "Hello from Lua eval!"')
+            ws.send('1+1')
           } else {
             // Should receive eval result as JSON
             clearTimeout(timeout)
