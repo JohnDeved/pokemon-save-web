@@ -188,33 +188,3 @@ export interface GameConfig {
   /** Create game-specific Pokemon data instance */
   createPokemonData(data: Uint8Array): BasePokemonData
 }
-
-// Legacy constants for backward compatibility
-// These are now provided via GameConfig dependency injection
-export const CONSTANTS = {
-  SECTOR_SIZE: 4096,
-  SECTOR_DATA_SIZE: 3968,
-  SECTOR_FOOTER_SIZE: 12,
-  SAVEBLOCK1_SIZE: 3968 * 4, // SECTOR_DATA_SIZE * 4
-  EMERALD_SIGNATURE: 0x08012025,
-  SECTORS_PER_SLOT: 18,
-  TOTAL_SECTORS: 32,
-  PARTY_START_OFFSET: 0x6A8,
-  PARTY_POKEMON_SIZE: 104,
-  MAX_PARTY_SIZE: 6,
-  POKEMON_NICKNAME_LENGTH: 10,
-  POKEMON_TRAINER_NAME_LENGTH: 7,
-} as const
-
-// Helper functions for data creation
-export const createMoveData = (id: number, pp: number): MoveData => ({ id, pp })
-
-export const createPokemonMoves = (
-  move1_id: number, move2_id: number, move3_id: number, move4_id: number,
-  pp1: number, pp2: number, pp3: number, pp4: number,
-): PokemonMoves => ({
-  move1: createMoveData(move1_id, pp1),
-  move2: createMoveData(move2_id, pp2),
-  move3: createMoveData(move3_id, pp3),
-  move4: createMoveData(move4_id, pp4),
-})

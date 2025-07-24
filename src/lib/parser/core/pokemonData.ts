@@ -5,7 +5,7 @@
 
 import type { GameConfig } from '../core/types'
 import type { MoveData, PokemonMoves } from './types'
-import { createMoveData, createPokemonMoves } from './types'
+import { createMoveData, createPokemonMoves } from './dataCreators'
 import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils'
 
 /**

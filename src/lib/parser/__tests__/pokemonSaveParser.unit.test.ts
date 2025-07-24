@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { PokemonSaveParser } from '../core/pokemonSaveParser'
 import { QuetzalConfig } from '../games/quetzal/config'
-import { CONSTANTS } from '../core/types'
 import { bytesToGbaString } from '../core/utils'
 
 describe('PokemonSaveParser - Unit Tests', () => {
@@ -62,23 +61,23 @@ describe('PokemonSaveParser - Unit Tests', () => {
 
   describe('Constants Validation', () => {
     it('should have valid constants defined', () => {
-      expect(CONSTANTS.SECTOR_SIZE).toBeDefined()
-      expect(CONSTANTS.SECTOR_SIZE).toBeGreaterThan(0)
+      expect(config.offsets.sectorSize).toBeDefined()
+      expect(config.offsets.sectorSize).toBeGreaterThan(0)
 
-      expect(CONSTANTS.SECTOR_DATA_SIZE).toBeDefined()
-      expect(CONSTANTS.SECTOR_DATA_SIZE).toBeGreaterThan(0)
+      expect(config.offsets.sectorDataSize).toBeDefined()
+      expect(config.offsets.sectorDataSize).toBeGreaterThan(0)
 
-      expect(CONSTANTS.SECTOR_FOOTER_SIZE).toBeDefined()
-      expect(CONSTANTS.SECTOR_FOOTER_SIZE).toBeGreaterThan(0)
+      expect(config.offsets.sectorFooterSize).toBeDefined()
+      expect(config.offsets.sectorFooterSize).toBeGreaterThan(0)
 
-      expect(CONSTANTS.EMERALD_SIGNATURE).toBeDefined()
-      expect(CONSTANTS.EMERALD_SIGNATURE).toBeTypeOf('number')
+      expect(config.signature).toBeDefined()
+      expect(config.signature).toBeTypeOf('number')
 
-      expect(CONSTANTS.MAX_PARTY_SIZE).toBeDefined()
-      expect(CONSTANTS.MAX_PARTY_SIZE).toBe(6)
+      expect(config.offsets.maxPartySize).toBeDefined()
+      expect(config.offsets.maxPartySize).toBe(6)
 
-      expect(CONSTANTS.PARTY_POKEMON_SIZE).toBeDefined()
-      expect(CONSTANTS.PARTY_POKEMON_SIZE).toBeGreaterThan(0)
+      expect(config.offsets.partyPokemonSize).toBeDefined()
+      expect(config.offsets.partyPokemonSize).toBeGreaterThan(0)
     })
   })
 

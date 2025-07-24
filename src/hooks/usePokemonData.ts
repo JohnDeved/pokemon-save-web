@@ -17,7 +17,7 @@ import {
   PokemonTypeSchema,
 } from '../types'
 
-import { calculateTotalStats, natures } from '@/lib/parser'
+import { calculateTotalStats, natures } from '@/lib/parser/core/utils'
 import { useSaveFileParser } from './useSaveFileParser'
 
 // --- Constants ---
