@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "bin": {
-    "pokemon-save-parser": "src/lib/parser/cli.ts"
+    "pokemon-save-parser": "bin/pokemon-save-parser"
   },
   "files": [
+    "bin/",
     "src/lib/parser/",
     "README.md"
   ],
