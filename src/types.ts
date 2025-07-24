@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { PokemonData } from './lib/parser/pokemonSaveParser'
+import type { PokemonData } from './lib/parser'
 
 // --- Zod schemas for API validation ---
 export const PokemonTypeSchema = z.enum([

@@ -16,12 +16,12 @@ import type {
   SectorInfo,
 } from './types.js'
 
-import type { GameConfig } from './GameConfig.js'
-import { autoDetectGameConfig } from './autoDetect.js'
+import type { GameConfig } from '../configs/GameConfig.js'
+import { autoDetectGameConfig } from '../configs/autoDetect.js'
 
 // Import character map for decoding text
-import charMap from './pokemon_charmap.json'
-import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils'
+import charMap from '../data/pokemon_charmap.json'
+import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils.js'
 
 /**
  * DataView wrapper for little-endian operations with bounds checking

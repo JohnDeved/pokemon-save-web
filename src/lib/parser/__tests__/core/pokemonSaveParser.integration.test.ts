@@ -7,11 +7,11 @@ import { readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { autoDetectGameConfig } from '../autoDetect'
-import { PokemonSaveParser } from '../pokemonSaveParser'
-import { QuetzalConfig } from '../QuetzalConfig'
-import type { SaveData } from '../types'
-import { calculateTotalStats } from '../utils'
+import { autoDetectGameConfig } from '../../configs/autoDetect'
+import { PokemonSaveParser } from '../../core/pokemonSaveParser'
+import { QuetzalConfig } from '../../configs/QuetzalConfig'
+import type { SaveData } from '../../core/types'
+import { calculateTotalStats } from '../../core/utils'
 
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
@@ -34,12 +34,12 @@ describe('PokemonSaveParser - Integration Tests', () => {
 
     try {
       // Load test save file
-      const savePath = resolve(__dirname, 'test_data', 'player1.sav')
+      const savePath = resolve(__dirname, '../test_data', 'player1.sav')
       const saveBuffer = readFileSync(savePath)
       testSaveData = saveBuffer.buffer.slice(saveBuffer.byteOffset, saveBuffer.byteOffset + saveBuffer.byteLength)
 
       // Load ground truth data
-      const groundTruthPath = resolve(__dirname, 'test_data', 'ground_truth.json')
+      const groundTruthPath = resolve(__dirname, '../test_data', 'ground_truth.json')
       const groundTruthContent = readFileSync(groundTruthPath, 'utf-8')
       groundTruth = JSON.parse(groundTruthContent)
 

@@ -4,9 +4,9 @@
  */
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from './GameConfig.js'
-import itemMapData from './mappings/item_map.json'
-import moveMapData from './mappings/move_map.json'
-import pokemonMapData from './mappings/pokemon_map.json'
+import itemMapData from '../data/mappings/item_map.json'
+import moveMapData from '../data/mappings/move_map.json'
+import pokemonMapData from '../data/mappings/pokemon_map.json'
 
 export class QuetzalConfig implements GameConfig {
   readonly name = 'Pokemon Quetzal'

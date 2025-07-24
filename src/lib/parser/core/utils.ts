@@ -3,7 +3,7 @@
  * Converts parsed save data to formats expected by the existing app
  */
 
-import charmapData from './pokemon_charmap.json'
+import charmapData from '../data/pokemon_charmap.json'
 import type { PokemonData } from './pokemonSaveParser'
 
 // Legacy exports for backward compatibility - these functions now require GameConfig to be passed

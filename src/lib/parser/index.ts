@@ -3,18 +3,13 @@
  * Clean exports for the browser-ready TypeScript parser
  */
 
-export { PokemonSaveParser as default, PokemonSaveParser } from './pokemonSaveParser.js'
+// Core parser functionality
+export { PokemonSaveParser as default, PokemonSaveParser, PokemonData } from './core/pokemonSaveParser.js'
 
 export type {
   MoveData, PlayTimeData, PokemonEVs,
   PokemonIVs, PokemonMoves, PokemonStats, SaveData, SectorInfo,
-} from './types.js'
-
-export type { GameConfig, PokemonMapping, ItemMapping, MoveMapping } from './GameConfig.js'
-
-export { QuetzalConfig } from './QuetzalConfig.js'
-export { VanillaConfig } from './VanillaConfig.js'
-export { autoDetectGameConfig, getAllGameConfigs, createGameConfigByName } from './autoDetect.js'
+} from './core/types.js'
 
 export {
   CONSTANTS,
@@ -24,4 +19,17 @@ export {
   getTotalIVs, pokemonEVsToArray,
   pokemonIVsToArray,
   pokemonStatsToArray,
-} from './types.js'
+} from './core/types.js'
+
+// Utility functions
+export {
+  bytesToGbaString, getPokemonNature, natureEffects, statStrings,
+  natures, calculateTotalStats, calculateTotalStatsDirect, getItemSpriteUrl
+} from './core/utils.js'
+
+// Game configuration system
+export type { GameConfig, PokemonMapping, ItemMapping, MoveMapping } from './configs/GameConfig.js'
+
+export { QuetzalConfig } from './configs/QuetzalConfig.js'
+export { VanillaConfig } from './configs/VanillaConfig.js'
+export { autoDetectGameConfig, getAllGameConfigs, createGameConfigByName } from './configs/autoDetect.js'

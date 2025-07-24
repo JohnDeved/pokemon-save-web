@@ -1,5 +1,5 @@
 import type { usePokemonData } from '@/hooks'
-import { getItemSpriteUrl, natures } from '@/lib/parser/utils'
+import { getItemSpriteUrl, natures } from '@/lib/parser'
 import { FaHashtag, FaWandMagicSparkles } from 'react-icons/fa6'
 import { IoSparkles } from 'react-icons/io5'
 import type { Pokemon } from '../../types'
