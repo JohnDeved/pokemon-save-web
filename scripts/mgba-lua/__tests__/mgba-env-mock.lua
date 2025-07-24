@@ -20,9 +20,11 @@ _G.console = {
     log = function(msg)
         local str_msg = tostring(msg)
         print("[CONSOLE] " .. str_msg)
+        io.flush() -- Ensure output is flushed immediately
     end,
     error = function(msg)
         print("[ERROR] " .. tostring(msg))
+        io.flush()
     end
 }
 
@@ -30,6 +32,7 @@ _G.console = {
 local SERVER_STATE = {
     server = nil,
     clients = {},
+    pending_clients = {},
     running = false
 }
 
@@ -82,27 +85,18 @@ _G.socket = {
                 print("[MOCK] Listen successful, server should be ready")
                 SERVER_STATE.running = true
                 
-                -- Simple accept loop
-                coroutine.wrap(function()
-                    while SERVER_STATE.running do
-                        self._socket:settimeout(0.1) -- Short timeout
-                        local client, err = self._socket:accept()
-                        if client then
-                            print("[MOCK] Client connected")
-                            if self._callbacks.received then
-                                self._callbacks.received()
-                            end
-                        end
-                    end
-                end)()
+                -- Just set up non-blocking accept, don't start any loops here
+                self._socket:settimeout(0)
                 
-                -- Return success - this should trigger the callback
-                return true
+                return true -- Return immediately - this is key!
             end,
             
             accept = function(self)
-                local client, err = self._socket:accept()
-                if client then
+                print("[MOCK] HTTP server calling accept()")
+                -- First, check if we have any pending clients
+                if SERVER_STATE.pending_clients and #SERVER_STATE.pending_clients > 0 then
+                    local client = table.remove(SERVER_STATE.pending_clients, 1)
+                    print("[MOCK] Returning pending client connection")
                     client:settimeout(0)
                     
                     local client_id = #SERVER_STATE.clients + 1
@@ -114,26 +108,37 @@ _G.socket = {
                         _data_buffer = "",
                         
                         add = function(self, event, callback)
+                            print("[MOCK] Adding " .. event .. " callback to client " .. self._id)
                             self._callbacks[event] = callback
+                            
+                            -- For received callback, trigger it immediately since data should be available
+                            if event == "received" then
+                                print("[MOCK] Triggering received callback immediately for client " .. self._id)
+                                callback()
+                            end
                         end,
                         
                         receive = function(self, count)
-                            local data, err = self._socket:receive(count)
+                            local data, err = self._socket:receive(count or "*l")
                             if data then
+                                print("[MOCK] Client " .. self._id .. " received " .. #data .. " bytes")
                                 return data
                             else
                                 if err == "timeout" then
                                     return nil, _G.socket.ERRORS.AGAIN
                                 end
+                                print("[MOCK] Client " .. self._id .. " receive error: " .. tostring(err))
                                 return nil, err
                             end
                         end,
                         
                         send = function(self, data)
+                            print("[MOCK] Client " .. self._id .. " sending " .. #data .. " bytes")
                             return self._socket:send(data)
                         end,
                         
                         close = function(self)
+                            print("[MOCK] Closing client " .. self._id)
                             if self._socket then
                                 self._socket:close()
                                 self._socket = nil
@@ -144,10 +149,8 @@ _G.socket = {
                     SERVER_STATE.clients[client_id] = mock_client
                     return mock_client
                 else
-                    if err == "timeout" then
-                        return nil, _G.socket.ERRORS.AGAIN
-                    end
-                    return nil, err
+                    -- No pending clients
+                    return nil, _G.socket.ERRORS.AGAIN
                 end
             end,
             
@@ -156,6 +159,8 @@ _G.socket = {
                 return self._socket:close()
             end
         }
+        
+        SERVER_STATE.server = mock_server
         
         return mock_server
     end
@@ -234,6 +239,12 @@ end
 
 print("Code loaded, executing...")
 
+-- Add debugging for server startup path
+local old_start_server = nil
+if type(start_server) == "function" then
+    print("[MOCK] start_server function found")
+end
+
 -- Execute the server code
 local ok, exec_err = pcall(modified_chunk)
 if not ok then
@@ -241,9 +252,50 @@ if not ok then
     os.exit(1)
 end
 
+print("HTTP server code executed successfully")
 print("HTTP server should now be running on port " .. test_port)
 
--- Keep the server running
+-- Start the event loop to handle connections
+print("[MOCK] Starting event loop...")
+
+-- Main event loop
+local loop_count = 0
 while SERVER_STATE.running do
-    socket.sleep(0.1)
+    loop_count = loop_count + 1
+    if loop_count % 1000 == 0 then
+        print("[MOCK] Event loop iteration " .. loop_count)
+    end
+    
+    -- Check for new connections on the server socket
+    if SERVER_STATE.server and SERVER_STATE.server._socket then
+        SERVER_STATE.server._socket:settimeout(0) -- Ensure non-blocking
+        local client, err = SERVER_STATE.server._socket:accept()
+        if client then
+            print("[MOCK] New client connected, setting up pending connection")
+            -- Don't consume the connection here, just note that one is available
+            -- Put the client back by closing it and letting the server accept handle it
+            -- Actually, let's store pending connections
+            if not SERVER_STATE.pending_clients then
+                SERVER_STATE.pending_clients = {}
+            end
+            table.insert(SERVER_STATE.pending_clients, client)
+            
+            print("[MOCK] Triggering server received callback")
+            -- Trigger the server's "received" callback
+            if SERVER_STATE.server._callbacks.received then
+                SERVER_STATE.server._callbacks.received()
+            end
+        elseif err and err ~= "timeout" then
+            print("[MOCK] Server accept error: " .. tostring(err))
+        end
+    else
+        if loop_count % 1000 == 0 then
+            print("[MOCK] No server socket available")
+        end
+    end
+    
+    -- Small delay to prevent busy waiting
+    socket.sleep(0.01)
 end
+
+print("[MOCK] Event loop ended, server stopping...")

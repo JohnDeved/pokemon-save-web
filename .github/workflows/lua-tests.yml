@@ -72,19 +72,12 @@ jobs:
           fi
       
       - name: Run Lua HTTP Server integration tests
-        continue-on-error: true
         run: |
           echo "Running Lua HTTP Server integration tests..."
           npm run test:run scripts/mgba-lua/__tests__/lua-http-server.integration.test.ts
         env:
           # Ensure tests run in CI environment
           CI: true
-      
-      - name: Validate test results
-        run: |
-          echo "🎯 Lua HTTP Server test workflow completed"
-          echo "Note: Integration tests may show partial failures while being refined"
-          echo "The smoke test above validates core server functionality"
       
       - name: Upload test results
         if: always()
