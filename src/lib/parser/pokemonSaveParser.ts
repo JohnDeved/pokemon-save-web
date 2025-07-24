@@ -157,25 +157,25 @@ export class PokemonData {
   get rawBytes () { return new Uint8Array(this.data) }
 
   // Mapping functions that use the injected config
-  private mapSpeciesToPokeId(speciesId: number): number {
+  private mapSpeciesToPokeId (speciesId: number): number {
     return this.config.mappings.pokemon.get(speciesId)?.id ?? speciesId
   }
 
-  private mapSpeciesToNameId(speciesId: number): string | undefined {
+  private mapSpeciesToNameId (speciesId: number): string | undefined {
     return this.config.mappings.pokemon.get(speciesId)?.id_name
   }
 
-  private mapMoveToPokeId(moveId: number): number {
+  private mapMoveToPokeId (moveId: number): number {
     const mapped = this.config.mappings.moves.get(moveId)?.id
     return mapped ?? moveId
   }
 
-  private mapItemToPokeId(itemId: number): number {
+  private mapItemToPokeId (itemId: number): number {
     const mapped = this.config.mappings.items.get(itemId)?.id
     return mapped ?? itemId
   }
 
-  private mapItemToNameId(itemId: number): string | undefined {
+  private mapItemToNameId (itemId: number): string | undefined {
     return this.config.mappings.items.get(itemId)?.id_name
   }
 
@@ -710,14 +710,14 @@ export class PokemonSaveParser {
   /**
    * Get the current game configuration
    */
-  getGameConfig(): GameConfig | null {
+  getGameConfig (): GameConfig | null {
     return this.config
   }
 
   /**
    * Set the game configuration (useful for testing or manual override)
    */
-  setGameConfig(config: GameConfig): void {
+  setGameConfig (config: GameConfig): void {
     this.config = config
   }
 

@@ -56,7 +56,7 @@ describe('PokemonSaveParser - Integration Tests', () => {
     it('should auto-detect Quetzal config from save file', () => {
       const saveData = new Uint8Array(testSaveData)
       const detectedConfig = autoDetectGameConfig(saveData)
-      
+
       expect(detectedConfig).not.toBeNull()
       expect(detectedConfig).toBeInstanceOf(QuetzalConfig)
       expect(detectedConfig!.name).toBe('Pokemon Quetzal')
@@ -65,7 +65,7 @@ describe('PokemonSaveParser - Integration Tests', () => {
     it('should use auto-detected config in parser', async () => {
       const autoDetectParser = new PokemonSaveParser()
       const result = await autoDetectParser.parseSaveFile(testSaveData)
-      
+
       expect(autoDetectParser.getGameConfig()).toBeInstanceOf(QuetzalConfig)
       expect(autoDetectParser.getGameConfig()!.name).toBe('Pokemon Quetzal')
       expect(result.party_pokemon).toHaveLength(groundTruth.party_pokemon.length)

@@ -50,13 +50,13 @@ export interface GameConfig {
     readonly items: ReadonlyMap<number, ItemMapping>
     readonly moves: ReadonlyMap<number, MoveMapping>
   }
-  
+
   /**
    * Game-specific logic for determining save slot based on counters
    * Returns the starting sector index for the active slot
    */
   determineActiveSlot(getCounterSum: (range: number[]) => number): number
-  
+
   /**
    * Game-specific validation of save file format
    * Returns true if this config can handle the given save data

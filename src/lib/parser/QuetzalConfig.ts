@@ -11,7 +11,7 @@ import pokemonMapData from './mappings/pokemon_map.json'
 export class QuetzalConfig implements GameConfig {
   readonly name = 'Pokemon Quetzal'
   readonly signature = 0x08012025 // EMERALD_SIGNATURE
-  
+
   readonly offsets = {
     sectorSize: 4096,
     sectorDataSize: 3968,
@@ -35,20 +35,20 @@ export class QuetzalConfig implements GameConfig {
     moves: this.createMoveMap(),
   } as const
 
-  private createPokemonMap(): ReadonlyMap<number, PokemonMapping> {
+  private createPokemonMap (): ReadonlyMap<number, PokemonMapping> {
     const map = new Map<number, PokemonMapping>()
     const data = pokemonMapData as Record<string, PokemonMapping>
-    
+
     for (const [key, value] of Object.entries(data)) {
       map.set(parseInt(key, 10), value)
     }
     return map
   }
 
-  private createItemMap(): ReadonlyMap<number, ItemMapping> {
+  private createItemMap (): ReadonlyMap<number, ItemMapping> {
     const map = new Map<number, ItemMapping>()
     const data = itemMapData as Record<string, ItemMapping>
-    
+
     for (const [key, value] of Object.entries(data)) {
       // Skip entries with null IDs
       if (value.id !== null) {
@@ -58,10 +58,10 @@ export class QuetzalConfig implements GameConfig {
     return map
   }
 
-  private createMoveMap(): ReadonlyMap<number, MoveMapping> {
+  private createMoveMap (): ReadonlyMap<number, MoveMapping> {
     const map = new Map<number, MoveMapping>()
     const data = moveMapData as Record<string, MoveMapping>
-    
+
     for (const [key, value] of Object.entries(data)) {
       // Skip entries with null IDs
       if (value.id !== null) {
@@ -75,12 +75,12 @@ export class QuetzalConfig implements GameConfig {
    * Quetzal-specific logic for determining active save slot
    * Uses the same logic as the original parser
    */
-  determineActiveSlot(getCounterSum: (range: number[]) => number): number {
+  determineActiveSlot (getCounterSum: (range: number[]) => number): number {
     const slot1Range = Array.from({ length: 18 }, (_, i) => i)
     const slot2Range = Array.from({ length: 18 }, (_, i) => i + 14)
     const slot1Sum = getCounterSum(slot1Range)
     const slot2Sum = getCounterSum(slot2Range)
-    
+
     return slot2Sum >= slot1Sum ? 14 : 0
   }
 
@@ -88,7 +88,7 @@ export class QuetzalConfig implements GameConfig {
    * Check if this config can handle the given save file
    * For Quetzal, we check for the Emerald signature and specific characteristics
    */
-  canHandle(saveData: Uint8Array): boolean {
+  canHandle (saveData: Uint8Array): boolean {
     // Basic size check
     if (saveData.length < this.offsets.totalSectors * this.offsets.sectorSize) {
       return false
@@ -97,7 +97,7 @@ export class QuetzalConfig implements GameConfig {
     // Check for at least one valid sector with Emerald signature
     for (let i = 0; i < this.offsets.totalSectors; i++) {
       const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
-      
+
       if (footerOffset + this.offsets.sectorFooterSize > saveData.length) {
         continue
       }
@@ -105,7 +105,7 @@ export class QuetzalConfig implements GameConfig {
       try {
         const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
         const signature = view.getUint32(4, true)
-        
+
         if (signature === this.signature) {
           return true
         }

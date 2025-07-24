@@ -172,7 +172,7 @@ describe('PokemonSaveParser - Unit Tests', () => {
     it('should allow config to be set after construction', () => {
       const parser = new PokemonSaveParser()
       expect(parser.getGameConfig()).toBe(null)
-      
+
       parser.setGameConfig(config)
       expect(parser.getGameConfig()).toBe(config)
     })

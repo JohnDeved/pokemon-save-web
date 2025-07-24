@@ -17,7 +17,7 @@ export function mapSpeciesToPokeId (speciesId: number): number {
   return speciesId
 }
 
-export function mapSpeciesToNameId (speciesId: number): string | undefined {
+export function mapSpeciesToNameId (_speciesId: number): string | undefined {
   console.warn('mapSpeciesToNameId is deprecated. Use GameConfig mappings directly.')
   return undefined
 }
@@ -32,7 +32,7 @@ export function mapItemToPokeId (itemId: number): number {
   return itemId
 }
 
-export function mapItemToNameId (itemId: number): string | undefined {
+export function mapItemToNameId (_itemId: number): string | undefined {
   console.warn('mapItemToNameId is deprecated. Use GameConfig mappings directly.')
   return undefined
 }
@@ -254,12 +254,12 @@ export function calculateTotalStatsDirect (
  * @param maxPartySize Maximum party size
  */
 export function updatePartyInSaveblock1 (
-  saveblock1: Uint8Array, 
+  saveblock1: Uint8Array,
   party: PokemonData[],
   partyStartOffset: number,
   partyPokemonSize: number,
   saveblock1Size: number,
-  maxPartySize: number
+  maxPartySize: number,
 ): Uint8Array {
   if (saveblock1.length < saveblock1Size) {
     throw new Error(`SaveBlock1 must be at least ${saveblock1Size} bytes`)
