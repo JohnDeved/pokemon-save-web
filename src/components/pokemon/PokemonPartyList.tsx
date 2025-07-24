@@ -1,10 +1,10 @@
 import { QuetzalConfig } from '../../lib/parser/games/quetzal/config'
-
-// Use Quetzal config for constants since that's what most users will be using
-const config = new QuetzalConfig()
 import type { Pokemon } from '../../types'
 import { PokemonStatus } from './PokemonStatus'
 import { PokemonStatusPlaceholder } from './PokemonStatusPlaceholder'
+
+// Use Quetzal config for constants since that's what most users will be using
+const config = new QuetzalConfig()
 
 interface PokemonPartyListProps {
   partyList: Pokemon[]
