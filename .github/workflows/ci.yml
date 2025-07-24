@@ -1,0 +1,172 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+
+jobs:
+  # Skip if only documentation changes
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+      docs: ${{ steps.changes.outputs.docs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            code:
+              - 'src/**'
+              - 'package*.json'
+              - '*.config.*'
+              - 'tsconfig*.json'
+              - '.eslintrc*'
+              - '.eslintignore'
+              - 'index.html'
+              - 'public/**'
+            docs:
+              - '**.md'
+              - 'docs/**'
+
+  lint:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+  test:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:run
+
+  build:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run build
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: build-artifacts
+          path: dist/
+          retention-days: 7
+
+  # CLI testing specifically for npx usage
+  cli-test:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test CLI functionality
+        run: |
+          # Test string conversion utilities
+          npm run parse -- --toBytes=PIKACHU
+          npm run parse -- --toString="ca c3 c5 bb bd c2 cf"
+          
+          # Test help output
+          npm run parse -- --help || true
+
+      - name: Test NPX compatibility (dry run)
+        run: |
+          # Pack the package to test npm compatibility
+          npm pack --dry-run
+
+  # Summary job that depends on all others
+  ci-complete:
+    needs: [changes, lint, test, build, cli-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CI status
+        run: |
+          if [[ "${{ needs.changes.outputs.code }}" == "false" ]]; then
+            echo "✅ No code changes detected, skipping CI checks"
+            exit 0
+          fi
+          
+          if [[ "${{ needs.lint.result }}" == "failure" ]]; then
+            echo "❌ Lint check failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.test.result }}" == "failure" ]]; then
+            echo "❌ Tests failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.build.result }}" == "failure" ]]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.cli-test.result }}" == "failure" ]]; then
+            echo "❌ CLI tests failed"
+            exit 1
+          fi
+          
+          echo "✅ All CI checks passed!"
