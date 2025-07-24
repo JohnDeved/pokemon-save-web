@@ -3,6 +3,9 @@
  * Defines the contract for game-specific parsing configuration
  */
 
+// Import types from core module
+import type { MoveData, PokemonMoves } from '../core/types.js'
+
 // Type definitions for mapping objects
 export interface PokemonMapping {
   readonly name: string
@@ -21,9 +24,6 @@ export interface MoveMapping {
   readonly id_name: string
   readonly id: number | null // Allow null for unmapped moves
 }
-
-// Import types from core module
-import type { MoveData, PokemonMoves } from '../core/types.js'
 
 // Forward declaration for PokemonDataInterface
 export interface PokemonDataInterface {

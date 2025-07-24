@@ -309,11 +309,7 @@ export abstract class BasePokemonData implements PokemonDataInterface {
   abstract set ivs (values: readonly number[])
   abstract get isShiny (): boolean
   abstract get shinyNumber (): number
-
-  // Default implementation for isRadiant (can be overridden)
-  get isRadiant (): boolean {
-    return false // Default: only Quetzal supports radiant Pokemon
-  }
+  abstract get isRadiant (): boolean
 }
 
 /**
@@ -393,5 +389,11 @@ export class VanillaPokemonData extends BasePokemonData {
   get isShiny (): boolean {
     // Standard Gen 3: Pokemon is shiny if shiny value < 8
     return this.shinyNumber < 8
+  }
+
+  // eslint-disable-next-line @typescript-eslint/class-literal-property-style
+  get isRadiant (): boolean {
+    // Vanilla Pokemon don't have radiant status
+    return false
   }
 }
