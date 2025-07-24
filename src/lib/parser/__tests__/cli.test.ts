@@ -41,8 +41,9 @@ describe('Parser CLI Tests', () => {
 
       try {
         execSync(`tsx "${cliPath}"`, { encoding: 'utf8', stdio: 'pipe' })
-      } catch (error: any) {
-        const output = error.stderr || error.stdout
+      } catch (error: unknown) {
+        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        const output = execError.stderr ?? execError.stdout
         expect(output).toContain('Usage: tsx cli.ts <savefile.sav> [options]')
         expect(output).toContain('--debug')
         expect(output).toContain('--graph')
@@ -59,10 +60,11 @@ describe('Parser CLI Tests', () => {
 
       try {
         execSync(`tsx "${cliPath}" nonexistent.sav`, { encoding: 'utf8', stdio: 'pipe' })
-      } catch (error: any) {
-        const output = error.stderr || error.stdout
+      } catch (error: unknown) {
+        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        const output = execError.stderr ?? execError.stdout
         expect(output).toContain('Usage: tsx cli.ts <savefile.sav> [options]')
-        expect(error.status).toBe(1)
+        expect(execError.status).toBe(1)
       }
     })
   })
@@ -117,9 +119,10 @@ describe('Parser CLI Tests', () => {
 
       try {
         execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
-      } catch (error: any) {
-        expect(error.stderr || error.stdout).toContain('Failed to parse save file:')
-        expect(error.status).toBe(1)
+      } catch (error: unknown) {
+        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        expect(execError.stderr ?? execError.stdout).toContain('Failed to parse save file:')
+        expect(execError.status).toBe(1)
       }
     })
   })
