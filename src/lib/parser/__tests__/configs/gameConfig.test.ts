@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { autoDetectGameConfig, QuetzalConfig, VanillaConfig, type GameConfig } from '../../configs'
+import { autoDetectGameConfig, QuetzalConfig, VanillaConfig } from '../../configs'
 
 describe('Game Configuration Module', () => {
   describe('QuetzalConfig', () => {

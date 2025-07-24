@@ -30,6 +30,6 @@ export {
 // Game configuration system
 export type { GameConfig, PokemonMapping, ItemMapping, MoveMapping } from './configs/GameConfig.js'
 
-export { QuetzalConfig } from './configs/QuetzalConfig.js'
-export { VanillaConfig } from './configs/VanillaConfig.js'
+export { QuetzalConfig } from './configs/index.js'
+export { VanillaConfig } from './configs/index.js'
 export { autoDetectGameConfig, getAllGameConfigs, createGameConfigByName } from './configs/autoDetect.js'

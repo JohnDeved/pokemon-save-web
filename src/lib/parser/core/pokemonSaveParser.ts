@@ -107,53 +107,53 @@ export class PokemonData {
     this.view = new SafeDataView(data.buffer, data.byteOffset, data.byteLength)
   }
 
-  get personality () { return this.view.getUint32(0x00) }
-  get natureRaw () { return this.view.getUint8(0x00) }
-  set natureRaw (value: number) { this.view.setUint8(0x00, value) }
-  get otId () { return this.view.getUint32(0x04) }
-  get nicknameRaw () { return this.view.getBytes(0x08, this.config.offsets.pokemonNicknameLength) }
-  get otNameRaw () { return this.view.getBytes(0x14, this.config.offsets.pokemonTrainerNameLength) }
-  get currentHp () { return this.view.getUint16(0x23) }
-  get speciesId () { return this.mapSpeciesToPokeId(this.view.getUint16(0x28)) }
-  get nameId () { return this.mapSpeciesToNameId(this.view.getUint16(0x28)) }
-  get item () { return this.mapItemToPokeId(this.view.getUint16(0x2A)) }
-  get itemIdName () { return this.mapItemToNameId(this.view.getUint16(0x2A)) }
-  get move1 () { return this.mapMoveToPokeId(this.view.getUint16(0x34)) }
-  get move2 () { return this.mapMoveToPokeId(this.view.getUint16(0x36)) }
-  get move3 () { return this.mapMoveToPokeId(this.view.getUint16(0x38)) }
-  get move4 () { return this.mapMoveToPokeId(this.view.getUint16(0x3A)) }
-  get pp1 () { return this.view.getUint8(0x3C) }
-  get pp2 () { return this.view.getUint8(0x3D) }
-  get pp3 () { return this.view.getUint8(0x3E) }
-  get pp4 () { return this.view.getUint8(0x3F) }
-  get hpEV () { return this.view.getUint8(0x40) }
-  set hpEV (value) { this.view.setUint8(0x40, value) }
-  get atkEV () { return this.view.getUint8(0x41) }
-  set atkEV (value) { this.view.setUint8(0x41, value) }
-  get defEV () { return this.view.getUint8(0x42) }
-  set defEV (value) { this.view.setUint8(0x42, value) }
-  get speEV () { return this.view.getUint8(0x43) }
-  set speEV (value) { this.view.setUint8(0x43, value) }
-  get spaEV () { return this.view.getUint8(0x44) }
-  set spaEV (value) { this.view.setUint8(0x44, value) }
-  get spdEV () { return this.view.getUint8(0x45) }
-  set spdEV (value) { this.view.setUint8(0x45, value) }
-  get ivData () { return this.view.getUint32(0x50) }
-  set ivData (value) { this.view.setUint32(0x50, value) }
-  get status () { return this.view.getUint8(0x57) }
-  get level () { return this.view.getUint8(0x58) }
-  get maxHp () { return this.view.getUint16(0x5A) }
-  set maxHp (value) { this.view.setUint16(0x5A, value) }
-  get attack () { return this.view.getUint16(0x5C) }
-  set attack (value) { this.view.setUint16(0x5C, value) }
-  get defense () { return this.view.getUint16(0x5E) }
-  set defense (value) { this.view.setUint16(0x5E, value) }
-  get speed () { return this.view.getUint16(0x60) }
-  set speed (value) { this.view.setUint16(0x60, value) }
-  get spAttack () { return this.view.getUint16(0x62) }
-  set spAttack (value) { this.view.setUint16(0x62, value) }
-  get spDefense () { return this.view.getUint16(0x64) }
-  set spDefense (value) { this.view.setUint16(0x64, value) }
+  get personality () { return this.view.getUint32(this.config.offsets.pokemonData.personality) }
+  get natureRaw () { return this.view.getUint8(this.config.offsets.pokemonData.personality) }
+  set natureRaw (value: number) { this.view.setUint8(this.config.offsets.pokemonData.personality, value) }
+  get otId () { return this.view.getUint32(this.config.offsets.pokemonData.otId) }
+  get nicknameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.nickname, this.config.offsets.pokemonNicknameLength) }
+  get otNameRaw () { return this.view.getBytes(this.config.offsets.pokemonData.otName, this.config.offsets.pokemonTrainerNameLength) }
+  get currentHp () { return this.view.getUint16(this.config.offsets.pokemonData.currentHp) }
+  get speciesId () { return this.mapSpeciesToPokeId(this.view.getUint16(this.config.offsets.pokemonData.speciesId)) }
+  get nameId () { return this.mapSpeciesToNameId(this.view.getUint16(this.config.offsets.pokemonData.speciesId)) }
+  get item () { return this.mapItemToPokeId(this.view.getUint16(this.config.offsets.pokemonData.item)) }
+  get itemIdName () { return this.mapItemToNameId(this.view.getUint16(this.config.offsets.pokemonData.item)) }
+  get move1 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.moves[0])) }
+  get move2 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.moves[1])) }
+  get move3 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.moves[2])) }
+  get move4 () { return this.mapMoveToPokeId(this.view.getUint16(this.config.offsets.pokemonData.moves[3])) }
+  get pp1 () { return this.view.getUint8(this.config.offsets.pokemonData.ppValues[0]) }
+  get pp2 () { return this.view.getUint8(this.config.offsets.pokemonData.ppValues[1]) }
+  get pp3 () { return this.view.getUint8(this.config.offsets.pokemonData.ppValues[2]) }
+  get pp4 () { return this.view.getUint8(this.config.offsets.pokemonData.ppValues[3]) }
+  get hpEV () { return this.view.getUint8(this.config.offsets.pokemonData.evs[0]) }
+  set hpEV (value) { this.view.setUint8(this.config.offsets.pokemonData.evs[0], value) }
+  get atkEV () { return this.view.getUint8(this.config.offsets.pokemonData.evs[1]) }
+  set atkEV (value) { this.view.setUint8(this.config.offsets.pokemonData.evs[1], value) }
+  get defEV () { return this.view.getUint8(this.config.offsets.pokemonData.evs[2]) }
+  set defEV (value) { this.view.setUint8(this.config.offsets.pokemonData.evs[2], value) }
+  get speEV () { return this.view.getUint8(this.config.offsets.pokemonData.evs[3]) }
+  set speEV (value) { this.view.setUint8(this.config.offsets.pokemonData.evs[3], value) }
+  get spaEV () { return this.view.getUint8(this.config.offsets.pokemonData.evs[4]) }
+  set spaEV (value) { this.view.setUint8(this.config.offsets.pokemonData.evs[4], value) }
+  get spdEV () { return this.view.getUint8(this.config.offsets.pokemonData.evs[5]) }
+  set spdEV (value) { this.view.setUint8(this.config.offsets.pokemonData.evs[5], value) }
+  get ivData () { return this.view.getUint32(this.config.offsets.pokemonData.ivData) }
+  set ivData (value) { this.view.setUint32(this.config.offsets.pokemonData.ivData, value) }
+  get status () { return this.view.getUint8(this.config.offsets.pokemonData.status) }
+  get level () { return this.view.getUint8(this.config.offsets.pokemonData.level) }
+  get maxHp () { return this.view.getUint16(this.config.offsets.pokemonData.stats[0]) }
+  set maxHp (value) { this.view.setUint16(this.config.offsets.pokemonData.stats[0], value) }
+  get attack () { return this.view.getUint16(this.config.offsets.pokemonData.stats[1]) }
+  set attack (value) { this.view.setUint16(this.config.offsets.pokemonData.stats[1], value) }
+  get defense () { return this.view.getUint16(this.config.offsets.pokemonData.stats[2]) }
+  set defense (value) { this.view.setUint16(this.config.offsets.pokemonData.stats[2], value) }
+  get speed () { return this.view.getUint16(this.config.offsets.pokemonData.stats[3]) }
+  set speed (value) { this.view.setUint16(this.config.offsets.pokemonData.stats[3], value) }
+  get spAttack () { return this.view.getUint16(this.config.offsets.pokemonData.stats[4]) }
+  set spAttack (value) { this.view.setUint16(this.config.offsets.pokemonData.stats[4], value) }
+  get spDefense () { return this.view.getUint16(this.config.offsets.pokemonData.stats[5]) }
+  set spDefense (value) { this.view.setUint16(this.config.offsets.pokemonData.stats[5], value) }
   get rawBytes () { return new Uint8Array(this.data) }
 
   // Mapping functions that use the injected config

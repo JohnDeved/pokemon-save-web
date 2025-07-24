@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { autoDetectGameConfig } from '../../configs/autoDetect'
 import { PokemonSaveParser } from '../../core/pokemonSaveParser'
-import { QuetzalConfig } from '../../configs/QuetzalConfig'
+import { QuetzalConfig } from '../../configs/index'
 import type { SaveData } from '../../core/types'
 import { calculateTotalStats } from '../../core/utils'
 

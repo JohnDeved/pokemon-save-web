@@ -4,8 +4,8 @@
  */
 
 import type { GameConfig } from './GameConfig.js'
-import { QuetzalConfig } from './QuetzalConfig.js'
-import { VanillaConfig } from './VanillaConfig.js'
+import { QuetzalConfig } from '../games/quetzal/index.js'
+import { VanillaConfig } from '../games/vanilla/index.js'
 
 /**
  * Available game configurations
