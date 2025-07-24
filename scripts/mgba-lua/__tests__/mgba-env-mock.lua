@@ -106,29 +106,43 @@ _G.socket = {
                         _id = client_id,
                         _callbacks = {},
                         _data_buffer = "",
+                        _pending_data = "",
                         
                         add = function(self, event, callback)
                             print("[MOCK] Adding " .. event .. " callback to client " .. self._id)
                             self._callbacks[event] = callback
                             
-                            -- For received callback, trigger it immediately since data should be available
-                            if event == "received" then
-                                print("[MOCK] Triggering received callback immediately for client " .. self._id)
-                                callback()
-                            end
+                            -- Don't trigger received callback immediately - wait for actual data
                         end,
                         
                         receive = function(self, count)
-                            local data, err = self._socket:receive(count or "*l")
-                            if data then
-                                print("[MOCK] Client " .. self._id .. " received " .. #data .. " bytes")
-                                return data
-                            else
-                                if err == "timeout" then
-                                    return nil, _G.socket.ERRORS.AGAIN
+                            -- Check if we have pending data first
+                            if self._pending_data and #self._pending_data > 0 then
+                                if count then
+                                    if #self._pending_data >= count then
+                                        -- Return requested amount and keep the rest
+                                        local result = self._pending_data:sub(1, count)
+                                        self._pending_data = self._pending_data:sub(count + 1)
+                                        print("[MOCK] Client " .. self._id .. " returning " .. #result .. " bytes from pending data")
+                                        return result
+                                    else
+                                        -- Return all pending data
+                                        local result = self._pending_data
+                                        self._pending_data = ""
+                                        print("[MOCK] Client " .. self._id .. " returning all " .. #result .. " pending bytes")
+                                        return result
+                                    end
+                                else
+                                    -- Return all pending data
+                                    local result = self._pending_data
+                                    self._pending_data = ""
+                                    print("[MOCK] Client " .. self._id .. " returning all " .. #result .. " pending bytes")
+                                    return result
                                 end
-                                print("[MOCK] Client " .. self._id .. " receive error: " .. tostring(err))
-                                return nil, err
+                            else
+                                -- No pending data
+                                print("[MOCK] Client " .. self._id .. " no pending data, returning AGAIN")
+                                return nil, _G.socket.ERRORS.AGAIN
                             end
                         end,
                         
@@ -291,6 +305,27 @@ while SERVER_STATE.running do
     else
         if loop_count % 1000 == 0 then
             print("[MOCK] No server socket available")
+        end
+    end
+    
+    -- Check for data on existing client connections
+    for client_id, mock_client in pairs(SERVER_STATE.clients) do
+        if mock_client._socket and mock_client._callbacks.received then
+            -- Check if there's data available to read
+            mock_client._socket:settimeout(0)
+            local data, err = mock_client._socket:receive("*a")
+            if data and #data > 0 then
+                -- There's data available, store it and trigger callback
+                mock_client._pending_data = (mock_client._pending_data or "") .. data
+                print("[MOCK] Client " .. client_id .. " received " .. #data .. " bytes of data, triggering received callback")
+                mock_client._callbacks.received()
+            elseif err and err ~= "timeout" then
+                print("[MOCK] Client " .. client_id .. " disconnected: " .. tostring(err))
+                -- Trigger error callback
+                if mock_client._callbacks.error then
+                    mock_client._callbacks.error()
+                end
+            end
         end
     end
     
