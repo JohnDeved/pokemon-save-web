@@ -262,7 +262,7 @@ export const usePokemonData = () => {
 
       // Directly mutate the class instance
       p.data.setEvByIndex(statIndex, finalEvValue)
-      p.data.stats = calculateTotalStats(p.data, p.details.baseStats)
+      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
       // Return a new object reference for React to detect change
       return { ...p }
     }))
@@ -278,7 +278,7 @@ export const usePokemonData = () => {
 
       // Directly mutate the class instance
       p.data.setIvByIndex(statIndex, ivValue)
-      p.data.stats = calculateTotalStats(p.data, p.details.baseStats)
+      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
       // Return a new object reference for React to detect change
       return { ...p }
     }))
@@ -292,9 +292,9 @@ export const usePokemonData = () => {
       if (p.id !== pokemonId || !p.details) return p
       // Only update if the value actually changed
       if (p.data.natureRaw === natureValue) return p
-      p.data.natureRaw = natureValue
+      p.data.setNatureRaw(natureValue)
       // Optionally, recalculate stats if needed
-      p.data.stats = calculateTotalStats(p.data, p.details.baseStats)
+      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
       return { ...p }
     }))
   }, [])

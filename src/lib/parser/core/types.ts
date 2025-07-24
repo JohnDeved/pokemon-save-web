@@ -3,7 +3,7 @@
  * Port of poke_types.py with modern TypeScript features
  */
 
-import type { PokemonData } from './pokemonSaveParser'
+import type { PokemonDataInterface } from '../configs/GameConfig.js'
 
 // Core data structures
 export interface PlayTimeData {
@@ -61,7 +61,7 @@ export interface SectorInfo {
 
 // Complete save data structure
 export interface SaveData {
-  readonly party_pokemon: readonly PokemonData[]
+  readonly party_pokemon: readonly PokemonDataInterface[]
   readonly player_name: string
   readonly play_time: PlayTimeData
   readonly active_slot: number

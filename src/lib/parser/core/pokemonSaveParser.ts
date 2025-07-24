@@ -3,25 +3,17 @@
  * TypeScript port of pokemon_save_parser.py with modern browser-compatible features
  */
 
-import {
-  createMoveData,
-  createPokemonMoves,
-} from './types.js'
-
 import type {
-  MoveData,
   PlayTimeData,
-  PokemonMoves,
   SaveData,
   SectorInfo,
 } from './types.js'
 
-import type { GameConfig } from '../configs/GameConfig.js'
+import type { GameConfig, PokemonDataInterface } from '../configs/GameConfig.js'
 import { autoDetectGameConfig } from '../configs/autoDetect.js'
 
 // Import character map for decoding text
 import charMap from '../data/pokemon_charmap.json'
-import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils'
 
 /**
  * DataView wrapper for little-endian operations with bounds checking
@@ -97,248 +89,6 @@ class SafeDataView {
 /**
  * Parses raw Pokemon data from save file bytes into structured format
  */
-export class PokemonData {
-  readonly view: SafeDataView
-
-  constructor (private readonly data: Uint8Array, private readonly config: GameConfig) {
-    if (data.length < config.offsets.partyPokemonSize) {
-      throw new Error(`Insufficient data for Pokemon: ${data.length} bytes`)
-    }
-    this.view = new SafeDataView(data.buffer, data.byteOffset, data.byteLength)
-  }
-
-  get personality () { return this.view.getUint32(0x00) }
-  get natureRaw () { return this.view.getUint8(0x00) }
-  set natureRaw (value: number) { this.view.setUint8(0x00, value) }
-  get otId () { return this.view.getUint32(0x04) }
-  get nicknameRaw () { return this.view.getBytes(0x08, this.config.offsets.pokemonNicknameLength) }
-  get otNameRaw () { return this.view.getBytes(0x14, this.config.offsets.pokemonTrainerNameLength) }
-  get currentHp () { return this.view.getUint16(0x23) }
-  get speciesId () { return this.mapSpeciesToPokeId(this.view.getUint16(0x28)) }
-  get nameId () { return this.mapSpeciesToNameId(this.view.getUint16(0x28)) }
-  get item () { return this.mapItemToPokeId(this.view.getUint16(0x2A)) }
-  get itemIdName () { return this.mapItemToNameId(this.view.getUint16(0x2A)) }
-  get move1 () { return this.mapMoveToPokeId(this.view.getUint16(0x34)) }
-  get move2 () { return this.mapMoveToPokeId(this.view.getUint16(0x36)) }
-  get move3 () { return this.mapMoveToPokeId(this.view.getUint16(0x38)) }
-  get move4 () { return this.mapMoveToPokeId(this.view.getUint16(0x3A)) }
-  get pp1 () { return this.view.getUint8(0x3C) }
-  get pp2 () { return this.view.getUint8(0x3D) }
-  get pp3 () { return this.view.getUint8(0x3E) }
-  get pp4 () { return this.view.getUint8(0x3F) }
-  get hpEV () { return this.view.getUint8(0x40) }
-  set hpEV (value) { this.view.setUint8(0x40, value) }
-  get atkEV () { return this.view.getUint8(0x41) }
-  set atkEV (value) { this.view.setUint8(0x41, value) }
-  get defEV () { return this.view.getUint8(0x42) }
-  set defEV (value) { this.view.setUint8(0x42, value) }
-  get speEV () { return this.view.getUint8(0x43) }
-  set speEV (value) { this.view.setUint8(0x43, value) }
-  get spaEV () { return this.view.getUint8(0x44) }
-  set spaEV (value) { this.view.setUint8(0x44, value) }
-  get spdEV () { return this.view.getUint8(0x45) }
-  set spdEV (value) { this.view.setUint8(0x45, value) }
-  get ivData () { return this.view.getUint32(0x50) }
-  set ivData (value) { this.view.setUint32(0x50, value) }
-  get status () { return this.view.getUint8(0x57) }
-  get level () { return this.view.getUint8(0x58) }
-  get maxHp () { return this.view.getUint16(0x5A) }
-  set maxHp (value) { this.view.setUint16(0x5A, value) }
-  get attack () { return this.view.getUint16(0x5C) }
-  set attack (value) { this.view.setUint16(0x5C, value) }
-  get defense () { return this.view.getUint16(0x5E) }
-  set defense (value) { this.view.setUint16(0x5E, value) }
-  get speed () { return this.view.getUint16(0x60) }
-  set speed (value) { this.view.setUint16(0x60, value) }
-  get spAttack () { return this.view.getUint16(0x62) }
-  set spAttack (value) { this.view.setUint16(0x62, value) }
-  get spDefense () { return this.view.getUint16(0x64) }
-  set spDefense (value) { this.view.setUint16(0x64, value) }
-  get rawBytes () { return new Uint8Array(this.data) }
-
-  // Mapping functions that use the injected config
-  private mapSpeciesToPokeId (speciesId: number): number {
-    return this.config.mappings.pokemon.get(speciesId)?.id ?? speciesId
-  }
-
-  private mapSpeciesToNameId (speciesId: number): string | undefined {
-    return this.config.mappings.pokemon.get(speciesId)?.id_name
-  }
-
-  private mapMoveToPokeId (moveId: number): number {
-    const mapped = this.config.mappings.moves.get(moveId)?.id
-    return mapped ?? moveId
-  }
-
-  private mapItemToPokeId (itemId: number): number {
-    const mapped = this.config.mappings.items.get(itemId)?.id
-    return mapped ?? itemId
-  }
-
-  private mapItemToNameId (itemId: number): string | undefined {
-    return this.config.mappings.items.get(itemId)?.id_name
-  }
-
-  // Computed properties
-  get otId_str (): string {
-    return (this.otId & 0xFFFF).toString().padStart(5, '0')
-  }
-
-  get nickname (): string {
-    return bytesToGbaString(this.nicknameRaw)
-  }
-
-  get otName (): string {
-    return bytesToGbaString(this.otNameRaw)
-  }
-
-  get nature (): string {
-    return getPokemonNature(this.personality)
-  }
-
-  get natureModifiers (): { increased: number, decreased: number } {
-    // Fallback to {0,0} if nature is not found
-    return natureEffects[this.nature] ?? { increased: 0, decreased: 0 }
-  }
-
-  get natureModifiersString (): { increased: string, decreased: string } {
-    const { increased, decreased } = this.natureModifiers
-    return {
-      increased: statStrings[increased] ?? 'Unknown',
-      decreased: statStrings[decreased] ?? 'Unknown',
-    }
-  }
-
-  get natureModifiersArray (): readonly number[] { // usage for statsArray
-    // Nature modifiers: [hp, atk, def, spe, spa, spd]
-    const { increased, decreased } = this.natureModifiers
-    return this.stats.map((_, i) =>
-      i === increased ? 1.1 : i === decreased ? 0.9 : 1,
-    )
-  }
-
-  get abilityNumber (): number {
-    // if 2nd bit of status is set, ability is 1
-    // if 3rd bit is set, ability is 2
-    // otherwise ability is 0
-    return (this.status & 16) ? 1 : (this.status & 32) ? 2 : 0
-  }
-
-  get shinyNumber (): number {
-    // the 2nd byte of personality determines shininess
-    return (this.personality >> 8) & 0xFF
-  }
-
-  get isShiny (): boolean {
-    return this.shinyNumber === 1
-  }
-
-  get isRadiant (): boolean {
-    return this.shinyNumber === 2
-  }
-
-  get stats (): readonly number[] {
-    return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense]
-  }
-
-  set stats (values: readonly number[]) {
-    if (values.length !== 6) throw new Error('Stats array must have 6 values')
-    this.maxHp = values[0]!
-    this.attack = values[1]!
-    this.defense = values[2]!
-    this.speed = values[3]!
-    this.spAttack = values[4]!
-    this.spDefense = values[5]!
-  }
-
-  get moves (): {
-    readonly move1: MoveData
-    readonly move2: MoveData
-    readonly move3: MoveData
-    readonly move4: MoveData
-  } {
-    return {
-      move1: createMoveData(this.move1, this.pp1),
-      move2: createMoveData(this.move2, this.pp2),
-      move3: createMoveData(this.move3, this.pp3),
-      move4: createMoveData(this.move4, this.pp4),
-    }
-  }
-
-  get moves_data (): PokemonMoves {
-    return createPokemonMoves(
-      this.move1, this.move2, this.move3, this.move4,
-      this.pp1, this.pp2, this.pp3, this.pp4,
-    )
-  }
-
-  get evs (): readonly number[] {
-    return [this.hpEV, this.atkEV, this.defEV, this.speEV, this.spaEV, this.spdEV]
-  }
-
-  set evs (values: readonly number[]) {
-    if (values.length !== 6) throw new Error('EVs array must have 6 values')
-    this.hpEV = values[0]!
-    this.atkEV = values[1]!
-    this.defEV = values[2]!
-    this.speEV = values[3]!
-    this.spaEV = values[4]!
-    this.spdEV = values[5]!
-  }
-
-  get ivs (): readonly number[] {
-    return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F)
-  }
-
-  set ivs (values: readonly number[]) {
-    if (values.length !== 6) throw new Error('IVs array must have 6 values')
-    let packed = 0
-    for (let i = 0; i < 6; i++) {
-      packed |= (values[i]! & 0x1F) << (i * 5)
-    }
-    this.ivData = packed
-  }
-
-  get totalEVs (): number {
-    return this.evs.reduce((sum, ev) => sum + ev, 0)
-  }
-
-  get totalIVs (): number {
-    return this.ivs.reduce((sum, iv) => sum + iv, 0)
-  }
-
-  get moveIds (): readonly number[] {
-    return [this.move1, this.move2, this.move3, this.move4]
-  }
-
-  get ppValues (): readonly number[] {
-    return [this.pp1, this.pp2, this.pp3, this.pp4]
-  }
-
-  setEvByIndex (statIndex: number, value: number): void {
-    switch (statIndex) {
-      case 0: this.hpEV = value; break
-      case 1: this.atkEV = value; break
-      case 2: this.defEV = value; break
-      case 3: this.speEV = value; break
-      case 4: this.spaEV = value; break
-      case 5: this.spdEV = value; break
-      default:
-        throw new Error(`Invalid EV index: ${statIndex}`)
-    }
-  }
-
-  setIvByIndex (statIndex: number, value: number): void {
-    if (statIndex < 0 || statIndex > 5) {
-      throw new Error(`Invalid IV index: ${statIndex}`)
-    }
-    const clampedValue = Math.max(0, Math.min(31, value))
-    const currentIvs = [...this.ivs]
-    currentIvs[statIndex] = clampedValue
-    this.ivs = currentIvs
-  }
-}
-
 /**
  * Decode Pokemon character-encoded text to string
  */
@@ -570,12 +320,12 @@ export class PokemonSaveParser {
   /**
    * Parse party Pokemon from SaveBlock1 data
    */
-  private parsePartyPokemon (saveblock1Data: Uint8Array): PokemonData[] {
+  private parsePartyPokemon (saveblock1Data: Uint8Array): PokemonDataInterface[] {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
 
-    const partyPokemon: PokemonData[] = []
+    const partyPokemon: PokemonDataInterface[] = []
 
     for (let slot = 0; slot < this.config.offsets.maxPartySize; slot++) {
       const offset = this.config.offsets.partyStartOffset + slot * this.config.offsets.partyPokemonSize
@@ -586,7 +336,7 @@ export class PokemonSaveParser {
       }
 
       try {
-        const pokemon = new PokemonData(data, this.config)
+        const pokemon = this.config.createPokemonData(data)
         // Check if Pokemon slot is empty (species ID = 0)
         if (pokemon.speciesId === 0) {
           break
@@ -661,7 +411,7 @@ export class PokemonSaveParser {
    * @param saveblock1 The original SaveBlock1 buffer
    * @param party Array of PokemonData (max length = config.offsets.maxPartySize)
    */
-  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly PokemonData[]): Uint8Array {
+  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly PokemonDataInterface[]): Uint8Array {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -675,8 +425,8 @@ export class PokemonSaveParser {
     const updated = new Uint8Array(saveblock1)
     for (let i = 0; i < party.length; i++) {
       const offset = this.config.offsets.partyStartOffset + i * this.config.offsets.partyPokemonSize
-      // Use the most up-to-date view data for each Pokemon
-      updated.set(party[i]!.view.getBytes(0, this.config.offsets.partyPokemonSize), offset)
+      // Use the most up-to-date raw data for each Pokemon
+      updated.set(party[i]!.rawBytes, offset)
     }
     return updated
   }
@@ -727,7 +477,7 @@ export class PokemonSaveParser {
    *
    * @param partyPokemon Array of PokemonData to update party in SaveBlock1
    */
-  reconstructSaveFile (partyPokemon: readonly PokemonData[]): Uint8Array {
+  reconstructSaveFile (partyPokemon: readonly PokemonDataInterface[]): Uint8Array {
     if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
     const baseSaveblock1 = this.extractSaveblock1()
     const updatedSaveblock1 = this.updatePartyInSaveblock1(baseSaveblock1, partyPokemon)

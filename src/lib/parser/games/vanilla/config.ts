@@ -4,7 +4,8 @@
  * This is a minimal example implementation
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../configs/GameConfig.js'
+import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping, PokemonDataInterface } from '../../configs/GameConfig.js'
+import { VanillaPokemonData } from '../../core/pokemonData.js'
 
 export class VanillaConfig implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
@@ -99,6 +100,13 @@ export class VanillaConfig implements GameConfig {
     }
 
     return map
+  }
+
+  /**
+   * Create vanilla Emerald-specific Pokemon data instance
+   */
+  createPokemonData (data: Uint8Array): PokemonDataInterface {
+    return new VanillaPokemonData(data, this)
   }
 
   /**
