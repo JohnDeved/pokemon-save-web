@@ -5,7 +5,6 @@
 
 import type { GameConfig } from '../core/types'
 import type { MoveData, PokemonMoves } from './types'
-import { createMoveData, createPokemonMoves } from './dataCreators'
 import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils'
 
 /**
@@ -197,18 +196,20 @@ export abstract class BasePokemonData {
     readonly move4: MoveData
   } {
     return {
-      move1: createMoveData(this.move1, this.pp1),
-      move2: createMoveData(this.move2, this.pp2),
-      move3: createMoveData(this.move3, this.pp3),
-      move4: createMoveData(this.move4, this.pp4),
+      move1: { id: this.move1, pp: this.pp1 },
+      move2: { id: this.move2, pp: this.pp2 },
+      move3: { id: this.move3, pp: this.pp3 },
+      move4: { id: this.move4, pp: this.pp4 },
     }
   }
 
   get moves_data (): PokemonMoves {
-    return createPokemonMoves(
-      this.move1, this.move2, this.move3, this.move4,
-      this.pp1, this.pp2, this.pp3, this.pp4,
-    )
+    return {
+      move1: { id: this.move1, pp: this.pp1 },
+      move2: { id: this.move2, pp: this.pp2 },
+      move3: { id: this.move3, pp: this.pp3 },
+      move4: { id: this.move4, pp: this.pp4 },
+    }
   }
 
   get evs (): readonly number[] {
