@@ -1,6 +1,6 @@
 /**
- * Integration tests for the Lua HTTP server using real Lua TCP sockets
- * Tests the actual HTTP endpoints and WebSocket functionality by running the Lua server
+ * Integration tests for the actual mGBA Lua HTTP server using virtual mGBA environment
+ * Tests the real http-server.lua code by running it in a mocked mGBA environment
  * and making real HTTP/WebSocket connections to it
  */
 
@@ -14,16 +14,16 @@ import WebSocket from 'ws'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-describe('Lua HTTP Server - Real Integration Tests', () => {
+describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
   let serverProcess: ChildProcess | null = null
   let serverPort: number = 7300 + Math.floor(Math.random() * 100) // Random port to avoid conflicts
   let baseUrl: string
 
   beforeAll(async () => {
-    // Start the actual Lua HTTP server
-    const luaServerPath = resolve(__dirname, 'simple-http-server.lua')
+    // Start the actual mGBA HTTP server using our virtual environment
+    const mgbaEnvPath = resolve(__dirname, 'mgba-env-mock.lua')
     
-    serverProcess = spawn('lua5.3', [luaServerPath, serverPort.toString()], {
+    serverProcess = spawn('lua5.3', [mgbaEnvPath, serverPort.toString()], {
       cwd: __dirname,
       stdio: ['pipe', 'pipe', 'pipe']
     })
@@ -31,20 +31,15 @@ describe('Lua HTTP Server - Real Integration Tests', () => {
     // Wait for server to start
     await new Promise<void>((resolve, reject) => {
       let output = ''
-      const timeout = setTimeout(() => reject(new Error('Lua server start timeout')), 10000)
+      const timeout = setTimeout(() => reject(new Error('mGBA HTTP server start timeout')), 15000)
       
       serverProcess!.stdout?.on('data', (data) => {
         output += data.toString()
-        console.log('[Lua Server]', data.toString().trim())
-        if (output.includes('Server started on port')) {
+        console.log('[mGBA Server]', data.toString().trim())
+        if (output.includes('mGBA HTTP Server started on port')) {
           clearTimeout(timeout)
-          // Extract actual port from output
-          const match = output.match(/Server started on port (\d+)/)
-          if (match) {
-            serverPort = parseInt(match[1])
-            baseUrl = `http://127.0.0.1:${serverPort}`
-            resolve()
-          }
+          baseUrl = `http://127.0.0.1:${serverPort}`
+          resolve()
         }
       })
       
