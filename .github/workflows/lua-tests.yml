@@ -32,18 +32,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
+      - name: Cache Lua dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/lua
+            /usr/local/share/lua
+          key: ${{ runner.os }}-lua-${{ hashFiles('**/lua-tests.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-lua-
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
       
-      - name: Install Lua
+      - name: Install Lua (cached)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y lua5.3 lua5.3-dev luarocks
-          # Install required Lua socket library
-          sudo luarocks install luasocket
+          if ! command -v lua5.3 &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y lua5.3 lua5.3-dev luarocks
+            sudo luarocks install luasocket
+          else
+            echo "Lua already installed"
+          fi
       
       - name: Install Node.js dependencies
         run: npm ci
@@ -61,7 +74,7 @@ jobs:
           cd scripts/mgba-lua/__tests__
           timeout 10s lua5.3 mgba-env-mock.lua 7999 &
           PID=$!
-          sleep 5
+          sleep 3
           # Check if process is still running
           if kill -0 $PID 2>/dev/null; then
             echo "✅ Lua server started successfully"

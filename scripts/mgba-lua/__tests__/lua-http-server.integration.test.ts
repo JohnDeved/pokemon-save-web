@@ -20,7 +20,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
   let baseUrl: string
 
   beforeAll(async () => {
-    // Start the actual mGBA HTTP server using our virtual environment
+    // Start the actual mGBA HTTP server using our simplified virtual environment
     const mgbaEnvPath = resolve(__dirname, 'mgba-env-mock.lua')
     
     serverProcess = spawn('lua5.3', [mgbaEnvPath, serverPort.toString()], {
@@ -31,20 +31,18 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     // Wait for server to start
     await new Promise<void>((resolve, reject) => {
       let output = ''
-      const timeout = setTimeout(() => reject(new Error('mGBA HTTP server start timeout')), 20000)
+      const timeout = setTimeout(() => reject(new Error('mGBA HTTP server start timeout')), 15000)
       
       serverProcess!.stdout?.on('data', (data) => {
         output += data.toString()
         console.log('[mGBA Server]', data.toString().trim())
-        // Look for any of the startup indicators
-        if (output.includes('mGBA HTTP Server started on port') || 
-            output.includes('HTTP server should now be running') ||
-            output.includes('Listen successful, server should be ready') ||
-            output.includes('Starting event loop')) {
+        // Look for the server startup message
+        if (output.includes('🚀 mGBA HTTP Server started on port') || 
+            output.includes('HTTP server loaded successfully')) {
           clearTimeout(timeout)
           baseUrl = `http://127.0.0.1:${serverPort}`
-          // Give a bit more time for the server to be fully ready
-          setTimeout(resolve, 2000)
+          // Give the server time to be fully ready
+          setTimeout(resolve, 1500)
         }
       })
       
@@ -59,7 +57,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
         }
       })
     })
-  }, 20000)
+  }, 15000)
 
   afterAll(async () => {
     if (serverProcess) {
