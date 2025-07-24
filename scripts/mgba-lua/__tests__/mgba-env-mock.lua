@@ -380,9 +380,21 @@ while SERVER_STATE.running do
                     local chunk, err = mock_client._socket:receive(1)
                     if chunk then
                         total_data = total_data .. chunk
-                        -- Stop if we have a complete HTTP request (ends with \r\n\r\n)
-                        if total_data:find("\r\n\r\n") then
-                            break
+                        -- Check if we have HTTP headers complete
+                        local header_end = total_data:find("\r\n\r\n")
+                        if header_end then
+                            -- Parse content-length to see if we need more data
+                            local content_length = total_data:match("content%-length:%s*(%d+)")
+                            if content_length then
+                                local expected_total = header_end + 3 + tonumber(content_length)
+                                if #total_data >= expected_total then
+                                    print("[MOCK] Client " .. client_id .. " complete HTTP request with body")
+                                    break
+                                end
+                            else
+                                print("[MOCK] Client " .. client_id .. " complete HTTP request (no body)")
+                                break
+                            end
                         end
                     else
                         if err == "closed" then
