@@ -303,8 +303,8 @@ export class QuetzalConfig implements GameConfig {
         }
       }
 
-      // Return true if we found any Pokemon with this config
-      return pokemonFound > 0
+      // Return false if no Pokemon found
+      return pokemonFound !== 0
     } catch {
       return false
     }

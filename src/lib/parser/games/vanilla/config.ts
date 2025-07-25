@@ -57,10 +57,7 @@ class VanillaPokemonData extends BasePokemonData {
       const substruct0 = this.getDecryptedSubstruct(0)
       const view = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
       const rawSpecies = view.getUint16(0, true) // species is first field in substruct 0
-
-      // Apply species translation (internal species -> external species)
-      const mappedSpecies = this.config.translations.translatePokemonId?.(rawSpecies) ?? rawSpecies
-      return mappedSpecies
+      return rawSpecies // Return raw species ID directly for vanilla
     } catch (error) {
       return 0
     }
@@ -71,7 +68,7 @@ class VanillaPokemonData extends BasePokemonData {
     try {
       const substruct0 = this.getDecryptedSubstruct(0)
       const view = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
-      return this.mapItemToPokeId(view.getUint16(2, true)) // item is at offset 2 in substruct 0
+      return view.getUint16(2, true) // item is at offset 2 in substruct 0
     } catch {
       return 0
     }
@@ -98,7 +95,7 @@ class VanillaPokemonData extends BasePokemonData {
     try {
       const substruct1 = this.getDecryptedSubstruct(1)
       const view = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
-      return this.mapMoveToPokeId(view.getUint16(index * 2, true))
+      return view.getUint16(index * 2, true) // Return raw move ID
     } catch {
       return 0
     }
@@ -256,35 +253,37 @@ export class VanillaConfig implements GameConfig {
       spAttack: 0x60, // u16 spAttack (offset 96)
       spDefense: 0x62, // u16 spDefense (offset 98)
 
-      // Encrypted fields - accessed via decryption methods in VanillaPokemonData
-      // species, item, moves, EVs, IVs are in encrypted substructs 0x20-0x4F
-      species: 0x20, // Raw encrypted location (for compatibility)
-      item: 0x20, // Raw encrypted location (for compatibility)
-      move1: 0x20, // Raw encrypted location (for compatibility)
-      move2: 0x20, // Raw encrypted location (for compatibility)
-      move3: 0x20, // Raw encrypted location (for compatibility)
-      move4: 0x20, // Raw encrypted location (for compatibility)
-      pp1: 0x20, // Raw encrypted location (for compatibility)
-      pp2: 0x20, // Raw encrypted location (for compatibility)
-      pp3: 0x20, // Raw encrypted location (for compatibility)
-      pp4: 0x20, // Raw encrypted location (for compatibility)
-      hpEV: 0x20, // Raw encrypted location (for compatibility)
-      atkEV: 0x20, // Raw encrypted location (for compatibility)
-      defEV: 0x20, // Raw encrypted location (for compatibility)
-      speEV: 0x20, // Raw encrypted location (for compatibility)
-      spaEV: 0x20, // Raw encrypted location (for compatibility)
-      spdEV: 0x20, // Raw encrypted location (for compatibility)
-      ivData: 0x20, // Raw encrypted location (for compatibility)
+      // Note: species, item, moves, EVs, IVs are encrypted in substructs 0x20-0x4F
+      // These are accessed via custom methods in VanillaPokemonData
+      // Required by interface but not used directly:
+      species: 0, // Accessed via VanillaPokemonData.speciesId
+      item: 0, // Accessed via VanillaPokemonData.item
+      move1: 0, // Accessed via VanillaPokemonData.move1
+      move2: 0, // Accessed via VanillaPokemonData.move2
+      move3: 0, // Accessed via VanillaPokemonData.move3
+      move4: 0, // Accessed via VanillaPokemonData.move4
+      pp1: 0, // Accessed via VanillaPokemonData.pp1
+      pp2: 0, // Accessed via VanillaPokemonData.pp2
+      pp3: 0, // Accessed via VanillaPokemonData.pp3
+      pp4: 0, // Accessed via VanillaPokemonData.pp4
+      hpEV: 0, // Accessed via VanillaPokemonData.hpEV
+      atkEV: 0, // Accessed via VanillaPokemonData.atkEV
+      defEV: 0, // Accessed via VanillaPokemonData.defEV
+      speEV: 0, // Accessed via VanillaPokemonData.speEV
+      spaEV: 0, // Accessed via VanillaPokemonData.spaEV
+      spdEV: 0, // Accessed via VanillaPokemonData.spdEV
+      ivData: 0, // Accessed via VanillaPokemonData.ivData
     },
-  } as const
+  }
 
-  // Vanilla Emerald translations - minimal, only for cases where internal IDs differ from expected IDs
+  // No translations needed for vanilla - return raw values
   readonly translations = {
-    translatePokemonId: (rawId: number): number => {
-      // Only Treecko needs translation: 277 → 252
-      return rawId === 277 ? 252 : rawId
-    },
-    // No item or move translations needed for vanilla
+    translatePokemonId: undefined,
+    translateItemId: undefined,
+    translateMoveId: undefined,
+    translatePokemonName: undefined,
+    translateItemName: undefined,
+    translateMoveName: undefined,
   } as const
 
   /**
@@ -424,7 +423,7 @@ export class VanillaConfig implements GameConfig {
         }
       }
 
-      return pokemonFound > 0
+      return pokemonFound !== 0
     } catch {
       return false
     }
