@@ -17,7 +17,7 @@ const PARTY_COLUMNS = [
   { label: 'Shiny', width: 6, value: (p: BasePokemonData) => p.shinyNumber.toString() },
   {
     label: 'HP',
-    width: 30,
+    width: 32,
     value: (p: BasePokemonData) => {
       const hpBars = p.maxHp > 0 ? Math.round(20 * p.currentHp / p.maxHp) : 0
       return `[${'█'.repeat(hpBars)}${'░'.repeat(20 - hpBars)}] ${p.currentHp}/${p.maxHp}`
