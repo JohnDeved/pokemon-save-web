@@ -133,22 +133,6 @@ describe('Vanilla Emerald Save Parser', () => {
         const first = parsedData.party_pokemon[0]!
         const expected = groundTruth.party_pokemon[0]!
 
-        console.log('Parsed first Pokemon:')
-        console.log('  Species ID:', first.speciesId)
-        console.log('  Level:', first.level)
-        console.log('  Current HP:', first.currentHp)
-        console.log('  Max HP:', first.maxHp)
-        console.log('  Personality:', `0x${first.personality.toString(16)}`)
-        console.log('  OT ID:', `0x${first.otId.toString(16)}`)
-        console.log('  Move 1:', first.move1)
-        console.log('  Move 2:', first.move2)
-        console.log('  PP 1:', first.pp1)
-        console.log('  PP 2:', first.pp2)
-        console.log('  Nickname:', first.nickname)
-        console.log('  OT Name:', first.otName)
-        console.log('  OT ID String:', first.otId_str)
-        console.log('  Nature:', first.nature)
-
         // Basic checks
         expect(first.speciesId).toBe(expected.speciesId)
         expect(first.level).toBe(expected.level)
