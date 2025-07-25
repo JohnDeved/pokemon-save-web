@@ -34,12 +34,12 @@ describe('PokemonSaveParser - Integration Tests', () => {
 
     try {
       // Load test save file
-      const savePath = resolve(__dirname, 'test_data', 'player1.sav')
+      const savePath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const saveBuffer = readFileSync(savePath)
       testSaveData = saveBuffer.buffer.slice(saveBuffer.byteOffset, saveBuffer.byteOffset + saveBuffer.byteLength)
 
       // Load ground truth data
-      const groundTruthPath = resolve(__dirname, 'test_data', 'ground_truth.json')
+      const groundTruthPath = resolve(__dirname, 'test_data', 'quetzal_ground_truth.json')
       const groundTruthContent = readFileSync(groundTruthPath, 'utf-8')
       groundTruth = JSON.parse(groundTruthContent)
 
