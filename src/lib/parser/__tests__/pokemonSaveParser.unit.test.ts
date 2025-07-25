@@ -61,23 +61,23 @@ describe('PokemonSaveParser - Unit Tests', () => {
 
   describe('Constants Validation', () => {
     it('should have valid constants defined', () => {
-      expect(config.offsets.sectorSize).toBeDefined()
-      expect(config.offsets.sectorSize).toBeGreaterThan(0)
+      expect(config.layout.sectors.size).toBeDefined()
+      expect(config.layout.sectors.size).toBeGreaterThan(0)
 
-      expect(config.offsets.sectorDataSize).toBeDefined()
-      expect(config.offsets.sectorDataSize).toBeGreaterThan(0)
+      expect(config.layout.sectors.dataSize).toBeDefined()
+      expect(config.layout.sectors.dataSize).toBeGreaterThan(0)
 
-      expect(config.offsets.sectorFooterSize).toBeDefined()
-      expect(config.offsets.sectorFooterSize).toBeGreaterThan(0)
+      expect(config.layout.sectors.footerSize).toBeDefined()
+      expect(config.layout.sectors.footerSize).toBeGreaterThan(0)
 
       expect(config.signature).toBeDefined()
       expect(config.signature).toBeTypeOf('number')
 
-      expect(config.offsets.maxPartySize).toBeDefined()
-      expect(config.offsets.maxPartySize).toBe(6)
+      expect(config.layout.party.maxSize).toBeDefined()
+      expect(config.layout.party.maxSize).toBe(6)
 
-      expect(config.offsets.partyPokemonSize).toBeDefined()
-      expect(config.offsets.partyPokemonSize).toBeGreaterThan(0)
+      expect(config.layout.party.pokemonSize).toBeDefined()
+      expect(config.layout.party.pokemonSize).toBeGreaterThan(0)
     })
   })
 
@@ -89,7 +89,7 @@ describe('PokemonSaveParser - Unit Tests', () => {
     })
 
     it('should handle corrupted sector data', async () => {
-      const corruptedBuffer = new ArrayBuffer(config.offsets.sectorSize * 32)
+      const corruptedBuffer = new ArrayBuffer(config.layout.sectors.size * 32)
       await expect(parser.parseSaveFile(corruptedBuffer)).rejects.toThrow()
     })
   })
@@ -98,7 +98,7 @@ describe('PokemonSaveParser - Unit Tests', () => {
     it('should respect forced slot 1', async () => {
       const slot1Parser = new PokemonSaveParser(1, config)
       // Create a buffer with some mock sector data
-      const mockBuffer = new ArrayBuffer(config.offsets.sectorSize * 32)
+      const mockBuffer = new ArrayBuffer(config.layout.sectors.size * 32)
 
       try {
         const result = await slot1Parser.parseSaveFile(mockBuffer)
@@ -111,7 +111,7 @@ describe('PokemonSaveParser - Unit Tests', () => {
 
     it('should respect forced slot 2', async () => {
       const slot2Parser = new PokemonSaveParser(2, config)
-      const mockBuffer = new ArrayBuffer(config.offsets.sectorSize * 32)
+      const mockBuffer = new ArrayBuffer(config.layout.sectors.size * 32)
 
       try {
         const result = await slot2Parser.parseSaveFile(mockBuffer)

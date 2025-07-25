@@ -15,8 +15,8 @@ import pokemonMapData from './data/pokemon_map.json'
  * Handles Quetzal's unencrypted IVs and custom shiny system
  */
 class QuetzalPokemonData extends BasePokemonData {
-  get ivData () { return this.view.getUint32(this.config.offsets.pokemonData.ivData, true) }
-  set ivData (value) { this.view.setUint32(this.config.offsets.pokemonData.ivData, value, true) }
+  get ivData () { return this.view.getUint32(this.config.layout.pokemon.ivData, true) }
+  set ivData (value) { this.view.setUint32(this.config.layout.pokemon.ivData, value, true) }
 
   get ivs (): readonly number[] {
     // Quetzal uses unencrypted IV data
@@ -51,26 +51,38 @@ export class QuetzalConfig implements GameConfig {
   readonly name = 'Pokemon Quetzal'
   readonly signature = 0x08012025 // EMERALD_SIGNATURE
 
-  readonly offsets = {
-    sectorSize: 4096,
-    sectorDataSize: 3968,
-    sectorFooterSize: 12,
-    saveblock1Size: 3968 * 4, // SECTOR_DATA_SIZE * 4
-    sectorsPerSlot: 18,
-    totalSectors: 32,
-    partyStartOffset: 0x6A8,
-    partyPokemonSize: 104,
-    maxPartySize: 6,
-    pokemonNicknameLength: 10,
-    pokemonTrainerNameLength: 7,
-    playTimeHours: 0x10,
-    playTimeMinutes: 0x14,
-    playTimeSeconds: 0x15,
-    pokemonData: {
+  readonly layout = {
+    sectors: {
+      size: 4096,
+      dataSize: 3968,
+      footerSize: 12,
+      totalCount: 32,
+      perSlot: 18,
+    },
+    saveBlocks: {
+      block1Size: 3968 * 4, // SECTOR_DATA_SIZE * 4
+    },
+    party: {
+      dataOffset: 0x6A8,
+      pokemonSize: 104,
+      maxSize: 6,
+    },
+    player: {
+      playTimeHours: 0x10,
+      playTimeMinutes: 0x14,
+      playTimeSeconds: 0x15,
+    },
+    pokemon: {
       personality: 0x00,
       otId: 0x04,
-      nickname: 0x08,
-      otName: 0x14,
+      nickname: {
+        offset: 0x08,
+        length: 10,
+      },
+      otName: {
+        offset: 0x14,
+        length: 7,
+      },
       currentHp: 0x23,
       species: 0x28,
       item: 0x2A,
@@ -100,10 +112,30 @@ export class QuetzalConfig implements GameConfig {
     },
   } as const
 
-  readonly mappings = {
-    pokemon: this.createPokemonMap(),
-    items: this.createItemMap(),
-    moves: this.createMoveMap(),
+  // Create mapping objects for translations
+  private readonly pokemonMap = this.createPokemonMap()
+  private readonly itemMap = this.createItemMap()
+  private readonly moveMap = this.createMoveMap()
+
+  readonly translations = {
+    translatePokemonId: (rawId: number): number => {
+      return this.pokemonMap.get(rawId)?.id ?? rawId
+    },
+    translateItemId: (rawId: number): number | null => {
+      return this.itemMap.get(rawId)?.id ?? rawId
+    },
+    translateMoveId: (rawId: number): number | null => {
+      return this.moveMap.get(rawId)?.id ?? rawId
+    },
+    translatePokemonName: (rawId: number): string | undefined => {
+      return this.pokemonMap.get(rawId)?.name
+    },
+    translateItemName: (rawId: number): string | undefined => {
+      return this.itemMap.get(rawId)?.name
+    },
+    translateMoveName: (rawId: number): string | undefined => {
+      return this.moveMap.get(rawId)?.name
+    },
   } as const
 
   private createPokemonMap (): ReadonlyMap<number, PokemonMapping> {
@@ -170,21 +202,21 @@ export class QuetzalConfig implements GameConfig {
    */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
-    if (saveData.length < this.offsets.totalSectors * this.offsets.sectorSize) {
+    if (saveData.length < this.layout.sectors.totalCount * this.layout.sectors.size) {
       return false
     }
 
     // Check for Emerald signature in any sector
     let hasValidSignature = false
-    for (let i = 0; i < this.offsets.totalSectors; i++) {
-      const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
+    for (let i = 0; i < this.layout.sectors.totalCount; i++) {
+      const footerOffset = (i * this.layout.sectors.size) + this.layout.sectors.size - this.layout.sectors.footerSize
 
-      if (footerOffset + this.offsets.sectorFooterSize > saveData.length) {
+      if (footerOffset + this.layout.sectors.footerSize > saveData.length) {
         continue
       }
 
       try {
-        const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+        const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.layout.sectors.footerSize)
         const signature = view.getUint32(4, true)
 
         if (signature === this.signature) {
@@ -206,9 +238,9 @@ export class QuetzalConfig implements GameConfig {
       const activeSlot = this.determineActiveSlot((sectors: number[]) => {
         let sum = 0
         for (const sectorIndex of sectors) {
-          const footerOffset = (sectorIndex * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
-          if (footerOffset + this.offsets.sectorFooterSize <= saveData.length) {
-            const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+          const footerOffset = (sectorIndex * this.layout.sectors.size) + this.layout.sectors.size - this.layout.sectors.footerSize
+          if (footerOffset + this.layout.sectors.footerSize <= saveData.length) {
+            const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.layout.sectors.footerSize)
             const signature = view.getUint32(4, true)
             if (signature === this.signature) {
               sum += view.getUint16(8, true) // counter
@@ -223,9 +255,9 @@ export class QuetzalConfig implements GameConfig {
       const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
 
       for (const i of sectorRange) {
-        const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
-        if (footerOffset + this.offsets.sectorFooterSize <= saveData.length) {
-          const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+        const footerOffset = (i * this.layout.sectors.size) + this.layout.sectors.size - this.layout.sectors.footerSize
+        if (footerOffset + this.layout.sectors.footerSize <= saveData.length) {
+          const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.layout.sectors.footerSize)
           const signature = view.getUint32(4, true)
           if (signature === this.signature) {
             const sectorId = view.getUint16(0, true)
@@ -240,22 +272,22 @@ export class QuetzalConfig implements GameConfig {
         return false
       }
 
-      const saveblock1Data = new Uint8Array(this.offsets.saveblock1Size)
+      const saveblock1Data = new Uint8Array(this.layout.saveBlocks.block1Size)
       for (const sectorId of saveblock1Sectors) {
         const sectorIdx = sectorMap.get(sectorId)!
-        const startOffset = sectorIdx * this.offsets.sectorSize
-        const sectorData = saveData.slice(startOffset, startOffset + this.offsets.sectorDataSize)
-        const chunkOffset = (sectorId - 1) * this.offsets.sectorDataSize
-        saveblock1Data.set(sectorData.slice(0, this.offsets.sectorDataSize), chunkOffset)
+        const startOffset = sectorIdx * this.layout.sectors.size
+        const sectorData = saveData.slice(startOffset, startOffset + this.layout.sectors.dataSize)
+        const chunkOffset = (sectorId - 1) * this.layout.sectors.dataSize
+        saveblock1Data.set(sectorData.slice(0, this.layout.sectors.dataSize), chunkOffset)
       }
 
       // Try to parse Pokemon from the actual saveblock1 data
       let pokemonFound = 0
-      for (let slot = 0; slot < this.offsets.maxPartySize; slot++) {
-        const offset = this.offsets.partyStartOffset + slot * this.offsets.partyPokemonSize
-        const data = saveblock1Data.slice(offset, offset + this.offsets.partyPokemonSize)
+      for (let slot = 0; slot < this.layout.party.maxSize; slot++) {
+        const offset = this.layout.party.dataOffset + slot * this.layout.party.pokemonSize
+        const data = saveblock1Data.slice(offset, offset + this.layout.party.pokemonSize)
 
-        if (data.length < this.offsets.partyPokemonSize) {
+        if (data.length < this.layout.party.pokemonSize) {
           break
         }
 

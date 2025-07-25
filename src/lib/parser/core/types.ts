@@ -89,40 +89,50 @@ export interface MoveMapping extends BaseMapping {
   readonly id: number | null // Allow null for unmapped moves
 }
 
-// Modern offset structure with logical groupings
-interface GameOffsets {
+// Modern layout structure with logical groupings
+interface GameLayout {
   // Save file structure
-  readonly sectorSize: number
-  readonly sectorDataSize: number
-  readonly sectorFooterSize: number
-  readonly saveblock1Size: number
-  readonly sectorsPerSlot: number
-  readonly totalSectors: number
+  readonly sectors: {
+    readonly size: number
+    readonly dataSize: number
+    readonly footerSize: number
+    readonly totalCount: number
+    readonly perSlot: number
+  }
+
+  // Save blocks
+  readonly saveBlocks: {
+    readonly block1Size: number
+  }
 
   // Party configuration
-  readonly partyStartOffset: number
-  readonly partyPokemonSize: number
-  readonly maxPartySize: number
+  readonly party: {
+    readonly dataOffset: number
+    readonly pokemonSize: number
+    readonly maxSize: number
+  }
 
-  // String lengths
-  readonly pokemonNicknameLength: number
-  readonly pokemonTrainerNameLength: number
+  // Player data
+  readonly player: {
+    readonly playTimeHours: number
+    readonly playTimeMinutes: number
+    readonly playTimeSeconds: number
+  }
 
-  // Play time offsets
-  readonly playTimeHours: number
-  readonly playTimeMinutes: number
-  readonly playTimeSeconds: number
-
-  // Pokemon data field offsets
-  readonly pokemonData: {
-    // Core identification
+  // Pokemon data field layout
+  readonly pokemon: {
     readonly personality: number
     readonly otId: number
     readonly species: number
-    readonly nickname: number
-    readonly otName: number
-
-    // Stats and battle data
+    readonly item: number
+    readonly nickname: {
+      readonly offset: number
+      readonly length: number
+    }
+    readonly otName: {
+      readonly offset: number
+      readonly length: number
+    }
     readonly currentHp: number
     readonly maxHp: number
     readonly attack: number
@@ -132,9 +142,6 @@ interface GameOffsets {
     readonly spDefense: number
     readonly status: number
     readonly level: number
-    readonly item: number
-
-    // Moves and PP
     readonly move1: number
     readonly move2: number
     readonly move3: number
@@ -143,8 +150,6 @@ interface GameOffsets {
     readonly pp2: number
     readonly pp3: number
     readonly pp4: number
-
-    // Training data
     readonly hpEV: number
     readonly atkEV: number
     readonly defEV: number
@@ -155,11 +160,14 @@ interface GameOffsets {
   }
 }
 
-// Simplified mappings interface
-interface GameMappings {
-  readonly pokemon: ReadonlyMap<number, PokemonMapping>
-  readonly items: ReadonlyMap<number, ItemMapping>
-  readonly moves: ReadonlyMap<number, MoveMapping>
+// Translation functions for ID mapping
+interface GameTranslations {
+  readonly translatePokemonId?: (rawId: number) => number
+  readonly translateItemId?: (rawId: number) => number | null
+  readonly translateMoveId?: (rawId: number) => number | null
+  readonly translatePokemonName?: (rawId: number) => string | undefined
+  readonly translateItemName?: (rawId: number) => string | undefined
+  readonly translateMoveName?: (rawId: number) => string | undefined
 }
 
 /**
@@ -173,11 +181,11 @@ export interface GameConfig {
   /** Unique signature for game detection */
   readonly signature: number
 
-  /** Memory offsets for save file parsing */
-  readonly offsets: GameOffsets
+  /** Memory layout for save file parsing */
+  readonly layout: GameLayout
 
-  /** ID mappings for Pokemon, items, and moves */
-  readonly mappings: GameMappings
+  /** Translation functions for ID mapping (optional) */
+  readonly translations: GameTranslations
 
   /** Determine which save slot is currently active */
   determineActiveSlot(getCounterSum: (range: number[]) => number): number

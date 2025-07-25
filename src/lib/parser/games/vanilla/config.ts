@@ -58,8 +58,8 @@ class VanillaPokemonData extends BasePokemonData {
       const view = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
       const rawSpecies = view.getUint16(0, true) // species is first field in substruct 0
 
-      // Apply species mapping (internal species -> external species)
-      const mappedSpecies = this.config.mappings.pokemon.get(rawSpecies)?.id ?? rawSpecies
+      // Apply species translation (internal species -> external species)
+      const mappedSpecies = this.config.translations.translatePokemonId?.(rawSpecies) ?? rawSpecies
       return mappedSpecies
     } catch (error) {
       return 0
@@ -258,67 +258,33 @@ export class VanillaConfig implements GameConfig {
 
       // Encrypted fields - accessed via decryption methods in VanillaPokemonData
       // species, item, moves, EVs, IVs are in encrypted substructs 0x20-0x4F
+      species: 0x20, // Raw encrypted location (for compatibility)
+      item: 0x20, // Raw encrypted location (for compatibility)
+      move1: 0x20, // Raw encrypted location (for compatibility)
+      move2: 0x20, // Raw encrypted location (for compatibility)
+      move3: 0x20, // Raw encrypted location (for compatibility)
+      move4: 0x20, // Raw encrypted location (for compatibility)
+      pp1: 0x20, // Raw encrypted location (for compatibility)
+      pp2: 0x20, // Raw encrypted location (for compatibility)
+      pp3: 0x20, // Raw encrypted location (for compatibility)
+      pp4: 0x20, // Raw encrypted location (for compatibility)
+      hpEV: 0x20, // Raw encrypted location (for compatibility)
+      atkEV: 0x20, // Raw encrypted location (for compatibility)
+      defEV: 0x20, // Raw encrypted location (for compatibility)
+      speEV: 0x20, // Raw encrypted location (for compatibility)
+      spaEV: 0x20, // Raw encrypted location (for compatibility)
+      spdEV: 0x20, // Raw encrypted location (for compatibility)
+      ivData: 0x20, // Raw encrypted location (for compatibility)
     },
   } as const
 
-  // Backward compatibility: expose layout as offsets for existing code
-  get offsets () {
-    return {
-      sectorSize: this.layout.sectors.size,
-      sectorDataSize: this.layout.sectors.dataSize,
-      sectorFooterSize: this.layout.sectors.footerSize,
-      totalSectors: this.layout.sectors.totalCount,
-      sectorsPerSlot: this.layout.sectors.perSlot,
-      saveblock1Size: this.layout.saveBlocks.block1Size,
-      partyStartOffset: this.layout.party.dataOffset,
-      partyPokemonSize: this.layout.party.pokemonSize,
-      maxPartySize: this.layout.party.maxSize,
-      playTimeHours: this.layout.player.playTimeHours,
-      playTimeMinutes: this.layout.player.playTimeMinutes,
-      playTimeSeconds: this.layout.player.playTimeSeconds,
-      pokemonNicknameLength: this.layout.pokemon.nickname.length,
-      pokemonTrainerNameLength: this.layout.pokemon.otName.length,
-      pokemonData: {
-        personality: this.layout.pokemon.personality,
-        otId: this.layout.pokemon.otId,
-        nickname: this.layout.pokemon.nickname.offset,
-        otName: this.layout.pokemon.otName.offset,
-        status: this.layout.pokemon.status,
-        level: this.layout.pokemon.level,
-        currentHp: this.layout.pokemon.currentHp,
-        maxHp: this.layout.pokemon.maxHp,
-        attack: this.layout.pokemon.attack,
-        defense: this.layout.pokemon.defense,
-        speed: this.layout.pokemon.speed,
-        spAttack: this.layout.pokemon.spAttack,
-        spDefense: this.layout.pokemon.spDefense,
-        // Encrypted fields - provide compatibility values
-        species: 0x20, // Raw encrypted location for detection purposes
-        item: 0, // Not directly accessible in vanilla (encrypted)
-        move1: 0, // Not directly accessible in vanilla (encrypted)
-        move2: 0, // Not directly accessible in vanilla (encrypted)
-        move3: 0, // Not directly accessible in vanilla (encrypted)
-        move4: 0, // Not directly accessible in vanilla (encrypted)
-        pp1: 0, // Not directly accessible in vanilla (encrypted)
-        pp2: 0, // Not directly accessible in vanilla (encrypted)
-        pp3: 0, // Not directly accessible in vanilla (encrypted)
-        pp4: 0, // Not directly accessible in vanilla (encrypted)
-        hpEV: 0, // Not directly accessible in vanilla (encrypted)
-        atkEV: 0, // Not directly accessible in vanilla (encrypted)
-        defEV: 0, // Not directly accessible in vanilla (encrypted)
-        speEV: 0, // Not directly accessible in vanilla (encrypted)
-        spaEV: 0, // Not directly accessible in vanilla (encrypted)
-        spdEV: 0, // Not directly accessible in vanilla (encrypted)
-        ivData: 0, // Not directly accessible in vanilla (encrypted)
-      },
-    } as const
-  }
-
-  // Vanilla Emerald mappings - minimal, only for cases where internal IDs differ from expected IDs
-  readonly mappings = {
-    pokemon: new Map([[277, { name: 'Treecko', id_name: 'treecko', id: 252 }]]), // 277 → 252 mapping for Treecko
-    items: new Map(), // Empty - vanilla uses original item IDs
-    moves: new Map(), // Empty - vanilla uses original move IDs
+  // Vanilla Emerald translations - minimal, only for cases where internal IDs differ from expected IDs
+  readonly translations = {
+    translatePokemonId: (rawId: number): number => {
+      // Only Treecko needs translation: 277 → 252
+      return rawId === 277 ? 252 : rawId
+    },
+    // No item or move translations needed for vanilla
   } as const
 
   /**
@@ -361,21 +327,21 @@ export class VanillaConfig implements GameConfig {
    */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
-    if (saveData.length < this.offsets.totalSectors * this.offsets.sectorSize) {
+    if (saveData.length < this.layout.sectors.totalCount * this.layout.sectors.size) {
       return false
     }
 
     // Check for Emerald signature
     let hasValidSignature = false
-    for (let i = 0; i < this.offsets.totalSectors; i++) {
-      const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
+    for (let i = 0; i < this.layout.sectors.totalCount; i++) {
+      const footerOffset = (i * this.layout.sectors.size) + this.layout.sectors.size - this.layout.sectors.footerSize
 
-      if (footerOffset + this.offsets.sectorFooterSize > saveData.length) {
+      if (footerOffset + this.layout.sectors.footerSize > saveData.length) {
         continue
       }
 
       try {
-        const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+        const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.layout.sectors.footerSize)
         const signature = view.getUint32(4, true)
 
         if (signature === this.signature) {
@@ -397,9 +363,9 @@ export class VanillaConfig implements GameConfig {
       const activeSlot = this.determineActiveSlot((sectors: number[]) => {
         let sum = 0
         for (const sectorIndex of sectors) {
-          const footerOffset = (sectorIndex * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
-          if (footerOffset + this.offsets.sectorFooterSize <= saveData.length) {
-            const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+          const footerOffset = (sectorIndex * this.layout.sectors.size) + this.layout.sectors.size - this.layout.sectors.footerSize
+          if (footerOffset + this.layout.sectors.footerSize <= saveData.length) {
+            const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.layout.sectors.footerSize)
             const signature = view.getUint32(4, true)
             if (signature === this.signature) {
               sum += view.getUint16(8, true) // counter
@@ -414,9 +380,9 @@ export class VanillaConfig implements GameConfig {
       const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
 
       for (const i of sectorRange) {
-        const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
-        if (footerOffset + this.offsets.sectorFooterSize <= saveData.length) {
-          const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+        const footerOffset = (i * this.layout.sectors.size) + this.layout.sectors.size - this.layout.sectors.footerSize
+        if (footerOffset + this.layout.sectors.footerSize <= saveData.length) {
+          const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.layout.sectors.footerSize)
           const signature = view.getUint32(4, true)
           if (signature === this.signature) {
             const sectorId = view.getUint16(0, true)
@@ -431,13 +397,13 @@ export class VanillaConfig implements GameConfig {
         return false
       }
 
-      const saveblock1Data = new Uint8Array(this.offsets.saveblock1Size)
+      const saveblock1Data = new Uint8Array(this.layout.saveBlocks.block1Size)
       for (const sectorId of saveblock1Sectors) {
         const sectorIdx = sectorMap.get(sectorId)!
-        const startOffset = sectorIdx * this.offsets.sectorSize
-        const sectorData = saveData.slice(startOffset, startOffset + this.offsets.sectorDataSize)
-        const chunkOffset = (sectorId - 1) * this.offsets.sectorDataSize
-        saveblock1Data.set(sectorData.slice(0, this.offsets.sectorDataSize), chunkOffset)
+        const startOffset = sectorIdx * this.layout.sectors.size
+        const sectorData = saveData.slice(startOffset, startOffset + this.layout.sectors.dataSize)
+        const chunkOffset = (sectorId - 1) * this.layout.sectors.dataSize
+        saveblock1Data.set(sectorData.slice(0, this.layout.sectors.dataSize), chunkOffset)
       }
 
       // Try to parse Pokemon from the actual saveblock1 data
@@ -445,11 +411,11 @@ export class VanillaConfig implements GameConfig {
       let hasRomHackFeatures = false
       let hasNonZeroData = false
 
-      for (let slot = 0; slot < this.offsets.maxPartySize; slot++) {
-        const offset = this.offsets.partyStartOffset + slot * this.offsets.partyPokemonSize
-        const data = saveblock1Data.slice(offset, offset + this.offsets.partyPokemonSize)
+      for (let slot = 0; slot < this.layout.party.maxSize; slot++) {
+        const offset = this.layout.party.dataOffset + slot * this.layout.party.pokemonSize
+        const data = saveblock1Data.slice(offset, offset + this.layout.party.pokemonSize)
 
-        if (data.length < this.offsets.partyPokemonSize) {
+        if (data.length < this.layout.party.pokemonSize) {
           break
         }
 

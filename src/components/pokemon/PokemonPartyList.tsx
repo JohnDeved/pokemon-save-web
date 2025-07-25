@@ -21,7 +21,7 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
   isRenaming,
   onPokemonHover,
 }) => {
-  const emptySlots = Array.from({ length: Math.max(0, config.offsets.maxPartySize - partyList.length) })
+  const emptySlots = Array.from({ length: Math.max(0, config.layout.party.maxSize - partyList.length) })
 
   return (
     <section className="flex flex-col gap-4">
