@@ -28,18 +28,55 @@ export function bytesToGbaString (bytes: Uint8Array): string {
   let result = ''
 
   // Pokemon strings are fixed-length fields padded with 0xFF bytes at the end
+  // However, 0xFF can also be a space character in the middle of a string
   // We need to find the end of the actual string content by looking for trailing 0xFF bytes
+  
+  // First pass: find the actual end by looking for patterns that indicate padding
   let endIndex = bytes.length
-
-  // Find the last non-0xFF byte to determine actual string length
+  
+  // Look for runs of 0xFF at the end (these are likely padding)
+  let trailingFFs = 0
   for (let i = bytes.length - 1; i >= 0; i--) {
-    if (bytes[i] !== 0xFF) {
-      endIndex = i + 1
+    if (bytes[i] === 0xFF) {
+      trailingFFs++
+    } else {
       break
     }
   }
+  
+  // If we have more than 2 trailing 0xFF bytes, treat them as padding
+  if (trailingFFs > 2) {
+    endIndex = bytes.length - trailingFFs
+  }
+  
+  // Special handling for the case where we have non-0xFF after 0xFF (garbage data)
+  // Look for the pattern: valid chars -> 0xFF -> garbage
+  let foundTerminator = false
+  for (let i = 0; i < endIndex; i++) {
+    const byte = bytes[i]!
+    
+    if (byte === 0xFF && !foundTerminator) {
+      // Check if this might be a terminator by looking ahead
+      let hasGarbageAfter = false
+      for (let j = i + 1; j < bytes.length; j++) {
+        const nextByte = bytes[j]!
+        // If we find low values (0x01-0x0F) after 0xFF, it's likely garbage
+        if (nextByte > 0 && nextByte < 0x10) {
+          hasGarbageAfter = true
+          break
+        }
+        if (nextByte !== 0xFF && nextByte !== 0) break
+      }
+      
+      if (hasGarbageAfter) {
+        endIndex = i
+        foundTerminator = true
+        break
+      }
+    }
+  }
 
-  // Process only the actual string content (before padding)
+  // Process only the actual string content (before padding/garbage)
   for (let i = 0; i < endIndex; i++) {
     const byte = bytes[i]!
 
