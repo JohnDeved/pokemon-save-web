@@ -119,7 +119,7 @@ export abstract class BaseGameConfig {
     // Basic sanity check - ensure data is not all zeros or all 0xFF
     const isAllZeros = data.every(byte => byte === 0)
     const isAllOnes = data.every(byte => byte === 0xFF)
-    
+
     return !isAllZeros && !isAllOnes
   }
 
@@ -128,7 +128,7 @@ export abstract class BaseGameConfig {
    */
   protected parsePokemonForDetection (saveblock1Data: Uint8Array, pokemonSize: number, getSpeciesId: (data: Uint8Array, view: DataView) => number): number {
     let pokemonFound = 0
-    
+
     for (let slot = 0; slot < 6; slot++) {
       const offset = 0x6A8 + slot * pokemonSize
       const data = saveblock1Data.slice(offset, offset + pokemonSize)
@@ -140,7 +140,7 @@ export abstract class BaseGameConfig {
       try {
         const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
         const speciesId = getSpeciesId(data, view)
-        
+
         if (speciesId > 0 && speciesId < 1000) { // Reasonable species ID range
           pokemonFound++
         } else {

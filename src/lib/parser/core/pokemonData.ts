@@ -113,7 +113,7 @@ export class PokemonData {
   get nameId () {
     const configName = this.config.getPokemonName?.(this.data, this.view)
     if (configName) return configName
-    
+
     // For vanilla, try to get name from mapping
     const rawSpecies = this.getVanillaSpeciesId()
     return this.config.mappings?.pokemon?.get(rawSpecies)?.name ?? this.getVanillaPokemonName()
@@ -128,7 +128,7 @@ export class PokemonData {
   get itemIdName () {
     const configName = this.config.getItemName?.(this.data, this.view)
     if (configName) return configName
-    
+
     // For vanilla, try to get name from mapping
     const rawItem = this.getVanillaItem()
     return this.config.mappings?.items?.get(rawItem)?.name ?? this.getVanillaItemName()
