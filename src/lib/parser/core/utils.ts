@@ -3,7 +3,7 @@
  * Modern utilities for Pokemon data processing
  */
 
-import type { BasePokemonData } from './pokemonData'
+import type { PokemonInstance } from './pokemonData'
 import charmapData from '../data/pokemon_charmap.json'
 
 // Convert charmap keys from strings to numbers for faster lookup
@@ -26,41 +26,48 @@ export function getItemSpriteUrl (itemIdName: string): string {
  */
 export function bytesToGbaString (bytes: Uint8Array): string {
   let result = ''
+  const endIndex = findStringEnd(bytes)
 
-  // Pokemon strings are fixed-length fields padded with 0xFF bytes at the end
-  // We need to find the end of the actual string content by looking for trailing 0xFF bytes
-  let endIndex = bytes.length
-
-  // Find the last non-0xFF byte to determine actual string length
-  for (let i = bytes.length - 1; i >= 0; i--) {
-    if (bytes[i] !== 0xFF) {
-      endIndex = i + 1
-      break
-    }
-  }
-
-  // Process only the actual string content (before padding)
+  // Process only the actual string content (before padding/garbage)
   for (let i = 0; i < endIndex; i++) {
     const byte = bytes[i]!
-
-    // Look up character in charmap
     const char = charmap[byte]
-    if (char === undefined) {
-      // If character not found in charmap, skip it (could log for debugging)
-      continue
-    }
-    // Handle special control characters
-    if (char === '\\n') {
-      result += '\n'
-    } else if (char === '\\l' || char === '\\p') {
-      // Skip line break and page break control codes
-      continue
-    } else {
-      result += char
-    }
+
+    if (char === undefined) continue // Skip unmapped bytes
+    if (char === '\\n') result += '\n'
+    else if (char === '\\l' || char === '\\p') continue // Skip control codes
+    else result += char
   }
 
   return result.trim()
+}
+
+/**
+ * Find the actual end of a Pokemon GBA string by detecting padding patterns
+ */
+function findStringEnd (bytes: Uint8Array): number {
+  // Check for trailing 0xFF padding (more than 2 suggests padding)
+  let trailingFFs = 0
+  for (let i = bytes.length - 1; i >= 0 && bytes[i] === 0xFF; i--) {
+    trailingFFs++
+  }
+
+  if (trailingFFs > 2) {
+    return bytes.length - trailingFFs
+  }
+
+  // Look for garbage pattern: 0xFF followed by low values (0x01-0x0F)
+  for (let i = 0; i < bytes.length - 1; i++) {
+    if (bytes[i] === 0xFF) {
+      for (let j = i + 1; j < bytes.length; j++) {
+        const nextByte = bytes[j]!
+        if (nextByte > 0 && nextByte < 0x10) return i // Found garbage
+        if (nextByte !== 0xFF && nextByte !== 0) break
+      }
+    }
+  }
+
+  return bytes.length
 }
 
 /**
@@ -116,11 +123,11 @@ export const natures = [
  * Pokemon nature is determined by (personality & 0xFF) % 25
  */
 export function getPokemonNature (personality: number): string {
-  // Use only the first byte of the personality value
-  return natures[(personality & 0xFF) % 25]!
+  // Gen 3 standard formula: full personality value modulo 25
+  return natures[personality % 25]!
 }
 
-export function setPokemonNature (pokemon: BasePokemonData, nature: string): void {
+export function setPokemonNature (pokemon: PokemonInstance, nature: string): void {
   // Find the index of the nature in the natures array
   const natureIndex = natures.indexOf(nature)
   if (natureIndex === -1) {
@@ -174,7 +181,7 @@ export function getNatureModifier (nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats (pokemon: BasePokemonData, baseStats: readonly number[]): readonly number[] {
+export function calculateTotalStats (pokemon: PokemonInstance, baseStats: readonly number[]): readonly number[] {
   // Extract properties with type guards for safety
   const level = Number(pokemon.level)
   const nature = String(pokemon.nature)
@@ -227,10 +234,10 @@ export function calculateTotalStatsDirect (
 }
 
 /**
- * Update the party Pokémon in a SaveBlock1 buffer with the given BasePokemonData array.
+ * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonInstance array.
  * Returns a new Uint8Array with the updated party data.
  * @param saveblock1 The original SaveBlock1 buffer
- * @param party Array of BasePokemonData (max length = maxPartySize)
+ * @param party Array of PokemonInstance (max length = maxPartySize)
  * @param partyStartOffset Offset where party data starts
  * @param partyPokemonSize Size of each Pokemon data structure
  * @param saveblock1Size Expected size of SaveBlock1
@@ -238,7 +245,7 @@ export function calculateTotalStatsDirect (
  */
 export function updatePartyInSaveblock1 (
   saveblock1: Uint8Array,
-  party: readonly BasePokemonData[],
+  party: readonly PokemonInstance[],
   partyStartOffset: number,
   partyPokemonSize: number,
   saveblock1Size: number,

@@ -2,34 +2,34 @@
 import fs from 'fs'
 import path from 'path'
 import { PokemonSaveParser } from './core/pokemonSaveParser'
-import type { BasePokemonData } from './core/pokemonData'
+import type { PokemonInstance } from './core/pokemonData'
 import type { SaveData } from './core/types'
 import { bytesToGbaString, gbaStringToBytes } from './core/utils'
 
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [
-  { label: 'Slot', width: 5, value: (_p: BasePokemonData, i: number) => (i + 1).toString() },
-  { label: 'Dex ID', width: 8, value: (p: BasePokemonData) => p.speciesId.toString() },
-  { label: 'Nickname', width: 12, value: (p: BasePokemonData) => p.nickname },
-  { label: 'Lv', width: 4, value: (p: BasePokemonData) => p.level.toString() },
-  { label: 'Ability', width: 8, value: (p: BasePokemonData) => p.abilityNumber.toString() },
-  { label: 'Nature', width: 10, value: (p: BasePokemonData) => p.nature },
-  { label: 'Shiny', width: 6, value: (p: BasePokemonData) => p.shinyNumber.toString() },
+  { label: 'Slot', width: 5, value: (_p: PokemonInstance, i: number) => (i + 1).toString() },
+  { label: 'Dex ID', width: 8, value: (p: PokemonInstance) => p.speciesId.toString() },
+  { label: 'Nickname', width: 12, value: (p: PokemonInstance) => p.nickname },
+  { label: 'Lv', width: 4, value: (p: PokemonInstance) => p.level.toString() },
+  { label: 'Ability', width: 8, value: (p: PokemonInstance) => p.abilityNumber.toString() },
+  { label: 'Nature', width: 10, value: (p: PokemonInstance) => p.nature },
+  { label: 'Shiny', width: 6, value: (p: PokemonInstance) => p.shinyNumber.toString() },
   {
     label: 'HP',
     width: 32,
-    value: (p: BasePokemonData) => {
+    value: (p: PokemonInstance) => {
       const hpBars = p.maxHp > 0 ? Math.round(20 * p.currentHp / p.maxHp) : 0
       return `[${'█'.repeat(hpBars)}${'░'.repeat(20 - hpBars)}] ${p.currentHp}/${p.maxHp}`
     },
   },
-  { label: 'Atk', width: 5, value: (p: BasePokemonData) => p.attack.toString() },
-  { label: 'Def', width: 5, value: (p: BasePokemonData) => p.defense.toString() },
-  { label: 'Spe', width: 5, value: (p: BasePokemonData) => p.speed.toString() },
-  { label: 'SpA', width: 5, value: (p: BasePokemonData) => p.spAttack.toString() },
-  { label: 'SpD', width: 5, value: (p: BasePokemonData) => p.spDefense.toString() },
-  { label: 'OT Name', width: 10, value: (p: BasePokemonData) => p.otName },
-  { label: 'IDNo', width: 7, value: (p: BasePokemonData) => p.otId_str },
+  { label: 'Atk', width: 5, value: (p: PokemonInstance) => p.attack.toString() },
+  { label: 'Def', width: 5, value: (p: PokemonInstance) => p.defense.toString() },
+  { label: 'Spe', width: 5, value: (p: PokemonInstance) => p.speed.toString() },
+  { label: 'SpA', width: 5, value: (p: PokemonInstance) => p.spAttack.toString() },
+  { label: 'SpD', width: 5, value: (p: PokemonInstance) => p.spDefense.toString() },
+  { label: 'OT Name', width: 10, value: (p: PokemonInstance) => p.otName },
+  { label: 'IDNo', width: 7, value: (p: PokemonInstance) => p.otId_str },
 ]
 
 function pad (str: string, width: number) {
@@ -37,7 +37,7 @@ function pad (str: string, width: number) {
 }
 
 /** Display party Pokémon in a formatted table. */
-const displayPartyPokemon = (party: readonly BasePokemonData[]) => {
+const displayPartyPokemon = (party: readonly PokemonInstance[]) => {
   console.log('\n--- Party Pokémon Summary ---')
   if (!party.length) return void console.log('No Pokémon found in party.')
   const header = PARTY_COLUMNS.map(col => pad(col.label, col.width)).join('')
@@ -56,7 +56,7 @@ const displaySaveblock2Info = ({ player_name, play_time }: SaveData) => {
 }
 
 /** Display raw bytes for each party Pokémon. */
-const displayPartyPokemonRaw = (party: readonly BasePokemonData[]) => {
+const displayPartyPokemonRaw = (party: readonly PokemonInstance[]) => {
   console.log('\n--- Party Pokémon Raw Bytes ---')
   if (!party.length) return void console.log('No Pokémon found in party.')
   party.forEach((p, i) => {
@@ -130,7 +130,7 @@ const displayColoredBytes = (raw: Uint8Array, fields: Array<[number, number, str
 }
 
 /** Display graphical hex for each party Pokémon. */
-const displayPartyPokemonGraph = (party: readonly BasePokemonData[]) => {
+const displayPartyPokemonGraph = (party: readonly PokemonInstance[]) => {
   if (!party.length) return void console.log('No Pokémon found in party.')
   party.forEach((p, i) => {
     console.log(`\nSlot ${i + 1} (${p.nickname} #${p.speciesId}):\n`)
@@ -190,6 +190,7 @@ const buffer = fs.readFileSync(absPath)
 const parser = new PokemonSaveParser()
 try {
   const result = await parser.parseSaveFile(buffer)
+  console.log(`Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
   console.log(`Active save slot: ${result.active_slot}`)
   console.log(`Valid sectors found: ${result.sector_map.size}`)
   if (graph) displayPartyPokemonGraph(result.party_pokemon)

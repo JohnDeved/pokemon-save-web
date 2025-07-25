@@ -1,150 +1,150 @@
 /**
  * Quetzal ROM hack configuration
- * Contains all Quetzal-specific offsets, mappings, and parsing logic
+ * Only overrides differences from vanilla Emerald baseline
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
-import { BasePokemonData } from '../../core/pokemonData'
+import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping, PokemonOffsetsOverride, SaveLayoutOverride } from '../../core/types'
+import { VANILLA_SAVE_LAYOUT } from '../../core/types'
+import { natures } from '../../core/utils'
+import { GameConfigBase } from '../../core/baseGameConfig'
+import { createMapping } from '../../core/mappingUtils'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
 import pokemonMapData from './data/pokemon_map.json'
 
-/**
- * Quetzal-specific Pokemon data implementation
- * Handles Quetzal's unencrypted IVs and custom shiny system
- */
-class QuetzalPokemonData extends BasePokemonData {
-  get ivData () { return this.view.getUint32(this.config.offsets.pokemonData.ivData, true) }
-  set ivData (value) { this.view.setUint32(this.config.offsets.pokemonData.ivData, value, true) }
-
-  get ivs (): readonly number[] {
-    // Quetzal uses unencrypted IV data
-    return Array.from({ length: 6 }, (_, i) => (this.ivData >>> (i * 5)) & 0x1F)
-  }
-
-  set ivs (values: readonly number[]) {
-    if (values.length !== 6) throw new Error('IVs array must have 6 values')
-    let packed = 0
-    for (let i = 0; i < 6; i++) {
-      packed |= (values[i]! & 0x1F) << (i * 5)
-    }
-    this.ivData = packed
-  }
-
-  get shinyNumber (): number {
-    // Quetzal-specific: the 2nd byte of personality determines shininess
-    return (this.personality >> 8) & 0xFF
-  }
-
-  get isShiny (): boolean {
-    return this.shinyNumber === 1
-  }
-
-  get isRadiant (): boolean {
-    // Quetzal-specific feature: radiant Pokemon
-    return this.shinyNumber === 2
-  }
-}
-
-export class QuetzalConfig implements GameConfig {
+export class QuetzalConfig extends GameConfigBase implements GameConfig {
   readonly name = 'Pokemon Quetzal'
-  readonly signature = 0x08012025 // EMERALD_SIGNATURE
 
-  readonly offsets = {
-    sectorSize: 4096,
-    sectorDataSize: 3968,
-    sectorFooterSize: 12,
-    saveblock1Size: 3968 * 4, // SECTOR_DATA_SIZE * 4
-    sectorsPerSlot: 18,
-    totalSectors: 32,
-    partyStartOffset: 0x6A8,
-    partyPokemonSize: 104,
-    maxPartySize: 6,
-    pokemonNicknameLength: 10,
-    pokemonTrainerNameLength: 7,
+  // Override Pokemon size for Quetzal
+  readonly pokemonSize = 104
+
+  // Override offsets for Quetzal's unencrypted structure
+  readonly offsetOverrides: PokemonOffsetsOverride = {
+    currentHp: 0x23,
+    maxHp: 0x5A,
+    attack: 0x5C,
+    defense: 0x5E,
+    speed: 0x60,
+    spAttack: 0x62,
+    spDefense: 0x64,
+    status: 0x57,
+    level: 0x58,
+  }
+
+  // Override save layout for Quetzal
+  readonly saveLayoutOverrides: SaveLayoutOverride = {
+    partyOffset: 0x6A8,
+    partyCountOffset: 0x6A4,
+    pokemonSize: 104,
     playTimeHours: 0x10,
     playTimeMinutes: 0x14,
     playTimeSeconds: 0x15,
-    pokemonData: {
-      personality: 0x00,
-      otId: 0x04,
-      nickname: 0x08,
-      otName: 0x14,
-      currentHp: 0x23,
-      species: 0x28,
-      item: 0x2A,
-      move1: 0x34,
-      move2: 0x36,
-      move3: 0x38,
-      move4: 0x3A,
-      pp1: 0x3C,
-      pp2: 0x3D,
-      pp3: 0x3E,
-      pp4: 0x3F,
-      hpEV: 0x40,
-      atkEV: 0x41,
-      defEV: 0x42,
-      speEV: 0x43,
-      spaEV: 0x44,
-      spdEV: 0x45,
-      ivData: 0x50,
-      status: 0x57,
-      level: 0x58,
-      maxHp: 0x5A,
-      attack: 0x5C,
-      defense: 0x5E,
-      speed: 0x60,
-      spAttack: 0x62,
-      spDefense: 0x64,
-    },
-  } as const
+  }
 
+  // Merged save layout for easy access
+  readonly saveLayout = { ...VANILLA_SAVE_LAYOUT, ...this.saveLayoutOverrides }
+
+  // ID mappings for Quetzal using utility functions
   readonly mappings = {
-    pokemon: this.createPokemonMap(),
-    items: this.createItemMap(),
-    moves: this.createMoveMap(),
+    pokemon: createMapping<PokemonMapping>(pokemonMapData as Record<string, unknown>),
+    items: createMapping<ItemMapping>(itemMapData as Record<string, unknown>),
+    moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
-  private createPokemonMap (): ReadonlyMap<number, PokemonMapping> {
-    const map = new Map<number, PokemonMapping>()
-    const data = pokemonMapData as Record<string, PokemonMapping>
+  // Quetzal-specific offsets for unencrypted data
+  private readonly quetzalOffsets = {
+    species: 0x28,
+    item: 0x2A,
+    move1: 0x34,
+    move2: 0x36,
+    move3: 0x38,
+    move4: 0x3A,
+    pp1: 0x3C,
+    pp2: 0x3D,
+    pp3: 0x3E,
+    pp4: 0x3F,
+    hpEV: 0x40,
+    atkEV: 0x41,
+    defEV: 0x42,
+    speEV: 0x43,
+    spaEV: 0x44,
+    spdEV: 0x45,
+    ivData: 0x50,
+  } as const
 
-    for (const [key, value] of Object.entries(data)) {
-      map.set(parseInt(key, 10), value)
-    }
-    return map
+  // Override data access methods for Quetzal's unencrypted structure
+  getSpeciesId (_data: Uint8Array, view: DataView): number {
+    const rawSpecies = view.getUint16(this.quetzalOffsets.species, true)
+    // Apply ID mapping using the base mapping system
+    return this.mappings.pokemon.get(rawSpecies)?.id ?? rawSpecies
   }
 
-  private createItemMap (): ReadonlyMap<number, ItemMapping> {
-    const map = new Map<number, ItemMapping>()
-    const data = itemMapData as Record<string, { name: string, id_name: string, id: number | null }>
-
-    for (const [key, value] of Object.entries(data)) {
-      map.set(parseInt(key, 10), value)
-    }
-    return map
+  getPokemonName (_data: Uint8Array, view: DataView): string | undefined {
+    const rawSpecies = view.getUint16(this.quetzalOffsets.species, true)
+    // Apply name mapping using the base mapping system
+    return this.mappings.pokemon.get(rawSpecies)?.name
   }
 
-  private createMoveMap (): ReadonlyMap<number, MoveMapping> {
-    const map = new Map<number, MoveMapping>()
-    const data = moveMapData as Record<string, { name: string, id_name: string, id: number | null }>
+  getItem (_data: Uint8Array, view: DataView): number {
+    const rawItem = view.getUint16(this.quetzalOffsets.item, true)
+    // Apply ID mapping using the base mapping system
+    return this.mappings.items.get(rawItem)?.id ?? rawItem
+  }
 
-    for (const [key, value] of Object.entries(data)) {
-      map.set(parseInt(key, 10), value)
+  getItemName (_data: Uint8Array, view: DataView): string | undefined {
+    const rawItem = view.getUint16(this.quetzalOffsets.item, true)
+    // Apply name mapping using the base mapping system
+    return this.mappings.items.get(rawItem)?.name
+  }
+
+  getMove (_data: Uint8Array, view: DataView, index: number): number {
+    const moveOffsets = [this.quetzalOffsets.move1, this.quetzalOffsets.move2, this.quetzalOffsets.move3, this.quetzalOffsets.move4]
+    const rawMove = view.getUint16(moveOffsets[index]!, true)
+    // Apply ID mapping using the base mapping system
+    return this.mappings.moves.get(rawMove)?.id ?? rawMove
+  }
+
+  getPP (_data: Uint8Array, view: DataView, index: number): number {
+    const ppOffsets = [this.quetzalOffsets.pp1, this.quetzalOffsets.pp2, this.quetzalOffsets.pp3, this.quetzalOffsets.pp4]
+    return view.getUint8(ppOffsets[index]!)
+  }
+
+  getEV (_data: Uint8Array, view: DataView, index: number): number {
+    const evOffsets = [this.quetzalOffsets.hpEV, this.quetzalOffsets.atkEV, this.quetzalOffsets.defEV, this.quetzalOffsets.speEV, this.quetzalOffsets.spaEV, this.quetzalOffsets.spdEV]
+    return view.getUint8(evOffsets[index]!)
+  }
+
+  setEV (_data: Uint8Array, view: DataView, index: number, value: number): void {
+    const evOffsets = [this.quetzalOffsets.hpEV, this.quetzalOffsets.atkEV, this.quetzalOffsets.defEV, this.quetzalOffsets.speEV, this.quetzalOffsets.spaEV, this.quetzalOffsets.spdEV]
+    const clampedValue = Math.max(0, Math.min(255, value))
+    view.setUint8(evOffsets[index]!, clampedValue)
+  }
+
+  getIVs (_data: Uint8Array, view: DataView): readonly number[] {
+    const ivData = view.getUint32(this.quetzalOffsets.ivData, true)
+    return Array.from({ length: 6 }, (_, i) => (ivData >>> (i * 5)) & 0x1F)
+  }
+
+  setIVs (_data: Uint8Array, view: DataView, values: readonly number[]): void {
+    if (values.length !== 6) throw new Error('IVs array must have 6 values')
+    let packed = 0
+    for (let i = 0; i < 6; i++) {
+      const clampedValue = Math.max(0, Math.min(31, values[i]!))
+      packed |= (clampedValue & 0x1F) << (i * 5)
     }
-    return map
+    view.setUint32(this.quetzalOffsets.ivData, packed, true)
   }
 
   /**
-   * Create Quetzal-specific Pokemon data instance
+   * Override nature calculation for Quetzal-specific formula
    */
-  createPokemonData (data: Uint8Array): BasePokemonData {
-    return new QuetzalPokemonData(data, this)
+  calculateNature (personality: number): string {
+    // Quetzal uses only the first byte of personality modulo 25
+    return natures[(personality & 0xFF) % 25]!
   }
 
   /**
-   * Quetzal-specific logic for determining active save slot
-   * Uses the same logic as the original parser
+   * Override active slot determination for Quetzal
    */
   determineActiveSlot (getCounterSum: (range: number[]) => number): number {
     const slot1Range = Array.from({ length: 18 }, (_, i) => i)
@@ -156,35 +156,47 @@ export class QuetzalConfig implements GameConfig {
   }
 
   /**
+   * Override shiny calculation for Quetzal-specific values
+   */
+  isShiny (personality: number, _otId: number): boolean {
+    return this.getShinyValue(personality, _otId) === 1
+  }
+
+  getShinyValue (personality: number, _otId: number): number {
+    return (personality >> 8) & 0xFF
+  }
+
+  isRadiant (personality: number, _otId: number): boolean {
+    return this.getShinyValue(personality, _otId) === 2
+  }
+
+  /**
    * Check if this config can handle the given save file
-   * For Quetzal, we check for the Emerald signature and specific characteristics
+   * Use parsing success as detection criteria with base class helpers
    */
   canHandle (saveData: Uint8Array): boolean {
-    // Basic size check
-    if (saveData.length < this.offsets.totalSectors * this.offsets.sectorSize) {
+    // Use base class to check for valid Emerald signature
+    if (!this.hasValidEmeraldSignature(saveData)) {
       return false
     }
 
-    // Check for at least one valid sector with Emerald signature
-    for (let i = 0; i < this.offsets.totalSectors; i++) {
-      const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
+    // Try to actually parse Pokemon using Quetzal-specific structure with base class helpers
+    try {
+      const activeSlot = this.getActiveSlot(saveData)
+      const sectorMap = this.buildSectorMap(saveData, activeSlot)
+      const saveblock1Data = this.extractSaveBlock1(saveData, sectorMap)
 
-      if (footerOffset + this.offsets.sectorFooterSize > saveData.length) {
-        continue
-      }
+      // Use base class helper for Pokemon detection
+      const pokemonFound = this.parsePokemonForDetection(
+        saveblock1Data,
+        this.pokemonSize,
+        (data, view) => this.getSpeciesId(data, view),
+      )
 
-      try {
-        const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
-        const signature = view.getUint32(4, true)
-
-        if (signature === this.signature) {
-          return true
-        }
-      } catch {
-        continue
-      }
+      // Return true if we found valid Pokemon data
+      return pokemonFound > 0
+    } catch {
+      return false
     }
-
-    return false
   }
 }
