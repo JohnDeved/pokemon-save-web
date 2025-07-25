@@ -10,7 +10,7 @@ import type {
 } from './types'
 
 import type { GameConfig } from '../core/types'
-import type { BasePokemonData } from './pokemonData'
+import { PokemonData } from './pokemonData'
 import { autoDetectGameConfig } from './autoDetect'
 
 // Import character map for decoding text
@@ -115,9 +115,9 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
-    const footerOffset = (sectorIndex * this.config.layout.sectors.size) + this.config.layout.sectors.size - this.config.layout.sectors.footerSize
+    const footerOffset = (sectorIndex * this.config.saveLayout.sectorSize) + this.config.saveLayout.sectorSize - 12
 
-    if (footerOffset + this.config.layout.sectors.footerSize > this.saveData.length) {
+    if (footerOffset + 12 > this.saveData.length) {
       return { id: -1, checksum: 0, counter: 0, valid: false }
     }
 
@@ -125,7 +125,7 @@ export class PokemonSaveParser {
       const view = new DataView(
         this.saveData.buffer,
         this.saveData.byteOffset + footerOffset,
-        this.config.layout.sectors.footerSize,
+        12,
       )
 
       const sectorId = view.getUint16(0, true)
@@ -137,8 +137,8 @@ export class PokemonSaveParser {
         return { id: sectorId, checksum, counter, valid: false }
       }
 
-      const sectorStart = sectorIndex * this.config.layout.sectors.size
-      const sectorData = this.saveData.slice(sectorStart, sectorStart + this.config.layout.sectors.dataSize)
+      const sectorStart = sectorIndex * this.config.saveLayout.sectorSize
+      const sectorData = this.saveData.slice(sectorStart, sectorStart + this.config.saveLayout.sectorDataSize)
 
       const calculatedChecksum = this.calculateSectorChecksum(sectorData)
       const valid = calculatedChecksum === checksum
@@ -207,19 +207,19 @@ export class PokemonSaveParser {
     const saveblock1Sectors = [1, 2, 3, 4].filter(id => this.sectorMap.has(id))
     if (saveblock1Sectors.length === 0) {
       // Instead of throwing, return a zero-filled buffer to allow parsing to continue gracefully
-      return new Uint8Array(this.config.layout.saveBlocks.block1Size)
+      return new Uint8Array(this.config.saveLayout.saveBlockSize)
     }
 
-    const saveblock1Data = new Uint8Array(this.config.layout.saveBlocks.block1Size)
+    const saveblock1Data = new Uint8Array(this.config.saveLayout.saveBlockSize)
 
     for (const sectorId of saveblock1Sectors) {
       const sectorIdx = this.sectorMap.get(sectorId)!
-      const startOffset = sectorIdx * this.config.layout.sectors.size
-      const sectorData = this.saveData.slice(startOffset, startOffset + this.config.layout.sectors.dataSize)
-      const chunkOffset = (sectorId - 1) * this.config.layout.sectors.dataSize
+      const startOffset = sectorIdx * this.config.saveLayout.sectorSize
+      const sectorData = this.saveData.slice(startOffset, startOffset + this.config.saveLayout.sectorDataSize)
+      const chunkOffset = (sectorId - 1) * this.config.saveLayout.sectorDataSize
 
       saveblock1Data.set(
-        sectorData.slice(0, this.config.layout.sectors.dataSize),
+        sectorData.slice(0, this.config.saveLayout.sectorDataSize),
         chunkOffset,
       )
     }
@@ -240,30 +240,30 @@ export class PokemonSaveParser {
     }
 
     const sectorIdx = this.sectorMap.get(0)!
-    const startOffset = sectorIdx * this.config.layout.sectors.size
-    return this.saveData.slice(startOffset, startOffset + this.config.layout.sectors.dataSize)
+    const startOffset = sectorIdx * this.config.saveLayout.sectorSize
+    return this.saveData.slice(startOffset, startOffset + this.config.saveLayout.sectorDataSize)
   }
 
   /**
    * Parse party Pokemon from SaveBlock1 data
    */
-  private parsePartyPokemon (saveblock1Data: Uint8Array): BasePokemonData[] {
+  private parsePartyPokemon (saveblock1Data: Uint8Array): PokemonData[] {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
 
-    const partyPokemon: BasePokemonData[] = []
+    const partyPokemon: PokemonData[] = []
 
-    for (let slot = 0; slot < this.config.layout.party.maxSize; slot++) {
-      const offset = this.config.layout.party.dataOffset + slot * this.config.layout.party.pokemonSize
-      const data = saveblock1Data.slice(offset, offset + this.config.layout.party.pokemonSize)
+    for (let slot = 0; slot < this.config.saveLayout.maxPartySize; slot++) {
+      const offset = this.config.saveLayout.partyOffset + slot * this.config.pokemonSize
+      const data = saveblock1Data.slice(offset, offset + this.config.pokemonSize)
 
-      if (data.length < this.config.layout.party.pokemonSize) {
+      if (data.length < this.config.pokemonSize) {
         break
       }
 
       try {
-        const pokemon = this.config.createPokemonData(data)
+        const pokemon = new PokemonData(data, this.config)
         // Check if Pokemon slot is empty (species ID = 0)
         if (pokemon.speciesId === 0) {
           break
@@ -297,9 +297,9 @@ export class PokemonSaveParser {
     const view = new DataView(saveblock2Data.buffer, saveblock2Data.byteOffset)
 
     return {
-      hours: view.getUint16(this.config.layout.player.playTimeHours, true), // u16 playTimeHours
-      minutes: view.getUint8(this.config.layout.player.playTimeMinutes), // u8 playTimeMinutes
-      seconds: view.getUint8(this.config.layout.player.playTimeSeconds), // u8 playTimeSeconds
+      hours: view.getUint16(this.config.saveLayout.playTimeHours, true), // u16 playTimeHours
+      minutes: view.getUint8(this.config.saveLayout.playTimeMinutes), // u8 playTimeMinutes
+      seconds: view.getUint8(this.config.saveLayout.playTimeSeconds), // u8 playTimeSeconds
     }
   }
 
@@ -311,14 +311,14 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    if (sectorData.length < this.config.layout.sectors.dataSize) {
+    if (sectorData.length < this.config.saveLayout.sectorDataSize) {
       return 0
     }
 
     let checksum = 0
     const view = new DataView(sectorData.buffer, sectorData.byteOffset)
 
-    for (let i = 0; i < this.config.layout.sectors.dataSize; i += 4) {
+    for (let i = 0; i < this.config.saveLayout.sectorDataSize; i += 4) {
       if (i + 4 <= sectorData.length) {
         try {
           const value = view.getUint32(i, true)
@@ -338,20 +338,20 @@ export class PokemonSaveParser {
    * @param saveblock1 The original SaveBlock1 buffer
    * @param party Array of PokemonData (max length = config.layout.party.maxSize)
    */
-  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly BasePokemonData[]): Uint8Array {
+  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly PokemonData[]): Uint8Array {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
 
-    if (saveblock1.length < this.config.layout.saveBlocks.block1Size) {
-      throw new Error(`SaveBlock1 must be at least ${this.config.layout.saveBlocks.block1Size} bytes`)
+    if (saveblock1.length < this.config.saveLayout.saveBlockSize) {
+      throw new Error(`SaveBlock1 must be at least ${this.config.saveLayout.saveBlockSize} bytes`)
     }
-    if (party.length > this.config.layout.party.maxSize) {
-      throw new Error(`Party size cannot exceed ${this.config.layout.party.maxSize}`)
+    if (party.length > this.config.saveLayout.maxPartySize) {
+      throw new Error(`Party size cannot exceed ${this.config.saveLayout.maxPartySize}`)
     }
     const updated = new Uint8Array(saveblock1)
     for (let i = 0; i < party.length; i++) {
-      const offset = this.config.layout.party.dataOffset + i * this.config.layout.party.pokemonSize
+      const offset = this.config.saveLayout.partyOffset + i * this.config.pokemonSize
       // Use the most up-to-date raw data for each Pokemon
       updated.set(party[i]!.rawBytes, offset)
     }
@@ -411,7 +411,7 @@ export class PokemonSaveParser {
    *
    * @param partyPokemon Array of PokemonData to update party in SaveBlock1
    */
-  reconstructSaveFile (partyPokemon: readonly BasePokemonData[]): Uint8Array {
+  reconstructSaveFile (partyPokemon: readonly PokemonData[]): Uint8Array {
     if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
     const baseSaveblock1 = this.extractSaveblock1()
     const updatedSaveblock1 = this.updatePartyInSaveblock1(baseSaveblock1, partyPokemon)
@@ -421,19 +421,19 @@ export class PokemonSaveParser {
     const writeSector = (sectorId: number, data: Uint8Array) => {
       if (!this.sectorMap.has(sectorId)) return
       const sectorIdx = this.sectorMap.get(sectorId)!
-      const startOffset = sectorIdx * this.config!.layout.sectors.size
+      const startOffset = sectorIdx * this.config!.saveLayout.sectorSize
       newSave.set(data, startOffset)
       // Recalculate checksum for this sector
       const checksum = this.calculateSectorChecksum(data)
-      const footerOffset = startOffset + this.config!.layout.sectors.size - this.config!.layout.sectors.footerSize
-      const view = new DataView(newSave.buffer, newSave.byteOffset + footerOffset, this.config!.layout.sectors.footerSize)
+      const footerOffset = startOffset + this.config!.saveLayout.sectorSize - 12
+      const view = new DataView(newSave.buffer, newSave.byteOffset + footerOffset, 12)
       view.setUint16(2, checksum, true)
     }
 
     // Write SaveBlock1 (sectors 1-4)
     for (let sectorId = 1; sectorId <= 4; sectorId++) {
-      const chunkOffset = (sectorId - 1) * this.config.layout.sectors.dataSize
-      const chunk = updatedSaveblock1.slice(chunkOffset, chunkOffset + this.config.layout.sectors.dataSize)
+      const chunkOffset = (sectorId - 1) * this.config.saveLayout.sectorDataSize
+      const chunk = updatedSaveblock1.slice(chunkOffset, chunkOffset + this.config.saveLayout.sectorDataSize)
       writeSector(sectorId, chunk)
     }
     return newSave

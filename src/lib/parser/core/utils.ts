@@ -3,7 +3,7 @@
  * Modern utilities for Pokemon data processing
  */
 
-import type { BasePokemonData } from './pokemonData'
+import type { PokemonData } from './pokemonData'
 import charmapData from '../data/pokemon_charmap.json'
 
 // Convert charmap keys from strings to numbers for faster lookup
@@ -127,7 +127,7 @@ export function getPokemonNature (personality: number): string {
   return natures[personality % 25]!
 }
 
-export function setPokemonNature (pokemon: BasePokemonData, nature: string): void {
+export function setPokemonNature (pokemon: PokemonData, nature: string): void {
   // Find the index of the nature in the natures array
   const natureIndex = natures.indexOf(nature)
   if (natureIndex === -1) {
@@ -181,7 +181,7 @@ export function getNatureModifier (nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats (pokemon: BasePokemonData, baseStats: readonly number[]): readonly number[] {
+export function calculateTotalStats (pokemon: PokemonData, baseStats: readonly number[]): readonly number[] {
   // Extract properties with type guards for safety
   const level = Number(pokemon.level)
   const nature = String(pokemon.nature)
@@ -245,7 +245,7 @@ export function calculateTotalStatsDirect (
  */
 export function updatePartyInSaveblock1 (
   saveblock1: Uint8Array,
-  party: readonly BasePokemonData[],
+  party: readonly PokemonData[],
   partyStartOffset: number,
   partyPokemonSize: number,
   saveblock1Size: number,

@@ -3,7 +3,7 @@
  * Port of poke_types.py with modern TypeScript features
  */
 
-import type { BasePokemonData } from './pokemonData'
+import type { PokemonData } from './pokemonData'
 
 // Core data structures
 export interface PlayTimeData {
@@ -61,7 +61,7 @@ export interface SectorInfo {
 
 // Complete save data structure
 export interface SaveData {
-  readonly party_pokemon: readonly BasePokemonData[]
+  readonly party_pokemon: readonly PokemonData[]
   readonly player_name: string
   readonly play_time: PlayTimeData
   readonly active_slot: number
@@ -89,85 +89,44 @@ export interface MoveMapping extends BaseMapping {
   readonly id: number | null // Allow null for unmapped moves
 }
 
-// Modern layout structure with logical groupings
-interface GameLayout {
-  // Save file structure
-  readonly sectors: {
-    readonly size: number
-    readonly dataSize: number
-    readonly footerSize: number
-    readonly totalCount: number
-    readonly perSlot: number
-  }
-
-  // Save blocks
-  readonly saveBlocks: {
-    readonly block1Size: number
-  }
-
-  // Party configuration
-  readonly party: {
-    readonly dataOffset: number
-    readonly pokemonSize: number
-    readonly maxSize: number
-  }
-
-  // Player data
-  readonly player: {
-    readonly playTimeHours: number
-    readonly playTimeMinutes: number
-    readonly playTimeSeconds: number
-  }
-
-  // Pokemon data field layout
-  readonly pokemon: {
-    readonly personality: number
-    readonly otId: number
-    readonly species: number
-    readonly item: number
-    readonly nickname: {
-      readonly offset: number
-      readonly length: number
-    }
-    readonly otName: {
-      readonly offset: number
-      readonly length: number
-    }
-    readonly currentHp: number
-    readonly maxHp: number
-    readonly attack: number
-    readonly defense: number
-    readonly speed: number
-    readonly spAttack: number
-    readonly spDefense: number
-    readonly status: number
-    readonly level: number
-    readonly move1: number
-    readonly move2: number
-    readonly move3: number
-    readonly move4: number
-    readonly pp1: number
-    readonly pp2: number
-    readonly pp3: number
-    readonly pp4: number
-    readonly hpEV: number
-    readonly atkEV: number
-    readonly defEV: number
-    readonly speEV: number
-    readonly spaEV: number
-    readonly spdEV: number
-    readonly ivData: number
-  }
+/**
+ * Simplified Pokemon offsets structure
+ * Based on vanilla Emerald memory layout
+ */
+export interface PokemonOffsets {
+  readonly personality: number
+  readonly otId: number
+  readonly nickname: number
+  readonly nicknameLength: number
+  readonly otName: number
+  readonly otNameLength: number
+  readonly currentHp: number
+  readonly maxHp: number
+  readonly attack: number
+  readonly defense: number
+  readonly speed: number
+  readonly spAttack: number
+  readonly spDefense: number
+  readonly status: number
+  readonly level: number
 }
 
-// Translation functions for ID mapping
-interface GameTranslations {
-  readonly translatePokemonId?: (rawId: number) => number
-  readonly translateItemId?: (rawId: number) => number | null
-  readonly translateMoveId?: (rawId: number) => number | null
-  readonly translatePokemonName?: (rawId: number) => string | undefined
-  readonly translateItemName?: (rawId: number) => string | undefined
-  readonly translateMoveName?: (rawId: number) => string | undefined
+/**
+ * Save file layout structure
+ */
+export interface SaveLayout {
+  readonly sectorSize: number
+  readonly sectorDataSize: number
+  readonly sectorCount: number
+  readonly slotsPerSave: number
+  readonly saveBlockSize: number
+  readonly partyOffset: number
+  readonly partyCountOffset: number
+  readonly pokemonSize: number
+  readonly maxPartySize: number
+  readonly playTimeHours: number
+  readonly playTimeMinutes: number
+  readonly playTimeSeconds: number
 }
 
 /**
@@ -181,11 +140,14 @@ export interface GameConfig {
   /** Unique signature for game detection */
   readonly signature: number
 
-  /** Memory layout for save file parsing */
-  readonly layout: GameLayout
+  /** Pokemon size in bytes */
+  readonly pokemonSize: number
 
-  /** Translation functions for ID mapping (optional) */
-  readonly translations: GameTranslations
+  /** Basic offsets for unencrypted data */
+  readonly offsets: PokemonOffsets
+
+  /** Save file layout configuration */
+  readonly saveLayout: SaveLayout
 
   /** Determine which save slot is currently active */
   determineActiveSlot(getCounterSum: (range: number[]) => number): number
@@ -193,9 +155,21 @@ export interface GameConfig {
   /** Check if this config can handle the given save data */
   canHandle(saveData: Uint8Array): boolean
 
-  /** Create game-specific Pokemon data instance */
-  createPokemonData(data: Uint8Array): BasePokemonData
-
   /** Calculate nature from personality value (varies by game) */
   calculateNature(personality: number): string
+
+  // Game-specific data access methods
+  getSpeciesId(data: Uint8Array, view: DataView): number
+  getPokemonName(data: Uint8Array, view: DataView): string | undefined
+  getItem(data: Uint8Array, view: DataView): number
+  getItemName(data: Uint8Array, view: DataView): string | undefined
+  getMove(data: Uint8Array, view: DataView, index: number): number
+  getPP(data: Uint8Array, view: DataView, index: number): number
+  getEV(data: Uint8Array, view: DataView, index: number): number
+  setEV(data: Uint8Array, view: DataView, index: number, value: number): void
+  getIVs(data: Uint8Array, view: DataView): readonly number[]
+  setIVs(data: Uint8Array, view: DataView, values: readonly number[]): void
+  getIsShiny(data: Uint8Array, view: DataView): boolean
+  getShinyNumber(data: Uint8Array, view: DataView): number
+  getIsRadiant(data: Uint8Array, view: DataView): boolean
 }

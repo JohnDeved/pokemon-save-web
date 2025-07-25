@@ -1,209 +1,93 @@
 /**
  * Vanilla Pokemon Emerald configuration
- * Provides complete configuration for vanilla Pokemon Emerald saves
- * Based on pokeemerald official source constants
+ * Serves as the baseline implementation with authentic Emerald structure
  */
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
-import { BasePokemonData } from '../../core/pokemonData'
 import { natures } from '../../core/utils'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
 import pokemonMapData from './data/pokemon_map.json'
 
-/**
- * Vanilla Pokemon Emerald data implementation
- * Handles encrypted Pokemon data and standard Gen 3 shiny calculation
- */
-class VanillaPokemonData extends BasePokemonData {
-  private get encryptionKey (): number {
-    // Standard Pokemon encryption key: personality XOR OT ID
-    return this.personality ^ this.otId
-  }
-
-  // Pokemon data substructure order based on personality
-  private getSubstructOrder (): number[] {
-    const orderTable = [
-      [0, 1, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3], [0, 3, 1, 2], [0, 2, 3, 1], [0, 3, 2, 1],
-      [1, 0, 2, 3], [1, 0, 3, 2], [2, 0, 1, 3], [3, 0, 1, 2], [2, 0, 3, 1], [3, 0, 2, 1],
-      [1, 2, 0, 3], [1, 3, 0, 2], [2, 1, 0, 3], [3, 1, 0, 2], [2, 3, 0, 1], [3, 2, 0, 1],
-      [1, 2, 3, 0], [1, 3, 2, 0], [2, 1, 3, 0], [3, 1, 2, 0], [2, 3, 1, 0], [3, 2, 1, 0],
-    ]
-    return orderTable[this.personality % 24]!
-  }
-
-  // Decrypt and get a specific substruct
-  private getDecryptedSubstruct (substructIndex: number): Uint8Array {
-    const order = this.getSubstructOrder()
-    const actualIndex = order[substructIndex]!
-    const substructOffset = 0x20 + actualIndex * 12 // Each substruct is 12 bytes
-    const encryptedData = new Uint8Array(this.data.buffer, this.data.byteOffset + substructOffset, 12)
-    const decryptedData = new Uint8Array(12)
-
-    // Decrypt in 4-byte chunks
-    const key = this.encryptionKey
-    for (let i = 0; i < 12; i += 4) {
-      const view = new DataView(encryptedData.buffer, encryptedData.byteOffset + i, 4)
-      const encrypted = view.getUint32(0, true)
-      const decrypted = encrypted ^ key
-
-      const decryptedView = new DataView(decryptedData.buffer, i, 4)
-      decryptedView.setUint32(0, decrypted, true)
-    }
-
-    return decryptedData
-  }
-
-  // Override species to decrypt from substruct 0
-  get speciesId (): number {
-    try {
-      const substruct0 = this.getDecryptedSubstruct(0)
-      const view = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
-      const rawSpecies = view.getUint16(0, true) // species is first field in substruct 0
-      return this.config.translations.translatePokemonId?.(rawSpecies) ?? rawSpecies
-    } catch (error) {
-      return 0
-    }
-  }
-
-  // Override item to decrypt from substruct 0
-  get item (): number {
-    try {
-      const substruct0 = this.getDecryptedSubstruct(0)
-      const view = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
-      const rawItem = view.getUint16(2, true) // item is at offset 2 in substruct 0
-      return this.config.translations.translateItemId?.(rawItem) ?? rawItem
-    } catch {
-      return 0
-    }
-  }
-
-  // Override moves to decrypt from substruct 1
-  get move1 (): number {
-    return this.getMove(0)
-  }
-
-  get move2 (): number {
-    return this.getMove(1)
-  }
-
-  get move3 (): number {
-    return this.getMove(2)
-  }
-
-  get move4 (): number {
-    return this.getMove(3)
-  }
-
-  private getMove (index: number): number {
-    try {
-      const substruct1 = this.getDecryptedSubstruct(1)
-      const view = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
-      const rawMove = view.getUint16(index * 2, true)
-      return this.config.translations.translateMoveId?.(rawMove) ?? rawMove
-    } catch {
-      return 0
-    }
-  }
-
-  // Override PP to decrypt from substruct 1
-  get pp1 (): number { return this.getPP(0) }
-  get pp2 (): number { return this.getPP(1) }
-  get pp3 (): number { return this.getPP(2) }
-  get pp4 (): number { return this.getPP(3) }
-
-  private getPP (index: number): number {
-    try {
-      const substruct1 = this.getDecryptedSubstruct(1)
-      const view = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
-      return view.getUint8(8 + index) // PP starts at offset 8 in substruct 1
-    } catch {
-      return 0
-    }
-  }
-
-  // Override EVs to decrypt from substruct 2
-  get hpEV (): number { return this.getEV(0) }
-  get atkEV (): number { return this.getEV(1) }
-  get defEV (): number { return this.getEV(2) }
-  get speEV (): number { return this.getEV(3) }
-  get spaEV (): number { return this.getEV(4) }
-  get spdEV (): number { return this.getEV(5) }
-
-  private getEV (index: number): number {
-    try {
-      const substruct2 = this.getDecryptedSubstruct(2)
-      return substruct2[index]!
-    } catch {
-      return 0
-    }
-  }
-
-  get ivs (): readonly number[] {
-    try {
-      // IVs are in substruct 3 at offset 4 (after pokerus, metLocation, and metLevel/metGame/pokeball/otGender)
-      const substruct3 = this.getDecryptedSubstruct(3)
-      const view = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
-      const ivData = view.getUint32(4, true)
-
-      // Extract IVs (5 bits each, 6 IVs total)
-      return [
-        (ivData >> 0) & 0x1F, // HP
-        (ivData >> 5) & 0x1F, // Attack
-        (ivData >> 10) & 0x1F, // Defense
-        (ivData >> 15) & 0x1F, // Speed
-        (ivData >> 20) & 0x1F, // Sp. Attack
-        (ivData >> 25) & 0x1F, // Sp. Defense
-      ]
-    } catch {
-      return [0, 0, 0, 0, 0, 0]
-    }
-  }
-
-  set ivs (values: readonly number[]) {
-    try {
-      if (values.length !== 6) throw new Error('IVs array must have 6 values')
-
-      let packed = 0
-      for (let i = 0; i < 6; i++) {
-        packed |= (values[i]! & 0x1F) << (i * 5)
-      }
-
-      // This would require re-encrypting the substruct, which is complex
-      // For now, just validate the input
-      // For now, we'll leave this as a placeholder
-      console.warn('Setting IVs on vanilla Pokemon is not yet implemented', packed)
-    } catch (error) {
-      console.warn('Failed to set IVs:', error)
-    }
-  }
-
-  get shinyNumber (): number {
-    // Standard Gen 3 shiny calculation
-    const trainerId = this.otId & 0xFFFF
-    const secretId = (this.otId >> 16) & 0xFFFF
-    const personalityLow = this.personality & 0xFFFF
-    const personalityHigh = (this.personality >> 16) & 0xFFFF
-    return trainerId ^ secretId ^ personalityLow ^ personalityHigh
-  }
-
-  get isShiny (): boolean {
-    // Standard Gen 3: Pokemon is shiny if shiny value < 8
-    return this.shinyNumber < 8
-  }
-
-  // eslint-disable-next-line @typescript-eslint/class-literal-property-style
-  get isRadiant (): boolean {
-    // Vanilla Pokemon don't have radiant status
-    return false
-  }
+// Local interfaces for the new structure
+interface PokemonOffsets {
+  readonly personality: number
+  readonly otId: number
+  readonly nickname: number
+  readonly nicknameLength: number
+  readonly otName: number
+  readonly otNameLength: number
+  readonly currentHp: number
+  readonly maxHp: number
+  readonly attack: number
+  readonly defense: number
+  readonly speed: number
+  readonly spAttack: number
+  readonly spDefense: number
+  readonly status: number
+  readonly level: number
 }
 
+interface SaveLayout {
+  readonly sectorSize: number
+  readonly sectorDataSize: number
+  readonly sectorCount: number
+  readonly slotsPerSave: number
+  readonly saveBlockSize: number
+  readonly partyOffset: number
+  readonly partyCountOffset: number
+  readonly pokemonSize: number
+  readonly maxPartySize: number
+  readonly playTimeHours: number
+  readonly playTimeMinutes: number
+  readonly playTimeSeconds: number
+}
+
+/**
+ * Vanilla Pokemon Emerald configuration
+ * Implements the authentic Pokemon Emerald save structure with encryption
+ */
 export class VanillaConfig implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
-  readonly signature = 0x08012025 // Same as Quetzal for Emerald base
+  readonly signature = 0x08012025
+  readonly pokemonSize = 100
 
-  // Load mapping data with proper typing
+  // Basic unencrypted offsets (vanilla Emerald structure)
+  readonly offsets: PokemonOffsets = {
+    personality: 0x00,
+    otId: 0x04,
+    nickname: 0x08,
+    nicknameLength: 10,
+    otName: 0x14,
+    otNameLength: 7,
+    currentHp: 0x56,
+    maxHp: 0x58,
+    attack: 0x5A,
+    defense: 0x5C,
+    speed: 0x5E,
+    spAttack: 0x60,
+    spDefense: 0x62,
+    status: 0x50,
+    level: 0x54,
+  }
+
+  // Save file layout (vanilla Emerald)
+  readonly saveLayout: SaveLayout = {
+    sectorSize: 4096,
+    sectorDataSize: 3968,
+    sectorCount: 32,
+    slotsPerSave: 18,
+    saveBlockSize: 3968 * 4,
+    partyOffset: 0x238,
+    partyCountOffset: 0x234,
+    pokemonSize: 100,
+    maxPartySize: 6,
+    playTimeHours: 0x0E,
+    playTimeMinutes: 0x10,
+    playTimeSeconds: 0x11,
+  }
+
+  // Load mapping data
   private readonly pokemonMap = new Map<number, PokemonMapping>(
     Object.entries(pokemonMapData as Record<string, unknown>)
       .filter(([_, v]) => typeof v === 'object' && v !== null && 'id' in v && v.id !== null)
@@ -222,104 +106,176 @@ export class VanillaConfig implements GameConfig {
       .map(([k, v]) => [parseInt(k, 10), v as ItemMapping]),
   )
 
-  readonly layout = {
-    // Sector configuration
-    sectors: {
-      size: 4096,
-      dataSize: 3968,
-      footerSize: 12,
-      totalCount: 32,
-      perSlot: 18,
-    },
-
-    // SaveBlock configuration
-    saveBlocks: {
-      block1Size: 3968 * 4, // SECTOR_DATA_SIZE * 4
-    },
-
-    // Party data layout
-    party: {
-      countOffset: 0x234, // Party count at SaveBlock1 + 0x234
-      dataOffset: 0x238, // Party Pokemon data starts at SaveBlock1 + 0x238
-      pokemonSize: 100, // Each Pokemon is 100 bytes
-      maxSize: 6, // Maximum 6 Pokemon in party
-    },
-
-    // Player data layout (SaveBlock2)
-    player: {
-      playTimeHours: 0x0E, // u16 playTimeHours
-      playTimeMinutes: 0x10, // u8 playTimeMinutes
-      playTimeSeconds: 0x11, // u8 playTimeSeconds
-    },
-
-    // Pokemon data layout - only unencrypted field offsets
-    pokemon: {
-      // BoxPokemon part (first 80 bytes) - only unencrypted fields
-      personality: 0x00, // u32 personality
-      otId: 0x04, // u32 otId
-      nickname: {
-        offset: 0x08,
-        length: 10,
-      },
-      otName: {
-        offset: 0x14, // offset 20 decimal
-        length: 7,
-      },
-
-      // Pokemon struct part (last 20 bytes) - unencrypted
-      status: 0x50, // u32 status (offset 80)
-      level: 0x54, // u8 level (offset 84)
-      currentHp: 0x56, // u16 hp (offset 86)
-      maxHp: 0x58, // u16 maxHP (offset 88)
-      attack: 0x5A, // u16 attack (offset 90)
-      defense: 0x5C, // u16 defense (offset 92)
-      speed: 0x5E, // u16 speed (offset 94)
-      spAttack: 0x60, // u16 spAttack (offset 96)
-      spDefense: 0x62, // u16 spDefense (offset 98)
-
-      // Note: species, item, moves, EVs, IVs are encrypted in substructs 0x20-0x4F
-      // These are accessed via custom methods in VanillaPokemonData
-      // Required by interface but not used directly:
-      species: 0, // Accessed via VanillaPokemonData.speciesId
-      item: 0, // Accessed via VanillaPokemonData.item
-      move1: 0, // Accessed via VanillaPokemonData.move1
-      move2: 0, // Accessed via VanillaPokemonData.move2
-      move3: 0, // Accessed via VanillaPokemonData.move3
-      move4: 0, // Accessed via VanillaPokemonData.move4
-      pp1: 0, // Accessed via VanillaPokemonData.pp1
-      pp2: 0, // Accessed via VanillaPokemonData.pp2
-      pp3: 0, // Accessed via VanillaPokemonData.pp3
-      pp4: 0, // Accessed via VanillaPokemonData.pp4
-      hpEV: 0, // Accessed via VanillaPokemonData.hpEV
-      atkEV: 0, // Accessed via VanillaPokemonData.atkEV
-      defEV: 0, // Accessed via VanillaPokemonData.defEV
-      speEV: 0, // Accessed via VanillaPokemonData.speEV
-      spaEV: 0, // Accessed via VanillaPokemonData.spaEV
-      spdEV: 0, // Accessed via VanillaPokemonData.spdEV
-      ivData: 0, // Accessed via VanillaPokemonData.ivData
-    },
+  // Vanilla Emerald encryption methods
+  private getEncryptionKey (data: Uint8Array): number {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+    const personality = view.getUint32(0x00, true)
+    const otId = view.getUint32(0x04, true)
+    return personality ^ otId
   }
 
-  // Translation functions for vanilla Emerald mapping
-  readonly translations = {
-    translatePokemonId: (id: number) => this.pokemonMap.get(id)?.id ?? id,
-    translateItemId: (id: number) => this.itemMap.get(id)?.id ?? id,
-    translateMoveId: (id: number) => this.moveMap.get(id)?.id ?? id,
-    translatePokemonName: (id: number) => this.pokemonMap.get(id)?.name ?? `Unknown Pokemon ${id}`,
-    translateItemName: (id: number) => this.itemMap.get(id)?.name ?? `Unknown Item ${id}`,
-    translateMoveName: (id: number) => this.moveMap.get(id)?.name ?? `Unknown Move ${id}`,
-  } as const
+  private getSubstructOrder (personality: number): number[] {
+    const orderTable = [
+      [0, 1, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3], [0, 3, 1, 2], [0, 2, 3, 1], [0, 3, 2, 1],
+      [1, 0, 2, 3], [1, 0, 3, 2], [2, 0, 1, 3], [3, 0, 1, 2], [2, 0, 3, 1], [3, 0, 2, 1],
+      [1, 2, 0, 3], [1, 3, 0, 2], [2, 1, 0, 3], [3, 1, 0, 2], [2, 3, 0, 1], [3, 2, 0, 1],
+      [1, 2, 3, 0], [1, 3, 2, 0], [2, 1, 3, 0], [3, 1, 2, 0], [2, 3, 1, 0], [3, 2, 1, 0],
+    ]
+    return orderTable[personality % 24]!
+  }
+
+  private getDecryptedSubstruct (data: Uint8Array, substructIndex: number): Uint8Array {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+    const personality = view.getUint32(0x00, true)
+    const order = this.getSubstructOrder(personality)
+    const actualIndex = order[substructIndex]!
+    const substructOffset = 0x20 + actualIndex * 12
+    const encryptedData = new Uint8Array(data.buffer, data.byteOffset + substructOffset, 12)
+    const decryptedData = new Uint8Array(12)
+
+    const key = this.getEncryptionKey(data)
+    for (let i = 0; i < 12; i += 4) {
+      const encView = new DataView(encryptedData.buffer, encryptedData.byteOffset + i, 4)
+      const encrypted = encView.getUint32(0, true)
+      const decrypted = encrypted ^ key
+
+      const decView = new DataView(decryptedData.buffer, i, 4)
+      decView.setUint32(0, decrypted, true)
+    }
+
+    return decryptedData
+  }
+
+  // Game-specific data access implementation
+  getSpeciesId (data: Uint8Array, _view: DataView): number {
+    try {
+      const substruct0 = this.getDecryptedSubstruct(data, 0)
+      const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+      const rawSpecies = subView.getUint16(0, true)
+      return this.pokemonMap.get(rawSpecies)?.id ?? rawSpecies
+    } catch {
+      return 0
+    }
+  }
+
+  getPokemonName (data: Uint8Array, _view: DataView): string | undefined {
+    try {
+      const substruct0 = this.getDecryptedSubstruct(data, 0)
+      const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+      const rawSpecies = subView.getUint16(0, true)
+      return this.pokemonMap.get(rawSpecies)?.name
+    } catch {
+      return undefined
+    }
+  }
+
+  getItem (data: Uint8Array, _view: DataView): number {
+    try {
+      const substruct0 = this.getDecryptedSubstruct(data, 0)
+      const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+      const rawItem = subView.getUint16(2, true)
+      return this.itemMap.get(rawItem)?.id ?? rawItem
+    } catch {
+      return 0
+    }
+  }
+
+  getItemName (data: Uint8Array, _view: DataView): string | undefined {
+    try {
+      const substruct0 = this.getDecryptedSubstruct(data, 0)
+      const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+      const rawItem = subView.getUint16(2, true)
+      return this.itemMap.get(rawItem)?.name
+    } catch {
+      return undefined
+    }
+  }
+
+  getMove (data: Uint8Array, _view: DataView, index: number): number {
+    try {
+      const substruct1 = this.getDecryptedSubstruct(data, 1)
+      const subView = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
+      const rawMove = subView.getUint16(index * 2, true)
+      return this.moveMap.get(rawMove)?.id ?? rawMove
+    } catch {
+      return 0
+    }
+  }
+
+  getPP (data: Uint8Array, _view: DataView, index: number): number {
+    try {
+      const substruct1 = this.getDecryptedSubstruct(data, 1)
+      return substruct1[8 + index]!
+    } catch {
+      return 0
+    }
+  }
+
+  getEV (data: Uint8Array, _view: DataView, index: number): number {
+    try {
+      const substruct2 = this.getDecryptedSubstruct(data, 2)
+      return substruct2[index]!
+    } catch {
+      return 0
+    }
+  }
+
+  setEV (_data: Uint8Array, _view: DataView, _index: number, _value: number): void {
+    // EV setting requires re-encryption, which is complex
+    // For now, just validate input
+    console.warn('Setting EVs on vanilla Pokemon is not yet implemented')
+  }
+
+  getIVs (data: Uint8Array, _view: DataView): readonly number[] {
+    try {
+      const substruct3 = this.getDecryptedSubstruct(data, 3)
+      const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
+      const ivData = subView.getUint32(4, true)
+
+      return [
+        (ivData >> 0) & 0x1F, // HP
+        (ivData >> 5) & 0x1F, // Attack
+        (ivData >> 10) & 0x1F, // Defense
+        (ivData >> 15) & 0x1F, // Speed
+        (ivData >> 20) & 0x1F, // Sp. Attack
+        (ivData >> 25) & 0x1F, // Sp. Defense
+      ]
+    } catch {
+      return [0, 0, 0, 0, 0, 0]
+    }
+  }
+
+  setIVs (_data: Uint8Array, _view: DataView, _values: readonly number[]): void {
+    console.warn('Setting IVs on vanilla Pokemon is not yet implemented')
+  }
+
+  getIsShiny (data: Uint8Array, view: DataView): boolean {
+    return this.getShinyNumber(data, view) < 8
+  }
+
+  getShinyNumber (_data: Uint8Array, view: DataView): number {
+    const personality = view.getUint32(0x00, true)
+    const otId = view.getUint32(0x04, true)
+    const trainerId = otId & 0xFFFF
+    const secretId = (otId >> 16) & 0xFFFF
+    const personalityLow = personality & 0xFFFF
+    const personalityHigh = (personality >> 16) & 0xFFFF
+    return trainerId ^ secretId ^ personalityLow ^ personalityHigh
+  }
+
+  getIsRadiant (_data: Uint8Array, _view: DataView): boolean {
+    return false // Vanilla Pokemon don't have radiant status
+  }
 
   /**
-   * Create vanilla Emerald-specific Pokemon data instance
+   * Calculate nature from personality value using Gen 3 standard formula
    */
-  createPokemonData (data: Uint8Array): BasePokemonData {
-    return new VanillaPokemonData(data, this)
+  calculateNature (personality: number): string {
+    return natures[personality % 25]!
   }
 
   /**
    * Vanilla Emerald logic for determining active save slot
-   * Corrected to use non-overlapping sector ranges
    */
   determineActiveSlot (getCounterSum: (range: number[]) => number): number {
     // Slot 1: sectors 0-13 (14 sectors)
@@ -334,50 +290,86 @@ export class VanillaConfig implements GameConfig {
 
   /**
    * Check if this config can handle the given save file
-   * For vanilla Emerald, we act as a fallback after ROM hack detection
-   */
-  /**
-   * Calculate nature from personality value using Gen 3 standard formula
-   */
-  calculateNature (personality: number): string {
-    // Gen 3 standard formula: full personality value modulo 25
-    return natures[personality % 25]!
-  }
-
-  /**
-   * Check if this config can handle the given save file
-   * Acts as fallback - accepts saves that are roughly the right size
-   * and don't appear to be ROM hacks based on basic checks
+   * Acts as fallback after checking for ROM hack features
    */
   canHandle (saveData: Uint8Array): boolean {
     try {
-      // Basic size check - must be roughly the right size for an Emerald save
+      // Basic size check
       const size = saveData.length
       if (size < 131072 || size > 131200) {
         return false
       }
 
-      // Quick check to see if this might be a ROM hack with extended data
-      // If we can find clear signs of ROM hack features, reject it
-      const view = new DataView(saveData.buffer, saveData.byteOffset, Math.min(saveData.length, 131072))
+      // Try to parse Pokemon using the same logic as the main parser
+      const activeSlot = this.determineActiveSlot((sectors: number[]) => {
+        let sum = 0
+        for (const sectorIndex of sectors) {
+          const footerOffset = (sectorIndex * this.saveLayout.sectorSize) + this.saveLayout.sectorSize - 12
+          if (footerOffset + 12 <= saveData.length) {
+            const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, 12)
+            const signature = view.getUint32(4, true)
+            if (signature === this.signature) {
+              sum += view.getUint16(8, true) // counter
+            }
+          }
+        }
+        return sum
+      })
 
-      // Check for some common ROM hack patterns in the first few KB
-      // Most vanilla saves shouldn't have large non-zero values in specific ranges
-      let suspiciousValues = 0
-      for (let i = 0; i < Math.min(1000, saveData.length - 4); i += 4) {
-        const value = view.getUint32(i, true)
-        // Look for unusually large values that might indicate ROM hack features
-        if (value > 0x10000000) {
-          suspiciousValues++
+      // Build sector map
+      const sectorMap = new Map<number, number>()
+      const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
+
+      for (const i of sectorRange) {
+        const footerOffset = (i * this.saveLayout.sectorSize) + this.saveLayout.sectorSize - 12
+        if (footerOffset + 12 <= saveData.length) {
+          const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, 12)
+          const signature = view.getUint32(4, true)
+          if (signature === this.signature) {
+            const sectorId = view.getUint16(0, true)
+            sectorMap.set(sectorId, i)
+          }
         }
       }
 
-      // If too many suspicious values, probably a ROM hack
-      if (suspiciousValues > 50) {
+      // Extract SaveBlock1 data
+      const saveblock1Sectors = [1, 2, 3, 4].filter(id => sectorMap.has(id))
+      if (saveblock1Sectors.length === 0) {
         return false
       }
 
-      return true
+      const saveblock1Data = new Uint8Array(this.saveLayout.saveBlockSize)
+      for (const sectorId of saveblock1Sectors) {
+        const sectorIdx = sectorMap.get(sectorId)!
+        const startOffset = sectorIdx * this.saveLayout.sectorSize
+        const sectorData = saveData.slice(startOffset, startOffset + this.saveLayout.sectorDataSize)
+        const chunkOffset = (sectorId - 1) * this.saveLayout.sectorDataSize
+        saveblock1Data.set(sectorData.slice(0, this.saveLayout.sectorDataSize), chunkOffset)
+      }
+
+      // Try to parse Pokemon
+      let pokemonFound = 0
+      for (let slot = 0; slot < this.saveLayout.maxPartySize; slot++) {
+        const offset = this.saveLayout.partyOffset + slot * this.pokemonSize
+        const data = saveblock1Data.slice(offset, offset + this.pokemonSize)
+
+        if (data.length < this.pokemonSize) {
+          break
+        }
+
+        try {
+          const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+          if (this.getSpeciesId(data, view) > 0) {
+            pokemonFound++
+          } else {
+            break
+          }
+        } catch {
+          break
+        }
+      }
+
+      return pokemonFound > 0
     } catch {
       return false
     }
