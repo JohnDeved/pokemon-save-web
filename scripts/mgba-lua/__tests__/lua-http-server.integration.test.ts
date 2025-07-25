@@ -164,20 +164,29 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     it('should handle WebSocket eval functionality', async () => {
       const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
       
-      // Wait for connection and welcome message first
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Connection timeout')), 3000) 
+      let welcomeReceived = false
+      
+      // Combined promise to handle both welcome and eval response
+      const testResult = await new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Eval response timeout')), 5000)
         
         ws.on('open', () => {
           console.log('[Test] WebSocket eval test connected')
         })
         
         ws.on('message', (data) => {
-          console.log('[Test] Received message:', data.toString())
-          // Skip the welcome message
-          if (data.toString().includes('Welcome to WebSocket Eval')) {
+          const message = data.toString()
+          console.log('[Test] Received message:', message)
+          
+          if (message.includes('Welcome to WebSocket Eval') && !welcomeReceived) {
+            welcomeReceived = true
+            console.log('[Test] Sending 1+1 to WebSocket')
+            // Send eval request immediately after welcome
+            ws.send('1+1')
+          } else if (welcomeReceived && !message.includes('Welcome to WebSocket Eval')) {
+            // This should be our eval response
             clearTimeout(timeout)
-            resolve()
+            resolve(message)
           }
         })
         
@@ -186,31 +195,12 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
           reject(err)
         })
       })
-
-      // Now test the eval functionality
-      const evalResult = await new Promise<string>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Eval response timeout')), 3000)
-        
-        ws.on('message', (data) => {
-          const message = data.toString()
-          console.log('[Test] Eval response:', message)
-          // Skip welcome messages
-          if (!message.includes('Welcome to WebSocket Eval')) {
-            clearTimeout(timeout)
-            resolve(message)
-          }
-        })
-        
-        // Send Lua code to evaluate
-        console.log('[Test] Sending 1+1 to WebSocket')
-        ws.send('1+1')
-      })
       
       // Parse and verify the eval result
-      const result = JSON.parse(evalResult)
+      const result = JSON.parse(testResult)
       expect(result).toHaveProperty('result', 2)
       
       ws.close()
-    }, 5000) // 5 second test timeout
+    }, 8000) // 8 second test timeout
   })
 })
