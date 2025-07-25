@@ -357,9 +357,8 @@ export class VanillaConfig implements GameConfig {
       return false
     }
 
-    // Try to actually parse Pokemon using the same logic as the main parser
+    // Try to parse Pokemon using the same logic as the main parser
     try {
-      // Replicate the main parser logic to see if we can find Pokemon
       const activeSlot = this.determineActiveSlot((sectors: number[]) => {
         let sum = 0
         for (const sectorIndex of sectors) {
@@ -368,14 +367,13 @@ export class VanillaConfig implements GameConfig {
             const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.layout.sectors.footerSize)
             const signature = view.getUint32(4, true)
             if (signature === this.signature) {
-              sum += view.getUint16(8, true) // counter
+              sum += view.getUint16(8, true)
             }
           }
         }
         return sum
       })
 
-      // Build sector map
       const sectorMap = new Map<number, number>()
       const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
 
@@ -391,7 +389,6 @@ export class VanillaConfig implements GameConfig {
         }
       }
 
-      // Extract SaveBlock1 data
       const saveblock1Sectors = [1, 2, 3, 4].filter(id => sectorMap.has(id))
       if (saveblock1Sectors.length === 0) {
         return false
@@ -406,11 +403,7 @@ export class VanillaConfig implements GameConfig {
         saveblock1Data.set(sectorData.slice(0, this.layout.sectors.dataSize), chunkOffset)
       }
 
-      // Try to parse Pokemon from the actual saveblock1 data
       let pokemonFound = 0
-      let hasRomHackFeatures = false
-      let hasNonZeroData = false
-
       for (let slot = 0; slot < this.layout.party.maxSize; slot++) {
         const offset = this.layout.party.dataOffset + slot * this.layout.party.pokemonSize
         const data = saveblock1Data.slice(offset, offset + this.layout.party.pokemonSize)
@@ -419,57 +412,19 @@ export class VanillaConfig implements GameConfig {
           break
         }
 
-        // Check if there's any non-zero data in this slot
-        const hasDataInSlot = data.some(byte => byte !== 0)
-        if (hasDataInSlot) {
-          hasNonZeroData = true
-        }
-
         try {
           const pokemon = this.createPokemonData(data)
           if (pokemon.speciesId > 0) {
             pokemonFound++
-
-            // Check for ROM hack features that vanilla shouldn't handle
-            if (pokemon.speciesId > 493) { // Extended species
-              hasRomHackFeatures = true
-              break
-            }
-
-            // Check for radiant Pokemon (shiny number = 2)
-            const personality = new DataView(data.buffer, data.byteOffset).getUint32(0, true)
-            const shinyNumber = (personality >> 8) & 0xFF
-            if (shinyNumber === 2) { // Radiant Pokemon
-              hasRomHackFeatures = true
-              break
-            }
-
-            // Check for extended moves
-            const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
-            if (moves.some(moveId => moveId > 354)) { // Extended moves
-              hasRomHackFeatures = true
-              break
-            }
           } else {
-            break // Empty slot, stop looking
+            break
           }
         } catch {
-          break // Parsing failed, stop looking
+          break
         }
       }
 
-      // Reject saves with ROM hack features
-      if (hasRomHackFeatures) {
-        return false
-      }
-
-      // If we found non-zero data but couldn't parse any Pokemon, this is likely a ROM hack save
-      if (hasNonZeroData && pokemonFound === 0) {
-        return false
-      }
-
-      // Accept if we found Pokemon or if save is genuinely empty
-      return pokemonFound > 0 || (pokemonFound === 0 && !hasNonZeroData)
+      return pokemonFound > 0
     } catch {
       return false
     }
