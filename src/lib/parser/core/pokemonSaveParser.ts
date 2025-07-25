@@ -399,6 +399,13 @@ export class PokemonSaveParser {
   }
 
   /**
+   * Get the currently active game config
+   */
+  get gameConfig (): GameConfig | null {
+    return this.config
+  }
+
+  /**
    * Reconstruct the full save file from a new party (PokemonData[]).
    * Updates SaveBlock1 with the given party and returns a new Uint8Array representing the reconstructed save file.
    *

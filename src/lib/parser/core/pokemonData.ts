@@ -122,7 +122,7 @@ export abstract class BasePokemonData {
 
   get natureRaw (): number {
     // Nature is calculated from personality, not stored separately
-    return (this.personality & 0xFF) % 25
+    return this.personality % 25
   }
 
   set natureRaw (value: number) {

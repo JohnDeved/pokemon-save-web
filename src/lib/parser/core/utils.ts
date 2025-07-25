@@ -153,8 +153,8 @@ export const natures = [
  * Pokemon nature is determined by (personality & 0xFF) % 25
  */
 export function getPokemonNature (personality: number): string {
-  // Use only the first byte of the personality value
-  return natures[(personality & 0xFF) % 25]!
+  // Gen 3 standard formula: full personality value modulo 25
+  return natures[personality % 25]!
 }
 
 export function setPokemonNature (pokemon: BasePokemonData, nature: string): void {

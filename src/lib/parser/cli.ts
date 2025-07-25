@@ -190,6 +190,7 @@ const buffer = fs.readFileSync(absPath)
 const parser = new PokemonSaveParser()
 try {
   const result = await parser.parseSaveFile(buffer)
+  console.log(`Detected config: ${parser.gameConfig?.name ?? 'unknown'}`)
   console.log(`Active save slot: ${result.active_slot}`)
   console.log(`Valid sectors found: ${result.sector_map.size}`)
   if (graph) displayPartyPokemonGraph(result.party_pokemon)

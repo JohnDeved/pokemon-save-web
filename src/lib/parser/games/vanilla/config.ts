@@ -396,9 +396,9 @@ export class VanillaConfig implements GameConfig {
       return false
     }
 
-    // Additional heuristics could be added here to differentiate vanilla from ROM hacks
-    // For now, this is a fallback that accepts any Emerald-signature save
-    // In practice, this should be the last config tried after specific ROM hacks
-    return true
+    // For now, return false by default since this should be the fallback config
+    // In practice, this will only be used when explicitly specified
+    // TODO: Add more specific detection logic to distinguish vanilla from ROM hacks
+    return false
   }
 }
