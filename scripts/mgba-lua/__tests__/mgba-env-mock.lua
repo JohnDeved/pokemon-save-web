@@ -1,240 +1,128 @@
-#!/usr/bin/env lua5.3
-
--- Simple mGBA environment mock that tests the actual http-server.lua
--- This version is designed for clarity and maintainability
-
 local socket = require('socket')
 local port = tonumber(arg[1]) or 7102
 
--- =============================================================================
--- Mock mGBA APIs
--- =============================================================================
-
--- Console API - Simple logging to stdout
-_G.console = {
-    log = function(_, message)
-        print("[CONSOLE] " .. tostring(message))
-        io.flush()
-    end,
-    error = function(_, message)
-        print("[ERROR] " .. tostring(message))
-        io.flush()
-    end
-}
-
--- Emulator API - Minimal mock for ROM detection
-_G.emu = {
-    romSize = function()
-        return 1048576 -- Fake ROM size to indicate ROM is loaded
-    end
-}
-
--- Callbacks API - Simple callback registration
-_G.callbacks = {
-    add = function(_, event, callback)
-        if event == "start" then
-            callback() -- Execute immediately for testing
+local Socket = {}
+do
+    local Client = { __index = Client }
+    function Client:add(event, cb)
+        self._callbacks[event] = cb
+        if event == "received" and #self._buffer > 0 and type(cb) == "function" then
+            cb()
         end
-        return 1 -- Return callback ID
-    end,
-    remove = function(_, id)
-        -- No-op for testing
     end
-}
-
--- =============================================================================
--- Socket API Mock - Maps mGBA socket API to lua-socket
--- =============================================================================
-
-local server_socket = nil
-local client_connections = {}
-local is_running = false
-
-_G.socket = {
-    -- Error constants that match mGBA
-    ERRORS = {
-        AGAIN = "again",
-        ADDRESS_IN_USE = "address already in use"
-    },
-    
-    -- Main bind function - creates a server socket
-    bind = function(host, bind_port)
-        local tcp_socket = socket.tcp()
-        if not tcp_socket then
-            return nil, "Failed to create socket"
-        end
-        
-        tcp_socket:setoption("reuseaddr", true)
-        local success, err = tcp_socket:bind(host or "127.0.0.1", bind_port)
-        
-        if not success then
-            tcp_socket:close()
-            if err and err:find("already in use") then
-                return nil, _G.socket.ERRORS.ADDRESS_IN_USE
-            end
-            return nil, err
-        end
-        
-        -- Create server wrapper that mimics mGBA server API
-        local server = {
-            _socket = tcp_socket,
-            _callbacks = {},
-            
-            -- Add event listeners
-            add = function(self, event, callback)
-                self._callbacks[event] = callback
-            end,
-            
-            -- Start listening for connections
-            listen = function(self)
-                local success, listen_err = self._socket:listen(5)
-                if not success then
-                    return nil, listen_err
-                end
-                
-                self._socket:settimeout(0) -- Non-blocking
-                server_socket = self
-                is_running = true
-                return true
-            end,
-            
-            -- Accept new client connections
-            accept = function(self)
-                if #client_connections > 0 then
-                    local client = table.remove(client_connections, 1)
-                    return client
-                end
-                return nil, _G.socket.ERRORS.AGAIN
-            end,
-            
-            -- Close the server
-            close = function(self)
-                is_running = false
-                return self._socket:close()
-            end
-        }
-        
-        return server
+    function Client:receive()
+        if #self._buffer > 0 then local data = self._buffer; self._buffer = ""; return data end
+        return nil, Socket.ERRORS.AGAIN
     end
-}
+    function Client:send(data) return self._socket:send(data) end
+    function Client:close() return self._socket:close() end
 
--- =============================================================================
--- Load and Execute the actual mGBA HTTP Server
--- =============================================================================
+    local Server = { __index = Server }
+    function Server:add(event, cb) self._callbacks[event] = cb end
+    function Server:listen()
+        local ok, err = self._socket:listen(5)
+        if not ok then return nil, err end
+        self._socket:settimeout(0); Socket._running = true; return true
+    end
+    function Server:accept()
+        if #Socket._clients > 0 then return table.remove(Socket._clients, 1) end
+        return nil, Socket.ERRORS.AGAIN
+    end
+    function Server:close() Socket._running = false; return self._socket:close() end
 
-print("Starting mGBA environment mock on port " .. port)
+    Socket._clients, Socket._running, Socket._server = {}, false, nil
+    Socket.ERRORS = { AGAIN = "again", ADDRESS_IN_USE = "address already in use" }
+    Socket.new_client = function(sock, data)
+        return setmetatable({_socket = sock, _callbacks = {}, _buffer = data or ""}, Client)
+    end
 
--- Load the actual http-server.lua file
-local script_dir = arg[0]:match("(.+)/[^/]+$") or "."
-local server_file = script_dir .. "/../http-server.lua"
-
-local file = io.open(server_file, "r")
-if not file then
-    print("ERROR: Could not find http-server.lua at " .. server_file)
-    os.exit(1)
+    function Socket.bind(host, port)
+        local s = socket.tcp()
+        if not s then return nil, "Failed to create socket" end
+        s:setoption("reuseaddr", true)
+        local ok, bind_err = s:bind(host or "127.0.0.1", port)
+        if not ok then
+            s:close()
+            return nil, (bind_err:find("already in use") and Socket.ERRORS.ADDRESS_IN_USE or bind_err)
+        end
+        Socket._server = setmetatable({_socket = s, _callbacks = {}}, Server)
+        return Socket._server
+    end
 end
 
--- Read and modify the port in the server code
-local server_code = file:read("*all")
-file:close()
+local function read_full_request(client_socket)
+    client_socket:settimeout(1)
+    local headers = client_socket:receive("*l\r\n\r\n")
+    if not headers then return nil end
 
--- Replace the hardcoded port with our test port
-server_code = server_code:gsub("app:listen%(7102", "app:listen(" .. port)
+    local content_length = headers:match("[Cc]ontent-[Ll]ength:%s*(%d+)")
+    if not content_length then return headers end
 
--- Execute the server code
-local chunk, load_err = load(server_code, "http-server.lua")
-if not chunk then
-    print("ERROR: Failed to load http-server.lua: " .. tostring(load_err))
-    os.exit(1)
+    local body = client_socket:receive(tonumber(content_length))
+    return body and (headers .. body) or headers
 end
 
-local success, exec_err = pcall(chunk)
-if not success then
-    print("ERROR: Failed to execute http-server.lua: " .. tostring(exec_err))
-    os.exit(1)
+local function load_http_server(server_port)
+    local script_dir = arg[0]:match("(.+)/[^/]+$") or "."
+    local path = script_dir .. "/../http-server.lua"
+    local file = io.open(path, "r")
+    if not file then _G.console.fatal("http-server.lua not found at: " .. path) end
+
+    local content = file:read("*a"); file:close()
+    local patched = content:gsub("app:listen%(7102", "app:listen(" .. server_port)
+    local chunk, load_err = load(patched, "http-server.lua")
+    if not chunk then _G.console.fatal("Failed to load http-server.lua: " .. tostring(load_err)) end
+
+    local ok, exec_err = pcall(chunk)
+    if not ok then _G.console.fatal("Failed to execute http-server.lua: " .. tostring(exec_err)) end
+
+    _G.console.log("HTTP server loaded successfully.")
 end
 
-print("HTTP server loaded successfully")
-
--- =============================================================================
--- Simple Event Loop - Handle incoming connections
--- =============================================================================
-
--- Main event loop that handles new connections
-for i = 1, 50000 do -- Reasonable loop limit
-    if not is_running then
-        break
-    end
-    
-    -- Check for new connections
-    if server_socket then
-        local client_socket = server_socket._socket:accept()
-        if client_socket then
-            client_socket:settimeout(1) -- Short timeout for testing
-            
-            -- Read the HTTP request data
-            local request_data = ""
-            repeat
-                local char = client_socket:receive(1)
-                if char then
-                    request_data = request_data .. char
-                    -- Stop when we have the full HTTP request
-                    if request_data:find("\r\n\r\n") then
-                        local content_length = request_data:match("content%-length:%s*(%d+)")
-                        if not content_length or #request_data >= (request_data:find("\r\n\r\n") + 3 + tonumber(content_length)) then
-                            break
-                        end
-                    end
-                end
-            until not char or #request_data > 2048
-            
-            -- Only create client wrapper if we received data
-            if #request_data > 0 then
-                -- Create client wrapper that mimics mGBA client API
-                local client = {
-                    _socket = client_socket,
-                    _callbacks = {},
-                    _buffer = request_data,
-                    
-                    add = function(self, event, callback)
-                        self._callbacks[event] = callback
-                        -- Trigger received event immediately if we have data
-                        if event == "received" and #self._buffer > 0 then
-                            callback()
-                        end
-                    end,
-                    
-                    receive = function(self, size)
-                        if #self._buffer > 0 then
-                            local data = self._buffer
-                            self._buffer = ""
-                            return data
-                        end
-                        return nil, _G.socket.ERRORS.AGAIN
-                    end,
-                    
-                    send = function(self, data)
-                        return self._socket:send(data)
-                    end,
-                    
-                    close = function(self)
-                        self._socket:close()
-                    end
-                }
-                
-                table.insert(client_connections, client)
-                
-                -- Trigger server's received callback
-                if server_socket._callbacks.received then
-                    server_socket._callbacks.received()
-                end
+local function main_event_loop(server)
+    _G.console.log("Event loop started. Waiting for connections...")
+    while Socket._running do
+        local raw_client_socket = server._socket:accept()
+        if raw_client_socket then
+            local request_data = read_full_request(raw_client_socket)
+            if request_data then
+                table.insert(Socket._clients, Socket.new_client(raw_client_socket, request_data))
+                if server._callbacks.received then server._callbacks.received() end
             else
-                client_socket:close()
+                raw_client_socket:close()
             end
         end
+        socket.sleep(0.001)
     end
-    
-    socket.sleep(0.001) -- Small delay to prevent busy waiting
+    _G.console.log("Event loop ended.")
 end
 
-print("Event loop ended")
+local function main()
+    _G.console = {
+        log = function(msg) print("[CONSOLE] " .. tostring(msg)); io.flush() end,
+        error = function(msg) print("[ERROR] " .. tostring(msg)); io.flush() end
+    }
+    _G.console.fatal = function(msg) _G.console.error(msg); os.exit(1) end
+    _G.emu = {
+        romSize = function() return 1024 * 1024 end
+    }
+    _G.callbacks = {
+        add = function(event, cb)
+            if event == "start" and type(cb) == "function" then cb() end
+            return 1
+        end,
+        remove = function() end
+    }
+    _G.socket = Socket
+
+    _G.console.log("Starting simplified mGBA environment on port " .. port)
+    load_http_server(port)
+
+    if Socket._server and Socket._running then
+        main_event_loop(Socket._server)
+    else
+        _G.console.fatal("The http-server.lua script did not start the server correctly.")
+    end
+end
+
+main()
