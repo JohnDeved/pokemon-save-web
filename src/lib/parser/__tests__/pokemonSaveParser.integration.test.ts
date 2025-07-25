@@ -11,7 +11,7 @@ import { autoDetectGameConfig } from '../core/autoDetect'
 import { PokemonSaveParser } from '../core/pokemonSaveParser'
 import { QuetzalConfig } from '../games/quetzal/config'
 import type { SaveData } from '../core/types'
-import { calculateTotalStats } from '../core/utils'
+import { calculateTotalStats, natures } from '../core/utils'
 
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
@@ -167,6 +167,25 @@ describe('PokemonSaveParser - Integration Tests', () => {
         Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v]),
       )
       expect(parsedData.sector_map).toEqual(expectedSectorMap)
+    })
+  })
+
+  describe('Nature Calculation', () => {
+    it('should calculate natures correctly for all party pokemon using Quetzal formula', async () => {
+      const result = await parser.parseSaveFile(testSaveData)
+
+      for (let i = 0; i < result.party_pokemon.length; i++) {
+        const pokemon = result.party_pokemon[i]
+        const expectedPokemon = groundTruth.party_pokemon[i]
+
+        if (pokemon && expectedPokemon) {
+          expect(pokemon.nature).toBe(expectedPokemon.displayNature)
+
+          // Verify the formula is using first byte only
+          const firstByteNature = natures[(pokemon.personality & 0xFF) % 25]
+          expect(pokemon.nature).toBe(firstByteNature)
+        }
+      }
     })
   })
 

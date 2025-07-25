@@ -5,7 +5,7 @@
 
 import type { GameConfig } from '../core/types'
 import type { MoveData, PokemonMoves } from './types'
-import { bytesToGbaString, getPokemonNature, natureEffects, natures, statStrings } from './utils'
+import { bytesToGbaString, natureEffects, natures, statStrings } from './utils'
 
 /**
  * Base Pokemon data class with common functionality
@@ -89,12 +89,12 @@ export abstract class BasePokemonData {
     return this.config.mappings.pokemon.get(speciesId)?.id_name
   }
 
-  private mapMoveToPokeId (moveId: number): number {
+  protected mapMoveToPokeId (moveId: number): number {
     const mapped = this.config.mappings.moves.get(moveId)?.id
     return mapped ?? moveId
   }
 
-  private mapItemToPokeId (itemId: number): number {
+  protected mapItemToPokeId (itemId: number): number {
     const mapped = this.config.mappings.items.get(itemId)?.id
     return mapped ?? itemId
   }

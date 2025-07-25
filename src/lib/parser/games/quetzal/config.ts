@@ -144,11 +144,11 @@ export class QuetzalConfig implements GameConfig {
   }
 
   /**
-   * Calculate nature from personality value using standard Gen 3 formula
+   * Calculate nature from personality value using Quetzal-specific formula
    */
   calculateNature (personality: number): string {
-    // Quetzal uses standard Gen 3 formula: full personality value modulo 25
-    return natures[personality % 25]!
+    // Quetzal uses only the first byte of personality modulo 25
+    return natures[(personality & 0xFF) % 25]!
   }
 
   /**
@@ -220,35 +220,35 @@ export class QuetzalConfig implements GameConfig {
       // Check party Pokemon for Quetzal-specific features in both possible slots
       // Sometimes Pokemon data might be in a different slot than the "active" one
       const slotsToCheck = [activeSlot, activeSlot === 0 ? 14 : 0]
-      
+
       for (const slotToCheck of slotsToCheck) {
         const saveBlock1Offset = slotToCheck * this.offsets.sectorSize
-        
+
         for (let slot = 0; slot < this.offsets.maxPartySize; slot++) {
           const pokemonOffset = saveBlock1Offset + this.offsets.partyStartOffset + (slot * this.offsets.partyPokemonSize)
-          
+
           if (pokemonOffset + this.offsets.partyPokemonSize <= saveData.length) {
             const pokemonData = new Uint8Array(saveData.buffer, saveData.byteOffset + pokemonOffset, this.offsets.partyPokemonSize)
-            
+
             // Check if Pokemon slot is empty (species ID = 0)
             const rawSpeciesId = new DataView(pokemonData.buffer, pokemonData.byteOffset + this.offsets.pokemonData.species, 2).getUint16(0, true)
             if (rawSpeciesId === 0) {
               break // End of party in this slot
             }
-            
+
             const pokemon = this.createPokemonData(pokemonData)
-            
+
             // Check for Quetzal-specific features:
             // 1. Species ID > 493 (indicates extended Pokedex)
             if (rawSpeciesId > 493) {
               return true // Definitely Quetzal with extended species
             }
-            
+
             // 2. Check for radiant Pokemon (shinyNumber === 2)
             if (pokemon.isRadiant) {
               return true // Radiant Pokemon are Quetzal-specific
             }
-            
+
             // 3. Check moves > standard Gen 3 range
             const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
             if (moves.some(moveId => moveId > 354)) { // Gen 3 has moves 1-354

@@ -29,35 +29,35 @@ class VanillaPokemonData extends BasePokemonData {
     return orderTable[this.personality % 24]!
   }
 
-  // Decrypt and get a specific substruct 
+  // Decrypt and get a specific substruct
   private getDecryptedSubstruct (substructIndex: number): Uint8Array {
     const order = this.getSubstructOrder()
     const actualIndex = order[substructIndex]!
     const substructOffset = 0x20 + actualIndex * 12 // Each substruct is 12 bytes
     const encryptedData = new Uint8Array(this.data.buffer, this.data.byteOffset + substructOffset, 12)
     const decryptedData = new Uint8Array(12)
-    
+
     // Decrypt in 4-byte chunks
     const key = this.encryptionKey
     for (let i = 0; i < 12; i += 4) {
       const view = new DataView(encryptedData.buffer, encryptedData.byteOffset + i, 4)
       const encrypted = view.getUint32(0, true)
       const decrypted = encrypted ^ key
-      
+
       const decryptedView = new DataView(decryptedData.buffer, i, 4)
       decryptedView.setUint32(0, decrypted, true)
     }
-    
+
     return decryptedData
   }
 
   // Override species to decrypt from substruct 0
   get speciesId (): number {
     try {
-      const substruct0 = this.getDecryptedSubstruct(0) 
+      const substruct0 = this.getDecryptedSubstruct(0)
       const view = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
       const rawSpecies = view.getUint16(0, true) // species is first field in substruct 0
-      
+
       // Apply species mapping (internal species -> external species)
       const mappedSpecies = this.config.mappings.pokemon.get(rawSpecies)?.id ?? rawSpecies
       return mappedSpecies
@@ -66,7 +66,7 @@ class VanillaPokemonData extends BasePokemonData {
     }
   }
 
-  // Override item to decrypt from substruct 0  
+  // Override item to decrypt from substruct 0
   get item (): number {
     try {
       const substruct0 = this.getDecryptedSubstruct(0)
@@ -146,8 +146,8 @@ class VanillaPokemonData extends BasePokemonData {
 
       // Extract IVs (5 bits each, 6 IVs total)
       return [
-        (ivData >> 0) & 0x1F,  // HP
-        (ivData >> 5) & 0x1F,  // Attack
+        (ivData >> 0) & 0x1F, // HP
+        (ivData >> 5) & 0x1F, // Attack
         (ivData >> 10) & 0x1F, // Defense
         (ivData >> 15) & 0x1F, // Speed
         (ivData >> 20) & 0x1F, // Sp. Attack
@@ -161,15 +161,16 @@ class VanillaPokemonData extends BasePokemonData {
   set ivs (values: readonly number[]) {
     try {
       if (values.length !== 6) throw new Error('IVs array must have 6 values')
-      
+
       let packed = 0
       for (let i = 0; i < 6; i++) {
         packed |= (values[i]! & 0x1F) << (i * 5)
       }
 
       // This would require re-encrypting the substruct, which is complex
+      // For now, just validate the input
       // For now, we'll leave this as a placeholder
-      console.warn('Setting IVs on vanilla Pokemon is not yet implemented')
+      console.warn('Setting IVs on vanilla Pokemon is not yet implemented', packed)
     } catch (error) {
       console.warn('Failed to set IVs:', error)
     }
@@ -194,17 +195,6 @@ class VanillaPokemonData extends BasePokemonData {
     // Vanilla Pokemon don't have radiant status
     return false
   }
-
-  // Helper function for mapping (inherited from base class)
-  private mapItemToPokeId (itemId: number): number {
-    const mapped = this.config.mappings.items.get(itemId)?.id
-    return mapped ?? itemId
-  }
-
-  private mapMoveToPokeId (moveId: number): number {
-    const mapped = this.config.mappings.moves.get(moveId)?.id
-    return mapped ?? moveId
-  }
 }
 
 export class VanillaConfig implements GameConfig {
@@ -219,47 +209,51 @@ export class VanillaConfig implements GameConfig {
     sectorsPerSlot: 18,
     totalSectors: 32,
     partyStartOffset: 0x238, // Actual party data offset in SaveBlock1 (0x234 is party count)
-    partyPokemonSize: 100, // sizeof(struct Pokemon) = 100 bytes in vanilla Emerald  
+    partyPokemonSize: 100, // sizeof(struct Pokemon) = 100 bytes in vanilla Emerald
     maxPartySize: 6,
     pokemonNicknameLength: 10,
     pokemonTrainerNameLength: 7,
     playTimeHours: 0x0E, // u16 playTimeHours in SaveBlock2
-    playTimeMinutes: 0x10, // u8 playTimeMinutes in SaveBlock2  
+    playTimeMinutes: 0x10, // u8 playTimeMinutes in SaveBlock2
     playTimeSeconds: 0x11, // u8 playTimeSeconds in SaveBlock2
     pokemonData: {
-      // BoxPokemon part (first 80 bytes)
-      personality: 0x00,     // u32 personality
-      otId: 0x04,           // u32 otId 
-      nickname: 0x08,       // u8 nickname[10] 
-      otName: 0x14,         // u8 otName[7] (offset 20 decimal)
-      // Species and other data are encrypted in substructs - need different approach
-      species: 0x20,        // In encrypted substruct - placeholder for now
-      item: 0x22,           // In encrypted substruct - placeholder for now
-      move1: 0x24,          // In encrypted substruct - placeholder for now
-      move2: 0x26,          // In encrypted substruct - placeholder for now  
-      move3: 0x28,          // In encrypted substruct - placeholder for now
-      move4: 0x2A,          // In encrypted substruct - placeholder for now
-      pp1: 0x2C,            // In encrypted substruct - placeholder for now
-      pp2: 0x2D,            // In encrypted substruct - placeholder for now
-      pp3: 0x2E,            // In encrypted substruct - placeholder for now
-      pp4: 0x2F,            // In encrypted substruct - placeholder for now
-      hpEV: 0x30,           // In encrypted substruct - placeholder for now
-      atkEV: 0x31,          // In encrypted substruct - placeholder for now
-      defEV: 0x32,          // In encrypted substruct - placeholder for now  
-      speEV: 0x33,          // In encrypted substruct - placeholder for now
-      spaEV: 0x34,          // In encrypted substruct - placeholder for now
-      spdEV: 0x35,          // In encrypted substruct - placeholder for now
-      ivData: 0x36,         // In encrypted substruct - placeholder for now
-      // Pokemon struct part (last 20 bytes)
-      status: 0x50,         // u32 status (offset 80)
-      level: 0x54,          // u8 level (offset 84)
-      currentHp: 0x56,      // u16 hp (offset 86)
-      maxHp: 0x58,          // u16 maxHP (offset 88)
-      attack: 0x5A,         // u16 attack (offset 90)
-      defense: 0x5C,        // u16 defense (offset 92)
-      speed: 0x5E,          // u16 speed (offset 94)
-      spAttack: 0x60,       // u16 spAttack (offset 96)
-      spDefense: 0x62,      // u16 spDefense (offset 98)
+      // BoxPokemon part (first 80 bytes) - only unencrypted fields have offsets
+      personality: 0x00, // u32 personality
+      otId: 0x04, // u32 otId
+      nickname: 0x08, // u8 nickname[10]
+      otName: 0x14, // u8 otName[7] (offset 20 decimal)
+      // Note: species, item, moves, EVs, IVs are encrypted in substructs 0x20-0x4F
+      // and accessed via VanillaPokemonData getters, not direct offsets
+
+      // Pokemon struct part (last 20 bytes) - unencrypted
+      status: 0x50, // u32 status (offset 80)
+      level: 0x54, // u8 level (offset 84)
+      currentHp: 0x56, // u16 hp (offset 86)
+      maxHp: 0x58, // u16 maxHP (offset 88)
+      attack: 0x5A, // u16 attack (offset 90)
+      defense: 0x5C, // u16 defense (offset 92)
+      speed: 0x5E, // u16 speed (offset 94)
+      spAttack: 0x60, // u16 spAttack (offset 96)
+      spDefense: 0x62, // u16 spDefense (offset 98)
+
+      // Encrypted fields - no direct offsets, accessed via decryption in VanillaPokemonData
+      species: 0, // Decrypted from substruct 0
+      item: 0, // Decrypted from substruct 0
+      move1: 0, // Decrypted from substruct 1
+      move2: 0, // Decrypted from substruct 1
+      move3: 0, // Decrypted from substruct 1
+      move4: 0, // Decrypted from substruct 1
+      pp1: 0, // Decrypted from substruct 1
+      pp2: 0, // Decrypted from substruct 1
+      pp3: 0, // Decrypted from substruct 1
+      pp4: 0, // Decrypted from substruct 1
+      hpEV: 0, // Decrypted from substruct 2
+      atkEV: 0, // Decrypted from substruct 2
+      defEV: 0, // Decrypted from substruct 2
+      speEV: 0, // Decrypted from substruct 2
+      spaEV: 0, // Decrypted from substruct 2
+      spdEV: 0, // Decrypted from substruct 2
+      ivData: 0, // Decrypted from substruct 3
     },
   } as const
 
@@ -352,7 +346,7 @@ export class VanillaConfig implements GameConfig {
    */
   determineActiveSlot (getCounterSum: (range: number[]) => number): number {
     // Slot 1: sectors 0-13 (14 sectors)
-    // Slot 2: sectors 14-31 (18 sectors) 
+    // Slot 2: sectors 14-31 (18 sectors)
     const slot1Range = Array.from({ length: 14 }, (_, i) => i)
     const slot2Range = Array.from({ length: 18 }, (_, i) => i + 14)
     const slot1Sum = getCounterSum(slot1Range)
@@ -424,8 +418,7 @@ export class VanillaConfig implements GameConfig {
       })
 
       // Basic validation: check if we can parse the save structure
-      const saveBlock1Offset = activeSlot * this.offsets.sectorSize
-      
+
       // Check if SaveBlock2 data looks reasonable
       const slot2Offset = activeSlot === 0 ? 14 * this.offsets.sectorSize : 0
       const playTimeOffset = slot2Offset + this.offsets.playTimeHours
@@ -433,7 +426,7 @@ export class VanillaConfig implements GameConfig {
         const view = new DataView(saveData.buffer, saveData.byteOffset + playTimeOffset, 4)
         const hours = view.getUint16(0, true)
         const minutes = view.getUint8(2)
-        
+
         // Reasonable play time validation (not corrupted data)
         if (hours <= 9999 && minutes <= 59) {
           return true // Valid vanilla Emerald save

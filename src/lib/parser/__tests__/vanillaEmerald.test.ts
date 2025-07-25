@@ -71,10 +71,10 @@ describe('Vanilla Emerald Save Parser', () => {
     it('should handle emerald save file when auto-detected', async () => {
       const config = new VanillaConfig()
       const saveData = new Uint8Array(testSaveData)
-      
+
       // Vanilla config should now handle the save file correctly
       expect(config.canHandle(saveData)).toBe(true)
-      
+
       // Auto-detection should also work correctly
       const autoParser = new PokemonSaveParser()
       const autoResult = await autoParser.parseSaveFile(testSaveData)
@@ -88,15 +88,15 @@ describe('Vanilla Emerald Save Parser', () => {
       const quetzalPath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const quetzalBuffer = readFileSync(quetzalPath)
       const quetzalData = new Uint8Array(quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength))
-      
+
       const vanillaConfig = new VanillaConfig()
       const quetzalConfig = new QuetzalConfig()
-      
+
       // Vanilla should NOT handle Quetzal saves
       expect(vanillaConfig.canHandle(quetzalData)).toBe(false)
       // Quetzal SHOULD handle Quetzal saves
       expect(quetzalConfig.canHandle(quetzalData)).toBe(true)
-      
+
       // Auto-detection should pick Quetzal for quetzal.sav
       const autoParser = new PokemonSaveParser()
       const quetzalArrayBuffer = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
@@ -128,18 +128,18 @@ describe('Vanilla Emerald Save Parser', () => {
 
     it('should parse first Pokemon correctly', () => {
       expect(parsedData.party_pokemon.length).toBeGreaterThan(0)
-      
+
       if (parsedData.party_pokemon.length > 0) {
         const first = parsedData.party_pokemon[0]!
         const expected = groundTruth.party_pokemon[0]!
-        
+
         console.log('Parsed first Pokemon:')
         console.log('  Species ID:', first.speciesId)
         console.log('  Level:', first.level)
         console.log('  Current HP:', first.currentHp)
         console.log('  Max HP:', first.maxHp)
-        console.log('  Personality:', '0x' + first.personality.toString(16))
-        console.log('  OT ID:', '0x' + first.otId.toString(16))
+        console.log('  Personality:', `0x${first.personality.toString(16)}`)
+        console.log('  OT ID:', `0x${first.otId.toString(16)}`)
         console.log('  Move 1:', first.move1)
         console.log('  Move 2:', first.move2)
         console.log('  PP 1:', first.pp1)
@@ -148,7 +148,7 @@ describe('Vanilla Emerald Save Parser', () => {
         console.log('  OT Name:', first.otName)
         console.log('  OT ID String:', first.otId_str)
         console.log('  Nature:', first.nature)
-        
+
         // Basic checks
         expect(first.speciesId).toBe(expected.speciesId)
         expect(first.level).toBe(expected.level)
@@ -159,13 +159,13 @@ describe('Vanilla Emerald Save Parser', () => {
         expect(first.speed).toBe(expected.speed)
         expect(first.spAttack).toBe(expected.spAttack)
         expect(first.spDefense).toBe(expected.spDefense)
-        
+
         // Move checks
         expect(first.move1).toBe(1) // Pound
         expect(first.move2).toBe(43) // Leer
         expect(first.pp1).toBe(32) // Pound PP
         expect(first.pp2).toBe(30) // Leer PP
-        
+
         // Text and nature checks
         expect(first.nickname).toBe(expected.nickname)
         expect(first.otName).toBe(expected.otName)

@@ -27,12 +27,12 @@ export function getItemSpriteUrl (itemIdName: string): string {
 export function bytesToGbaString (bytes: Uint8Array): string {
   let result = ''
   const endIndex = findStringEnd(bytes)
-  
+
   // Process only the actual string content (before padding/garbage)
   for (let i = 0; i < endIndex; i++) {
     const byte = bytes[i]!
     const char = charmap[byte]
-    
+
     if (char === undefined) continue // Skip unmapped bytes
     if (char === '\\n') result += '\n'
     else if (char === '\\l' || char === '\\p') continue // Skip control codes
@@ -51,11 +51,11 @@ function findStringEnd (bytes: Uint8Array): number {
   for (let i = bytes.length - 1; i >= 0 && bytes[i] === 0xFF; i--) {
     trailingFFs++
   }
-  
+
   if (trailingFFs > 2) {
     return bytes.length - trailingFFs
   }
-  
+
   // Look for garbage pattern: 0xFF followed by low values (0x01-0x0F)
   for (let i = 0; i < bytes.length - 1; i++) {
     if (bytes[i] === 0xFF) {
@@ -66,7 +66,7 @@ function findStringEnd (bytes: Uint8Array): number {
       }
     }
   }
-  
+
   return bytes.length
 }
 

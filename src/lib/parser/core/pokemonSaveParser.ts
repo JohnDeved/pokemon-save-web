@@ -298,7 +298,7 @@ export class PokemonSaveParser {
 
     return {
       hours: view.getUint16(this.config.offsets.playTimeHours, true), // u16 playTimeHours
-      minutes: view.getUint8(this.config.offsets.playTimeMinutes), // u8 playTimeMinutes 
+      minutes: view.getUint8(this.config.offsets.playTimeMinutes), // u8 playTimeMinutes
       seconds: view.getUint8(this.config.offsets.playTimeSeconds), // u8 playTimeSeconds
     }
   }
