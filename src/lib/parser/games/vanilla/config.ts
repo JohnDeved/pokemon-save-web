@@ -201,59 +201,63 @@ export class VanillaConfig implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
   readonly signature = 0x08012025 // Same as Quetzal for Emerald base
 
-  readonly offsets = {
-    sectorSize: 4096,
-    sectorDataSize: 3968,
-    sectorFooterSize: 12,
-    saveblock1Size: 3968 * 4, // SECTOR_DATA_SIZE * 4
-    sectorsPerSlot: 18,
-    totalSectors: 32,
-    partyStartOffset: 0x238, // Actual party data offset in SaveBlock1 (0x234 is party count)
-    partyPokemonSize: 100, // sizeof(struct Pokemon) = 100 bytes in vanilla Emerald
-    maxPartySize: 6,
-    pokemonNicknameLength: 10,
-    pokemonTrainerNameLength: 7,
-    playTimeHours: 0x0E, // u16 playTimeHours in SaveBlock2
-    playTimeMinutes: 0x10, // u8 playTimeMinutes in SaveBlock2
-    playTimeSeconds: 0x11, // u8 playTimeSeconds in SaveBlock2
-    pokemonData: {
-      // BoxPokemon part (first 80 bytes) - only unencrypted fields have offsets
-      personality: 0x00, // u32 personality
-      otId: 0x04, // u32 otId
-      nickname: 0x08, // u8 nickname[10]
-      otName: 0x14, // u8 otName[7] (offset 20 decimal)
-      // Note: species, item, moves, EVs, IVs are encrypted in substructs 0x20-0x4F
-      // and accessed via VanillaPokemonData getters, not direct offsets
-
+  readonly layout = {
+    // Sector configuration
+    sectors: {
+      size: 4096,
+      dataSize: 3968,
+      footerSize: 12,
+      totalCount: 32,
+      perSlot: 18,
+    },
+    
+    // SaveBlock configuration
+    saveBlocks: {
+      block1Size: 3968 * 4, // SECTOR_DATA_SIZE * 4
+    },
+    
+    // Party data layout
+    party: {
+      countOffset: 0x234,     // Party count at SaveBlock1 + 0x234
+      dataOffset: 0x238,      // Party Pokemon data starts at SaveBlock1 + 0x238  
+      pokemonSize: 100,       // Each Pokemon is 100 bytes
+      maxSize: 6,             // Maximum 6 Pokemon in party
+    },
+    
+    // Player data layout (SaveBlock2)
+    player: {
+      playTimeHours: 0x0E,    // u16 playTimeHours
+      playTimeMinutes: 0x10,  // u8 playTimeMinutes  
+      playTimeSeconds: 0x11,  // u8 playTimeSeconds
+    },
+    
+    // Pokemon data layout - only unencrypted field offsets
+    pokemon: {
+      // BoxPokemon part (first 80 bytes) - only unencrypted fields
+      personality: 0x00,      // u32 personality
+      otId: 0x04,            // u32 otId
+      nickname: {
+        offset: 0x08,
+        length: 10,
+      },
+      otName: {
+        offset: 0x14,         // offset 20 decimal
+        length: 7,
+      },
+      
       // Pokemon struct part (last 20 bytes) - unencrypted
-      status: 0x50, // u32 status (offset 80)
-      level: 0x54, // u8 level (offset 84)
-      currentHp: 0x56, // u16 hp (offset 86)
-      maxHp: 0x58, // u16 maxHP (offset 88)
-      attack: 0x5A, // u16 attack (offset 90)
-      defense: 0x5C, // u16 defense (offset 92)
-      speed: 0x5E, // u16 speed (offset 94)
-      spAttack: 0x60, // u16 spAttack (offset 96)
-      spDefense: 0x62, // u16 spDefense (offset 98)
-
-      // Encrypted fields - no direct offsets, accessed via decryption in VanillaPokemonData
-      species: 0, // Decrypted from substruct 0
-      item: 0, // Decrypted from substruct 0
-      move1: 0, // Decrypted from substruct 1
-      move2: 0, // Decrypted from substruct 1
-      move3: 0, // Decrypted from substruct 1
-      move4: 0, // Decrypted from substruct 1
-      pp1: 0, // Decrypted from substruct 1
-      pp2: 0, // Decrypted from substruct 1
-      pp3: 0, // Decrypted from substruct 1
-      pp4: 0, // Decrypted from substruct 1
-      hpEV: 0, // Decrypted from substruct 2
-      atkEV: 0, // Decrypted from substruct 2
-      defEV: 0, // Decrypted from substruct 2
-      speEV: 0, // Decrypted from substruct 2
-      spaEV: 0, // Decrypted from substruct 2
-      spdEV: 0, // Decrypted from substruct 2
-      ivData: 0, // Decrypted from substruct 3
+      status: 0x50,          // u32 status (offset 80)
+      level: 0x54,           // u8 level (offset 84)  
+      currentHp: 0x56,       // u16 hp (offset 86)
+      maxHp: 0x58,           // u16 maxHP (offset 88)
+      attack: 0x5A,          // u16 attack (offset 90)
+      defense: 0x5C,         // u16 defense (offset 92)
+      speed: 0x5E,           // u16 speed (offset 94)
+      spAttack: 0x60,        // u16 spAttack (offset 96)
+      spDefense: 0x62,       // u16 spDefense (offset 98)
+      
+      // Encrypted fields - accessed via decryption methods in VanillaPokemonData
+      // species, item, moves, EVs, IVs are in encrypted substructs 0x20-0x4F
     },
   } as const
 
@@ -367,6 +371,10 @@ export class VanillaConfig implements GameConfig {
     return natures[personality % 25]!
   }
 
+  /**
+   * Check if this config can handle the given save file
+   * Simplified logic: acts as fallback but rejects Quetzal-specific patterns
+   */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
     if (saveData.length < this.offsets.totalSectors * this.offsets.sectorSize) {
@@ -399,8 +407,7 @@ export class VanillaConfig implements GameConfig {
       return false
     }
 
-    // Vanilla Emerald: Accept any valid Emerald save that doesn't have ROM hack features
-    // Since this config comes after ROM hack configs in the registry, it acts as a fallback
+    // Try to parse party data - if we can successfully parse Pokemon structure, this config works
     try {
       const activeSlot = this.determineActiveSlot((sectors: number[]) => {
         let sum = 0
@@ -417,23 +424,59 @@ export class VanillaConfig implements GameConfig {
         return sum
       })
 
-      // Basic validation: check if we can parse the save structure
-
-      // Check if SaveBlock2 data looks reasonable
-      const slot2Offset = activeSlot === 0 ? 14 * this.offsets.sectorSize : 0
-      const playTimeOffset = slot2Offset + this.offsets.playTimeHours
-      if (playTimeOffset + 4 <= saveData.length) {
-        const view = new DataView(saveData.buffer, saveData.byteOffset + playTimeOffset, 4)
-        const hours = view.getUint16(0, true)
-        const minutes = view.getUint8(2)
-
-        // Reasonable play time validation (not corrupted data)
-        if (hours <= 9999 && minutes <= 59) {
-          return true // Valid vanilla Emerald save
+      // Try to read party count - this should work if the structure matches
+      const saveBlock1Offset = activeSlot * this.offsets.sectorSize
+      const partyCountOffset = saveBlock1Offset + 0x234
+      
+      if (partyCountOffset + 4 <= saveData.length) {
+        const partyCount = new DataView(saveData.buffer, saveData.byteOffset + partyCountOffset, 4).getUint32(0, true)
+        
+        // Check party count is reasonable
+        if (partyCount < 0 || partyCount > 6) {
+          return false
         }
+
+        // Reject saves with Quetzal-specific patterns
+        const partyDataOffset = saveBlock1Offset + 0x238
+        if (partyDataOffset + 64 <= saveData.length) {
+          // Check for non-zero data in the extended party area (typical of Quetzal)
+          const extendedPartyArea = new Uint8Array(saveData.buffer, saveData.byteOffset + partyDataOffset + 32, 32)
+          for (let i = 0; i < 32; i++) {
+            if (extendedPartyArea[i] !== 0) {
+              return false // Has Quetzal patterns, reject
+            }
+          }
+
+          // Check for extended Pokemon features if party is not empty
+          if (partyCount > 0) {
+            for (let slot = 0; slot < partyCount; slot++) {
+              const pokemonOffset = partyDataOffset + (slot * this.offsets.partyPokemonSize)
+              if (pokemonOffset + this.offsets.partyPokemonSize <= saveData.length) {
+                const pokemonData = new Uint8Array(saveData.buffer, saveData.byteOffset + pokemonOffset, this.offsets.partyPokemonSize)
+                
+                // Check for extended species
+                const rawSpeciesId = new DataView(pokemonData.buffer, pokemonData.byteOffset + 0x20, 2).getUint16(0, true)
+                if (rawSpeciesId > 493) {
+                  return false // Extended species = Quetzal, reject
+                }
+
+                const pokemon = this.createPokemonData(pokemonData)
+                
+                // Check for extended moves
+                const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
+                if (moves.some(moveId => moveId > 354)) {
+                  return false // Extended moves = Quetzal, reject
+                }
+              }
+            }
+          }
+        }
+
+        // If no Quetzal patterns found, this is a vanilla save
+        return true
       }
     } catch {
-      // If any parsing error occurs, reject this save
+      // If parsing fails, this config can't handle the save
       return false
     }
 

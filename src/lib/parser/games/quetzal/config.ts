@@ -166,7 +166,7 @@ export class QuetzalConfig implements GameConfig {
 
   /**
    * Check if this config can handle the given save file
-   * For Quetzal, we check for the Emerald signature and Quetzal-specific characteristics
+   * Look for Quetzal-specific patterns in the save structure
    */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
@@ -174,7 +174,7 @@ export class QuetzalConfig implements GameConfig {
       return false
     }
 
-    // Check for at least one valid sector with Emerald signature
+    // Check for Emerald signature in any sector
     let hasValidSignature = false
     for (let i = 0; i < this.offsets.totalSectors; i++) {
       const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
@@ -200,7 +200,7 @@ export class QuetzalConfig implements GameConfig {
       return false
     }
 
-    // Quetzal-specific detection: Look for extended Pokemon species or moves that indicate ROM hack
+    // Check for Quetzal-specific patterns
     try {
       const activeSlot = this.determineActiveSlot((sectors: number[]) => {
         let sum = 0
@@ -217,52 +217,67 @@ export class QuetzalConfig implements GameConfig {
         return sum
       })
 
-      // Check party Pokemon for Quetzal-specific features in both possible slots
-      // Sometimes Pokemon data might be in a different slot than the "active" one
-      const slotsToCheck = [activeSlot, activeSlot === 0 ? 14 : 0]
+      const saveBlock1Offset = activeSlot * this.offsets.sectorSize
+      const partyCountOffset = saveBlock1Offset + 0x234
+      
+      if (partyCountOffset + 4 <= saveData.length) {
+        const partyCount = new DataView(saveData.buffer, saveData.byteOffset + partyCountOffset, 4).getUint32(0, true)
+        
+        // Check party count is reasonable
+        if (partyCount < 0 || partyCount > 6) {
+          return false
+        }
 
-      for (const slotToCheck of slotsToCheck) {
-        const saveBlock1Offset = slotToCheck * this.offsets.sectorSize
-
-        for (let slot = 0; slot < this.offsets.maxPartySize; slot++) {
-          const pokemonOffset = saveBlock1Offset + this.offsets.partyStartOffset + (slot * this.offsets.partyPokemonSize)
-
-          if (pokemonOffset + this.offsets.partyPokemonSize <= saveData.length) {
-            const pokemonData = new Uint8Array(saveData.buffer, saveData.byteOffset + pokemonOffset, this.offsets.partyPokemonSize)
-
-            // Check if Pokemon slot is empty (species ID = 0)
-            const rawSpeciesId = new DataView(pokemonData.buffer, pokemonData.byteOffset + this.offsets.pokemonData.species, 2).getUint16(0, true)
-            if (rawSpeciesId === 0) {
-              break // End of party in this slot
-            }
-
-            const pokemon = this.createPokemonData(pokemonData)
-
-            // Check for Quetzal-specific features:
-            // 1. Species ID > 493 (indicates extended Pokedex)
-            if (rawSpeciesId > 493) {
-              return true // Definitely Quetzal with extended species
-            }
-
-            // 2. Check for radiant Pokemon (shinyNumber === 2)
-            if (pokemon.isRadiant) {
-              return true // Radiant Pokemon are Quetzal-specific
-            }
-
-            // 3. Check moves > standard Gen 3 range
-            const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
-            if (moves.some(moveId => moveId > 354)) { // Gen 3 has moves 1-354
-              return true // Extended move set indicates ROM hack
+        // Look for Quetzal-specific patterns in the save data
+        // 1. Check if party area has non-zero data beyond the first 32 bytes (indicates Quetzal structure)
+        const partyDataOffset = saveBlock1Offset + 0x238
+        if (partyDataOffset + 64 <= saveData.length) {
+          const partyAreaData = new Uint8Array(saveData.buffer, saveData.byteOffset + partyDataOffset + 32, 32)
+          let hasQuetzalPattern = false
+          
+          // Check for non-zero data in the extended party area (bytes 32-64)
+          for (let i = 0; i < 32; i++) {
+            if (partyAreaData[i] !== 0) {
+              hasQuetzalPattern = true
+              break
             }
           }
+
+          // If party is not empty, check for extended features
+          if (partyCount > 0) {
+            for (let slot = 0; slot < partyCount; slot++) {
+              const pokemonOffset = partyDataOffset + (slot * this.offsets.partyPokemonSize)
+              if (pokemonOffset + this.offsets.partyPokemonSize <= saveData.length) {
+                const pokemonData = new Uint8Array(saveData.buffer, saveData.byteOffset + pokemonOffset, this.offsets.partyPokemonSize)
+                const pokemon = this.createPokemonData(pokemonData)
+
+                // Check for extended species, moves, or radiant Pokemon
+                const rawSpeciesId = new DataView(pokemonData.buffer, pokemonData.byteOffset + this.offsets.pokemonData.species, 2).getUint16(0, true)
+                if (rawSpeciesId > 493) {
+                  return true // Extended species = Quetzal
+                }
+
+                if (pokemon.isRadiant) {
+                  return true // Radiant Pokemon = Quetzal
+                }
+
+                const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
+                if (moves.some(moveId => moveId > 354)) {
+                  return true // Extended moves = Quetzal
+                }
+              }
+            }
+          }
+
+          // If we found the Quetzal pattern in the extended area, return true
+          return hasQuetzalPattern
         }
       }
     } catch {
-      // If any error occurs, fall back to basic signature check
-      return hasValidSignature
+      // If parsing fails, this config can't handle the save
+      return false
     }
 
-    // If no Quetzal-specific features found, this is likely vanilla Emerald
     return false
   }
 }
