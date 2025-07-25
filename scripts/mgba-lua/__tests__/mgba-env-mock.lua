@@ -141,18 +141,33 @@ while _G.socket._running and loop_count < 50000 do
         local client = _G.socket._clients[i]
         if client._socket then
             client._socket:settimeout(0)
-            local frame_data, err = client._socket:receive(1024)
-            if frame_data and #frame_data > 0 then
+            -- Try multiple small reads to catch WebSocket frames
+            local frame_data = ""
+            for j = 1, 10 do  -- Try up to 10 small reads
+                local chunk, err = client._socket:receive(1)
+                if chunk then
+                    frame_data = frame_data .. chunk
+                elseif err ~= "timeout" then
+                    if #frame_data == 0 then
+                        -- Client disconnected
+                        client._socket:close()
+                        table.remove(_G.socket._clients, i)
+                        break
+                    else
+                        break -- Just no more data available
+                    end
+                else
+                    break -- Timeout, no more data
+                end
+            end
+            
+            if #frame_data > 0 then
                 -- Store fresh WebSocket frame data (replace buffer completely)
                 client._buffer = frame_data
                 -- Trigger received callback for WebSocket frame processing
                 if client._callbacks.received then
                     client._callbacks.received()
                 end
-            elseif err and err ~= "timeout" then
-                -- Client disconnected
-                client._socket:close()
-                table.remove(_G.socket._clients, i)
             end
         end
     end
