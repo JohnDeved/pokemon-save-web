@@ -126,7 +126,8 @@ local function main_event_loop(server)
                 client._socket:settimeout(0)
                 local data, err = client._socket:receive(1024)
                 if data and #data > 0 then
-                    -- Add data to client buffer and trigger callback
+                    -- For ongoing WebSocket connections, just buffer the raw data
+                    -- and let the server's parseWebSocketFrame handle it
                     client._buffer = client._buffer .. data
                     if client._callbacks.received then
                         client._callbacks.received()
