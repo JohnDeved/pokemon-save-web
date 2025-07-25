@@ -12,21 +12,20 @@ do
         end
     end
     function Client:receive(bytes)
-        -- Try to read new data from socket if buffer is empty
-        if #self._buffer == 0 then
-            local data, err = self._socket:receive(bytes or 1024)
-            if data then
-                self._buffer = data
-            elseif err ~= "timeout" then
-                return nil, Socket.ERRORS.AGAIN
-            end
-        end
-        
-        if #self._buffer > 0 then 
-            local data = self._buffer
-            self._buffer = ""
+        -- For WebSocket connections, always try to read fresh data
+        self._socket:settimeout(0)
+        local data, err = self._socket:receive(bytes or 1024)
+        if data and #data > 0 then
             return data
         end
+        
+        -- Fallback to buffered data
+        if #self._buffer > 0 then 
+            local buffered_data = self._buffer
+            self._buffer = ""
+            return buffered_data
+        end
+        
         return nil, Socket.ERRORS.AGAIN
     end
     function Client:send(data) return self._socket:send(data) end
@@ -41,7 +40,14 @@ do
         self._socket:settimeout(0); Socket._running = true; return true, nil
     end
     function Server:accept()
-        if #Socket._clients > 0 then return table.remove(Socket._clients, 1) end
+        if #Socket._clients > 0 then 
+            local client = Socket._clients[1]
+            table.remove(Socket._clients, 1)
+            -- Keep track of this client for potential WebSocket monitoring
+            Socket._websocket_clients = Socket._websocket_clients or {}
+            table.insert(Socket._websocket_clients, client)
+            return client
+        end
         return nil, Socket.ERRORS.AGAIN
     end
     function Server:close() Socket._running = false; return self._socket:close() end
@@ -126,9 +132,9 @@ local function main_event_loop(server)
                 client._socket:settimeout(0)
                 local data, err = client._socket:receive(1024)
                 if data and #data > 0 then
-                    -- For ongoing WebSocket connections, just buffer the raw data
-                    -- and let the server's parseWebSocketFrame handle it
+                    -- Buffer the data so client:receive() can get it
                     client._buffer = client._buffer .. data
+                    -- Trigger the "received" callback if it exists
                     if client._callbacks.received then
                         client._callbacks.received()
                     end
@@ -137,6 +143,32 @@ local function main_event_loop(server)
                     client._socket:close()
                     table.remove(Socket._clients, i)
                     break
+                end
+            end
+        end
+        
+        -- Check WebSocket clients for ongoing frame data
+        Socket._websocket_clients = Socket._websocket_clients or {}
+        if #Socket._websocket_clients > 0 then
+            _G.console:log("DEBUG: Monitoring " .. #Socket._websocket_clients .. " WebSocket clients")
+        end
+        for i = #Socket._websocket_clients, 1, -1 do
+            local client = Socket._websocket_clients[i]
+            if client._socket then
+                -- Try to receive data without blocking
+                client._socket:settimeout(0)
+                local data, err = client._socket:receive(1024)
+                if data and #data > 0 then
+                    -- Buffer the data so client:receive() can get it
+                    client._buffer = client._buffer .. data
+                    -- Trigger the "received" callback if it exists
+                    if client._callbacks.received then
+                        client._callbacks.received()
+                    end
+                elseif err and err ~= "timeout" then
+                    -- Client disconnected, remove from list
+                    client._socket:close()
+                    table.remove(Socket._websocket_clients, i)
                 end
             end
         end
