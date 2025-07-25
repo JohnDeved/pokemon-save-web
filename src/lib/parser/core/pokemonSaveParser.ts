@@ -7,6 +7,8 @@ import type {
   PlayTimeData,
   SaveData,
   SectorInfo,
+  SaveLayout,
+  PokemonOffsets,
 } from './types'
 
 import type { GameConfig } from '../core/types'
@@ -15,6 +17,56 @@ import { autoDetectGameConfig } from './autoDetect'
 
 // Import character map for decoding text
 import charMap from '../data/pokemon_charmap.json'
+
+// Vanilla Emerald defaults (same as in PokemonData)
+const DEFAULT_POKEMON_SIZE = 100
+const DEFAULT_OFFSETS: PokemonOffsets = {
+  personality: 0x00,
+  otId: 0x04,
+  nickname: 0x08,
+  nicknameLength: 10,
+  otName: 0x14,
+  otNameLength: 7,
+  currentHp: 0x56,
+  maxHp: 0x58,
+  attack: 0x5A,
+  defense: 0x5C,
+  speed: 0x5E,
+  spAttack: 0x60,
+  spDefense: 0x62,
+  status: 0x50,
+  level: 0x54,
+}
+
+const DEFAULT_SAVE_LAYOUT: SaveLayout = {
+  sectorSize: 4096,
+  sectorDataSize: 3968,
+  sectorCount: 32,
+  slotsPerSave: 18,
+  saveBlockSize: 3968 * 4,
+  partyOffset: 0x238,
+  partyCountOffset: 0x234,
+  pokemonSize: 100,
+  maxPartySize: 6,
+  playTimeHours: 0x0E,
+  playTimeMinutes: 0x10,
+  playTimeSeconds: 0x11,
+}
+
+/**
+ * Helper to merge config with defaults
+ */
+function getEffectiveConfig (config: GameConfig): {
+  pokemonSize: number
+  offsets: PokemonOffsets
+  saveLayout: SaveLayout
+} {
+  return {
+    pokemonSize: config.pokemonSize ?? DEFAULT_POKEMON_SIZE,
+    offsets: { ...DEFAULT_OFFSETS, ...config.offsets },
+    saveLayout: { ...DEFAULT_SAVE_LAYOUT, ...config.saveLayout },
+  }
+}
 
 /**
  * Parses raw Pokemon data from save file bytes into structured format
@@ -115,7 +167,8 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
-    const footerOffset = (sectorIndex * this.config.saveLayout.sectorSize) + this.config.saveLayout.sectorSize - 12
+    const effectiveConfig = getEffectiveConfig(this.config)
+    const footerOffset = (sectorIndex * effectiveConfig.saveLayout.sectorSize) + effectiveConfig.saveLayout.sectorSize - 12
 
     if (footerOffset + 12 > this.saveData.length) {
       return { id: -1, checksum: 0, counter: 0, valid: false }
@@ -137,8 +190,8 @@ export class PokemonSaveParser {
         return { id: sectorId, checksum, counter, valid: false }
       }
 
-      const sectorStart = sectorIndex * this.config.saveLayout.sectorSize
-      const sectorData = this.saveData.slice(sectorStart, sectorStart + this.config.saveLayout.sectorDataSize)
+      const sectorStart = sectorIndex * effectiveConfig.saveLayout.sectorSize
+      const sectorData = this.saveData.slice(sectorStart, sectorStart + effectiveConfig.saveLayout.sectorDataSize)
 
       const calculatedChecksum = this.calculateSectorChecksum(sectorData)
       const valid = calculatedChecksum === checksum
@@ -169,7 +222,22 @@ export class PokemonSaveParser {
       return sum
     }
 
-    this.activeSlotStart = this.config.determineActiveSlot(getCounterSum)
+    this.activeSlotStart = this.config.determineActiveSlot?.(getCounterSum) ??
+      this.getDefaultActiveSlot(getCounterSum)
+  }
+
+  /**
+   * Default vanilla Emerald slot determination logic
+   */
+  private getDefaultActiveSlot (getCounterSum: (range: number[]) => number): number {
+    // Slot 1: sectors 0-13 (14 sectors)
+    // Slot 2: sectors 14-31 (18 sectors)
+    const slot1Range = Array.from({ length: 14 }, (_, i) => i)
+    const slot2Range = Array.from({ length: 18 }, (_, i) => i + 14)
+    const slot1Sum = getCounterSum(slot1Range)
+    const slot2Sum = getCounterSum(slot2Range)
+
+    return slot2Sum > slot1Sum ? 14 : 0
   }
 
   /**
@@ -204,22 +272,23 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
+    const effectiveConfig = getEffectiveConfig(this.config)
     const saveblock1Sectors = [1, 2, 3, 4].filter(id => this.sectorMap.has(id))
     if (saveblock1Sectors.length === 0) {
       // Instead of throwing, return a zero-filled buffer to allow parsing to continue gracefully
-      return new Uint8Array(this.config.saveLayout.saveBlockSize)
+      return new Uint8Array(effectiveConfig.saveLayout.saveBlockSize)
     }
 
-    const saveblock1Data = new Uint8Array(this.config.saveLayout.saveBlockSize)
+    const saveblock1Data = new Uint8Array(effectiveConfig.saveLayout.saveBlockSize)
 
     for (const sectorId of saveblock1Sectors) {
       const sectorIdx = this.sectorMap.get(sectorId)!
-      const startOffset = sectorIdx * this.config.saveLayout.sectorSize
-      const sectorData = this.saveData.slice(startOffset, startOffset + this.config.saveLayout.sectorDataSize)
-      const chunkOffset = (sectorId - 1) * this.config.saveLayout.sectorDataSize
+      const startOffset = sectorIdx * effectiveConfig.saveLayout.sectorSize
+      const sectorData = this.saveData.slice(startOffset, startOffset + effectiveConfig.saveLayout.sectorDataSize)
+      const chunkOffset = (sectorId - 1) * effectiveConfig.saveLayout.sectorDataSize
 
       saveblock1Data.set(
-        sectorData.slice(0, this.config.saveLayout.sectorDataSize),
+        sectorData.slice(0, effectiveConfig.saveLayout.sectorDataSize),
         chunkOffset,
       )
     }
@@ -235,13 +304,15 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
+    const effectiveConfig = getEffectiveConfig(this.config)
+
     if (!this.sectorMap.has(0)) {
       throw new Error('SaveBlock2 sector (ID 0) not found')
     }
 
     const sectorIdx = this.sectorMap.get(0)!
-    const startOffset = sectorIdx * this.config.saveLayout.sectorSize
-    return this.saveData.slice(startOffset, startOffset + this.config.saveLayout.sectorDataSize)
+    const startOffset = sectorIdx * effectiveConfig.saveLayout.sectorSize
+    return this.saveData.slice(startOffset, startOffset + effectiveConfig.saveLayout.sectorDataSize)
   }
 
   /**
@@ -252,13 +323,14 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
+    const effectiveConfig = getEffectiveConfig(this.config)
     const partyPokemon: PokemonData[] = []
 
-    for (let slot = 0; slot < this.config.saveLayout.maxPartySize; slot++) {
-      const offset = this.config.saveLayout.partyOffset + slot * this.config.pokemonSize
-      const data = saveblock1Data.slice(offset, offset + this.config.pokemonSize)
+    for (let slot = 0; slot < effectiveConfig.saveLayout.maxPartySize; slot++) {
+      const offset = effectiveConfig.saveLayout.partyOffset + slot * effectiveConfig.pokemonSize
+      const data = saveblock1Data.slice(offset, offset + effectiveConfig.pokemonSize)
 
-      if (data.length < this.config.pokemonSize) {
+      if (data.length < effectiveConfig.pokemonSize) {
         break
       }
 
@@ -294,12 +366,13 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
+    const effectiveConfig = getEffectiveConfig(this.config)
     const view = new DataView(saveblock2Data.buffer, saveblock2Data.byteOffset)
 
     return {
-      hours: view.getUint16(this.config.saveLayout.playTimeHours, true), // u16 playTimeHours
-      minutes: view.getUint8(this.config.saveLayout.playTimeMinutes), // u8 playTimeMinutes
-      seconds: view.getUint8(this.config.saveLayout.playTimeSeconds), // u8 playTimeSeconds
+      hours: view.getUint16(effectiveConfig.saveLayout.playTimeHours, true), // u16 playTimeHours
+      minutes: view.getUint8(effectiveConfig.saveLayout.playTimeMinutes), // u8 playTimeMinutes
+      seconds: view.getUint8(effectiveConfig.saveLayout.playTimeSeconds), // u8 playTimeSeconds
     }
   }
 
@@ -311,14 +384,16 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    if (sectorData.length < this.config.saveLayout.sectorDataSize) {
+    const effectiveConfig = getEffectiveConfig(this.config)
+
+    if (sectorData.length < effectiveConfig.saveLayout.sectorDataSize) {
       return 0
     }
 
     let checksum = 0
     const view = new DataView(sectorData.buffer, sectorData.byteOffset)
 
-    for (let i = 0; i < this.config.saveLayout.sectorDataSize; i += 4) {
+    for (let i = 0; i < effectiveConfig.saveLayout.sectorDataSize; i += 4) {
       if (i + 4 <= sectorData.length) {
         try {
           const value = view.getUint32(i, true)
@@ -343,15 +418,18 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    if (saveblock1.length < this.config.saveLayout.saveBlockSize) {
-      throw new Error(`SaveBlock1 must be at least ${this.config.saveLayout.saveBlockSize} bytes`)
+    const effectiveConfig = getEffectiveConfig(this.config)
+
+    if (saveblock1.length < effectiveConfig.saveLayout.saveBlockSize) {
+      throw new Error(`SaveBlock1 must be at least ${effectiveConfig.saveLayout.saveBlockSize} bytes`)
     }
-    if (party.length > this.config.saveLayout.maxPartySize) {
-      throw new Error(`Party size cannot exceed ${this.config.saveLayout.maxPartySize}`)
+    if (party.length > effectiveConfig.saveLayout.maxPartySize) {
+      throw new Error(`Party size cannot exceed ${effectiveConfig.saveLayout.maxPartySize}`)
     }
+
     const updated = new Uint8Array(saveblock1)
     for (let i = 0; i < party.length; i++) {
-      const offset = this.config.saveLayout.partyOffset + i * this.config.pokemonSize
+      const offset = effectiveConfig.saveLayout.partyOffset + i * effectiveConfig.pokemonSize
       // Use the most up-to-date raw data for each Pokemon
       updated.set(party[i]!.rawBytes, offset)
     }
@@ -413,6 +491,8 @@ export class PokemonSaveParser {
    */
   reconstructSaveFile (partyPokemon: readonly PokemonData[]): Uint8Array {
     if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
+
+    const effectiveConfig = getEffectiveConfig(this.config)
     const baseSaveblock1 = this.extractSaveblock1()
     const updatedSaveblock1 = this.updatePartyInSaveblock1(baseSaveblock1, partyPokemon)
     const newSave = new Uint8Array(this.saveData)
@@ -421,19 +501,19 @@ export class PokemonSaveParser {
     const writeSector = (sectorId: number, data: Uint8Array) => {
       if (!this.sectorMap.has(sectorId)) return
       const sectorIdx = this.sectorMap.get(sectorId)!
-      const startOffset = sectorIdx * this.config!.saveLayout.sectorSize
+      const startOffset = sectorIdx * effectiveConfig.saveLayout.sectorSize
       newSave.set(data, startOffset)
       // Recalculate checksum for this sector
       const checksum = this.calculateSectorChecksum(data)
-      const footerOffset = startOffset + this.config!.saveLayout.sectorSize - 12
+      const footerOffset = startOffset + effectiveConfig.saveLayout.sectorSize - 12
       const view = new DataView(newSave.buffer, newSave.byteOffset + footerOffset, 12)
       view.setUint16(2, checksum, true)
     }
 
     // Write SaveBlock1 (sectors 1-4)
     for (let sectorId = 1; sectorId <= 4; sectorId++) {
-      const chunkOffset = (sectorId - 1) * this.config.saveLayout.sectorDataSize
-      const chunk = updatedSaveblock1.slice(chunkOffset, chunkOffset + this.config.saveLayout.sectorDataSize)
+      const chunkOffset = (sectorId - 1) * effectiveConfig.saveLayout.sectorDataSize
+      const chunk = updatedSaveblock1.slice(chunkOffset, chunkOffset + effectiveConfig.saveLayout.sectorDataSize)
       writeSector(sectorId, chunk)
     }
     return newSave

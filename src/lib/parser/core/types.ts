@@ -90,8 +90,7 @@ export interface MoveMapping extends BaseMapping {
 }
 
 /**
- * Simplified Pokemon offsets structure
- * Based on vanilla Emerald memory layout
+ * Pokemon data offsets (vanilla Emerald baseline)
  */
 export interface PokemonOffsets {
   readonly personality: number
@@ -112,7 +111,7 @@ export interface PokemonOffsets {
 }
 
 /**
- * Save file layout structure
+ * Save file layout structure (vanilla Emerald baseline)
  */
 export interface SaveLayout {
   readonly sectorSize: number
@@ -130,8 +129,8 @@ export interface SaveLayout {
 }
 
 /**
- * Modern GameConfig interface with improved type safety and organization
- * Provides game-specific configurations through dependency injection
+ * Simplified GameConfig interface
+ * Provides only game-specific overrides, with vanilla Emerald as baseline
  */
 export interface GameConfig {
   /** Human-readable name of the Pokemon game/ROM hack */
@@ -140,36 +139,36 @@ export interface GameConfig {
   /** Unique signature for game detection */
   readonly signature: number
 
-  /** Pokemon size in bytes */
-  readonly pokemonSize: number
+  /** Pokemon size in bytes (defaults to 100 for vanilla) */
+  readonly pokemonSize?: number
 
-  /** Basic offsets for unencrypted data */
-  readonly offsets: PokemonOffsets
+  /** Basic offsets for unencrypted data (optional overrides) */
+  readonly offsets?: Partial<PokemonOffsets>
 
-  /** Save file layout configuration */
-  readonly saveLayout: SaveLayout
+  /** Save file layout configuration (optional overrides) */
+  readonly saveLayout?: Partial<SaveLayout>
 
-  /** Determine which save slot is currently active */
-  determineActiveSlot(getCounterSum: (range: number[]) => number): number
+  /** Determine which save slot is currently active (optional override) */
+  determineActiveSlot?(getCounterSum: (range: number[]) => number): number
 
   /** Check if this config can handle the given save data */
   canHandle(saveData: Uint8Array): boolean
 
-  /** Calculate nature from personality value (varies by game) */
-  calculateNature(personality: number): string
+  /** Calculate nature from personality value (optional override for game-specific formulas) */
+  calculateNature?(personality: number): string
 
-  // Game-specific data access methods
-  getSpeciesId(data: Uint8Array, view: DataView): number
-  getPokemonName(data: Uint8Array, view: DataView): string | undefined
-  getItem(data: Uint8Array, view: DataView): number
-  getItemName(data: Uint8Array, view: DataView): string | undefined
-  getMove(data: Uint8Array, view: DataView, index: number): number
-  getPP(data: Uint8Array, view: DataView, index: number): number
-  getEV(data: Uint8Array, view: DataView, index: number): number
-  setEV(data: Uint8Array, view: DataView, index: number, value: number): void
-  getIVs(data: Uint8Array, view: DataView): readonly number[]
-  setIVs(data: Uint8Array, view: DataView, values: readonly number[]): void
-  getIsShiny(data: Uint8Array, view: DataView): boolean
-  getShinyNumber(data: Uint8Array, view: DataView): number
-  getIsRadiant(data: Uint8Array, view: DataView): boolean
+  // Optional game-specific data access method overrides
+  getSpeciesId?(data: Uint8Array, view: DataView): number
+  getPokemonName?(data: Uint8Array, view: DataView): string | undefined
+  getItem?(data: Uint8Array, view: DataView): number
+  getItemName?(data: Uint8Array, view: DataView): string | undefined
+  getMove?(data: Uint8Array, view: DataView, index: number): number
+  getPP?(data: Uint8Array, view: DataView, index: number): number
+  getEV?(data: Uint8Array, view: DataView, index: number): number
+  setEV?(data: Uint8Array, view: DataView, index: number, value: number): void
+  getIVs?(data: Uint8Array, view: DataView): readonly number[]
+  setIVs?(data: Uint8Array, view: DataView, values: readonly number[]): void
+  getIsShiny?(data: Uint8Array, view: DataView): boolean
+  getShinyNumber?(data: Uint8Array, view: DataView): number
+  getIsRadiant?(data: Uint8Array, view: DataView): boolean
 }

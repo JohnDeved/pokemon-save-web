@@ -1,6 +1,6 @@
 /**
  * Quetzal ROM hack configuration
- * Extends vanilla Emerald base with Quetzal-specific features
+ * Only overrides differences from vanilla Emerald baseline
  */
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
@@ -9,47 +9,15 @@ import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
 import pokemonMapData from './data/pokemon_map.json'
 
-// Local interfaces for the new structure
-interface PokemonOffsets {
-  readonly personality: number
-  readonly otId: number
-  readonly nickname: number
-  readonly nicknameLength: number
-  readonly otName: number
-  readonly otNameLength: number
-  readonly currentHp: number
-  readonly maxHp: number
-  readonly attack: number
-  readonly defense: number
-  readonly speed: number
-  readonly spAttack: number
-  readonly spDefense: number
-  readonly status: number
-  readonly level: number
-}
-
-interface SaveLayout {
-  readonly sectorSize: number
-  readonly sectorDataSize: number
-  readonly sectorCount: number
-  readonly slotsPerSave: number
-  readonly saveBlockSize: number
-  readonly partyOffset: number
-  readonly partyCountOffset: number
-  readonly pokemonSize: number
-  readonly maxPartySize: number
-  readonly playTimeHours: number
-  readonly playTimeMinutes: number
-  readonly playTimeSeconds: number
-}
-
 export class QuetzalConfig implements GameConfig {
   readonly name = 'Pokemon Quetzal'
   readonly signature = 0x08012025
+
+  // Override Pokemon size for Quetzal
   readonly pokemonSize = 104
 
-  // Quetzal uses different offsets (unencrypted structure)
-  readonly offsets: PokemonOffsets = {
+  // Override offsets for Quetzal's unencrypted structure
+  readonly offsets = {
     personality: 0x00,
     otId: 0x04,
     nickname: 0x08,
@@ -67,15 +35,15 @@ export class QuetzalConfig implements GameConfig {
     level: 0x58,
   }
 
-  // Quetzal save layout (extends vanilla with larger Pokemon size)
-  readonly saveLayout: SaveLayout = {
+  // Override save layout for Quetzal
+  readonly saveLayout = {
     sectorSize: 4096,
     sectorDataSize: 3968,
     sectorCount: 32,
     slotsPerSave: 18,
     saveBlockSize: 3968 * 4,
     partyOffset: 0x6A8,
-    partyCountOffset: 0x6A4, // Assumed offset for party count
+    partyCountOffset: 0x6A4,
     pokemonSize: 104,
     maxPartySize: 6,
     playTimeHours: 0x10,
@@ -136,7 +104,7 @@ export class QuetzalConfig implements GameConfig {
     return map
   }
 
-  // Quetzal-specific data access (no encryption needed)
+  // Override data access methods for Quetzal's unencrypted structure
   getSpeciesId (_data: Uint8Array, view: DataView): number {
     const rawSpecies = view.getUint16(this.quetzalOffsets.species, true)
     return this.pokemonMap.get(rawSpecies)?.id ?? rawSpecies
@@ -206,7 +174,7 @@ export class QuetzalConfig implements GameConfig {
   }
 
   /**
-   * Calculate nature from personality value using Quetzal-specific formula
+   * Override nature calculation for Quetzal-specific formula
    */
   calculateNature (personality: number): string {
     // Quetzal uses only the first byte of personality modulo 25
@@ -214,7 +182,7 @@ export class QuetzalConfig implements GameConfig {
   }
 
   /**
-   * Quetzal-specific logic for determining active save slot
+   * Override active slot determination for Quetzal
    */
   determineActiveSlot (getCounterSum: (range: number[]) => number): number {
     const slot1Range = Array.from({ length: 18 }, (_, i) => i)
@@ -231,14 +199,14 @@ export class QuetzalConfig implements GameConfig {
    */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
-    if (saveData.length < this.saveLayout.sectorCount * this.saveLayout.sectorSize) {
+    if (saveData.length < 32 * 4096) { // 32 sectors * 4096 bytes each
       return false
     }
 
     // Check for Emerald signature in any sector
     let hasValidSignature = false
-    for (let i = 0; i < this.saveLayout.sectorCount; i++) {
-      const footerOffset = (i * this.saveLayout.sectorSize) + this.saveLayout.sectorSize - 12
+    for (let i = 0; i < 32; i++) {
+      const footerOffset = (i * 4096) + 4096 - 12
 
       if (footerOffset + 12 > saveData.length) {
         continue
@@ -266,7 +234,7 @@ export class QuetzalConfig implements GameConfig {
       const activeSlot = this.determineActiveSlot((sectors: number[]) => {
         let sum = 0
         for (const sectorIndex of sectors) {
-          const footerOffset = (sectorIndex * this.saveLayout.sectorSize) + this.saveLayout.sectorSize - 12
+          const footerOffset = (sectorIndex * 4096) + 4096 - 12
           if (footerOffset + 12 <= saveData.length) {
             const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, 12)
             const signature = view.getUint32(4, true)
@@ -283,7 +251,7 @@ export class QuetzalConfig implements GameConfig {
       const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
 
       for (const i of sectorRange) {
-        const footerOffset = (i * this.saveLayout.sectorSize) + this.saveLayout.sectorSize - 12
+        const footerOffset = (i * 4096) + 4096 - 12
         if (footerOffset + 12 <= saveData.length) {
           const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, 12)
           const signature = view.getUint32(4, true)
@@ -300,19 +268,19 @@ export class QuetzalConfig implements GameConfig {
         return false
       }
 
-      const saveblock1Data = new Uint8Array(this.saveLayout.saveBlockSize)
+      const saveblock1Data = new Uint8Array(3968 * 4)
       for (const sectorId of saveblock1Sectors) {
         const sectorIdx = sectorMap.get(sectorId)!
-        const startOffset = sectorIdx * this.saveLayout.sectorSize
-        const sectorData = saveData.slice(startOffset, startOffset + this.saveLayout.sectorDataSize)
-        const chunkOffset = (sectorId - 1) * this.saveLayout.sectorDataSize
-        saveblock1Data.set(sectorData.slice(0, this.saveLayout.sectorDataSize), chunkOffset)
+        const startOffset = sectorIdx * 4096
+        const sectorData = saveData.slice(startOffset, startOffset + 3968)
+        const chunkOffset = (sectorId - 1) * 3968
+        saveblock1Data.set(sectorData.slice(0, 3968), chunkOffset)
       }
 
       // Try to parse Pokemon from the actual saveblock1 data
       let pokemonFound = 0
-      for (let slot = 0; slot < this.saveLayout.maxPartySize; slot++) {
-        const offset = this.saveLayout.partyOffset + slot * this.pokemonSize
+      for (let slot = 0; slot < 6; slot++) {
+        const offset = 0x6A8 + slot * this.pokemonSize
         const data = saveblock1Data.slice(offset, offset + this.pokemonSize)
 
         if (data.length < this.pokemonSize) {
