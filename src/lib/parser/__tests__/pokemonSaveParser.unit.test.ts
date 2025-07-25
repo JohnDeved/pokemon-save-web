@@ -4,7 +4,7 @@
  */
 
 import { beforeAll, describe, expect, it } from 'vitest'
-import { PokemonSaveParser } from '../core/pokemonSaveParser'
+import { PokemonSaveParser } from '../core/PokemonSaveParser'
 import { QuetzalConfig } from '../games/quetzal/config'
 import { VanillaConfig } from '../games/vanilla/config'
 import { bytesToGbaString } from '../core/utils'

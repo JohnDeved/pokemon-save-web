@@ -2,7 +2,7 @@ import { fromEvent } from 'file-selector'
 import { useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { toast } from 'sonner'
-import type { PokemonSaveParser } from '../../lib/parser/core/pokemonSaveParser'
+import type { PokemonSaveParser } from '../../lib/parser/core/PokemonSaveParser'
 import { cn } from '../../lib/utils'
 
 interface SaveFileDropzoneProps {

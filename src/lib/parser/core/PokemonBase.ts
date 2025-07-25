@@ -5,19 +5,19 @@
 
 import type {
   GameConfig,
-} from '../core/types'
+  MoveData, PokemonMoves,
+} from './types'
 import {
   VANILLA_POKEMON_OFFSETS,
   VANILLA_SAVE_LAYOUT,
-} from '../core/types'
-import type { MoveData, PokemonMoves } from './types'
+} from './types'
 import { bytesToGbaString, natureEffects, natures, statStrings } from './utils'
 
 /**
  * Pokemon data class with vanilla Pokemon Emerald as the baseline
  * Game configs provide minimal overrides for different games
  */
-export class PokemonInstance {
+export class PokemonBase {
   protected readonly view: DataView
   protected readonly config: GameConfig
   protected readonly offsets: typeof VANILLA_POKEMON_OFFSETS

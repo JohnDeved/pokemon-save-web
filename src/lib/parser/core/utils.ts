@@ -3,7 +3,7 @@
  * Modern utilities for Pokemon data processing
  */
 
-import type { PokemonInstance } from './pokemonData'
+import type { PokemonBase } from './PokemonBase'
 import charmapData from '../data/pokemon_charmap.json'
 
 // Convert charmap keys from strings to numbers for faster lookup
@@ -127,7 +127,7 @@ export function getPokemonNature (personality: number): string {
   return natures[personality % 25]!
 }
 
-export function setPokemonNature (pokemon: PokemonInstance, nature: string): void {
+export function setPokemonNature (pokemon: PokemonBase, nature: string): void {
   // Find the index of the nature in the natures array
   const natureIndex = natures.indexOf(nature)
   if (natureIndex === -1) {
@@ -181,7 +181,7 @@ export function getNatureModifier (nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats (pokemon: PokemonInstance, baseStats: readonly number[]): readonly number[] {
+export function calculateTotalStats (pokemon: PokemonBase, baseStats: readonly number[]): readonly number[] {
   // Extract properties with type guards for safety
   const level = Number(pokemon.level)
   const nature = String(pokemon.nature)
@@ -245,7 +245,7 @@ export function calculateTotalStatsDirect (
  */
 export function updatePartyInSaveblock1 (
   saveblock1: Uint8Array,
-  party: readonly PokemonInstance[],
+  party: readonly PokemonBase[],
   partyStartOffset: number,
   partyPokemonSize: number,
   saveblock1Size: number,
@@ -272,8 +272,44 @@ export function updatePartyInSaveblock1 (
   return updated
 }
 
-export default {
-  formatPlayTime,
-  getPokemonNature,
-  calculateTotalStats,
+/**
+ * Utility functions for creating ID mappings from JSON data
+ */
+
+export interface BaseMappingItem {
+  readonly id: number | null
+  readonly name: string
+  readonly id_name: string
+}
+
+/**
+ * Creates a Map from JSON mapping data, filtering out invalid entries
+ * @param mapData - Raw JSON mapping data
+ * @returns Map with numeric keys and validated mapping objects
+ */
+export function createMapping<T extends BaseMappingItem> (
+  mapData: Record<string, unknown>,
+): Map<number, T> {
+  return new Map<number, T>(
+    Object.entries(mapData)
+      .filter(([_, v]) => typeof v === 'object' && v !== null && 'id' in v && v.id !== null)
+      .map(([k, v]) => [parseInt(k, 10), v as T]),
+  )
+}
+
+/**
+ * Creates multiple mappings from JSON data objects
+ * @param mappingData - Object containing different mapping data sets
+ * @returns Object with the same keys but containing Map instances
+ */
+export function createMappings<T extends Record<string, Record<string, unknown>>> (
+  mappingData: T,
+): { [K in keyof T]: Map<number, BaseMappingItem> } {
+  const result: { [K in keyof T]: Map<number, BaseMappingItem> } = Object.create(null)
+
+  for (const [key, data] of Object.entries(mappingData)) {
+    result[key as keyof T] = createMapping(data)
+  }
+
+  return result
 }
