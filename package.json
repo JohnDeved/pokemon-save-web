@@ -19,7 +19,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
-    "parse": "tsx src/lib/parser/cli.ts"
+    "parse": "tsx src/lib/parser/cli.ts",
+    "generate-mappings": "node scripts/generate-vanilla-mappings.js"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",

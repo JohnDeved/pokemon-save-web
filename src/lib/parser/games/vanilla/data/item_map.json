@@ -1,1887 +1,1492 @@
 {
-  "0": {
-    "name": "-",
-    "id_name": "",
-    "id": null
-  },
-  "1": {
-    "name": "Master Ball",
-    "id_name": "master-ball",
-    "id": 1
-  },
-  "2": {
-    "name": "Ultra Ball",
-    "id_name": "ultra-ball",
-    "id": 2
-  },
-  "3": {
-    "name": "Great Ball",
-    "id_name": "great-ball",
-    "id": 3
-  },
-  "4": {
-    "name": "Poké Ball",
-    "id_name": "poke-ball",
-    "id": 4
-  },
   "5": {
-    "name": "Item 5",
-    "id_name": "item-5",
+    "name": "Safari Ball",
+    "id_name": "safari-ball",
     "id": 5
   },
   "6": {
-    "name": "Item 6",
-    "id_name": "item-6",
+    "name": "Net Ball",
+    "id_name": "net-ball",
     "id": 6
   },
   "7": {
-    "name": "Item 7",
-    "id_name": "item-7",
+    "name": "Dive Ball",
+    "id_name": "dive-ball",
     "id": 7
   },
   "8": {
-    "name": "Item 8",
-    "id_name": "item-8",
+    "name": "Nest Ball",
+    "id_name": "nest-ball",
     "id": 8
   },
   "9": {
-    "name": "Item 9",
-    "id_name": "item-9",
+    "name": "Repeat Ball",
+    "id_name": "repeat-ball",
     "id": 9
   },
   "10": {
-    "name": "Item 10",
-    "id_name": "item-10",
+    "name": "Timer Ball",
+    "id_name": "timer-ball",
     "id": 10
   },
   "11": {
-    "name": "Item 11",
-    "id_name": "item-11",
+    "name": "Luxury Ball",
+    "id_name": "luxury-ball",
     "id": 11
   },
   "12": {
-    "name": "Item 12",
-    "id_name": "item-12",
+    "name": "Premier Ball",
+    "id_name": "premier-ball",
     "id": 12
   },
   "13": {
-    "name": "Item 13",
-    "id_name": "item-13",
-    "id": 13
-  },
-  "14": {
-    "name": "Item 14",
-    "id_name": "item-14",
-    "id": 14
-  },
-  "15": {
-    "name": "Item 15",
-    "id_name": "item-15",
-    "id": 15
-  },
-  "16": {
-    "name": "Item 16",
-    "id_name": "item-16",
-    "id": 16
-  },
-  "17": {
-    "name": "Item 17",
-    "id_name": "item-17",
+    "name": "Potion",
+    "id_name": "potion",
     "id": 17
   },
-  "18": {
-    "name": "Item 18",
-    "id_name": "item-18",
+  "14": {
+    "name": "Antidote",
+    "id_name": "antidote",
     "id": 18
   },
-  "19": {
-    "name": "Item 19",
-    "id_name": "item-19",
+  "15": {
+    "name": "Burn Heal",
+    "id_name": "burn-heal",
     "id": 19
   },
-  "20": {
-    "name": "Item 20",
-    "id_name": "item-20",
+  "16": {
+    "name": "Ice Heal",
+    "id_name": "ice-heal",
     "id": 20
   },
-  "21": {
-    "name": "Item 21",
-    "id_name": "item-21",
+  "17": {
+    "name": "Awakening",
+    "id_name": "awakening",
     "id": 21
   },
-  "22": {
-    "name": "Item 22",
-    "id_name": "item-22",
+  "18": {
+    "name": "Paralyze Heal",
+    "id_name": "paralyze-heal",
     "id": 22
   },
-  "23": {
-    "name": "Item 23",
-    "id_name": "item-23",
+  "19": {
+    "name": "Full Restore",
+    "id_name": "full-restore",
     "id": 23
   },
-  "24": {
-    "name": "Item 24",
-    "id_name": "item-24",
+  "20": {
+    "name": "Max Potion",
+    "id_name": "max-potion",
     "id": 24
   },
-  "25": {
-    "name": "Item 25",
-    "id_name": "item-25",
+  "21": {
+    "name": "Hyper Potion",
+    "id_name": "hyper-potion",
     "id": 25
   },
-  "26": {
-    "name": "Item 26",
-    "id_name": "item-26",
+  "22": {
+    "name": "Super Potion",
+    "id_name": "super-potion",
     "id": 26
   },
-  "27": {
-    "name": "Item 27",
-    "id_name": "item-27",
+  "23": {
+    "name": "Full Heal",
+    "id_name": "full-heal",
     "id": 27
   },
-  "28": {
-    "name": "Item 28",
-    "id_name": "item-28",
+  "24": {
+    "name": "Revive",
+    "id_name": "revive",
     "id": 28
   },
-  "29": {
-    "name": "Item 29",
-    "id_name": "item-29",
+  "25": {
+    "name": "Max Revive",
+    "id_name": "max-revive",
     "id": 29
   },
-  "30": {
-    "name": "Item 30",
-    "id_name": "item-30",
+  "26": {
+    "name": "Fresh Water",
+    "id_name": "fresh-water",
     "id": 30
   },
-  "31": {
-    "name": "Item 31",
-    "id_name": "item-31",
+  "27": {
+    "name": "Soda Pop",
+    "id_name": "soda-pop",
     "id": 31
   },
-  "32": {
-    "name": "Item 32",
-    "id_name": "item-32",
+  "28": {
+    "name": "Lemonade",
+    "id_name": "lemonade",
     "id": 32
   },
-  "33": {
-    "name": "Item 33",
-    "id_name": "item-33",
+  "29": {
+    "name": "Moomoo Milk",
+    "id_name": "moomoo-milk",
     "id": 33
   },
-  "34": {
-    "name": "Item 34",
-    "id_name": "item-34",
+  "30": {
+    "name": "Energy Powder",
+    "id_name": "energy-powder",
     "id": 34
   },
-  "35": {
-    "name": "Item 35",
-    "id_name": "item-35",
+  "31": {
+    "name": "Energy Root",
+    "id_name": "energy-root",
     "id": 35
   },
-  "36": {
-    "name": "Item 36",
-    "id_name": "item-36",
+  "32": {
+    "name": "Heal Powder",
+    "id_name": "heal-powder",
     "id": 36
   },
-  "37": {
-    "name": "Item 37",
-    "id_name": "item-37",
+  "33": {
+    "name": "Revival Herb",
+    "id_name": "revival-herb",
     "id": 37
   },
-  "38": {
-    "name": "Item 38",
-    "id_name": "item-38",
+  "34": {
+    "name": "Ether",
+    "id_name": "ether",
     "id": 38
   },
-  "39": {
-    "name": "Item 39",
-    "id_name": "item-39",
+  "35": {
+    "name": "Max Ether",
+    "id_name": "max-ether",
     "id": 39
   },
-  "40": {
-    "name": "Item 40",
-    "id_name": "item-40",
+  "36": {
+    "name": "Elixir",
+    "id_name": "elixir",
     "id": 40
   },
-  "41": {
-    "name": "Item 41",
-    "id_name": "item-41",
+  "37": {
+    "name": "Max Elixir",
+    "id_name": "max-elixir",
     "id": 41
   },
-  "42": {
-    "name": "Item 42",
-    "id_name": "item-42",
+  "38": {
+    "name": "Lava Cookie",
+    "id_name": "lava-cookie",
     "id": 42
   },
-  "43": {
-    "name": "Item 43",
-    "id_name": "item-43",
-    "id": 43
-  },
-  "44": {
-    "name": "Item 44",
-    "id_name": "item-44",
-    "id": 44
-  },
-  "45": {
-    "name": "Item 45",
-    "id_name": "item-45",
-    "id": 45
-  },
-  "46": {
-    "name": "Item 46",
-    "id_name": "item-46",
-    "id": 46
-  },
-  "47": {
-    "name": "Item 47",
-    "id_name": "item-47",
-    "id": 47
-  },
-  "48": {
-    "name": "Item 48",
-    "id_name": "item-48",
-    "id": 48
-  },
-  "49": {
-    "name": "Item 49",
-    "id_name": "item-49",
-    "id": 49
-  },
-  "50": {
-    "name": "Item 50",
-    "id_name": "item-50",
-    "id": 50
-  },
-  "51": {
-    "name": "Item 51",
-    "id_name": "item-51",
-    "id": 51
-  },
-  "52": {
-    "name": "Item 52",
-    "id_name": "item-52",
-    "id": 52
-  },
-  "53": {
-    "name": "Item 53",
-    "id_name": "item-53",
-    "id": 53
-  },
-  "54": {
-    "name": "Item 54",
-    "id_name": "item-54",
-    "id": 54
-  },
-  "55": {
-    "name": "Item 55",
-    "id_name": "item-55",
-    "id": 55
-  },
-  "56": {
-    "name": "Item 56",
-    "id_name": "item-56",
-    "id": 56
-  },
-  "57": {
-    "name": "Item 57",
-    "id_name": "item-57",
-    "id": 57
-  },
-  "58": {
-    "name": "Item 58",
-    "id_name": "item-58",
-    "id": 58
-  },
-  "59": {
-    "name": "Item 59",
-    "id_name": "item-59",
-    "id": 59
-  },
-  "60": {
-    "name": "Item 60",
-    "id_name": "item-60",
-    "id": 60
-  },
-  "61": {
-    "name": "Item 61",
-    "id_name": "item-61",
-    "id": 61
-  },
-  "62": {
-    "name": "Item 62",
-    "id_name": "item-62",
-    "id": 62
-  },
-  "63": {
-    "name": "Item 63",
-    "id_name": "item-63",
-    "id": 63
-  },
-  "64": {
-    "name": "Item 64",
-    "id_name": "item-64",
-    "id": 64
-  },
-  "65": {
-    "name": "Item 65",
-    "id_name": "item-65",
+  "39": {
+    "name": "Blue Flute",
+    "id_name": "blue-flute",
     "id": 65
   },
-  "66": {
-    "name": "Item 66",
-    "id_name": "item-66",
+  "40": {
+    "name": "Yellow Flute",
+    "id_name": "yellow-flute",
     "id": 66
   },
-  "67": {
-    "name": "Item 67",
-    "id_name": "item-67",
+  "41": {
+    "name": "Red Flute",
+    "id_name": "red-flute",
     "id": 67
   },
-  "68": {
-    "name": "Item 68",
-    "id_name": "item-68",
+  "42": {
+    "name": "Black Flute",
+    "id_name": "black-flute",
     "id": 68
   },
-  "69": {
-    "name": "Item 69",
-    "id_name": "item-69",
+  "43": {
+    "name": "White Flute",
+    "id_name": "white-flute",
     "id": 69
   },
-  "70": {
-    "name": "Item 70",
-    "id_name": "item-70",
+  "44": {
+    "name": "Berry Juice",
+    "id_name": "berry-juice",
+    "id": 43
+  },
+  "45": {
+    "name": "Sacred Ash",
+    "id_name": "sacred-ash",
+    "id": 44
+  },
+  "46": {
+    "name": "Shoal Salt",
+    "id_name": "shoal-salt",
     "id": 70
   },
-  "71": {
-    "name": "Item 71",
-    "id_name": "item-71",
+  "47": {
+    "name": "Shoal Shell",
+    "id_name": "shoal-shell",
     "id": 71
   },
-  "72": {
-    "name": "Item 72",
-    "id_name": "item-72",
+  "48": {
+    "name": "Red Shard",
+    "id_name": "red-shard",
     "id": 72
   },
-  "73": {
-    "name": "Item 73",
-    "id_name": "item-73",
+  "49": {
+    "name": "Blue Shard",
+    "id_name": "blue-shard",
     "id": 73
   },
-  "74": {
-    "name": "Item 74",
-    "id_name": "item-74",
+  "50": {
+    "name": "Yellow Shard",
+    "id_name": "yellow-shard",
     "id": 74
   },
-  "75": {
-    "name": "Item 75",
-    "id_name": "item-75",
+  "51": {
+    "name": "Green Shard",
+    "id_name": "green-shard",
     "id": 75
   },
-  "76": {
-    "name": "Item 76",
-    "id_name": "item-76",
-    "id": 76
+  "63": {
+    "name": "Hp Up",
+    "id_name": "hp-up",
+    "id": 45
+  },
+  "64": {
+    "name": "Protein",
+    "id_name": "protein",
+    "id": 46
+  },
+  "65": {
+    "name": "Iron",
+    "id_name": "iron",
+    "id": 47
+  },
+  "66": {
+    "name": "Carbos",
+    "id_name": "carbos",
+    "id": 48
+  },
+  "67": {
+    "name": "Calcium",
+    "id_name": "calcium",
+    "id": 49
+  },
+  "68": {
+    "name": "Rare Candy",
+    "id_name": "rare-candy",
+    "id": 50
+  },
+  "69": {
+    "name": "Pp Up",
+    "id_name": "pp-up",
+    "id": 51
+  },
+  "70": {
+    "name": "Zinc",
+    "id_name": "zinc",
+    "id": 52
+  },
+  "71": {
+    "name": "Pp Max",
+    "id_name": "pp-max",
+    "id": 53
+  },
+  "73": {
+    "name": "Guard Spec",
+    "id_name": "guard-spec",
+    "id": 55
+  },
+  "74": {
+    "name": "Dire Hit",
+    "id_name": "dire-hit",
+    "id": 56
+  },
+  "75": {
+    "name": "X Attack",
+    "id_name": "x-attack",
+    "id": 57
   },
   "77": {
-    "name": "Item 77",
-    "id_name": "item-77",
-    "id": 77
+    "name": "X Speed",
+    "id_name": "x-speed",
+    "id": 59
   },
   "78": {
-    "name": "Item 78",
-    "id_name": "item-78",
-    "id": 78
-  },
-  "79": {
-    "name": "Item 79",
-    "id_name": "item-79",
-    "id": 79
+    "name": "X Accuracy",
+    "id_name": "x-accuracy",
+    "id": 60
   },
   "80": {
-    "name": "Item 80",
-    "id_name": "item-80",
-    "id": 80
+    "name": "Poke Doll",
+    "id_name": "poke-doll",
+    "id": 63
   },
   "81": {
-    "name": "Item 81",
-    "id_name": "item-81",
-    "id": 81
-  },
-  "82": {
-    "name": "Item 82",
-    "id_name": "item-82",
-    "id": 82
+    "name": "Fluffy Tail",
+    "id_name": "fluffy-tail",
+    "id": 64
   },
   "83": {
-    "name": "Item 83",
-    "id_name": "item-83",
-    "id": 83
+    "name": "Super Repel",
+    "id_name": "super-repel",
+    "id": 76
   },
   "84": {
-    "name": "Item 84",
-    "id_name": "item-84",
-    "id": 84
+    "name": "Max Repel",
+    "id_name": "max-repel",
+    "id": 77
   },
   "85": {
-    "name": "Item 85",
-    "id_name": "item-85",
-    "id": 85
+    "name": "Escape Rope",
+    "id_name": "escape-rope",
+    "id": 78
   },
   "86": {
-    "name": "Item 86",
-    "id_name": "item-86",
-    "id": 86
-  },
-  "87": {
-    "name": "Item 87",
-    "id_name": "item-87",
-    "id": 87
-  },
-  "88": {
-    "name": "Item 88",
-    "id_name": "item-88",
-    "id": 88
-  },
-  "89": {
-    "name": "Item 89",
-    "id_name": "item-89",
-    "id": 89
-  },
-  "90": {
-    "name": "Item 90",
-    "id_name": "item-90",
-    "id": 90
-  },
-  "91": {
-    "name": "Item 91",
-    "id_name": "item-91",
-    "id": 91
-  },
-  "92": {
-    "name": "Item 92",
-    "id_name": "item-92",
-    "id": 92
+    "name": "Repel",
+    "id_name": "repel",
+    "id": 79
   },
   "93": {
-    "name": "Item 93",
-    "id_name": "item-93",
-    "id": 93
+    "name": "Sun Stone",
+    "id_name": "sun-stone",
+    "id": 80
   },
   "94": {
-    "name": "Item 94",
-    "id_name": "item-94",
-    "id": 94
+    "name": "Moon Stone",
+    "id_name": "moon-stone",
+    "id": 81
   },
   "95": {
-    "name": "Item 95",
-    "id_name": "item-95",
-    "id": 95
+    "name": "Fire Stone",
+    "id_name": "fire-stone",
+    "id": 82
   },
   "96": {
-    "name": "Item 96",
-    "id_name": "item-96",
-    "id": 96
+    "name": "Thunder Stone",
+    "id_name": "thunder-stone",
+    "id": 83
   },
   "97": {
-    "name": "Item 97",
-    "id_name": "item-97",
-    "id": 97
+    "name": "Water Stone",
+    "id_name": "water-stone",
+    "id": 84
   },
   "98": {
-    "name": "Item 98",
-    "id_name": "item-98",
-    "id": 98
-  },
-  "99": {
-    "name": "Item 99",
-    "id_name": "item-99",
-    "id": 99
-  },
-  "100": {
-    "name": "Item 100",
-    "id_name": "item-100",
-    "id": 100
-  },
-  "101": {
-    "name": "Item 101",
-    "id_name": "item-101",
-    "id": 101
-  },
-  "102": {
-    "name": "Item 102",
-    "id_name": "item-102",
-    "id": 102
+    "name": "Leaf Stone",
+    "id_name": "leaf-stone",
+    "id": 85
   },
   "103": {
-    "name": "Item 103",
-    "id_name": "item-103",
-    "id": 103
+    "name": "Tiny Mushroom",
+    "id_name": "tiny-mushroom",
+    "id": 86
   },
   "104": {
-    "name": "Item 104",
-    "id_name": "item-104",
-    "id": 104
-  },
-  "105": {
-    "name": "Item 105",
-    "id_name": "item-105",
-    "id": 105
+    "name": "Big Mushroom",
+    "id_name": "big-mushroom",
+    "id": 87
   },
   "106": {
-    "name": "Item 106",
-    "id_name": "item-106",
-    "id": 106
+    "name": "Pearl",
+    "id_name": "pearl",
+    "id": 88
   },
   "107": {
-    "name": "Item 107",
-    "id_name": "item-107",
-    "id": 107
+    "name": "Big Pearl",
+    "id_name": "big-pearl",
+    "id": 89
   },
   "108": {
-    "name": "Item 108",
-    "id_name": "item-108",
-    "id": 108
+    "name": "Stardust",
+    "id_name": "stardust",
+    "id": 90
   },
   "109": {
-    "name": "Item 109",
-    "id_name": "item-109",
-    "id": 109
+    "name": "Star Piece",
+    "id_name": "star-piece",
+    "id": 91
   },
   "110": {
-    "name": "Item 110",
-    "id_name": "item-110",
-    "id": 110
+    "name": "Nugget",
+    "id_name": "nugget",
+    "id": 92
   },
   "111": {
-    "name": "Item 111",
-    "id_name": "item-111",
-    "id": 111
-  },
-  "112": {
-    "name": "Item 112",
-    "id_name": "item-112",
-    "id": 112
-  },
-  "113": {
-    "name": "Item 113",
-    "id_name": "item-113",
-    "id": 113
-  },
-  "114": {
-    "name": "Item 114",
-    "id_name": "item-114",
-    "id": 114
-  },
-  "115": {
-    "name": "Item 115",
-    "id_name": "item-115",
-    "id": 115
-  },
-  "116": {
-    "name": "Item 116",
-    "id_name": "item-116",
-    "id": 116
-  },
-  "117": {
-    "name": "Item 117",
-    "id_name": "item-117",
-    "id": 117
-  },
-  "118": {
-    "name": "Item 118",
-    "id_name": "item-118",
-    "id": 118
-  },
-  "119": {
-    "name": "Item 119",
-    "id_name": "item-119",
-    "id": 119
-  },
-  "120": {
-    "name": "Item 120",
-    "id_name": "item-120",
-    "id": 120
+    "name": "Heart Scale",
+    "id_name": "heart-scale",
+    "id": 93
   },
   "121": {
-    "name": "Item 121",
-    "id_name": "item-121",
-    "id": 121
+    "name": "Orange Mail",
+    "id_name": "orange-mail",
+    "id": 515
   },
   "122": {
-    "name": "Item 122",
-    "id_name": "item-122",
-    "id": 122
+    "name": "Harbor Mail",
+    "id_name": "harbor-mail",
+    "id": 516
   },
   "123": {
-    "name": "Item 123",
-    "id_name": "item-123",
-    "id": 123
+    "name": "Glitter Mail",
+    "id_name": "glitter-mail",
+    "id": 517
   },
   "124": {
-    "name": "Item 124",
-    "id_name": "item-124",
-    "id": 124
+    "name": "Mech Mail",
+    "id_name": "mech-mail",
+    "id": 518
   },
   "125": {
-    "name": "Item 125",
-    "id_name": "item-125",
-    "id": 125
+    "name": "Wood Mail",
+    "id_name": "wood-mail",
+    "id": 519
   },
   "126": {
-    "name": "Item 126",
-    "id_name": "item-126",
-    "id": 126
+    "name": "Wave Mail",
+    "id_name": "wave-mail",
+    "id": 520
   },
   "127": {
-    "name": "Item 127",
-    "id_name": "item-127",
-    "id": 127
+    "name": "Bead Mail",
+    "id_name": "bead-mail",
+    "id": 521
   },
   "128": {
-    "name": "Item 128",
-    "id_name": "item-128",
-    "id": 128
+    "name": "Shadow Mail",
+    "id_name": "shadow-mail",
+    "id": 522
   },
   "129": {
-    "name": "Item 129",
-    "id_name": "item-129",
-    "id": 129
+    "name": "Tropic Mail",
+    "id_name": "tropic-mail",
+    "id": 523
   },
   "130": {
-    "name": "Item 130",
-    "id_name": "item-130",
-    "id": 130
+    "name": "Dream Mail",
+    "id_name": "dream-mail",
+    "id": 524
   },
   "131": {
-    "name": "Item 131",
-    "id_name": "item-131",
-    "id": 131
+    "name": "Fab Mail",
+    "id_name": "fab-mail",
+    "id": 525
   },
   "132": {
-    "name": "Item 132",
-    "id_name": "item-132",
-    "id": 132
+    "name": "Retro Mail",
+    "id_name": "retro-mail",
+    "id": 526
   },
   "133": {
-    "name": "Item 133",
-    "id_name": "item-133",
-    "id": 133
+    "name": "Cheri Berry",
+    "id_name": "cheri-berry",
+    "id": 126
   },
   "134": {
-    "name": "Item 134",
-    "id_name": "item-134",
-    "id": 134
+    "name": "Chesto Berry",
+    "id_name": "chesto-berry",
+    "id": 127
   },
   "135": {
-    "name": "Item 135",
-    "id_name": "item-135",
-    "id": 135
+    "name": "Pecha Berry",
+    "id_name": "pecha-berry",
+    "id": 128
   },
   "136": {
-    "name": "Item 136",
-    "id_name": "item-136",
-    "id": 136
+    "name": "Rawst Berry",
+    "id_name": "rawst-berry",
+    "id": 129
   },
   "137": {
-    "name": "Item 137",
-    "id_name": "item-137",
-    "id": 137
+    "name": "Aspear Berry",
+    "id_name": "aspear-berry",
+    "id": 130
   },
   "138": {
-    "name": "Item 138",
-    "id_name": "item-138",
-    "id": 138
+    "name": "Leppa Berry",
+    "id_name": "leppa-berry",
+    "id": 131
   },
   "139": {
-    "name": "Item 139",
-    "id_name": "item-139",
-    "id": 139
+    "name": "Oran Berry",
+    "id_name": "oran-berry",
+    "id": 132
   },
   "140": {
-    "name": "Item 140",
-    "id_name": "item-140",
-    "id": 140
+    "name": "Persim Berry",
+    "id_name": "persim-berry",
+    "id": 133
   },
   "141": {
-    "name": "Item 141",
-    "id_name": "item-141",
-    "id": 141
+    "name": "Lum Berry",
+    "id_name": "lum-berry",
+    "id": 134
   },
   "142": {
-    "name": "Item 142",
-    "id_name": "item-142",
-    "id": 142
+    "name": "Sitrus Berry",
+    "id_name": "sitrus-berry",
+    "id": 135
   },
   "143": {
-    "name": "Item 143",
-    "id_name": "item-143",
-    "id": 143
+    "name": "Figy Berry",
+    "id_name": "figy-berry",
+    "id": 136
   },
   "144": {
-    "name": "Item 144",
-    "id_name": "item-144",
-    "id": 144
+    "name": "Wiki Berry",
+    "id_name": "wiki-berry",
+    "id": 137
   },
   "145": {
-    "name": "Item 145",
-    "id_name": "item-145",
-    "id": 145
+    "name": "Mago Berry",
+    "id_name": "mago-berry",
+    "id": 138
   },
   "146": {
-    "name": "Item 146",
-    "id_name": "item-146",
-    "id": 146
+    "name": "Aguav Berry",
+    "id_name": "aguav-berry",
+    "id": 139
   },
   "147": {
-    "name": "Item 147",
-    "id_name": "item-147",
-    "id": 147
+    "name": "Iapapa Berry",
+    "id_name": "iapapa-berry",
+    "id": 140
   },
   "148": {
-    "name": "Item 148",
-    "id_name": "item-148",
-    "id": 148
+    "name": "Razz Berry",
+    "id_name": "razz-berry",
+    "id": 141
   },
   "149": {
-    "name": "Item 149",
-    "id_name": "item-149",
-    "id": 149
+    "name": "Bluk Berry",
+    "id_name": "bluk-berry",
+    "id": 142
   },
   "150": {
-    "name": "Item 150",
-    "id_name": "item-150",
-    "id": 150
+    "name": "Nanab Berry",
+    "id_name": "nanab-berry",
+    "id": 143
   },
   "151": {
-    "name": "Item 151",
-    "id_name": "item-151",
-    "id": 151
+    "name": "Wepear Berry",
+    "id_name": "wepear-berry",
+    "id": 144
   },
   "152": {
-    "name": "Item 152",
-    "id_name": "item-152",
-    "id": 152
+    "name": "Pinap Berry",
+    "id_name": "pinap-berry",
+    "id": 145
   },
   "153": {
-    "name": "Item 153",
-    "id_name": "item-153",
-    "id": 153
+    "name": "Pomeg Berry",
+    "id_name": "pomeg-berry",
+    "id": 146
   },
   "154": {
-    "name": "Item 154",
-    "id_name": "item-154",
-    "id": 154
+    "name": "Kelpsy Berry",
+    "id_name": "kelpsy-berry",
+    "id": 147
   },
   "155": {
-    "name": "Item 155",
-    "id_name": "item-155",
-    "id": 155
+    "name": "Qualot Berry",
+    "id_name": "qualot-berry",
+    "id": 148
   },
   "156": {
-    "name": "Item 156",
-    "id_name": "item-156",
-    "id": 156
+    "name": "Hondew Berry",
+    "id_name": "hondew-berry",
+    "id": 149
   },
   "157": {
-    "name": "Item 157",
-    "id_name": "item-157",
-    "id": 157
+    "name": "Grepa Berry",
+    "id_name": "grepa-berry",
+    "id": 150
   },
   "158": {
-    "name": "Item 158",
-    "id_name": "item-158",
-    "id": 158
+    "name": "Tamato Berry",
+    "id_name": "tamato-berry",
+    "id": 151
   },
   "159": {
-    "name": "Item 159",
-    "id_name": "item-159",
-    "id": 159
+    "name": "Cornn Berry",
+    "id_name": "cornn-berry",
+    "id": 152
   },
   "160": {
-    "name": "Item 160",
-    "id_name": "item-160",
-    "id": 160
+    "name": "Magost Berry",
+    "id_name": "magost-berry",
+    "id": 153
   },
   "161": {
-    "name": "Item 161",
-    "id_name": "item-161",
-    "id": 161
+    "name": "Rabuta Berry",
+    "id_name": "rabuta-berry",
+    "id": 154
   },
   "162": {
-    "name": "Item 162",
-    "id_name": "item-162",
-    "id": 162
+    "name": "Nomel Berry",
+    "id_name": "nomel-berry",
+    "id": 155
   },
   "163": {
-    "name": "Item 163",
-    "id_name": "item-163",
-    "id": 163
+    "name": "Spelon Berry",
+    "id_name": "spelon-berry",
+    "id": 156
   },
   "164": {
-    "name": "Item 164",
-    "id_name": "item-164",
-    "id": 164
+    "name": "Pamtre Berry",
+    "id_name": "pamtre-berry",
+    "id": 157
   },
   "165": {
-    "name": "Item 165",
-    "id_name": "item-165",
-    "id": 165
+    "name": "Watmel Berry",
+    "id_name": "watmel-berry",
+    "id": 158
   },
   "166": {
-    "name": "Item 166",
-    "id_name": "item-166",
-    "id": 166
+    "name": "Durin Berry",
+    "id_name": "durin-berry",
+    "id": 159
   },
   "167": {
-    "name": "Item 167",
-    "id_name": "item-167",
-    "id": 167
+    "name": "Belue Berry",
+    "id_name": "belue-berry",
+    "id": 160
   },
   "168": {
-    "name": "Item 168",
-    "id_name": "item-168",
-    "id": 168
-  },
-  "169": {
-    "name": "Item 169",
-    "id_name": "item-169",
-    "id": 169
-  },
-  "170": {
-    "name": "Item 170",
-    "id_name": "item-170",
-    "id": 170
-  },
-  "171": {
-    "name": "Item 171",
-    "id_name": "item-171",
-    "id": 171
-  },
-  "172": {
-    "name": "Item 172",
-    "id_name": "item-172",
-    "id": 172
-  },
-  "173": {
-    "name": "Item 173",
-    "id_name": "item-173",
-    "id": 173
-  },
-  "174": {
-    "name": "Item 174",
-    "id_name": "item-174",
-    "id": 174
-  },
-  "175": {
-    "name": "Item 175",
-    "id_name": "item-175",
-    "id": 175
-  },
-  "176": {
-    "name": "Item 176",
-    "id_name": "item-176",
-    "id": 176
-  },
-  "177": {
-    "name": "Item 177",
-    "id_name": "item-177",
-    "id": 177
-  },
-  "178": {
-    "name": "Item 178",
-    "id_name": "item-178",
+    "name": "Liechi Berry",
+    "id_name": "liechi-berry",
     "id": 178
   },
-  "179": {
-    "name": "Item 179",
-    "id_name": "item-179",
+  "169": {
+    "name": "Ganlon Berry",
+    "id_name": "ganlon-berry",
     "id": 179
   },
-  "180": {
-    "name": "Item 180",
-    "id_name": "item-180",
+  "170": {
+    "name": "Salac Berry",
+    "id_name": "salac-berry",
     "id": 180
   },
-  "181": {
-    "name": "Item 181",
-    "id_name": "item-181",
+  "171": {
+    "name": "Petaya Berry",
+    "id_name": "petaya-berry",
     "id": 181
   },
-  "182": {
-    "name": "Item 182",
-    "id_name": "item-182",
+  "172": {
+    "name": "Apicot Berry",
+    "id_name": "apicot-berry",
     "id": 182
   },
-  "183": {
-    "name": "Item 183",
-    "id_name": "item-183",
+  "173": {
+    "name": "Lansat Berry",
+    "id_name": "lansat-berry",
     "id": 183
   },
-  "184": {
-    "name": "Item 184",
-    "id_name": "item-184",
+  "174": {
+    "name": "Starf Berry",
+    "id_name": "starf-berry",
     "id": 184
   },
-  "185": {
-    "name": "Item 185",
-    "id_name": "item-185",
+  "175": {
+    "name": "Enigma Berry",
+    "id_name": "enigma-berry",
     "id": 185
   },
-  "186": {
-    "name": "Item 186",
-    "id_name": "item-186",
-    "id": 186
-  },
-  "187": {
-    "name": "Item 187",
-    "id_name": "item-187",
-    "id": 187
-  },
-  "188": {
-    "name": "Item 188",
-    "id_name": "item-188",
-    "id": 188
-  },
-  "189": {
-    "name": "Item 189",
-    "id_name": "item-189",
-    "id": 189
-  },
-  "190": {
-    "name": "Item 190",
-    "id_name": "item-190",
+  "179": {
+    "name": "Bright Powder",
+    "id_name": "bright-powder",
     "id": 190
   },
-  "191": {
-    "name": "Item 191",
-    "id_name": "item-191",
+  "180": {
+    "name": "White Herb",
+    "id_name": "white-herb",
     "id": 191
   },
-  "192": {
-    "name": "Item 192",
-    "id_name": "item-192",
+  "181": {
+    "name": "Macho Brace",
+    "id_name": "macho-brace",
     "id": 192
   },
-  "193": {
-    "name": "Item 193",
-    "id_name": "item-193",
+  "182": {
+    "name": "Exp Share",
+    "id_name": "exp-share",
     "id": 193
   },
-  "194": {
-    "name": "Item 194",
-    "id_name": "item-194",
+  "183": {
+    "name": "Quick Claw",
+    "id_name": "quick-claw",
     "id": 194
   },
-  "195": {
-    "name": "Item 195",
-    "id_name": "item-195",
+  "184": {
+    "name": "Soothe Bell",
+    "id_name": "soothe-bell",
     "id": 195
   },
-  "196": {
-    "name": "Item 196",
-    "id_name": "item-196",
+  "185": {
+    "name": "Mental Herb",
+    "id_name": "mental-herb",
     "id": 196
   },
-  "197": {
-    "name": "Item 197",
-    "id_name": "item-197",
+  "186": {
+    "name": "Choice Band",
+    "id_name": "choice-band",
     "id": 197
   },
-  "198": {
-    "name": "Item 198",
-    "id_name": "item-198",
+  "187": {
+    "name": "Kings Rock",
+    "id_name": "kings-rock",
     "id": 198
   },
-  "199": {
-    "name": "Item 199",
-    "id_name": "item-199",
+  "188": {
+    "name": "Silver Powder",
+    "id_name": "silver-powder",
     "id": 199
   },
-  "200": {
-    "name": "Item 200",
-    "id_name": "item-200",
+  "189": {
+    "name": "Amulet Coin",
+    "id_name": "amulet-coin",
     "id": 200
   },
-  "201": {
-    "name": "Item 201",
-    "id_name": "item-201",
+  "190": {
+    "name": "Cleanse Tag",
+    "id_name": "cleanse-tag",
     "id": 201
   },
-  "202": {
-    "name": "Item 202",
-    "id_name": "item-202",
+  "191": {
+    "name": "Soul Dew",
+    "id_name": "soul-dew",
     "id": 202
   },
-  "203": {
-    "name": "Item 203",
-    "id_name": "item-203",
+  "192": {
+    "name": "Deep Sea Tooth",
+    "id_name": "deep-sea-tooth",
     "id": 203
   },
-  "204": {
-    "name": "Item 204",
-    "id_name": "item-204",
+  "193": {
+    "name": "Deep Sea Scale",
+    "id_name": "deep-sea-scale",
     "id": 204
   },
-  "205": {
-    "name": "Item 205",
-    "id_name": "item-205",
+  "194": {
+    "name": "Smoke Ball",
+    "id_name": "smoke-ball",
     "id": 205
   },
-  "206": {
-    "name": "Item 206",
-    "id_name": "item-206",
+  "195": {
+    "name": "Everstone",
+    "id_name": "everstone",
     "id": 206
   },
-  "207": {
-    "name": "Item 207",
-    "id_name": "item-207",
+  "196": {
+    "name": "Focus Band",
+    "id_name": "focus-band",
     "id": 207
   },
-  "208": {
-    "name": "Item 208",
-    "id_name": "item-208",
+  "197": {
+    "name": "Lucky Egg",
+    "id_name": "lucky-egg",
     "id": 208
   },
-  "209": {
-    "name": "Item 209",
-    "id_name": "item-209",
+  "198": {
+    "name": "Scope Lens",
+    "id_name": "scope-lens",
     "id": 209
   },
-  "210": {
-    "name": "Item 210",
-    "id_name": "item-210",
+  "199": {
+    "name": "Metal Coat",
+    "id_name": "metal-coat",
     "id": 210
   },
-  "211": {
-    "name": "Item 211",
-    "id_name": "item-211",
+  "200": {
+    "name": "Leftovers",
+    "id_name": "leftovers",
     "id": 211
   },
-  "212": {
-    "name": "Item 212",
-    "id_name": "item-212",
+  "201": {
+    "name": "Dragon Scale",
+    "id_name": "dragon-scale",
     "id": 212
   },
-  "213": {
-    "name": "Item 213",
-    "id_name": "item-213",
+  "202": {
+    "name": "Light Ball",
+    "id_name": "light-ball",
     "id": 213
   },
-  "214": {
-    "name": "Item 214",
-    "id_name": "item-214",
+  "203": {
+    "name": "Soft Sand",
+    "id_name": "soft-sand",
     "id": 214
   },
-  "215": {
-    "name": "Item 215",
-    "id_name": "item-215",
+  "204": {
+    "name": "Hard Stone",
+    "id_name": "hard-stone",
     "id": 215
   },
-  "216": {
-    "name": "Item 216",
-    "id_name": "item-216",
+  "205": {
+    "name": "Miracle Seed",
+    "id_name": "miracle-seed",
     "id": 216
   },
-  "217": {
-    "name": "Item 217",
-    "id_name": "item-217",
+  "206": {
+    "name": "Black Glasses",
+    "id_name": "black-glasses",
     "id": 217
   },
-  "218": {
-    "name": "Item 218",
-    "id_name": "item-218",
+  "207": {
+    "name": "Black Belt",
+    "id_name": "black-belt",
     "id": 218
   },
-  "219": {
-    "name": "Item 219",
-    "id_name": "item-219",
+  "208": {
+    "name": "Magnet",
+    "id_name": "magnet",
     "id": 219
   },
-  "220": {
-    "name": "Item 220",
-    "id_name": "item-220",
+  "209": {
+    "name": "Mystic Water",
+    "id_name": "mystic-water",
     "id": 220
   },
-  "221": {
-    "name": "Item 221",
-    "id_name": "item-221",
+  "210": {
+    "name": "Sharp Beak",
+    "id_name": "sharp-beak",
     "id": 221
   },
-  "222": {
-    "name": "Item 222",
-    "id_name": "item-222",
+  "211": {
+    "name": "Poison Barb",
+    "id_name": "poison-barb",
     "id": 222
   },
-  "223": {
-    "name": "Item 223",
-    "id_name": "item-223",
+  "212": {
+    "name": "Never Melt Ice",
+    "id_name": "never-melt-ice",
     "id": 223
   },
-  "224": {
-    "name": "Item 224",
-    "id_name": "item-224",
+  "213": {
+    "name": "Spell Tag",
+    "id_name": "spell-tag",
     "id": 224
   },
-  "225": {
-    "name": "Item 225",
-    "id_name": "item-225",
+  "214": {
+    "name": "Twisted Spoon",
+    "id_name": "twisted-spoon",
     "id": 225
   },
-  "226": {
-    "name": "Item 226",
-    "id_name": "item-226",
+  "215": {
+    "name": "Charcoal",
+    "id_name": "charcoal",
     "id": 226
   },
-  "227": {
-    "name": "Item 227",
-    "id_name": "item-227",
+  "216": {
+    "name": "Dragon Fang",
+    "id_name": "dragon-fang",
     "id": 227
   },
-  "228": {
-    "name": "Item 228",
-    "id_name": "item-228",
+  "217": {
+    "name": "Silk Scarf",
+    "id_name": "silk-scarf",
     "id": 228
   },
-  "229": {
-    "name": "Item 229",
-    "id_name": "item-229",
+  "218": {
+    "name": "Up Grade",
+    "id_name": "up-grade",
     "id": 229
   },
-  "230": {
-    "name": "Item 230",
-    "id_name": "item-230",
+  "219": {
+    "name": "Shell Bell",
+    "id_name": "shell-bell",
     "id": 230
   },
-  "231": {
-    "name": "Item 231",
-    "id_name": "item-231",
+  "220": {
+    "name": "Sea Incense",
+    "id_name": "sea-incense",
     "id": 231
   },
-  "232": {
-    "name": "Item 232",
-    "id_name": "item-232",
+  "221": {
+    "name": "Lax Incense",
+    "id_name": "lax-incense",
     "id": 232
   },
-  "233": {
-    "name": "Item 233",
-    "id_name": "item-233",
+  "222": {
+    "name": "Lucky Punch",
+    "id_name": "lucky-punch",
     "id": 233
   },
-  "234": {
-    "name": "Item 234",
-    "id_name": "item-234",
+  "223": {
+    "name": "Metal Powder",
+    "id_name": "metal-powder",
     "id": 234
   },
-  "235": {
-    "name": "Item 235",
-    "id_name": "item-235",
+  "224": {
+    "name": "Thick Club",
+    "id_name": "thick-club",
     "id": 235
   },
-  "236": {
-    "name": "Item 236",
-    "id_name": "item-236",
+  "225": {
+    "name": "Stick",
+    "id_name": "stick",
     "id": 236
   },
-  "237": {
-    "name": "Item 237",
-    "id_name": "item-237",
+  "254": {
+    "name": "Red Scarf",
+    "id_name": "red-scarf",
     "id": 237
   },
-  "238": {
-    "name": "Item 238",
-    "id_name": "item-238",
+  "255": {
+    "name": "Blue Scarf",
+    "id_name": "blue-scarf",
     "id": 238
   },
-  "239": {
-    "name": "Item 239",
-    "id_name": "item-239",
+  "256": {
+    "name": "Pink Scarf",
+    "id_name": "pink-scarf",
     "id": 239
   },
-  "240": {
-    "name": "Item 240",
-    "id_name": "item-240",
+  "257": {
+    "name": "Green Scarf",
+    "id_name": "green-scarf",
     "id": 240
   },
-  "241": {
-    "name": "Item 241",
-    "id_name": "item-241",
+  "258": {
+    "name": "Yellow Scarf",
+    "id_name": "yellow-scarf",
     "id": 241
   },
-  "242": {
-    "name": "Item 242",
-    "id_name": "item-242",
-    "id": 242
-  },
-  "243": {
-    "name": "Item 243",
-    "id_name": "item-243",
-    "id": 243
-  },
-  "244": {
-    "name": "Item 244",
-    "id_name": "item-244",
-    "id": 244
-  },
-  "245": {
-    "name": "Item 245",
-    "id_name": "item-245",
-    "id": 245
-  },
-  "246": {
-    "name": "Item 246",
-    "id_name": "item-246",
-    "id": 246
-  },
-  "247": {
-    "name": "Item 247",
-    "id_name": "item-247",
-    "id": 247
-  },
-  "248": {
-    "name": "Item 248",
-    "id_name": "item-248",
-    "id": 248
-  },
-  "249": {
-    "name": "Item 249",
-    "id_name": "item-249",
-    "id": 249
-  },
-  "250": {
-    "name": "Item 250",
-    "id_name": "item-250",
-    "id": 250
-  },
-  "251": {
-    "name": "Item 251",
-    "id_name": "item-251",
-    "id": 251
-  },
-  "252": {
-    "name": "Item 252",
-    "id_name": "item-252",
-    "id": 252
-  },
-  "253": {
-    "name": "Item 253",
-    "id_name": "item-253",
-    "id": 253
-  },
-  "254": {
-    "name": "Item 254",
-    "id_name": "item-254",
-    "id": 254
-  },
-  "255": {
-    "name": "Item 255",
-    "id_name": "item-255",
-    "id": 255
-  },
-  "256": {
-    "name": "Item 256",
-    "id_name": "item-256",
-    "id": 256
-  },
-  "257": {
-    "name": "Item 257",
-    "id_name": "item-257",
-    "id": 257
-  },
-  "258": {
-    "name": "Item 258",
-    "id_name": "item-258",
-    "id": 258
-  },
   "259": {
-    "name": "Item 259",
-    "id_name": "item-259",
-    "id": 259
+    "name": "Mach Bike",
+    "id_name": "mach-bike",
+    "id": 527
   },
   "260": {
-    "name": "Item 260",
-    "id_name": "item-260",
-    "id": 260
-  },
-  "261": {
-    "name": "Item 261",
-    "id_name": "item-261",
-    "id": 261
+    "name": "Coin Case",
+    "id_name": "coin-case",
+    "id": 421
   },
   "262": {
-    "name": "Item 262",
-    "id_name": "item-262",
-    "id": 262
+    "name": "Old Rod",
+    "id_name": "old-rod",
+    "id": 422
   },
   "263": {
-    "name": "Item 263",
-    "id_name": "item-263",
-    "id": 263
+    "name": "Good Rod",
+    "id_name": "good-rod",
+    "id": 423
   },
   "264": {
-    "name": "Item 264",
-    "id_name": "item-264",
-    "id": 264
+    "name": "Super Rod",
+    "id_name": "super-rod",
+    "id": 424
   },
   "265": {
-    "name": "Item 265",
-    "id_name": "item-265",
-    "id": 265
+    "name": "Ss Ticket",
+    "id_name": "ss-ticket",
+    "id": 433
   },
   "266": {
-    "name": "Item 266",
-    "id_name": "item-266",
-    "id": 266
-  },
-  "267": {
-    "name": "Item 267",
-    "id_name": "item-267",
-    "id": 267
+    "name": "Contest Pass",
+    "id_name": "contest-pass",
+    "id": 434
   },
   "268": {
-    "name": "Item 268",
-    "id_name": "item-268",
-    "id": 268
+    "name": "Wailmer Pail",
+    "id_name": "wailmer-pail",
+    "id": 529
   },
   "269": {
-    "name": "Item 269",
-    "id_name": "item-269",
-    "id": 269
+    "name": "Devon Goods",
+    "id_name": "devon-goods",
+    "id": 530
   },
   "270": {
-    "name": "Item 270",
-    "id_name": "item-270",
-    "id": 270
+    "name": "Soot Sack",
+    "id_name": "soot-sack",
+    "id": 531
   },
   "271": {
-    "name": "Item 271",
-    "id_name": "item-271",
-    "id": 271
+    "name": "Basement Key",
+    "id_name": "basement-key",
+    "id": 476
   },
   "272": {
-    "name": "Item 272",
-    "id_name": "item-272",
-    "id": 272
+    "name": "Acro Bike",
+    "id_name": "acro-bike",
+    "id": 528
   },
   "273": {
-    "name": "Item 273",
-    "id_name": "item-273",
-    "id": 273
+    "name": "Pokeblock Case",
+    "id_name": "pokeblock-case",
+    "id": 532
   },
   "274": {
-    "name": "Item 274",
-    "id_name": "item-274",
-    "id": 274
+    "name": "Letter",
+    "id_name": "letter",
+    "id": 533
   },
   "275": {
-    "name": "Item 275",
-    "id_name": "item-275",
-    "id": 275
+    "name": "Eon Ticket",
+    "id_name": "eon-ticket",
+    "id": 534
   },
   "276": {
-    "name": "Item 276",
-    "id_name": "item-276",
-    "id": 276
+    "name": "Red Orb",
+    "id_name": "red-orb",
+    "id": 467
   },
   "277": {
-    "name": "Item 277",
-    "id_name": "item-277",
-    "id": 277
+    "name": "Blue Orb",
+    "id_name": "blue-orb",
+    "id": 468
   },
   "278": {
-    "name": "Item 278",
-    "id_name": "item-278",
-    "id": 278
+    "name": "Scanner",
+    "id_name": "scanner",
+    "id": 535
   },
   "279": {
-    "name": "Item 279",
-    "id_name": "item-279",
-    "id": 279
+    "name": "Go Goggles",
+    "id_name": "go-goggles",
+    "id": 536
   },
   "280": {
-    "name": "Item 280",
-    "id_name": "item-280",
-    "id": 280
-  },
-  "281": {
-    "name": "Item 281",
-    "id_name": "item-281",
-    "id": 281
-  },
-  "282": {
-    "name": "Item 282",
-    "id_name": "item-282",
-    "id": 282
-  },
-  "283": {
-    "name": "Item 283",
-    "id_name": "item-283",
-    "id": 283
-  },
-  "284": {
-    "name": "Item 284",
-    "id_name": "item-284",
-    "id": 284
+    "name": "Meteorite",
+    "id_name": "meteorite",
+    "id": 537
   },
   "285": {
-    "name": "Item 285",
-    "id_name": "item-285",
-    "id": 285
+    "name": "Storage Key",
+    "id_name": "storage-key",
+    "id": 440
   },
   "286": {
-    "name": "Item 286",
-    "id_name": "item-286",
-    "id": 286
+    "name": "Root Fossil",
+    "id_name": "root-fossil",
+    "id": 99
   },
   "287": {
-    "name": "Item 287",
-    "id_name": "item-287",
-    "id": 287
+    "name": "Claw Fossil",
+    "id_name": "claw-fossil",
+    "id": 100
   },
   "288": {
-    "name": "Item 288",
-    "id_name": "item-288",
-    "id": 288
+    "name": "Devon Scope",
+    "id_name": "devon-scope",
+    "id": 542
   },
   "289": {
-    "name": "Item 289",
-    "id_name": "item-289",
-    "id": 289
-  },
-  "290": {
-    "name": "Item 290",
-    "id_name": "item-290",
-    "id": 290
-  },
-  "291": {
-    "name": "Item 291",
-    "id_name": "item-291",
-    "id": 291
-  },
-  "292": {
-    "name": "Item 292",
-    "id_name": "item-292",
-    "id": 292
-  },
-  "293": {
-    "name": "Item 293",
-    "id_name": "item-293",
-    "id": 293
-  },
-  "294": {
-    "name": "Item 294",
-    "id_name": "item-294",
-    "id": 294
-  },
-  "295": {
-    "name": "Item 295",
-    "id_name": "item-295",
-    "id": 295
-  },
-  "296": {
-    "name": "Item 296",
-    "id_name": "item-296",
-    "id": 296
-  },
-  "297": {
-    "name": "Item 297",
-    "id_name": "item-297",
-    "id": 297
-  },
-  "298": {
-    "name": "Item 298",
-    "id_name": "item-298",
-    "id": 298
-  },
-  "299": {
-    "name": "Item 299",
-    "id_name": "item-299",
-    "id": 299
-  },
-  "300": {
-    "name": "Item 300",
-    "id_name": "item-300",
-    "id": 300
-  },
-  "301": {
-    "name": "Item 301",
-    "id_name": "item-301",
-    "id": 301
-  },
-  "302": {
-    "name": "Item 302",
-    "id_name": "item-302",
-    "id": 302
-  },
-  "303": {
-    "name": "Item 303",
-    "id_name": "item-303",
-    "id": 303
-  },
-  "304": {
-    "name": "Item 304",
-    "id_name": "item-304",
-    "id": 304
-  },
-  "305": {
-    "name": "Item 305",
-    "id_name": "item-305",
+    "name": "Tm01",
+    "id_name": "tm01",
     "id": 305
   },
-  "306": {
-    "name": "Item 306",
-    "id_name": "item-306",
+  "290": {
+    "name": "Tm02",
+    "id_name": "tm02",
     "id": 306
   },
-  "307": {
-    "name": "Item 307",
-    "id_name": "item-307",
+  "291": {
+    "name": "Tm03",
+    "id_name": "tm03",
     "id": 307
   },
-  "308": {
-    "name": "Item 308",
-    "id_name": "item-308",
+  "292": {
+    "name": "Tm04",
+    "id_name": "tm04",
     "id": 308
   },
-  "309": {
-    "name": "Item 309",
-    "id_name": "item-309",
+  "293": {
+    "name": "Tm05",
+    "id_name": "tm05",
     "id": 309
   },
-  "310": {
-    "name": "Item 310",
-    "id_name": "item-310",
+  "294": {
+    "name": "Tm06",
+    "id_name": "tm06",
     "id": 310
   },
-  "311": {
-    "name": "Item 311",
-    "id_name": "item-311",
+  "295": {
+    "name": "Tm07",
+    "id_name": "tm07",
     "id": 311
   },
-  "312": {
-    "name": "Item 312",
-    "id_name": "item-312",
+  "296": {
+    "name": "Tm08",
+    "id_name": "tm08",
     "id": 312
   },
-  "313": {
-    "name": "Item 313",
-    "id_name": "item-313",
+  "297": {
+    "name": "Tm09",
+    "id_name": "tm09",
     "id": 313
   },
-  "314": {
-    "name": "Item 314",
-    "id_name": "item-314",
+  "298": {
+    "name": "Tm10",
+    "id_name": "tm10",
     "id": 314
   },
-  "315": {
-    "name": "Item 315",
-    "id_name": "item-315",
+  "299": {
+    "name": "Tm11",
+    "id_name": "tm11",
     "id": 315
   },
-  "316": {
-    "name": "Item 316",
-    "id_name": "item-316",
+  "300": {
+    "name": "Tm12",
+    "id_name": "tm12",
     "id": 316
   },
-  "317": {
-    "name": "Item 317",
-    "id_name": "item-317",
+  "301": {
+    "name": "Tm13",
+    "id_name": "tm13",
     "id": 317
   },
-  "318": {
-    "name": "Item 318",
-    "id_name": "item-318",
+  "302": {
+    "name": "Tm14",
+    "id_name": "tm14",
     "id": 318
   },
-  "319": {
-    "name": "Item 319",
-    "id_name": "item-319",
+  "303": {
+    "name": "Tm15",
+    "id_name": "tm15",
     "id": 319
   },
-  "320": {
-    "name": "Item 320",
-    "id_name": "item-320",
+  "304": {
+    "name": "Tm16",
+    "id_name": "tm16",
     "id": 320
   },
-  "321": {
-    "name": "Item 321",
-    "id_name": "item-321",
+  "305": {
+    "name": "Tm17",
+    "id_name": "tm17",
     "id": 321
   },
-  "322": {
-    "name": "Item 322",
-    "id_name": "item-322",
+  "306": {
+    "name": "Tm18",
+    "id_name": "tm18",
     "id": 322
   },
-  "323": {
-    "name": "Item 323",
-    "id_name": "item-323",
+  "307": {
+    "name": "Tm19",
+    "id_name": "tm19",
     "id": 323
   },
-  "324": {
-    "name": "Item 324",
-    "id_name": "item-324",
+  "308": {
+    "name": "Tm20",
+    "id_name": "tm20",
     "id": 324
   },
-  "325": {
-    "name": "Item 325",
-    "id_name": "item-325",
+  "309": {
+    "name": "Tm21",
+    "id_name": "tm21",
     "id": 325
   },
-  "326": {
-    "name": "Item 326",
-    "id_name": "item-326",
+  "310": {
+    "name": "Tm22",
+    "id_name": "tm22",
     "id": 326
   },
-  "327": {
-    "name": "Item 327",
-    "id_name": "item-327",
+  "311": {
+    "name": "Tm23",
+    "id_name": "tm23",
     "id": 327
   },
-  "328": {
-    "name": "Item 328",
-    "id_name": "item-328",
+  "312": {
+    "name": "Tm24",
+    "id_name": "tm24",
     "id": 328
   },
-  "329": {
-    "name": "Item 329",
-    "id_name": "item-329",
+  "313": {
+    "name": "Tm25",
+    "id_name": "tm25",
     "id": 329
   },
-  "330": {
-    "name": "Item 330",
-    "id_name": "item-330",
+  "314": {
+    "name": "Tm26",
+    "id_name": "tm26",
     "id": 330
   },
-  "331": {
-    "name": "Item 331",
-    "id_name": "item-331",
+  "315": {
+    "name": "Tm27",
+    "id_name": "tm27",
     "id": 331
   },
-  "332": {
-    "name": "Item 332",
-    "id_name": "item-332",
+  "316": {
+    "name": "Tm28",
+    "id_name": "tm28",
     "id": 332
   },
-  "333": {
-    "name": "Item 333",
-    "id_name": "item-333",
+  "317": {
+    "name": "Tm29",
+    "id_name": "tm29",
     "id": 333
   },
-  "334": {
-    "name": "Item 334",
-    "id_name": "item-334",
+  "318": {
+    "name": "Tm30",
+    "id_name": "tm30",
     "id": 334
   },
-  "335": {
-    "name": "Item 335",
-    "id_name": "item-335",
+  "319": {
+    "name": "Tm31",
+    "id_name": "tm31",
     "id": 335
   },
-  "336": {
-    "name": "Item 336",
-    "id_name": "item-336",
+  "320": {
+    "name": "Tm32",
+    "id_name": "tm32",
     "id": 336
   },
-  "337": {
-    "name": "Item 337",
-    "id_name": "item-337",
+  "321": {
+    "name": "Tm33",
+    "id_name": "tm33",
     "id": 337
   },
-  "338": {
-    "name": "Item 338",
-    "id_name": "item-338",
+  "322": {
+    "name": "Tm34",
+    "id_name": "tm34",
     "id": 338
   },
-  "339": {
-    "name": "Item 339",
-    "id_name": "item-339",
+  "323": {
+    "name": "Tm35",
+    "id_name": "tm35",
     "id": 339
   },
-  "340": {
-    "name": "Item 340",
-    "id_name": "item-340",
+  "324": {
+    "name": "Tm36",
+    "id_name": "tm36",
     "id": 340
   },
-  "341": {
-    "name": "Item 341",
-    "id_name": "item-341",
+  "325": {
+    "name": "Tm37",
+    "id_name": "tm37",
     "id": 341
   },
-  "342": {
-    "name": "Item 342",
-    "id_name": "item-342",
+  "326": {
+    "name": "Tm38",
+    "id_name": "tm38",
     "id": 342
   },
-  "343": {
-    "name": "Item 343",
-    "id_name": "item-343",
+  "327": {
+    "name": "Tm39",
+    "id_name": "tm39",
     "id": 343
   },
-  "344": {
-    "name": "Item 344",
-    "id_name": "item-344",
+  "328": {
+    "name": "Tm40",
+    "id_name": "tm40",
     "id": 344
   },
-  "345": {
-    "name": "Item 345",
-    "id_name": "item-345",
+  "329": {
+    "name": "Tm41",
+    "id_name": "tm41",
     "id": 345
   },
-  "346": {
-    "name": "Item 346",
-    "id_name": "item-346",
+  "330": {
+    "name": "Tm42",
+    "id_name": "tm42",
     "id": 346
   },
-  "347": {
-    "name": "Item 347",
-    "id_name": "item-347",
+  "331": {
+    "name": "Tm43",
+    "id_name": "tm43",
     "id": 347
   },
-  "348": {
-    "name": "Item 348",
-    "id_name": "item-348",
+  "332": {
+    "name": "Tm44",
+    "id_name": "tm44",
     "id": 348
   },
-  "349": {
-    "name": "Item 349",
-    "id_name": "item-349",
+  "333": {
+    "name": "Tm45",
+    "id_name": "tm45",
     "id": 349
   },
-  "350": {
-    "name": "Item 350",
-    "id_name": "item-350",
+  "334": {
+    "name": "Tm46",
+    "id_name": "tm46",
     "id": 350
   },
-  "351": {
-    "name": "Item 351",
-    "id_name": "item-351",
+  "335": {
+    "name": "Tm47",
+    "id_name": "tm47",
     "id": 351
   },
-  "352": {
-    "name": "Item 352",
-    "id_name": "item-352",
+  "336": {
+    "name": "Tm48",
+    "id_name": "tm48",
     "id": 352
   },
-  "353": {
-    "name": "Item 353",
-    "id_name": "item-353",
+  "337": {
+    "name": "Tm49",
+    "id_name": "tm49",
     "id": 353
   },
-  "354": {
-    "name": "Item 354",
-    "id_name": "item-354",
+  "338": {
+    "name": "Tm50",
+    "id_name": "tm50",
     "id": 354
   },
+  "339": {
+    "name": "Hm01",
+    "id_name": "hm01",
+    "id": 397
+  },
+  "340": {
+    "name": "Hm02",
+    "id_name": "hm02",
+    "id": 398
+  },
+  "341": {
+    "name": "Hm03",
+    "id_name": "hm03",
+    "id": 399
+  },
+  "342": {
+    "name": "Hm04",
+    "id_name": "hm04",
+    "id": 400
+  },
+  "343": {
+    "name": "Hm05",
+    "id_name": "hm05",
+    "id": 401
+  },
+  "344": {
+    "name": "Hm06",
+    "id_name": "hm06",
+    "id": 402
+  },
+  "345": {
+    "name": "Hm07",
+    "id_name": "hm07",
+    "id": 403
+  },
+  "346": {
+    "name": "Hm08",
+    "id_name": "hm08",
+    "id": 404
+  },
+  "349": {
+    "name": "Oaks Parcel",
+    "id_name": "oaks-parcel",
+    "id": 543
+  },
+  "350": {
+    "name": "Poke Flute",
+    "id_name": "poke-flute",
+    "id": 544
+  },
+  "351": {
+    "name": "Secret Key",
+    "id_name": "secret-key",
+    "id": 445
+  },
+  "352": {
+    "name": "Bike Voucher",
+    "id_name": "bike-voucher",
+    "id": 545
+  },
+  "353": {
+    "name": "Gold Teeth",
+    "id_name": "gold-teeth",
+    "id": 546
+  },
+  "354": {
+    "name": "Old Amber",
+    "id_name": "old-amber",
+    "id": 103
+  },
   "355": {
-    "name": "Item 355",
-    "id_name": "item-355",
-    "id": 355
+    "name": "Card Key",
+    "id_name": "card-key",
+    "id": 475
   },
   "356": {
-    "name": "Item 356",
-    "id_name": "item-356",
-    "id": 356
+    "name": "Lift Key",
+    "id_name": "lift-key",
+    "id": 547
   },
   "357": {
-    "name": "Item 357",
-    "id_name": "item-357",
-    "id": 357
+    "name": "Helix Fossil",
+    "id_name": "helix-fossil",
+    "id": 101
   },
   "358": {
-    "name": "Item 358",
-    "id_name": "item-358",
-    "id": 358
+    "name": "Dome Fossil",
+    "id_name": "dome-fossil",
+    "id": 102
   },
   "359": {
-    "name": "Item 359",
-    "id_name": "item-359",
-    "id": 359
+    "name": "Silph Scope",
+    "id_name": "silph-scope",
+    "id": 548
   },
   "360": {
-    "name": "Item 360",
-    "id_name": "item-360",
-    "id": 360
+    "name": "Bicycle",
+    "id_name": "bicycle",
+    "id": 427
   },
   "361": {
-    "name": "Item 361",
-    "id_name": "item-361",
-    "id": 361
+    "name": "Town Map",
+    "id_name": "town-map",
+    "id": 419
   },
   "362": {
-    "name": "Item 362",
-    "id_name": "item-362",
-    "id": 362
+    "name": "Vs Seeker",
+    "id_name": "vs-seeker",
+    "id": 420
   },
   "363": {
-    "name": "Item 363",
-    "id_name": "item-363",
-    "id": 363
+    "name": "Fame Checker",
+    "id_name": "fame-checker",
+    "id": 549
   },
   "364": {
-    "name": "Item 364",
-    "id_name": "item-364",
-    "id": 364
+    "name": "Tm Case",
+    "id_name": "tm-case",
+    "id": 550
   },
   "365": {
-    "name": "Item 365",
-    "id_name": "item-365",
-    "id": 365
+    "name": "Berry Pouch",
+    "id_name": "berry-pouch",
+    "id": 551
   },
   "366": {
-    "name": "Item 366",
-    "id_name": "item-366",
-    "id": 366
+    "name": "Teachy Tv",
+    "id_name": "teachy-tv",
+    "id": 552
   },
   "367": {
-    "name": "Item 367",
-    "id_name": "item-367",
-    "id": 367
+    "name": "Tri Pass",
+    "id_name": "tri-pass",
+    "id": 553
   },
   "368": {
-    "name": "Item 368",
-    "id_name": "item-368",
-    "id": 368
+    "name": "Rainbow Pass",
+    "id_name": "rainbow-pass",
+    "id": 554
   },
   "369": {
-    "name": "Item 369",
-    "id_name": "item-369",
-    "id": 369
+    "name": "Tea",
+    "id_name": "tea",
+    "id": 555
   },
   "370": {
-    "name": "Item 370",
-    "id_name": "item-370",
-    "id": 370
+    "name": "Mysticticket",
+    "id_name": "mysticticket",
+    "id": 556
   },
   "371": {
-    "name": "Item 371",
-    "id_name": "item-371",
-    "id": 371
+    "name": "Auroraticket",
+    "id_name": "auroraticket",
+    "id": 557
   },
   "372": {
-    "name": "Item 372",
-    "id_name": "item-372",
-    "id": 372
+    "name": "Powder Jar",
+    "id_name": "powder-jar",
+    "id": 558
   },
   "373": {
-    "name": "Item 373",
-    "id_name": "item-373",
-    "id": 373
+    "name": "Ruby",
+    "id_name": "ruby",
+    "id": 559
   },
   "374": {
-    "name": "Item 374",
-    "id_name": "item-374",
-    "id": 374
+    "name": "Sapphire",
+    "id_name": "sapphire",
+    "id": 560
   },
   "375": {
-    "name": "Item 375",
-    "id_name": "item-375",
-    "id": 375
+    "name": "Magma Emblem",
+    "id_name": "magma-emblem",
+    "id": 561
   },
   "376": {
-    "name": "Item 376",
-    "id_name": "item-376",
-    "id": 376
+    "name": "Old Sea Map",
+    "id_name": "old-sea-map",
+    "id": 562
   }
 }

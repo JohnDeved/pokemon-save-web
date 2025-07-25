@@ -140,7 +140,7 @@
     "id": 28
   },
   "29": {
-    "name": "Nidoran♀",
+    "name": "Nidoran-f",
     "id_name": "nidoran-f",
     "id": 29
   },
@@ -155,7 +155,7 @@
     "id": 31
   },
   "32": {
-    "name": "Nidoran♂",
+    "name": "Nidoran-m",
     "id_name": "nidoran-m",
     "id": 32
   },
@@ -410,7 +410,7 @@
     "id": 82
   },
   "83": {
-    "name": "Farfetch'd",
+    "name": "Farfetchd",
     "id_name": "farfetchd",
     "id": 83
   },
@@ -605,7 +605,7 @@
     "id": 121
   },
   "122": {
-    "name": "Mr. Mime",
+    "name": "Mr-mime",
     "id_name": "mr-mime",
     "id": 122
   },
@@ -1245,7 +1245,7 @@
     "id": 249
   },
   "250": {
-    "name": "Ho-Oh",
+    "name": "Ho-oh",
     "id_name": "ho-oh",
     "id": 250
   },
@@ -1377,287 +1377,287 @@
   "301": {
     "name": "Nincada",
     "id_name": "nincada",
-    "id": 276
+    "id": 290
   },
   "302": {
     "name": "Ninjask",
     "id_name": "ninjask",
-    "id": 277
+    "id": 291
   },
   "303": {
     "name": "Shedinja",
     "id_name": "shedinja",
-    "id": 278
+    "id": 292
   },
   "304": {
     "name": "Taillow",
     "id_name": "taillow",
-    "id": 279
+    "id": 276
   },
   "305": {
     "name": "Swellow",
     "id_name": "swellow",
-    "id": 280
+    "id": 277
   },
   "306": {
     "name": "Shroomish",
     "id_name": "shroomish",
-    "id": 281
+    "id": 285
   },
   "307": {
     "name": "Breloom",
     "id_name": "breloom",
-    "id": 282
+    "id": 286
   },
   "308": {
     "name": "Spinda",
     "id_name": "spinda",
-    "id": 283
+    "id": 327
   },
   "309": {
     "name": "Wingull",
     "id_name": "wingull",
-    "id": 284
+    "id": 278
   },
   "310": {
     "name": "Pelipper",
     "id_name": "pelipper",
-    "id": 285
+    "id": 279
   },
   "311": {
     "name": "Surskit",
     "id_name": "surskit",
-    "id": 286
+    "id": 283
   },
   "312": {
     "name": "Masquerain",
     "id_name": "masquerain",
-    "id": 287
+    "id": 284
   },
   "313": {
     "name": "Wailmer",
     "id_name": "wailmer",
-    "id": 288
+    "id": 320
   },
   "314": {
     "name": "Wailord",
     "id_name": "wailord",
-    "id": 289
+    "id": 321
   },
   "315": {
     "name": "Skitty",
     "id_name": "skitty",
-    "id": 290
+    "id": 300
   },
   "316": {
     "name": "Delcatty",
     "id_name": "delcatty",
-    "id": 291
+    "id": 301
   },
   "317": {
     "name": "Kecleon",
     "id_name": "kecleon",
-    "id": 292
+    "id": 352
   },
   "318": {
     "name": "Baltoy",
     "id_name": "baltoy",
-    "id": 293
+    "id": 343
   },
   "319": {
     "name": "Claydol",
     "id_name": "claydol",
-    "id": 294
+    "id": 344
   },
   "320": {
     "name": "Nosepass",
     "id_name": "nosepass",
-    "id": 295
+    "id": 299
   },
   "321": {
     "name": "Torkoal",
     "id_name": "torkoal",
-    "id": 296
+    "id": 324
   },
   "322": {
     "name": "Sableye",
     "id_name": "sableye",
-    "id": 297
+    "id": 302
   },
   "323": {
     "name": "Barboach",
     "id_name": "barboach",
-    "id": 298
+    "id": 339
   },
   "324": {
     "name": "Whiscash",
     "id_name": "whiscash",
-    "id": 299
+    "id": 340
   },
   "325": {
     "name": "Luvdisc",
     "id_name": "luvdisc",
-    "id": 300
+    "id": 370
   },
   "326": {
     "name": "Corphish",
     "id_name": "corphish",
-    "id": 301
+    "id": 341
   },
   "327": {
     "name": "Crawdaunt",
     "id_name": "crawdaunt",
-    "id": 302
+    "id": 342
   },
   "328": {
     "name": "Feebas",
     "id_name": "feebas",
-    "id": 303
+    "id": 349
   },
   "329": {
     "name": "Milotic",
     "id_name": "milotic",
-    "id": 304
+    "id": 350
   },
   "330": {
     "name": "Carvanha",
     "id_name": "carvanha",
-    "id": 305
+    "id": 318
   },
   "331": {
     "name": "Sharpedo",
     "id_name": "sharpedo",
-    "id": 306
+    "id": 319
   },
   "332": {
     "name": "Trapinch",
     "id_name": "trapinch",
-    "id": 307
+    "id": 328
   },
   "333": {
     "name": "Vibrava",
     "id_name": "vibrava",
-    "id": 308
+    "id": 329
   },
   "334": {
     "name": "Flygon",
     "id_name": "flygon",
-    "id": 309
+    "id": 330
   },
   "335": {
     "name": "Makuhita",
     "id_name": "makuhita",
-    "id": 310
+    "id": 296
   },
   "336": {
     "name": "Hariyama",
     "id_name": "hariyama",
-    "id": 311
+    "id": 297
   },
   "337": {
     "name": "Electrike",
     "id_name": "electrike",
-    "id": 312
+    "id": 309
   },
   "338": {
     "name": "Manectric",
     "id_name": "manectric",
-    "id": 313
+    "id": 310
   },
   "339": {
     "name": "Numel",
     "id_name": "numel",
-    "id": 314
+    "id": 322
   },
   "340": {
     "name": "Camerupt",
     "id_name": "camerupt",
-    "id": 315
+    "id": 323
   },
   "341": {
     "name": "Spheal",
     "id_name": "spheal",
-    "id": 316
+    "id": 363
   },
   "342": {
     "name": "Sealeo",
     "id_name": "sealeo",
-    "id": 317
+    "id": 364
   },
   "343": {
     "name": "Walrein",
     "id_name": "walrein",
-    "id": 318
+    "id": 365
   },
   "344": {
     "name": "Cacnea",
     "id_name": "cacnea",
-    "id": 319
+    "id": 331
   },
   "345": {
     "name": "Cacturne",
     "id_name": "cacturne",
-    "id": 320
+    "id": 332
   },
   "346": {
     "name": "Snorunt",
     "id_name": "snorunt",
-    "id": 321
+    "id": 361
   },
   "347": {
     "name": "Glalie",
     "id_name": "glalie",
-    "id": 322
+    "id": 362
   },
   "348": {
     "name": "Lunatone",
     "id_name": "lunatone",
-    "id": 323
+    "id": 337
   },
   "349": {
     "name": "Solrock",
     "id_name": "solrock",
-    "id": 324
+    "id": 338
   },
   "350": {
     "name": "Azurill",
     "id_name": "azurill",
-    "id": 325
+    "id": 298
   },
   "351": {
     "name": "Spoink",
     "id_name": "spoink",
-    "id": 326
+    "id": 325
   },
   "352": {
     "name": "Grumpig",
     "id_name": "grumpig",
-    "id": 327
+    "id": 326
   },
   "353": {
     "name": "Plusle",
     "id_name": "plusle",
-    "id": 328
+    "id": 311
   },
   "354": {
     "name": "Minun",
     "id_name": "minun",
-    "id": 329
+    "id": 312
   },
   "355": {
     "name": "Mawile",
     "id_name": "mawile",
-    "id": 330
+    "id": 303
   },
   "356": {
     "name": "Meditite",
     "id_name": "meditite",
-    "id": 331
+    "id": 307
   },
   "357": {
     "name": "Medicham",
     "id_name": "medicham",
-    "id": 332
+    "id": 308
   },
   "358": {
     "name": "Swablu",
@@ -1672,266 +1672,256 @@
   "360": {
     "name": "Wynaut",
     "id_name": "wynaut",
-    "id": 335
+    "id": 360
   },
   "361": {
     "name": "Duskull",
     "id_name": "duskull",
-    "id": 336
+    "id": 355
   },
   "362": {
     "name": "Dusclops",
     "id_name": "dusclops",
-    "id": 337
+    "id": 356
   },
   "363": {
     "name": "Roselia",
     "id_name": "roselia",
-    "id": 338
+    "id": 315
   },
   "364": {
     "name": "Slakoth",
     "id_name": "slakoth",
-    "id": 339
+    "id": 287
   },
   "365": {
     "name": "Vigoroth",
     "id_name": "vigoroth",
-    "id": 340
+    "id": 288
   },
   "366": {
     "name": "Slaking",
     "id_name": "slaking",
-    "id": 341
+    "id": 289
   },
   "367": {
     "name": "Gulpin",
     "id_name": "gulpin",
-    "id": 342
+    "id": 316
   },
   "368": {
     "name": "Swalot",
     "id_name": "swalot",
-    "id": 343
+    "id": 317
   },
   "369": {
     "name": "Tropius",
     "id_name": "tropius",
-    "id": 344
+    "id": 357
   },
   "370": {
     "name": "Whismur",
     "id_name": "whismur",
-    "id": 345
+    "id": 293
   },
   "371": {
     "name": "Loudred",
     "id_name": "loudred",
-    "id": 346
+    "id": 294
   },
   "372": {
     "name": "Exploud",
     "id_name": "exploud",
-    "id": 347
+    "id": 295
   },
   "373": {
     "name": "Clamperl",
     "id_name": "clamperl",
-    "id": 348
+    "id": 366
   },
   "374": {
     "name": "Huntail",
     "id_name": "huntail",
-    "id": 349
+    "id": 367
   },
   "375": {
     "name": "Gorebyss",
     "id_name": "gorebyss",
-    "id": 350
+    "id": 368
   },
   "376": {
     "name": "Absol",
     "id_name": "absol",
-    "id": 351
+    "id": 359
   },
   "377": {
     "name": "Shuppet",
     "id_name": "shuppet",
-    "id": 352
+    "id": 353
   },
   "378": {
     "name": "Banette",
     "id_name": "banette",
-    "id": 353
+    "id": 354
   },
   "379": {
     "name": "Seviper",
     "id_name": "seviper",
-    "id": 354
+    "id": 336
   },
   "380": {
     "name": "Zangoose",
     "id_name": "zangoose",
-    "id": 355
+    "id": 335
   },
   "381": {
     "name": "Relicanth",
     "id_name": "relicanth",
-    "id": 356
+    "id": 369
   },
   "382": {
     "name": "Aron",
     "id_name": "aron",
-    "id": 357
+    "id": 304
   },
   "383": {
     "name": "Lairon",
     "id_name": "lairon",
-    "id": 358
+    "id": 305
   },
   "384": {
     "name": "Aggron",
     "id_name": "aggron",
-    "id": 359
+    "id": 306
   },
   "385": {
     "name": "Castform",
     "id_name": "castform",
-    "id": 360
+    "id": 351
   },
   "386": {
     "name": "Volbeat",
     "id_name": "volbeat",
-    "id": 361
+    "id": 313
   },
   "387": {
     "name": "Illumise",
     "id_name": "illumise",
-    "id": 362
+    "id": 314
   },
   "388": {
     "name": "Lileep",
     "id_name": "lileep",
-    "id": 363
+    "id": 345
   },
   "389": {
     "name": "Cradily",
     "id_name": "cradily",
-    "id": 364
+    "id": 346
   },
   "390": {
     "name": "Anorith",
     "id_name": "anorith",
-    "id": 365
+    "id": 347
   },
   "391": {
     "name": "Armaldo",
     "id_name": "armaldo",
-    "id": 366
+    "id": 348
   },
   "392": {
     "name": "Ralts",
     "id_name": "ralts",
-    "id": 367
+    "id": 280
   },
   "393": {
     "name": "Kirlia",
     "id_name": "kirlia",
-    "id": 368
+    "id": 281
   },
   "394": {
     "name": "Gardevoir",
     "id_name": "gardevoir",
-    "id": 369
+    "id": 282
   },
   "395": {
     "name": "Bagon",
     "id_name": "bagon",
-    "id": 370
+    "id": 371
   },
   "396": {
     "name": "Shelgon",
     "id_name": "shelgon",
-    "id": 371
+    "id": 372
   },
   "397": {
     "name": "Salamence",
     "id_name": "salamence",
-    "id": 372
+    "id": 373
   },
   "398": {
     "name": "Beldum",
     "id_name": "beldum",
-    "id": 373
+    "id": 374
   },
   "399": {
     "name": "Metang",
     "id_name": "metang",
-    "id": 374
+    "id": 375
   },
   "400": {
     "name": "Metagross",
     "id_name": "metagross",
-    "id": 375
+    "id": 376
   },
   "401": {
     "name": "Regirock",
     "id_name": "regirock",
-    "id": 376
+    "id": 377
   },
   "402": {
     "name": "Regice",
     "id_name": "regice",
-    "id": 377
+    "id": 378
   },
   "403": {
     "name": "Registeel",
     "id_name": "registeel",
-    "id": 378
+    "id": 379
   },
   "404": {
     "name": "Kyogre",
     "id_name": "kyogre",
-    "id": 379
+    "id": 382
   },
   "405": {
     "name": "Groudon",
     "id_name": "groudon",
-    "id": 380
+    "id": 383
   },
   "406": {
     "name": "Rayquaza",
     "id_name": "rayquaza",
-    "id": 381
+    "id": 384
   },
   "407": {
     "name": "Latias",
     "id_name": "latias",
-    "id": 382
+    "id": 380
   },
   "408": {
     "name": "Latios",
     "id_name": "latios",
-    "id": 383
+    "id": 381
   },
   "409": {
     "name": "Jirachi",
     "id_name": "jirachi",
-    "id": 384
-  },
-  "410": {
-    "name": "Deoxys",
-    "id_name": "deoxys",
     "id": 385
   },
   "411": {
     "name": "Chimecho",
     "id_name": "chimecho",
-    "id": 386
-  },
-  "412": {
-    "name": "Egg",
-    "id_name": "egg",
-    "id": null
+    "id": 358
   }
 }
