@@ -219,10 +219,10 @@ export class QuetzalConfig implements GameConfig {
 
       const saveBlock1Offset = activeSlot * this.offsets.sectorSize
       const partyCountOffset = saveBlock1Offset + 0x234
-      
+
       if (partyCountOffset + 4 <= saveData.length) {
         const partyCount = new DataView(saveData.buffer, saveData.byteOffset + partyCountOffset, 4).getUint32(0, true)
-        
+
         // Check party count is reasonable
         if (partyCount < 0 || partyCount > 6) {
           return false
@@ -234,7 +234,7 @@ export class QuetzalConfig implements GameConfig {
         if (partyDataOffset + 64 <= saveData.length) {
           const partyAreaData = new Uint8Array(saveData.buffer, saveData.byteOffset + partyDataOffset + 32, 32)
           let hasQuetzalPattern = false
-          
+
           // Check for non-zero data in the extended party area (bytes 32-64)
           for (let i = 0; i < 32; i++) {
             if (partyAreaData[i] !== 0) {

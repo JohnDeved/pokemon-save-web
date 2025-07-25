@@ -4,7 +4,7 @@
  * This is a minimal example implementation
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
+import type { GameConfig } from '../../core/types'
 import { BasePokemonData } from '../../core/pokemonData'
 import { natures } from '../../core/utils'
 
@@ -210,132 +210,116 @@ export class VanillaConfig implements GameConfig {
       totalCount: 32,
       perSlot: 18,
     },
-    
+
     // SaveBlock configuration
     saveBlocks: {
       block1Size: 3968 * 4, // SECTOR_DATA_SIZE * 4
     },
-    
+
     // Party data layout
     party: {
-      countOffset: 0x234,     // Party count at SaveBlock1 + 0x234
-      dataOffset: 0x238,      // Party Pokemon data starts at SaveBlock1 + 0x238  
-      pokemonSize: 100,       // Each Pokemon is 100 bytes
-      maxSize: 6,             // Maximum 6 Pokemon in party
+      countOffset: 0x234, // Party count at SaveBlock1 + 0x234
+      dataOffset: 0x238, // Party Pokemon data starts at SaveBlock1 + 0x238
+      pokemonSize: 100, // Each Pokemon is 100 bytes
+      maxSize: 6, // Maximum 6 Pokemon in party
     },
-    
+
     // Player data layout (SaveBlock2)
     player: {
-      playTimeHours: 0x0E,    // u16 playTimeHours
-      playTimeMinutes: 0x10,  // u8 playTimeMinutes  
-      playTimeSeconds: 0x11,  // u8 playTimeSeconds
+      playTimeHours: 0x0E, // u16 playTimeHours
+      playTimeMinutes: 0x10, // u8 playTimeMinutes
+      playTimeSeconds: 0x11, // u8 playTimeSeconds
     },
-    
+
     // Pokemon data layout - only unencrypted field offsets
     pokemon: {
       // BoxPokemon part (first 80 bytes) - only unencrypted fields
-      personality: 0x00,      // u32 personality
-      otId: 0x04,            // u32 otId
+      personality: 0x00, // u32 personality
+      otId: 0x04, // u32 otId
       nickname: {
         offset: 0x08,
         length: 10,
       },
       otName: {
-        offset: 0x14,         // offset 20 decimal
+        offset: 0x14, // offset 20 decimal
         length: 7,
       },
-      
+
       // Pokemon struct part (last 20 bytes) - unencrypted
-      status: 0x50,          // u32 status (offset 80)
-      level: 0x54,           // u8 level (offset 84)  
-      currentHp: 0x56,       // u16 hp (offset 86)
-      maxHp: 0x58,           // u16 maxHP (offset 88)
-      attack: 0x5A,          // u16 attack (offset 90)
-      defense: 0x5C,         // u16 defense (offset 92)
-      speed: 0x5E,           // u16 speed (offset 94)
-      spAttack: 0x60,        // u16 spAttack (offset 96)
-      spDefense: 0x62,       // u16 spDefense (offset 98)
-      
+      status: 0x50, // u32 status (offset 80)
+      level: 0x54, // u8 level (offset 84)
+      currentHp: 0x56, // u16 hp (offset 86)
+      maxHp: 0x58, // u16 maxHP (offset 88)
+      attack: 0x5A, // u16 attack (offset 90)
+      defense: 0x5C, // u16 defense (offset 92)
+      speed: 0x5E, // u16 speed (offset 94)
+      spAttack: 0x60, // u16 spAttack (offset 96)
+      spDefense: 0x62, // u16 spDefense (offset 98)
+
       // Encrypted fields - accessed via decryption methods in VanillaPokemonData
       // species, item, moves, EVs, IVs are in encrypted substructs 0x20-0x4F
     },
   } as const
 
+  // Backward compatibility: expose layout as offsets for existing code
+  get offsets () {
+    return {
+      sectorSize: this.layout.sectors.size,
+      sectorDataSize: this.layout.sectors.dataSize,
+      sectorFooterSize: this.layout.sectors.footerSize,
+      totalSectors: this.layout.sectors.totalCount,
+      sectorsPerSlot: this.layout.sectors.perSlot,
+      saveblock1Size: this.layout.saveBlocks.block1Size,
+      partyStartOffset: this.layout.party.dataOffset,
+      partyPokemonSize: this.layout.party.pokemonSize,
+      maxPartySize: this.layout.party.maxSize,
+      playTimeHours: this.layout.player.playTimeHours,
+      playTimeMinutes: this.layout.player.playTimeMinutes,
+      playTimeSeconds: this.layout.player.playTimeSeconds,
+      pokemonNicknameLength: this.layout.pokemon.nickname.length,
+      pokemonTrainerNameLength: this.layout.pokemon.otName.length,
+      pokemonData: {
+        personality: this.layout.pokemon.personality,
+        otId: this.layout.pokemon.otId,
+        nickname: this.layout.pokemon.nickname.offset,
+        otName: this.layout.pokemon.otName.offset,
+        status: this.layout.pokemon.status,
+        level: this.layout.pokemon.level,
+        currentHp: this.layout.pokemon.currentHp,
+        maxHp: this.layout.pokemon.maxHp,
+        attack: this.layout.pokemon.attack,
+        defense: this.layout.pokemon.defense,
+        speed: this.layout.pokemon.speed,
+        spAttack: this.layout.pokemon.spAttack,
+        spDefense: this.layout.pokemon.spDefense,
+        // Encrypted fields - provide compatibility values
+        species: 0x20, // Raw encrypted location for detection purposes
+        item: 0, // Not directly accessible in vanilla (encrypted)
+        move1: 0, // Not directly accessible in vanilla (encrypted)
+        move2: 0, // Not directly accessible in vanilla (encrypted)
+        move3: 0, // Not directly accessible in vanilla (encrypted)
+        move4: 0, // Not directly accessible in vanilla (encrypted)
+        pp1: 0, // Not directly accessible in vanilla (encrypted)
+        pp2: 0, // Not directly accessible in vanilla (encrypted)
+        pp3: 0, // Not directly accessible in vanilla (encrypted)
+        pp4: 0, // Not directly accessible in vanilla (encrypted)
+        hpEV: 0, // Not directly accessible in vanilla (encrypted)
+        atkEV: 0, // Not directly accessible in vanilla (encrypted)
+        defEV: 0, // Not directly accessible in vanilla (encrypted)
+        speEV: 0, // Not directly accessible in vanilla (encrypted)
+        spaEV: 0, // Not directly accessible in vanilla (encrypted)
+        spdEV: 0, // Not directly accessible in vanilla (encrypted)
+        ivData: 0, // Not directly accessible in vanilla (encrypted)
+      },
+    } as const
+  }
+
+  // Vanilla Emerald mappings - minimal, only for cases where internal IDs differ from expected IDs
   readonly mappings = {
-    pokemon: this.createPokemonMap(),
-    items: this.createItemMap(),
-    moves: this.createMoveMap(),
+    pokemon: new Map([[277, { name: 'Treecko', id_name: 'treecko', id: 252 }]]), // 277 → 252 mapping for Treecko
+    items: new Map(), // Empty - vanilla uses original item IDs
+    moves: new Map(), // Empty - vanilla uses original move IDs
   } as const
-
-  /**
-   * Create minimal Pokemon mapping for vanilla Emerald
-   * In a real implementation, this would contain the full Gen 3 Pokedex
-   */
-  private createPokemonMap (): ReadonlyMap<number, PokemonMapping> {
-    const map = new Map<number, PokemonMapping>()
-
-    // Add some basic Gen 3 Pokemon as examples
-    // In a real implementation, this would be loaded from a separate mapping file
-    const basicPokemon: Array<[number, PokemonMapping]> = [
-      [1, { name: 'Bulbasaur', id_name: 'bulbasaur', id: 1 }],
-      [4, { name: 'Charmander', id_name: 'charmander', id: 4 }],
-      [7, { name: 'Squirtle', id_name: 'squirtle', id: 7 }],
-      [25, { name: 'Pikachu', id_name: 'pikachu', id: 25 }],
-      [252, { name: 'Treecko', id_name: 'treecko', id: 252 }],
-      [255, { name: 'Torchic', id_name: 'torchic', id: 255 }],
-      [258, { name: 'Mudkip', id_name: 'mudkip', id: 258 }],
-      [277, { name: 'Treecko', id_name: 'treecko', id: 252 }], // 277 maps to Treecko (252)
-    ]
-
-    for (const [id, mapping] of basicPokemon) {
-      map.set(id, mapping)
-    }
-
-    return map
-  }
-
-  /**
-   * Create minimal item mapping for vanilla Emerald
-   */
-  private createItemMap (): ReadonlyMap<number, ItemMapping> {
-    const map = new Map<number, ItemMapping>()
-
-    // Add some basic items as examples
-    const basicItems: Array<[number, ItemMapping]> = [
-      [1, { name: 'Master Ball', id_name: 'master-ball', id: 1 }],
-      [2, { name: 'Ultra Ball', id_name: 'ultra-ball', id: 2 }],
-      [3, { name: 'Great Ball', id_name: 'great-ball', id: 3 }],
-      [4, { name: 'Poke Ball', id_name: 'poke-ball', id: 4 }],
-    ]
-
-    for (const [id, mapping] of basicItems) {
-      map.set(id, mapping)
-    }
-
-    return map
-  }
-
-  /**
-   * Create minimal move mapping for vanilla Emerald
-   */
-  private createMoveMap (): ReadonlyMap<number, MoveMapping> {
-    const map = new Map<number, MoveMapping>()
-
-    // Add moves referenced in ground truth
-    const basicMoves: Array<[number, MoveMapping]> = [
-      [1, { name: 'Pound', id_name: 'pound', id: 1 }],
-      [33, { name: 'Tackle', id_name: 'tackle', id: 33 }],
-      [43, { name: 'Leer', id_name: 'leer', id: 43 }],
-      [45, { name: 'Growl', id_name: 'growl', id: 45 }],
-      [52, { name: 'Ember', id_name: 'ember', id: 52 }],
-    ]
-
-    for (const [id, mapping] of basicMoves) {
-      map.set(id, mapping)
-    }
-
-    return map
-  }
 
   /**
    * Create vanilla Emerald-specific Pokemon data instance
@@ -427,10 +411,10 @@ export class VanillaConfig implements GameConfig {
       // Try to read party count - this should work if the structure matches
       const saveBlock1Offset = activeSlot * this.offsets.sectorSize
       const partyCountOffset = saveBlock1Offset + 0x234
-      
+
       if (partyCountOffset + 4 <= saveData.length) {
         const partyCount = new DataView(saveData.buffer, saveData.byteOffset + partyCountOffset, 4).getUint32(0, true)
-        
+
         // Check party count is reasonable
         if (partyCount < 0 || partyCount > 6) {
           return false
@@ -453,7 +437,7 @@ export class VanillaConfig implements GameConfig {
               const pokemonOffset = partyDataOffset + (slot * this.offsets.partyPokemonSize)
               if (pokemonOffset + this.offsets.partyPokemonSize <= saveData.length) {
                 const pokemonData = new Uint8Array(saveData.buffer, saveData.byteOffset + pokemonOffset, this.offsets.partyPokemonSize)
-                
+
                 // Check for extended species
                 const rawSpeciesId = new DataView(pokemonData.buffer, pokemonData.byteOffset + 0x20, 2).getUint16(0, true)
                 if (rawSpeciesId > 493) {
@@ -461,7 +445,7 @@ export class VanillaConfig implements GameConfig {
                 }
 
                 const pokemon = this.createPokemonData(pokemonData)
-                
+
                 // Check for extended moves
                 const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
                 if (moves.some(moveId => moveId > 354)) {
