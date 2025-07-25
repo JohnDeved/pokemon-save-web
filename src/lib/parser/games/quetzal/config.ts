@@ -5,6 +5,7 @@
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
 import { BasePokemonData } from '../../core/pokemonData'
+import { natures } from '../../core/utils'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
 import pokemonMapData from './data/pokemon_map.json'
@@ -140,6 +141,14 @@ export class QuetzalConfig implements GameConfig {
    */
   createPokemonData (data: Uint8Array): BasePokemonData {
     return new QuetzalPokemonData(data, this)
+  }
+
+  /**
+   * Calculate nature from personality value using standard Gen 3 formula
+   */
+  calculateNature (personality: number): string {
+    // Quetzal uses standard Gen 3 formula: full personality value modulo 25
+    return natures[personality % 25]!
   }
 
   /**

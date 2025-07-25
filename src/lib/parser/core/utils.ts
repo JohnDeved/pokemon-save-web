@@ -26,78 +26,48 @@ export function getItemSpriteUrl (itemIdName: string): string {
  */
 export function bytesToGbaString (bytes: Uint8Array): string {
   let result = ''
-
-  // Pokemon strings are fixed-length fields padded with 0xFF bytes at the end
-  // However, 0xFF can also be a space character in the middle of a string
-  // We need to find the end of the actual string content by looking for trailing 0xFF bytes
+  const endIndex = findStringEnd(bytes)
   
-  // First pass: find the actual end by looking for patterns that indicate padding
-  let endIndex = bytes.length
-  
-  // Look for runs of 0xFF at the end (these are likely padding)
-  let trailingFFs = 0
-  for (let i = bytes.length - 1; i >= 0; i--) {
-    if (bytes[i] === 0xFF) {
-      trailingFFs++
-    } else {
-      break
-    }
-  }
-  
-  // If we have more than 2 trailing 0xFF bytes, treat them as padding
-  if (trailingFFs > 2) {
-    endIndex = bytes.length - trailingFFs
-  }
-  
-  // Special handling for the case where we have non-0xFF after 0xFF (garbage data)
-  // Look for the pattern: valid chars -> 0xFF -> garbage
-  let foundTerminator = false
-  for (let i = 0; i < endIndex; i++) {
-    const byte = bytes[i]!
-    
-    if (byte === 0xFF && !foundTerminator) {
-      // Check if this might be a terminator by looking ahead
-      let hasGarbageAfter = false
-      for (let j = i + 1; j < bytes.length; j++) {
-        const nextByte = bytes[j]!
-        // If we find low values (0x01-0x0F) after 0xFF, it's likely garbage
-        if (nextByte > 0 && nextByte < 0x10) {
-          hasGarbageAfter = true
-          break
-        }
-        if (nextByte !== 0xFF && nextByte !== 0) break
-      }
-      
-      if (hasGarbageAfter) {
-        endIndex = i
-        foundTerminator = true
-        break
-      }
-    }
-  }
-
   // Process only the actual string content (before padding/garbage)
   for (let i = 0; i < endIndex; i++) {
     const byte = bytes[i]!
-
-    // Look up character in charmap
     const char = charmap[byte]
-    if (char === undefined) {
-      // If character not found in charmap, skip it (could log for debugging)
-      continue
-    }
-    // Handle special control characters
-    if (char === '\\n') {
-      result += '\n'
-    } else if (char === '\\l' || char === '\\p') {
-      // Skip line break and page break control codes
-      continue
-    } else {
-      result += char
-    }
+    
+    if (char === undefined) continue // Skip unmapped bytes
+    if (char === '\\n') result += '\n'
+    else if (char === '\\l' || char === '\\p') continue // Skip control codes
+    else result += char
   }
 
   return result.trim()
+}
+
+/**
+ * Find the actual end of a Pokemon GBA string by detecting padding patterns
+ */
+function findStringEnd (bytes: Uint8Array): number {
+  // Check for trailing 0xFF padding (more than 2 suggests padding)
+  let trailingFFs = 0
+  for (let i = bytes.length - 1; i >= 0 && bytes[i] === 0xFF; i--) {
+    trailingFFs++
+  }
+  
+  if (trailingFFs > 2) {
+    return bytes.length - trailingFFs
+  }
+  
+  // Look for garbage pattern: 0xFF followed by low values (0x01-0x0F)
+  for (let i = 0; i < bytes.length - 1; i++) {
+    if (bytes[i] === 0xFF) {
+      for (let j = i + 1; j < bytes.length; j++) {
+        const nextByte = bytes[j]!
+        if (nextByte > 0 && nextByte < 0x10) return i // Found garbage
+        if (nextByte !== 0xFF && nextByte !== 0) break
+      }
+    }
+  }
+  
+  return bytes.length
 }
 
 /**

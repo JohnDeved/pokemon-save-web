@@ -5,7 +5,7 @@
 
 import type { GameConfig } from '../core/types'
 import type { MoveData, PokemonMoves } from './types'
-import { bytesToGbaString, getPokemonNature, natureEffects, statStrings } from './utils'
+import { bytesToGbaString, getPokemonNature, natureEffects, natures, statStrings } from './utils'
 
 /**
  * Base Pokemon data class with common functionality
@@ -117,12 +117,14 @@ export abstract class BasePokemonData {
   }
 
   get nature (): string {
-    return getPokemonNature(this.personality)
+    return this.config.calculateNature(this.personality)
   }
 
   get natureRaw (): number {
     // Nature is calculated from personality, not stored separately
-    return this.personality % 25
+    // The exact formula varies by game, so use the config
+    const nature = this.config.calculateNature(this.personality)
+    return natures.indexOf(nature)
   }
 
   set natureRaw (value: number) {

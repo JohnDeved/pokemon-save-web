@@ -187,4 +187,7 @@ export interface GameConfig {
 
   /** Create game-specific Pokemon data instance */
   createPokemonData(data: Uint8Array): BasePokemonData
+
+  /** Calculate nature from personality value (varies by game) */
+  calculateNature(personality: number): string
 }

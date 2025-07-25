@@ -6,6 +6,7 @@
 
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
 import { BasePokemonData } from '../../core/pokemonData'
+import { natures } from '../../core/utils'
 
 /**
  * Vanilla Pokemon Emerald data implementation
@@ -364,6 +365,14 @@ export class VanillaConfig implements GameConfig {
    * Check if this config can handle the given save file
    * For vanilla Emerald, we act as a fallback after ROM hack detection
    */
+  /**
+   * Calculate nature from personality value using Gen 3 standard formula
+   */
+  calculateNature (personality: number): string {
+    // Gen 3 standard formula: full personality value modulo 25
+    return natures[personality % 25]!
+  }
+
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
     if (saveData.length < this.offsets.totalSectors * this.offsets.sectorSize) {
