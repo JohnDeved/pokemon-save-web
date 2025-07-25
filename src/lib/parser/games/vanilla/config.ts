@@ -6,7 +6,7 @@
 import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
 import { VANILLA_SAVE_LAYOUT } from '../../core/types'
 import { GameConfigBase } from '../../core/baseGameConfig'
-import { createMapping } from '../../utils/mappingUtils'
+import { createMapping } from '../../core/mappingUtils'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
 import pokemonMapData from './data/pokemon_map.json'
