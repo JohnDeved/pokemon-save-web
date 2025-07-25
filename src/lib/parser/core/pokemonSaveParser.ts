@@ -11,7 +11,7 @@ import type {
 
 import type { GameConfig } from '../core/types'
 import { VANILLA_EMERALD_SIGNATURE, VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from '../core/types'
-import { PokemonData } from './pokemonData'
+import { PokemonInstance } from './pokemonData'
 import { GameConfigRegistry } from '../games'
 
 // Import character map for decoding text
@@ -281,13 +281,13 @@ export class PokemonSaveParser {
   /**
    * Parse party Pokemon from SaveBlock1 data
    */
-  private parsePartyPokemon (saveblock1Data: Uint8Array): PokemonData[] {
+  private parsePartyPokemon (saveblock1Data: Uint8Array): PokemonInstance[] {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
 
     const effectiveConfig = createEffectiveConfig(this.config)
-    const partyPokemon: PokemonData[] = []
+    const partyPokemon: PokemonInstance[] = []
 
     for (let slot = 0; slot < effectiveConfig.saveLayout.maxPartySize; slot++) {
       const offset = effectiveConfig.saveLayout.partyOffset + slot * effectiveConfig.pokemonSize
@@ -298,7 +298,7 @@ export class PokemonSaveParser {
       }
 
       try {
-        const pokemon = new PokemonData(data, this.config)
+        const pokemon = new PokemonInstance(data, this.config)
         // Check if Pokemon slot is empty (species ID = 0)
         if (pokemon.speciesId === 0) {
           break
@@ -371,12 +371,12 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonData array.
+   * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonInstance array.
    * Returns a new Uint8Array with the updated party data.
    * @param saveblock1 The original SaveBlock1 buffer
-   * @param party Array of PokemonData (max length = config.layout.party.maxSize)
+   * @param party Array of PokemonInstance (max length = config.layout.party.maxSize)
    */
-  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly PokemonData[]): Uint8Array {
+  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly PokemonInstance[]): Uint8Array {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -447,12 +447,12 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Reconstruct the full save file from a new party (PokemonData[]).
+   * Reconstruct the full save file from a new party (PokemonInstance[]).
    * Updates SaveBlock1 with the given party and returns a new Uint8Array representing the reconstructed save file.
    *
-   * @param partyPokemon Array of PokemonData to update party in SaveBlock1
+   * @param partyPokemon Array of PokemonInstance to update party in SaveBlock1
    */
-  reconstructSaveFile (partyPokemon: readonly PokemonData[]): Uint8Array {
+  reconstructSaveFile (partyPokemon: readonly PokemonInstance[]): Uint8Array {
     if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
 
     const effectiveConfig = createEffectiveConfig(this.config)

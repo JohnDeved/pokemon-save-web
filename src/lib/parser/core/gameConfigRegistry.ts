@@ -12,7 +12,7 @@ export type GameConfigConstructor = new () => GameConfig
 /**
  * Registry for game configurations with automatic detection
  */
-class GameConfigRegistryImpl {
+class GameConfigRegistryClass {
   private readonly configs: GameConfigConstructor[] = []
 
   /**
@@ -60,4 +60,4 @@ class GameConfigRegistryImpl {
 }
 
 // Export singleton instance
-export const GameConfigRegistry = new GameConfigRegistryImpl()
+export const GameConfigRegistry = new GameConfigRegistryClass()

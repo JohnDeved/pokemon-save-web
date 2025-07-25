@@ -17,7 +17,7 @@ import { bytesToGbaString, natureEffects, natures, statStrings } from './utils'
  * Pokemon data class with vanilla Pokemon Emerald as the baseline
  * Game configs provide minimal overrides for different games
  */
-export class PokemonData {
+export class PokemonInstance {
   protected readonly view: DataView
   protected readonly config: GameConfig
   protected readonly offsets: typeof VANILLA_POKEMON_OFFSETS

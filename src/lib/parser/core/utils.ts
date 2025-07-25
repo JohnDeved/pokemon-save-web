@@ -3,7 +3,7 @@
  * Modern utilities for Pokemon data processing
  */
 
-import type { PokemonData } from './pokemonData'
+import type { PokemonInstance } from './pokemonData'
 import charmapData from '../data/pokemon_charmap.json'
 
 // Convert charmap keys from strings to numbers for faster lookup
@@ -127,7 +127,7 @@ export function getPokemonNature (personality: number): string {
   return natures[personality % 25]!
 }
 
-export function setPokemonNature (pokemon: PokemonData, nature: string): void {
+export function setPokemonNature (pokemon: PokemonInstance, nature: string): void {
   // Find the index of the nature in the natures array
   const natureIndex = natures.indexOf(nature)
   if (natureIndex === -1) {
@@ -181,7 +181,7 @@ export function getNatureModifier (nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats (pokemon: PokemonData, baseStats: readonly number[]): readonly number[] {
+export function calculateTotalStats (pokemon: PokemonInstance, baseStats: readonly number[]): readonly number[] {
   // Extract properties with type guards for safety
   const level = Number(pokemon.level)
   const nature = String(pokemon.nature)
@@ -234,10 +234,10 @@ export function calculateTotalStatsDirect (
 }
 
 /**
- * Update the party Pokémon in a SaveBlock1 buffer with the given BasePokemonData array.
+ * Update the party Pokémon in a SaveBlock1 buffer with the given PokemonInstance array.
  * Returns a new Uint8Array with the updated party data.
  * @param saveblock1 The original SaveBlock1 buffer
- * @param party Array of BasePokemonData (max length = maxPartySize)
+ * @param party Array of PokemonInstance (max length = maxPartySize)
  * @param partyStartOffset Offset where party data starts
  * @param partyPokemonSize Size of each Pokemon data structure
  * @param saveblock1Size Expected size of SaveBlock1
@@ -245,7 +245,7 @@ export function calculateTotalStatsDirect (
  */
 export function updatePartyInSaveblock1 (
   saveblock1: Uint8Array,
-  party: readonly PokemonData[],
+  party: readonly PokemonInstance[],
   partyStartOffset: number,
   partyPokemonSize: number,
   saveblock1Size: number,

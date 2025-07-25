@@ -3,7 +3,7 @@
  * Redesigned with vanilla Emerald as baseline and clean override system
  */
 
-import type { PokemonData } from './pokemonData'
+import type { PokemonInstance } from './pokemonData'
 
 // Core data structures
 export interface PlayTimeData {
@@ -61,7 +61,7 @@ export interface SectorInfo {
 
 // Complete save data structure
 export interface SaveData {
-  readonly party_pokemon: readonly PokemonData[]
+  readonly party_pokemon: readonly PokemonInstance[]
   readonly player_name: string
   readonly play_time: PlayTimeData
   readonly active_slot: number

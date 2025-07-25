@@ -7,7 +7,7 @@ import { VANILLA_EMERALD_SIGNATURE } from './types'
 /**
  * Abstract base class providing common functionality for all game configurations
  */
-export abstract class BaseGameConfig {
+export abstract class GameConfigBase {
   /**
    * Check if the save data has valid Emerald signature in sector footers
    */
