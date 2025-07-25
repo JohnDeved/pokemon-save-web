@@ -3,7 +3,8 @@ local port = tonumber(arg[1]) or 7102
 
 local Socket = {}
 do
-    local Client = { __index = Client }
+    local Client = {}
+    Client.__index = Client
     function Client:add(event, cb)
         self._callbacks[event] = cb
         if event == "received" and #self._buffer > 0 and type(cb) == "function" then
@@ -11,18 +12,23 @@ do
         end
     end
     function Client:receive()
-        if #self._buffer > 0 then local data = self._buffer; self._buffer = ""; return data end
+        if #self._buffer > 0 then 
+            local data = self._buffer
+            self._buffer = ""
+            return data
+        end
         return nil, Socket.ERRORS.AGAIN
     end
     function Client:send(data) return self._socket:send(data) end
     function Client:close() return self._socket:close() end
 
-    local Server = { __index = Server }
+    local Server = {}
+    Server.__index = Server
     function Server:add(event, cb) self._callbacks[event] = cb end
     function Server:listen()
         local ok, err = self._socket:listen(5)
         if not ok then return nil, err end
-        self._socket:settimeout(0); Socket._running = true; return true
+        self._socket:settimeout(0); Socket._running = true; return true, nil
     end
     function Server:accept()
         if #Socket._clients > 0 then return table.remove(Socket._clients, 1) end
@@ -52,12 +58,21 @@ end
 
 local function read_full_request(client_socket)
     client_socket:settimeout(1)
-    local headers = client_socket:receive("*l\r\n\r\n")
-    if not headers then return nil end
-
+    
+    -- Read HTTP headers line by line until empty line
+    local headers = ""
+    while true do
+        local line = client_socket:receive("*l")
+        if not line then return nil end
+        headers = headers .. line .. "\r\n"
+        if line == "" then break end -- Empty line indicates end of headers
+    end
+    
+    -- Check for Content-Length
     local content_length = headers:match("[Cc]ontent-[Ll]ength:%s*(%d+)")
     if not content_length then return headers end
-
+    
+    -- Read body if Content-Length is specified
     local body = client_socket:receive(tonumber(content_length))
     return body and (headers .. body) or headers
 end
