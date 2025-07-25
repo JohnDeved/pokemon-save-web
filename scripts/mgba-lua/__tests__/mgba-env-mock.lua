@@ -283,7 +283,7 @@ local ok, exec_err = pcall(chunk)
 if not ok then print("ERROR: Failed to execute: " .. tostring(exec_err)); os.exit(1) end
 print("HTTP server loaded successfully")
 
--- Enhanced event loop with minimal debugging
+-- Enhanced event loop with better WebSocket frame detection
 local loop_count = 0
 while _G.socket._running and loop_count < 50000 do
     loop_count = loop_count + 1
@@ -347,20 +347,22 @@ while _G.socket._running and loop_count < 50000 do
         end
     end
     
-    -- Monitor all clients for new data (HTTP or WebSocket) 
+    -- Monitor ALL existing clients for ANY new data
     for i = #_G.socket._clients, 1, -1 do
         local client = _G.socket._clients[i]
         if client._s then
             client._s:settimeout(0)
             
-            -- Read any new TCP data  
+            -- Read new data regardless of connection type
             local new_data = ""
+            local bytes_read = 0
             repeat
                 local chunk, err = client._s:receive(1)
                 if chunk then
                     new_data = new_data .. chunk
+                    bytes_read = bytes_read + 1
                 elseif err ~= "timeout" then
-                    -- Client disconnected
+                    -- Client disconnected or error
                     if #new_data == 0 then
                         client._s:close()
                         table.remove(_G.socket._clients, i)
@@ -371,21 +373,18 @@ while _G.socket._running and loop_count < 50000 do
                 else
                     break -- No more data available
                 end
-            until #new_data > 50 -- Smaller chunk to catch WebSocket frames faster
+            until bytes_read >= 10 -- Read at least 10 bytes for WebSocket frames
             
-            -- If we got new data, buffer it and trigger callbacks
+            -- If we got new data, process it
             if #new_data > 0 then
+                print("[DEBUG] Client " .. i .. " received " .. #new_data .. " bytes: " .. new_data:gsub(".", function(c) return string.format("%02x ", string.byte(c)) end))
+                
                 if not client._recv_buffer then
                     client._recv_buffer = ""
                 end
                 client._recv_buffer = client._recv_buffer .. new_data
                 
-                -- Debug: Check for WebSocket frame pattern  
-                if #new_data < 20 and new_data:find("\x81") then -- WebSocket text frame
-                    print("[DEBUG] WebSocket frame detected: " .. new_data:gsub(".", function(c) return string.format("%02x ", string.byte(c)) end))
-                end
-                
-                -- Trigger received callbacks - let server logic handle WebSocket vs HTTP
+                -- Trigger received callbacks
                 client:_dispatch('received')
             end
         end

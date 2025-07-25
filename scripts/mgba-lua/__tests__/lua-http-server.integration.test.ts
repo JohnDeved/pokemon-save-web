@@ -166,13 +166,14 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       
       // Wait for connection and welcome message first
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Connection timeout')), 8000) // Longer timeout
+        const timeout = setTimeout(() => reject(new Error('Connection timeout')), 3000) 
         
         ws.on('open', () => {
           console.log('[Test] WebSocket eval test connected')
         })
         
         ws.on('message', (data) => {
+          console.log('[Test] Received message:', data.toString())
           // Skip the welcome message
           if (data.toString().includes('Welcome to WebSocket Eval')) {
             clearTimeout(timeout)
@@ -180,15 +181,19 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
           }
         })
         
-        ws.on('error', reject)
+        ws.on('error', (err) => {
+          console.log('[Test] WebSocket error:', err.message)
+          reject(err)
+        })
       })
 
       // Now test the eval functionality
       const evalResult = await new Promise<string>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Eval response timeout')), 8000) // Longer timeout
+        const timeout = setTimeout(() => reject(new Error('Eval response timeout')), 3000)
         
         ws.on('message', (data) => {
           const message = data.toString()
+          console.log('[Test] Eval response:', message)
           // Skip welcome messages
           if (!message.includes('Welcome to WebSocket Eval')) {
             clearTimeout(timeout)
@@ -206,6 +211,6 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       expect(result).toHaveProperty('result', 2)
       
       ws.close()
-    }, 10000) // 10 second test timeout
+    }, 5000) // 5 second test timeout
   })
 })
