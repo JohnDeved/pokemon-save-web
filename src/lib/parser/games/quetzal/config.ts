@@ -166,7 +166,7 @@ export class QuetzalConfig implements GameConfig {
 
   /**
    * Check if this config can handle the given save file
-   * Look for Quetzal-specific patterns in the save structure
+   * Use the full parsing approach: if we can successfully parse Pokemon, this is the right config
    */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
@@ -200,8 +200,9 @@ export class QuetzalConfig implements GameConfig {
       return false
     }
 
-    // Check for Quetzal-specific patterns
+    // Try to actually parse Pokemon using the same logic as the main parser
     try {
+      // Replicate the main parser logic to see if we can find Pokemon
       const activeSlot = this.determineActiveSlot((sectors: number[]) => {
         let sum = 0
         for (const sectorIndex of sectors) {
@@ -217,67 +218,63 @@ export class QuetzalConfig implements GameConfig {
         return sum
       })
 
-      const saveBlock1Offset = activeSlot * this.offsets.sectorSize
-      const partyCountOffset = saveBlock1Offset + 0x234
+      // Build sector map
+      const sectorMap = new Map<number, number>()
+      const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
 
-      if (partyCountOffset + 4 <= saveData.length) {
-        const partyCount = new DataView(saveData.buffer, saveData.byteOffset + partyCountOffset, 4).getUint32(0, true)
-
-        // Check party count is reasonable
-        if (partyCount < 0 || partyCount > 6) {
-          return false
-        }
-
-        // Look for Quetzal-specific patterns in the save data
-        // 1. Check if party area has non-zero data beyond the first 32 bytes (indicates Quetzal structure)
-        const partyDataOffset = saveBlock1Offset + 0x238
-        if (partyDataOffset + 64 <= saveData.length) {
-          const partyAreaData = new Uint8Array(saveData.buffer, saveData.byteOffset + partyDataOffset + 32, 32)
-          let hasQuetzalPattern = false
-
-          // Check for non-zero data in the extended party area (bytes 32-64)
-          for (let i = 0; i < 32; i++) {
-            if (partyAreaData[i] !== 0) {
-              hasQuetzalPattern = true
-              break
-            }
+      for (const i of sectorRange) {
+        const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
+        if (footerOffset + this.offsets.sectorFooterSize <= saveData.length) {
+          const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+          const signature = view.getUint32(4, true)
+          if (signature === this.signature) {
+            const sectorId = view.getUint16(0, true)
+            sectorMap.set(sectorId, i)
           }
-
-          // If party is not empty, check for extended features
-          if (partyCount > 0) {
-            for (let slot = 0; slot < partyCount; slot++) {
-              const pokemonOffset = partyDataOffset + (slot * this.offsets.partyPokemonSize)
-              if (pokemonOffset + this.offsets.partyPokemonSize <= saveData.length) {
-                const pokemonData = new Uint8Array(saveData.buffer, saveData.byteOffset + pokemonOffset, this.offsets.partyPokemonSize)
-                const pokemon = this.createPokemonData(pokemonData)
-
-                // Check for extended species, moves, or radiant Pokemon
-                const rawSpeciesId = new DataView(pokemonData.buffer, pokemonData.byteOffset + this.offsets.pokemonData.species, 2).getUint16(0, true)
-                if (rawSpeciesId > 493) {
-                  return true // Extended species = Quetzal
-                }
-
-                if (pokemon.isRadiant) {
-                  return true // Radiant Pokemon = Quetzal
-                }
-
-                const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
-                if (moves.some(moveId => moveId > 354)) {
-                  return true // Extended moves = Quetzal
-                }
-              }
-            }
-          }
-
-          // If we found the Quetzal pattern in the extended area, return true
-          return hasQuetzalPattern
         }
       }
+
+      // Extract SaveBlock1 data
+      const saveblock1Sectors = [1, 2, 3, 4].filter(id => sectorMap.has(id))
+      if (saveblock1Sectors.length === 0) {
+        return false
+      }
+
+      const saveblock1Data = new Uint8Array(this.offsets.saveblock1Size)
+      for (const sectorId of saveblock1Sectors) {
+        const sectorIdx = sectorMap.get(sectorId)!
+        const startOffset = sectorIdx * this.offsets.sectorSize
+        const sectorData = saveData.slice(startOffset, startOffset + this.offsets.sectorDataSize)
+        const chunkOffset = (sectorId - 1) * this.offsets.sectorDataSize
+        saveblock1Data.set(sectorData.slice(0, this.offsets.sectorDataSize), chunkOffset)
+      }
+
+      // Try to parse Pokemon from the actual saveblock1 data
+      let pokemonFound = 0
+      for (let slot = 0; slot < this.offsets.maxPartySize; slot++) {
+        const offset = this.offsets.partyStartOffset + slot * this.offsets.partyPokemonSize
+        const data = saveblock1Data.slice(offset, offset + this.offsets.partyPokemonSize)
+
+        if (data.length < this.offsets.partyPokemonSize) {
+          break
+        }
+
+        try {
+          const pokemon = this.createPokemonData(data)
+          if (pokemon.speciesId > 0) {
+            pokemonFound++
+          } else {
+            break // Empty slot, stop looking
+          }
+        } catch {
+          break // Parsing failed, stop looking
+        }
+      }
+
+      // Return true if we found any Pokemon with this config
+      return pokemonFound > 0
     } catch {
-      // If parsing fails, this config can't handle the save
       return false
     }
-
-    return false
   }
 }

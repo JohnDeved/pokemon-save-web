@@ -357,7 +357,7 @@ export class VanillaConfig implements GameConfig {
 
   /**
    * Check if this config can handle the given save file
-   * Simplified logic: acts as fallback but rejects Quetzal-specific patterns
+   * Acts as fallback - only accepts vanilla saves, rejects ROM hacks
    */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
@@ -391,8 +391,9 @@ export class VanillaConfig implements GameConfig {
       return false
     }
 
-    // Try to parse party data - if we can successfully parse Pokemon structure, this config works
+    // Try to actually parse Pokemon using the same logic as the main parser
     try {
+      // Replicate the main parser logic to see if we can find Pokemon
       const activeSlot = this.determineActiveSlot((sectors: number[]) => {
         let sum = 0
         for (const sectorIndex of sectors) {
@@ -408,62 +409,103 @@ export class VanillaConfig implements GameConfig {
         return sum
       })
 
-      // Try to read party count - this should work if the structure matches
-      const saveBlock1Offset = activeSlot * this.offsets.sectorSize
-      const partyCountOffset = saveBlock1Offset + 0x234
+      // Build sector map
+      const sectorMap = new Map<number, number>()
+      const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
 
-      if (partyCountOffset + 4 <= saveData.length) {
-        const partyCount = new DataView(saveData.buffer, saveData.byteOffset + partyCountOffset, 4).getUint32(0, true)
-
-        // Check party count is reasonable
-        if (partyCount < 0 || partyCount > 6) {
-          return false
-        }
-
-        // Reject saves with Quetzal-specific patterns
-        const partyDataOffset = saveBlock1Offset + 0x238
-        if (partyDataOffset + 64 <= saveData.length) {
-          // Check for non-zero data in the extended party area (typical of Quetzal)
-          const extendedPartyArea = new Uint8Array(saveData.buffer, saveData.byteOffset + partyDataOffset + 32, 32)
-          for (let i = 0; i < 32; i++) {
-            if (extendedPartyArea[i] !== 0) {
-              return false // Has Quetzal patterns, reject
-            }
-          }
-
-          // Check for extended Pokemon features if party is not empty
-          if (partyCount > 0) {
-            for (let slot = 0; slot < partyCount; slot++) {
-              const pokemonOffset = partyDataOffset + (slot * this.offsets.partyPokemonSize)
-              if (pokemonOffset + this.offsets.partyPokemonSize <= saveData.length) {
-                const pokemonData = new Uint8Array(saveData.buffer, saveData.byteOffset + pokemonOffset, this.offsets.partyPokemonSize)
-
-                // Check for extended species
-                const rawSpeciesId = new DataView(pokemonData.buffer, pokemonData.byteOffset + 0x20, 2).getUint16(0, true)
-                if (rawSpeciesId > 493) {
-                  return false // Extended species = Quetzal, reject
-                }
-
-                const pokemon = this.createPokemonData(pokemonData)
-
-                // Check for extended moves
-                const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
-                if (moves.some(moveId => moveId > 354)) {
-                  return false // Extended moves = Quetzal, reject
-                }
-              }
-            }
+      for (const i of sectorRange) {
+        const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
+        if (footerOffset + this.offsets.sectorFooterSize <= saveData.length) {
+          const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+          const signature = view.getUint32(4, true)
+          if (signature === this.signature) {
+            const sectorId = view.getUint16(0, true)
+            sectorMap.set(sectorId, i)
           }
         }
-
-        // If no Quetzal patterns found, this is a vanilla save
-        return true
       }
+
+      // Extract SaveBlock1 data
+      const saveblock1Sectors = [1, 2, 3, 4].filter(id => sectorMap.has(id))
+      if (saveblock1Sectors.length === 0) {
+        return false
+      }
+
+      const saveblock1Data = new Uint8Array(this.offsets.saveblock1Size)
+      for (const sectorId of saveblock1Sectors) {
+        const sectorIdx = sectorMap.get(sectorId)!
+        const startOffset = sectorIdx * this.offsets.sectorSize
+        const sectorData = saveData.slice(startOffset, startOffset + this.offsets.sectorDataSize)
+        const chunkOffset = (sectorId - 1) * this.offsets.sectorDataSize
+        saveblock1Data.set(sectorData.slice(0, this.offsets.sectorDataSize), chunkOffset)
+      }
+
+      // Try to parse Pokemon from the actual saveblock1 data
+      let pokemonFound = 0
+      let hasRomHackFeatures = false
+      let hasNonZeroData = false
+
+      for (let slot = 0; slot < this.offsets.maxPartySize; slot++) {
+        const offset = this.offsets.partyStartOffset + slot * this.offsets.partyPokemonSize
+        const data = saveblock1Data.slice(offset, offset + this.offsets.partyPokemonSize)
+
+        if (data.length < this.offsets.partyPokemonSize) {
+          break
+        }
+
+        // Check if there's any non-zero data in this slot
+        const hasDataInSlot = data.some(byte => byte !== 0)
+        if (hasDataInSlot) {
+          hasNonZeroData = true
+        }
+
+        try {
+          const pokemon = this.createPokemonData(data)
+          if (pokemon.speciesId > 0) {
+            pokemonFound++
+
+            // Check for ROM hack features that vanilla shouldn't handle
+            if (pokemon.speciesId > 493) { // Extended species
+              hasRomHackFeatures = true
+              break
+            }
+
+            // Check for radiant Pokemon (shiny number = 2)
+            const personality = new DataView(data.buffer, data.byteOffset).getUint32(0, true)
+            const shinyNumber = (personality >> 8) & 0xFF
+            if (shinyNumber === 2) { // Radiant Pokemon
+              hasRomHackFeatures = true
+              break
+            }
+
+            // Check for extended moves
+            const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
+            if (moves.some(moveId => moveId > 354)) { // Extended moves
+              hasRomHackFeatures = true
+              break
+            }
+          } else {
+            break // Empty slot, stop looking
+          }
+        } catch {
+          break // Parsing failed, stop looking
+        }
+      }
+
+      // Reject saves with ROM hack features
+      if (hasRomHackFeatures) {
+        return false
+      }
+
+      // If we found non-zero data but couldn't parse any Pokemon, this is likely a ROM hack save
+      if (hasNonZeroData && pokemonFound === 0) {
+        return false
+      }
+
+      // Accept if we found Pokemon or if save is genuinely empty
+      return pokemonFound > 0 || (pokemonFound === 0 && !hasNonZeroData)
     } catch {
-      // If parsing fails, this config can't handle the save
       return false
     }
-
-    return false
   }
 }
