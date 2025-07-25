@@ -11,7 +11,17 @@ do
             cb()
         end
     end
-    function Client:receive()
+    function Client:receive(bytes)
+        -- Try to read new data from socket if buffer is empty
+        if #self._buffer == 0 then
+            local data, err = self._socket:receive(bytes or 1024)
+            if data then
+                self._buffer = data
+            elseif err ~= "timeout" then
+                return nil, Socket.ERRORS.AGAIN
+            end
+        end
+        
         if #self._buffer > 0 then 
             local data = self._buffer
             self._buffer = ""
@@ -69,7 +79,7 @@ local function read_full_request(client_socket)
     end
     
     -- Check for Content-Length
-    local content_length = headers:match("[Cc]ontent-[Ll]ength:%s*(%d+)")
+    local content_length = headers:match("[Cc]ontent%-[Ll]ength:%s*(%d+)")
     if not content_length then return headers end
     
     -- Read body if Content-Length is specified
@@ -97,6 +107,7 @@ end
 local function main_event_loop(server)
     _G.console.log("Event loop started. Waiting for connections...")
     while Socket._running do
+        -- Handle new connections
         local raw_client_socket = server._socket:accept()
         if raw_client_socket then
             local request_data = read_full_request(raw_client_socket)
@@ -107,6 +118,28 @@ local function main_event_loop(server)
                 raw_client_socket:close()
             end
         end
+        
+        -- Check existing clients for new data (for WebSocket frames)
+        for i, client in ipairs(Socket._clients) do
+            if client._socket then
+                -- Try to receive data without blocking
+                client._socket:settimeout(0)
+                local data, err = client._socket:receive(1024)
+                if data and #data > 0 then
+                    -- Add data to client buffer and trigger callback
+                    client._buffer = client._buffer .. data
+                    if client._callbacks.received then
+                        client._callbacks.received()
+                    end
+                elseif err and err ~= "timeout" then
+                    -- Client disconnected, remove from list
+                    client._socket:close()
+                    table.remove(Socket._clients, i)
+                    break
+                end
+            end
+        end
+        
         socket.sleep(0.001)
     end
     _G.console.log("Event loop ended.")
@@ -114,19 +147,30 @@ end
 
 local function main()
     _G.console = {
-        log = function(msg) print("[CONSOLE] " .. tostring(msg)); io.flush() end,
-        error = function(msg) print("[ERROR] " .. tostring(msg)); io.flush() end
+        log = function(self, msg) 
+            -- Handle both console:log(msg) and console.log(msg) calls
+            local message = msg or self
+            print("[CONSOLE] " .. tostring(message)); io.flush() 
+        end,
+        error = function(self, msg) 
+            -- Handle both console:error(msg) and console.error(msg) calls
+            local message = msg or self
+            print("[ERROR] " .. tostring(message)); io.flush() 
+        end
     }
-    _G.console.fatal = function(msg) _G.console.error(msg); os.exit(1) end
+    _G.console.fatal = function(self, msg) 
+        local message = msg or self
+        _G.console:error(message); os.exit(1) 
+    end
     _G.emu = {
-        romSize = function() return 1024 * 1024 end
+        romSize = function(self) return 1024 * 1024 end
     }
     _G.callbacks = {
-        add = function(event, cb)
+        add = function(self, event, cb)
             if event == "start" and type(cb) == "function" then cb() end
             return 1
         end,
-        remove = function() end
+        remove = function(self, id) end
     }
     _G.socket = Socket
 
