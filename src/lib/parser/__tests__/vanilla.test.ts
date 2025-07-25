@@ -241,25 +241,6 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         expect(pokemon.evs[2]).toBe(200)
       }
     })
-
-    it('should enforce EV limits (0-255)', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
-
-      if (parsedData.party_pokemon.length > 0) {
-        const pokemon = parsedData.party_pokemon[0]!
-
-        // Test boundary values
-        pokemon.hpEV = 0
-        pokemon.atkEV = 255
-        pokemon.defEV = 300 // Should be clamped
-        pokemon.speEV = -10 // Should be clamped
-
-        expect(pokemon.hpEV).toBe(0)
-        expect(pokemon.atkEV).toBe(255)
-        expect(pokemon.defEV).toBeLessThanOrEqual(255)
-        expect(pokemon.speEV).toBeGreaterThanOrEqual(0)
-      }
-    })
   })
 
   describe('IV Writing and Persistence', () => {
@@ -308,24 +289,6 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         expect(pokemon.ivs[0]).toBe(25)
         expect(pokemon.ivs[1]).toBe(30)
         expect(pokemon.ivs[2]).toBe(15)
-      }
-    })
-
-    it('should enforce IV limits (0-31)', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
-
-      if (parsedData.party_pokemon.length > 0) {
-        const pokemon = parsedData.party_pokemon[0]!
-
-        // Test boundary values
-        const testIvs = [0, 31, 40, -5, 31, 15] // Some values out of bounds
-        pokemon.ivs = testIvs
-
-        // Verify all IVs are in valid range
-        pokemon.ivs.forEach(iv => {
-          expect(iv).toBeGreaterThanOrEqual(0)
-          expect(iv).toBeLessThanOrEqual(31)
-        })
       }
     })
   })

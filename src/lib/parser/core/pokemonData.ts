@@ -203,7 +203,11 @@ export class PokemonData {
   }
 
   set hpEV (value) {
-    this.config.setEV?.(this.data, this.view, 0, value) ?? this.setVanillaEV(0, value)
+    if (this.config.setEV) {
+      this.config.setEV(this.data, this.view, 0, value)
+    } else {
+      this.setVanillaEV(0, value)
+    }
   }
 
   get atkEV () {
@@ -211,7 +215,11 @@ export class PokemonData {
   }
 
   set atkEV (value) {
-    this.config.setEV?.(this.data, this.view, 1, value) ?? this.setVanillaEV(1, value)
+    if (this.config.setEV) {
+      this.config.setEV(this.data, this.view, 1, value)
+    } else {
+      this.setVanillaEV(1, value)
+    }
   }
 
   get defEV () {
@@ -219,7 +227,11 @@ export class PokemonData {
   }
 
   set defEV (value) {
-    this.config.setEV?.(this.data, this.view, 2, value) ?? this.setVanillaEV(2, value)
+    if (this.config.setEV) {
+      this.config.setEV(this.data, this.view, 2, value)
+    } else {
+      this.setVanillaEV(2, value)
+    }
   }
 
   get speEV () {
@@ -227,7 +239,11 @@ export class PokemonData {
   }
 
   set speEV (value) {
-    this.config.setEV?.(this.data, this.view, 3, value) ?? this.setVanillaEV(3, value)
+    if (this.config.setEV) {
+      this.config.setEV(this.data, this.view, 3, value)
+    } else {
+      this.setVanillaEV(3, value)
+    }
   }
 
   get spaEV () {
@@ -235,7 +251,11 @@ export class PokemonData {
   }
 
   set spaEV (value) {
-    this.config.setEV?.(this.data, this.view, 4, value) ?? this.setVanillaEV(4, value)
+    if (this.config.setEV) {
+      this.config.setEV(this.data, this.view, 4, value)
+    } else {
+      this.setVanillaEV(4, value)
+    }
   }
 
   get spdEV () {
@@ -243,7 +263,11 @@ export class PokemonData {
   }
 
   set spdEV (value) {
-    this.config.setEV?.(this.data, this.view, 5, value) ?? this.setVanillaEV(5, value)
+    if (this.config.setEV) {
+      this.config.setEV(this.data, this.view, 5, value)
+    } else {
+      this.setVanillaEV(5, value)
+    }
   }
 
   get ivs (): readonly number[] {
@@ -251,7 +275,11 @@ export class PokemonData {
   }
 
   set ivs (values: readonly number[]) {
-    this.config.setIVs?.(this.data, this.view, values) ?? this.setVanillaIVs(values)
+    if (this.config.setIVs) {
+      this.config.setIVs(this.data, this.view, values)
+    } else {
+      this.setVanillaIVs(values)
+    }
   }
 
   get isShiny (): boolean {

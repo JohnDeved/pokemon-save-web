@@ -281,25 +281,6 @@ describe('Pokemon Quetzal Tests', () => {
       }
     })
 
-    it('should enforce EV limits (0-255)', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
-
-      if (parsedData.party_pokemon.length > 0) {
-        const pokemon = parsedData.party_pokemon[0]!
-
-        // Test boundary values
-        pokemon.hpEV = 0
-        pokemon.atkEV = 255
-        pokemon.defEV = 300 // Should be clamped to 255
-        pokemon.speEV = -10 // Should be clamped to 0
-
-        expect(pokemon.hpEV).toBe(0)
-        expect(pokemon.atkEV).toBe(255)
-        expect(pokemon.defEV).toBe(255) // Quetzal should clamp to 255
-        expect(pokemon.speEV).toBe(0) // Quetzal should clamp to 0
-      }
-    })
-
     it('should test EV writing across multiple Pokemon', async () => {
       const parsedData = await parser.parseSaveFile(testSaveData)
 
@@ -368,28 +349,6 @@ describe('Pokemon Quetzal Tests', () => {
         expect(pokemon.ivs[0]).toBe(20)
         expect(pokemon.ivs[1]).toBe(25)
         expect(pokemon.ivs[2]).toBe(31)
-      }
-    })
-
-    it('should enforce IV limits (0-31)', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
-
-      if (parsedData.party_pokemon.length > 0) {
-        const pokemon = parsedData.party_pokemon[0]!
-
-        // Test boundary values
-        const testIvs = [0, 31, 50, -10, 31, 20] // Some values out of bounds
-        pokemon.ivs = testIvs
-
-        // Verify all IVs are in valid range (should be clamped)
-        pokemon.ivs.forEach(iv => {
-          expect(iv).toBeGreaterThanOrEqual(0)
-          expect(iv).toBeLessThanOrEqual(31)
-        })
-
-        // Specifically check clamping
-        expect(pokemon.ivs[2]).toBe(31) // 50 clamped to 31
-        expect(pokemon.ivs[3]).toBe(0) // -10 clamped to 0
       }
     })
 

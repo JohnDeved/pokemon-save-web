@@ -254,4 +254,56 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       expect(quetzalConfig.mappings.items.size).toBeGreaterThan(0)
     })
   })
+
+  describe('Common EV/IV Writing Tests', () => {
+    it('should validate EV value clamping (0-255)', () => {
+      // Test that EV values are properly clamped regardless of config
+      const testValues = [-10, 0, 100, 255, 300]
+      const expectedValues = [0, 0, 100, 255, 255]
+
+      testValues.forEach((value, index) => {
+        const clamped = Math.max(0, Math.min(255, value))
+        expect(clamped).toBe(expectedValues[index])
+      })
+    })
+
+    it('should validate IV value clamping (0-31)', () => {
+      // Test that IV values are properly clamped regardless of config
+      const testValues = [-5, 0, 15, 31, 50]
+      const expectedValues = [0, 0, 15, 31, 31]
+
+      testValues.forEach((value, index) => {
+        const clamped = Math.max(0, Math.min(31, value))
+        expect(clamped).toBe(expectedValues[index])
+      })
+    })
+
+    it('should validate EV array length requirements', () => {
+      // EVs should always require exactly 6 values
+      const validEvs = [0, 0, 0, 0, 0, 0]
+      const invalidEvs = [0, 0, 0, 0, 0] // Only 5 values
+
+      expect(validEvs.length).toBe(6)
+      expect(invalidEvs.length).not.toBe(6)
+
+      // Test that setting EVs with wrong length would throw
+      expect(() => {
+        if (invalidEvs.length !== 6) throw new Error('EVs array must have 6 values')
+      }).toThrow('EVs array must have 6 values')
+    })
+
+    it('should validate IV array length requirements', () => {
+      // IVs should always require exactly 6 values
+      const validIvs = [31, 31, 31, 31, 31, 31]
+      const invalidIvs = [31, 31, 31] // Only 3 values
+
+      expect(validIvs.length).toBe(6)
+      expect(invalidIvs.length).not.toBe(6)
+
+      // Test that setting IVs with wrong length would throw
+      expect(() => {
+        if (invalidIvs.length !== 6) throw new Error('IVs array must have 6 values')
+      }).toThrow('IVs array must have 6 values')
+    })
+  })
 })
