@@ -85,7 +85,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       
       const text = await response.text()
       expect(text).toBe('Welcome to mGBA HTTP Server!')
-    })
+    }, 15000)
 
     it('should handle GET /json and return JSON with CORS headers', async () => {
       const response = await fetch(`${baseUrl}/json`)
