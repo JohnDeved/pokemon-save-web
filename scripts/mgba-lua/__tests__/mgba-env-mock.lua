@@ -42,18 +42,44 @@ _G.callbacks = {
 
 -- Mock mGBA socket API with exactly matching structure from lua.c source
 _G.socket = {
-    ERRORS = {
-        [1] = "unknown error",
-        [2] = "temporary failure", 
-        [3] = "address in use",
-        [4] = "connection refused",
-        [5] = "network unreachable",
-        [6] = "timeout"
-    },
+    ERRORS = {},  -- Will be set up with metatable below
     
     _clients = {},
     _server = nil,
     _running = false,
+    
+    -- Error constants matching mGBA lua.c
+    _error_constants = {
+        UNKNOWN_ERROR = 1,
+        OK = 0,
+        AGAIN = 2,
+        ADDRESS_IN_USE = 3,
+        DENIED = 4,
+        UNSUPPORTED = 5,
+        CONNECTION_REFUSED = 6,
+        NETWORK_UNREACHABLE = 7,
+        TIMEOUT = 8,
+        FAILED = 9,
+        NOT_FOUND = 10,
+        NO_DATA = 11,
+        OUT_OF_MEMORY = 12
+    },
+    
+    _error_messages = {
+        [1] = "unknown error",
+        [0] = nil,
+        [2] = "temporary failure", 
+        [3] = "address in use",
+        [4] = "access denied",
+        [5] = "unsupported",
+        [6] = "connection refused",
+        [7] = "network unreachable",
+        [8] = "timeout",
+        [9] = "failed",
+        [10] = "not found",
+        [11] = "no data",
+        [12] = "out of memory"
+    },
     
     -- Create socket wrapper exactly like mGBA's lua.c
     _create = function(sock, mt)
@@ -67,7 +93,7 @@ _G.socket = {
     
     _wrap = function(status)
         if status == 0 then return 1 end
-        return nil, _G.socket.ERRORS[status] or ('error#' .. status)
+        return nil, _G.socket._error_messages[status] or ('error#' .. status)
     end,
     
     -- Base socket methods (from mGBA lua.c _mt)
@@ -122,7 +148,7 @@ _G.socket = {
                 self._s:setoption("reuseaddr", true)
                 local ok, err = self._s:bind(address or "127.0.0.1", port)
                 if not ok then
-                    return nil, err:find("address in use") and _G.socket.ERRORS[3] or err
+                    return nil, err:find("address in use") and _G.socket.ERRORS.ADDRESS_IN_USE or err
                 end
                 _G.socket._server = self
                 return _G.socket._wrap(0)
@@ -140,7 +166,7 @@ _G.socket = {
                 if #_G.socket._clients > 0 then
                     return table.remove(_G.socket._clients, 1)
                 end
-                return nil, _G.socket.ERRORS[2] -- "temporary failure"
+                return nil, _G.socket._error_messages[2] -- "temporary failure"
             end,
             
             send = function(self, data, i, j)
@@ -170,7 +196,7 @@ _G.socket = {
                     end
                     return result
                 end
-                return nil, _G.socket.ERRORS[2] -- "temporary failure"
+                return nil, _G.socket._error_messages[2] -- "temporary failure"
             end,
             
             hasdata = function(self)
@@ -207,6 +233,17 @@ _G.socket = {
 
 -- Set up inheritance for TCP sockets
 setmetatable(_G.socket._tcpMT.__index, _G.socket._mt)
+
+-- Set up ERRORS metatable to allow constants like socket.ERRORS.ADDRESS_IN_USE
+setmetatable(_G.socket.ERRORS, {
+    __index = function(tbl, key)
+        local const_value = _G.socket._error_constants[key]
+        if const_value then
+            return _G.socket._error_messages[const_value]
+        end
+        return nil
+    end
+})
 
 -- Mock console API with proper colon method handling
 _G.console = {
@@ -294,7 +331,6 @@ while _G.socket._running and loop_count < 50000 do
                 -- Create accurate mGBA socket wrapper for client
                 local mock_client = _G.socket._create(client, _G.socket._tcpMT)
                 mock_client._recv_buffer = request_data
-                mock_client._is_websocket = request_data:find("Upgrade:%s*websocket") ~= nil
                 mock_client:_hook(0) -- Enable frame callbacks
                 
                 table.insert(_G.socket._clients, mock_client)
@@ -311,13 +347,13 @@ while _G.socket._running and loop_count < 50000 do
         end
     end
     
-    -- Monitor existing clients for WebSocket frame data
+    -- Monitor all clients for new data (HTTP or WebSocket) 
     for i = #_G.socket._clients, 1, -1 do
         local client = _G.socket._clients[i]
-        if client._s and client._is_websocket then
+        if client._s then
             client._s:settimeout(0)
             
-            -- Read raw TCP data for WebSocket frames
+            -- Read any new TCP data  
             local new_data = ""
             repeat
                 local chunk, err = client._s:receive(1)
@@ -335,16 +371,21 @@ while _G.socket._running and loop_count < 50000 do
                 else
                     break -- No more data available
                 end
-            until #new_data > 200 -- Read reasonable chunk for WebSocket frames
+            until #new_data > 50 -- Smaller chunk to catch WebSocket frames faster
             
-            -- If we got new data, add it to receive buffer
+            -- If we got new data, buffer it and trigger callbacks
             if #new_data > 0 then
                 if not client._recv_buffer then
                     client._recv_buffer = ""
                 end
                 client._recv_buffer = client._recv_buffer .. new_data
                 
-                -- Trigger received callbacks for this client
+                -- Debug: Check for WebSocket frame pattern  
+                if #new_data < 20 and new_data:find("\x81") then -- WebSocket text frame
+                    print("[DEBUG] WebSocket frame detected: " .. new_data:gsub(".", function(c) return string.format("%02x ", string.byte(c)) end))
+                end
+                
+                -- Trigger received callbacks - let server logic handle WebSocket vs HTTP
                 client:_dispatch('received')
             end
         end
