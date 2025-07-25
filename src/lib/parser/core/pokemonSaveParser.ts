@@ -158,7 +158,6 @@ export class PokemonSaveParser {
     }
 
     if (this.forcedSlot !== undefined) {
-      // console.log('[PokemonSaveParser] Forced slot:', this.forcedSlot, '-> activeSlotStart:', this.forcedSlot === 1 ? 0 : 14);
       this.activeSlotStart = this.forcedSlot === 1 ? 0 : 14
       return
     }
@@ -167,12 +166,10 @@ export class PokemonSaveParser {
       const infos = range.map(i => this.getSectorInfo(i))
       const validInfos = infos.filter(info => info.valid)
       const sum = validInfos.reduce((sum, info) => sum + info.counter, 0)
-      // console.log('[PokemonSaveParser] Sector range:', range, 'Counters:', validInfos.map(i => i.counter), 'Sum:', sum);
       return sum
     }
 
     this.activeSlotStart = this.config.determineActiveSlot(getCounterSum)
-    // console.log('[PokemonSaveParser] Selected activeSlotStart:', this.activeSlotStart);
   }
 
   /**
@@ -300,9 +297,9 @@ export class PokemonSaveParser {
     const view = new DataView(saveblock2Data.buffer, saveblock2Data.byteOffset)
 
     return {
-      hours: view.getUint32(this.config.offsets.playTimeHours, true), // playTimeHours offset
-      minutes: view.getUint8(this.config.offsets.playTimeMinutes), // playTimeMinutes offset
-      seconds: view.getUint8(this.config.offsets.playTimeSeconds), // playTimeSeconds offset
+      hours: view.getUint16(this.config.offsets.playTimeHours, true), // u16 playTimeHours
+      minutes: view.getUint8(this.config.offsets.playTimeMinutes), // u8 playTimeMinutes 
+      seconds: view.getUint8(this.config.offsets.playTimeSeconds), // u8 playTimeSeconds
     }
   }
 
