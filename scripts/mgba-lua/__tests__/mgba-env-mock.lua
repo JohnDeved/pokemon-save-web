@@ -40,12 +40,12 @@ _G.callbacks = {
     end
 }
 
--- Mock mGBA socket API using the exact structure from lua.c
+-- Mock mGBA socket API with exactly matching structure from lua.c source
 _G.socket = {
     ERRORS = {
         [1] = "unknown error",
-        [2] = "again", 
-        [3] = "address already in use",
+        [2] = "temporary failure", 
+        [3] = "address in use",
         [4] = "connection refused",
         [5] = "network unreachable",
         [6] = "timeout"
@@ -55,7 +55,7 @@ _G.socket = {
     _server = nil,
     _running = false,
     
-    -- Create socket wrapper with mGBA structure
+    -- Create socket wrapper exactly like mGBA's lua.c
     _create = function(sock, mt)
         return setmetatable({
             _s = sock,
@@ -70,7 +70,7 @@ _G.socket = {
         return nil, _G.socket.ERRORS[status] or ('error#' .. status)
     end,
     
-    -- Base metatable for all sockets
+    -- Base socket methods (from mGBA lua.c _mt)
     _mt = {
         __index = {
             close = function(self)
@@ -108,7 +108,7 @@ _G.socket = {
         },
     },
     
-    -- TCP socket metatable following mGBA structure
+    -- TCP socket methods (from mGBA lua.c _tcpMT) 
     _tcpMT = {
         __index = {
             _hook = function(self, status)
@@ -122,14 +122,14 @@ _G.socket = {
                 self._s:setoption("reuseaddr", true)
                 local ok, err = self._s:bind(address or "127.0.0.1", port)
                 if not ok then
-                    return nil, err:find("already in use") and _G.socket.ERRORS[3] or err
+                    return nil, err:find("address in use") and _G.socket.ERRORS[3] or err
                 end
                 _G.socket._server = self
                 return _G.socket._wrap(0)
             end,
             
             listen = function(self, backlog)
-                local ok, err = self._s:listen(backlog or 5)
+                local ok, err = self._s:listen(backlog or 1)
                 if not ok then return nil, err end
                 self._s:settimeout(0)
                 _G.socket._running = true
@@ -140,32 +140,43 @@ _G.socket = {
                 if #_G.socket._clients > 0 then
                     return table.remove(_G.socket._clients, 1)
                 end
-                return nil, _G.socket.ERRORS[2] -- "again"
+                return nil, _G.socket.ERRORS[2] -- "temporary failure"
             end,
             
             send = function(self, data, i, j)
-                local result = self._s:send(string.sub(data, i or 1, j))
-                if result then return result end
+                local chunk = string.sub(data, i or 1, j)
+                local result = self._s:send(chunk)
+                if result then 
+                    if i then return result + i - 1 end
+                    return result
+                end
                 return nil, "closed"
             end,
             
+            -- Key method: receive should return raw data like mGBA's recv()
             receive = function(self, maxBytes)
-                if self._buffer and #self._buffer > 0 then
+                -- Return buffered data if available (like mGBA's recv implementation)
+                if self._recv_buffer and #self._recv_buffer > 0 then
                     local result
-                    if maxBytes and maxBytes < #self._buffer then
-                        result = self._buffer:sub(1, maxBytes)
-                        self._buffer = self._buffer:sub(maxBytes + 1)
+                    if maxBytes and maxBytes < #self._recv_buffer then
+                        result = self._recv_buffer:sub(1, maxBytes)
+                        self._recv_buffer = self._recv_buffer:sub(maxBytes + 1)
                     else
-                        result = self._buffer
-                        self._buffer = ""
+                        result = self._recv_buffer
+                        self._recv_buffer = ""
+                    end
+                    if #result == 0 then
+                        return nil, 'disconnected'
                     end
                     return result
                 end
-                return nil, _G.socket.ERRORS[2] -- "again"
+                return nil, _G.socket.ERRORS[2] -- "temporary failure"
             end,
             
             hasdata = function(self)
-                return self._buffer and #self._buffer > 0
+                -- Check if we have buffered receive data
+                local has_data = self._recv_buffer and #self._recv_buffer > 0
+                return has_data
             end,
             
             poll = function(self)
@@ -187,6 +198,7 @@ _G.socket = {
     
     bind = function(address, port)
         local s = _G.socket.tcp()
+        if not s then return nil, "Failed to create socket" end
         local ok, err = s:bind(address, port)
         if ok then return s end
         return ok, err
@@ -234,12 +246,12 @@ local ok, exec_err = pcall(chunk)
 if not ok then print("ERROR: Failed to execute: " .. tostring(exec_err)); os.exit(1) end
 print("HTTP server loaded successfully")
 
--- Enhanced event loop with accurate frame simulation
+-- Enhanced event loop with minimal debugging
 local loop_count = 0
 while _G.socket._running and loop_count < 50000 do
     loop_count = loop_count + 1
     
-    -- Simulate frame callbacks (like mGBA does)
+    -- Simulate frame callbacks (exactly like mGBA does)
     _G.callbacks:_dispatch('frame')
     
     -- Accept new connections
@@ -281,7 +293,8 @@ while _G.socket._running and loop_count < 50000 do
             if #request_data > 0 then
                 -- Create accurate mGBA socket wrapper for client
                 local mock_client = _G.socket._create(client, _G.socket._tcpMT)
-                mock_client._buffer = request_data
+                mock_client._recv_buffer = request_data
+                mock_client._is_websocket = request_data:find("Upgrade:%s*websocket") ~= nil
                 mock_client:_hook(0) -- Enable frame callbacks
                 
                 table.insert(_G.socket._clients, mock_client)
@@ -298,21 +311,21 @@ while _G.socket._running and loop_count < 50000 do
         end
     end
     
-    -- Monitor existing clients for additional data (WebSocket frames)
+    -- Monitor existing clients for WebSocket frame data
     for i = #_G.socket._clients, 1, -1 do
         local client = _G.socket._clients[i]
-        if client._s then
+        if client._s and client._is_websocket then
             client._s:settimeout(0)
-            local frame_data = ""
             
-            -- Try to read WebSocket frame data
-            for j = 1, 30 do -- Increase read attempts for WebSocket frames
+            -- Read raw TCP data for WebSocket frames
+            local new_data = ""
+            repeat
                 local chunk, err = client._s:receive(1)
                 if chunk then
-                    frame_data = frame_data .. chunk
+                    new_data = new_data .. chunk
                 elseif err ~= "timeout" then
                     -- Client disconnected
-                    if #frame_data == 0 then
+                    if #new_data == 0 then
                         client._s:close()
                         table.remove(_G.socket._clients, i)
                         break
@@ -322,15 +335,14 @@ while _G.socket._running and loop_count < 50000 do
                 else
                     break -- No more data available
                 end
-            end
+            until #new_data > 200 -- Read reasonable chunk for WebSocket frames
             
-            -- If we got new WebSocket frame data, buffer it and trigger callbacks
-            if #frame_data > 0 then
-                if client._buffer then
-                    client._buffer = client._buffer .. frame_data
-                else
-                    client._buffer = frame_data
+            -- If we got new data, add it to receive buffer
+            if #new_data > 0 then
+                if not client._recv_buffer then
+                    client._recv_buffer = ""
                 end
+                client._recv_buffer = client._recv_buffer .. new_data
                 
                 -- Trigger received callbacks for this client
                 client:_dispatch('received')
