@@ -1,21 +1,28 @@
+/**
+ * Unit tests for general Pokemon save parser functionality
+ * Tests core functionality independent of specific game configurations
+ */
+
 import { beforeAll, describe, expect, it } from 'vitest'
 import { PokemonSaveParser } from '../core/pokemonSaveParser'
 import { QuetzalConfig } from '../games/quetzal/config'
+import { VanillaConfig } from '../games/vanilla/config'
 import { bytesToGbaString } from '../core/utils'
 
-describe('PokemonSaveParser - Unit Tests', () => {
-  let parser: PokemonSaveParser
-  let config: QuetzalConfig
+describe('Pokemon Save Parser - Unit Tests', () => {
+  let quetzalConfig: QuetzalConfig
+  let vanillaConfig: VanillaConfig
 
   beforeAll(() => {
-    config = new QuetzalConfig()
-    parser = new PokemonSaveParser(undefined, config)
+    quetzalConfig = new QuetzalConfig()
+    vanillaConfig = new VanillaConfig()
   })
 
-  describe('Constructor', () => {
+  describe('Constructor and Configuration', () => {
     it('should create parser without forced slot', () => {
       const defaultParser = new PokemonSaveParser()
       expect(defaultParser).toBeInstanceOf(PokemonSaveParser)
+      expect(defaultParser.getGameConfig()).toBe(null)
     })
 
     it('should create parser with forced slot 1', () => {
@@ -29,25 +36,36 @@ describe('PokemonSaveParser - Unit Tests', () => {
     })
 
     it('should create parser with config injection', () => {
-      const configParser = new PokemonSaveParser(undefined, config)
+      const configParser = new PokemonSaveParser(undefined, quetzalConfig)
       expect(configParser).toBeInstanceOf(PokemonSaveParser)
-      expect(configParser.getGameConfig()).toBe(config)
+      expect(configParser.getGameConfig()).toBe(quetzalConfig)
+    })
+
+    it('should allow config to be set after construction', () => {
+      const parser = new PokemonSaveParser()
+      expect(parser.getGameConfig()).toBe(null)
+
+      parser.setGameConfig(quetzalConfig)
+      expect(parser.getGameConfig()).toBe(quetzalConfig)
     })
   })
 
-  describe('Save File Loading', () => {
+  describe('File Format Validation', () => {
     it('should accept ArrayBuffer input', async () => {
+      const parser = new PokemonSaveParser(undefined, quetzalConfig)
       const buffer = new ArrayBuffer(131072) // 128KB
       await expect(parser.loadSaveFile(buffer)).resolves.not.toThrow()
     })
 
     it('should accept File input', async () => {
+      const parser = new PokemonSaveParser(undefined, quetzalConfig)
       const buffer = new ArrayBuffer(131072)
       const file = new File([buffer], 'test.sav', { type: 'application/octet-stream' })
       await expect(parser.loadSaveFile(file)).resolves.not.toThrow()
     })
 
-    it('should reject empty ArrayBuffer', async () => {
+    it('should handle empty ArrayBuffer', async () => {
+      const parser = new PokemonSaveParser(undefined, quetzalConfig)
       const emptyBuffer = new ArrayBuffer(0)
       await expect(parser.loadSaveFile(emptyBuffer)).resolves.not.toThrow() // Loading should work, parsing should fail
     })
@@ -59,40 +77,55 @@ describe('PokemonSaveParser - Unit Tests', () => {
     })
   })
 
-  describe('Constants Validation', () => {
-    it('should have valid constants defined', () => {
-      expect(config.saveLayout.sectorSize).toBeDefined()
-      expect(config.saveLayout.sectorSize).toBeGreaterThan(0)
+  describe('Configuration Constants Validation', () => {
+    it('should have valid Quetzal constants defined', () => {
+      expect(quetzalConfig.saveLayout.sectorSize).toBeDefined()
+      expect(quetzalConfig.saveLayout.sectorSize).toBeGreaterThan(0)
 
-      expect(config.saveLayout.sectorDataSize).toBeDefined()
-      expect(config.saveLayout.sectorDataSize).toBeGreaterThan(0)
+      expect(quetzalConfig.saveLayout.sectorDataSize).toBeDefined()
+      expect(quetzalConfig.saveLayout.sectorDataSize).toBeGreaterThan(0)
 
-      expect(config.saveLayout.maxPartySize).toBeDefined()
-      expect(config.saveLayout.maxPartySize).toBe(6)
+      expect(quetzalConfig.saveLayout.maxPartySize).toBeDefined()
+      expect(quetzalConfig.saveLayout.maxPartySize).toBe(6)
 
-      expect(config.pokemonSize).toBeDefined()
-      expect(config.pokemonSize).toBeGreaterThan(0)
+      expect(quetzalConfig.pokemonSize).toBeDefined()
+      expect(quetzalConfig.pokemonSize).toBeGreaterThan(0)
+    })
+
+    it('should have valid vanilla constants defined', () => {
+      expect(vanillaConfig.saveLayout.sectorSize).toBeDefined()
+      expect(vanillaConfig.saveLayout.sectorSize).toBeGreaterThan(0)
+
+      expect(vanillaConfig.saveLayout.sectorDataSize).toBeDefined()
+      expect(vanillaConfig.saveLayout.sectorDataSize).toBeGreaterThan(0)
+
+      expect(vanillaConfig.saveLayout.maxPartySize).toBeDefined()
+      expect(vanillaConfig.saveLayout.maxPartySize).toBe(6)
+
+      expect(vanillaConfig.saveLayout.pokemonSize).toBeDefined()
+      expect(vanillaConfig.saveLayout.pokemonSize).toBeGreaterThan(0)
     })
   })
 
   describe('Error Handling', () => {
     it('should throw error when parsing without loaded data', async () => {
-      const freshParser = new PokemonSaveParser(undefined, config)
+      const freshParser = new PokemonSaveParser(undefined, quetzalConfig)
       const buffer = new ArrayBuffer(1024) // Small buffer that will fail validation
       await expect(freshParser.parseSaveFile(buffer)).rejects.toThrow()
     })
 
-    it('should handle corrupted sector data', async () => {
-      const corruptedBuffer = new ArrayBuffer(config.saveLayout.sectorSize * 32)
+    it('should handle corrupted sector data gracefully', async () => {
+      const parser = new PokemonSaveParser(undefined, quetzalConfig)
+      const corruptedBuffer = new ArrayBuffer(quetzalConfig.saveLayout.sectorSize * 32)
       await expect(parser.parseSaveFile(corruptedBuffer)).rejects.toThrow()
     })
   })
 
   describe('Forced Slot Behavior', () => {
     it('should respect forced slot 1', async () => {
-      const slot1Parser = new PokemonSaveParser(1, config)
+      const slot1Parser = new PokemonSaveParser(1, quetzalConfig)
       // Create a buffer with some mock sector data
-      const mockBuffer = new ArrayBuffer(config.saveLayout.sectorSize * 32)
+      const mockBuffer = new ArrayBuffer(quetzalConfig.saveLayout.sectorSize * 32)
 
       try {
         const result = await slot1Parser.parseSaveFile(mockBuffer)
@@ -104,8 +137,8 @@ describe('PokemonSaveParser - Unit Tests', () => {
     })
 
     it('should respect forced slot 2', async () => {
-      const slot2Parser = new PokemonSaveParser(2, config)
-      const mockBuffer = new ArrayBuffer(config.saveLayout.sectorSize * 32)
+      const slot2Parser = new PokemonSaveParser(2, quetzalConfig)
+      const mockBuffer = new ArrayBuffer(quetzalConfig.saveLayout.sectorSize * 32)
 
       try {
         const result = await slot2Parser.parseSaveFile(mockBuffer)
@@ -118,7 +151,7 @@ describe('PokemonSaveParser - Unit Tests', () => {
   })
 
   describe('Text Decoding', () => {
-    it('should decode nicknames with spaces correctly', () => {
+    it('should decode Pokemon text with spaces correctly', () => {
       // Test case 1: "my mon" using byte 0 for space (full-width space as used in Pokemon)
       // Character mappings: 'm' = 225, 'y' = 237, ' ' = 0 (full-width), 'o' = 227, 'n' = 226
       const nickname1 = new Uint8Array([225, 237, 0, 225, 227, 226, 0xFF, 0xFF, 0xFF, 0xFF])
@@ -134,9 +167,7 @@ describe('PokemonSaveParser - Unit Tests', () => {
       expect(bytesToGbaString(nickname3)).toBe('AB')
 
       // Test case 4: If regular ASCII space is actually used (byte 255 from charmap)
-      // This might be the case if the charmap is correct
       const nickname4 = new Uint8Array([225, 237, 255, 225, 227, 226])
-      // Since we now know 255 is in the charmap as a space, let's see what happens
       expect(bytesToGbaString(nickname4)).toBe('my mon')
     })
 
@@ -153,21 +184,74 @@ describe('PokemonSaveParser - Unit Tests', () => {
       const withControl = new Uint8Array([187, 250, 188, 0xFF]) // "A[line break]B" - should skip line break
       expect(bytesToGbaString(withControl)).toBe('AB')
     })
+
+    it('should handle various termination scenarios', () => {
+      // String terminated with 0xFF
+      const terminated1 = new Uint8Array([187, 188, 189, 0xFF, 0xFF])
+      expect(bytesToGbaString(terminated1)).toBe('ABC')
+
+      // String without termination (full buffer)
+      const noTermination = new Uint8Array([187, 188, 189, 190, 191])
+      expect(bytesToGbaString(noTermination)).toBe('ABCDE')
+
+      // String with 0xFF followed by garbage (low bytes trigger termination)
+      const withGarbage = new Uint8Array([187, 188, 0xFF, 0x05, 0x02])
+      expect(bytesToGbaString(withGarbage)).toBe('AB')
+    })
   })
 
-  describe('Game Config and Auto-Detection', () => {
-    it('should allow manual config injection', () => {
-      const parserWithConfig = new PokemonSaveParser(undefined, config)
-      expect(parserWithConfig.getGameConfig()).toBe(config)
-      expect(parserWithConfig.getGameConfig()?.name).toBe('Pokemon Quetzal')
+  describe('Config-Specific Functionality', () => {
+    it('should handle Quetzal-specific config features', () => {
+      expect(quetzalConfig.name).toBe('Pokemon Quetzal')
+      expect(quetzalConfig.pokemonSize).toBe(104) // Larger than vanilla
+      expect(quetzalConfig.offsetOverrides).toBeDefined()
+      expect(quetzalConfig.saveLayoutOverrides).toBeDefined()
     })
 
-    it('should allow config to be set after construction', () => {
-      const parser = new PokemonSaveParser()
-      expect(parser.getGameConfig()).toBe(null)
+    it('should handle vanilla config features', () => {
+      expect(vanillaConfig.name).toBe('Pokemon Emerald (Vanilla)')
+      expect(vanillaConfig.mappings).toBeDefined()
+      expect(vanillaConfig.mappings.pokemon).toBeDefined()
+      expect(vanillaConfig.mappings.moves).toBeDefined()
+      expect(vanillaConfig.mappings.items).toBeDefined()
+    })
+  })
 
-      parser.setGameConfig(config)
-      expect(parser.getGameConfig()).toBe(config)
+  describe('Mapping System Validation', () => {
+    it('should have functional Pokemon mappings for vanilla', () => {
+      const mapping = vanillaConfig.mappings.pokemon
+      expect(mapping).toBeDefined()
+      expect(mapping.size).toBeGreaterThan(0)
+
+      // Test specific mapping (Treecko: 277 -> 252)
+      const treecko = mapping.get(277)
+      expect(treecko).toBeDefined()
+      expect(treecko?.id).toBe(252)
+      expect(treecko?.name).toBe('Treecko') // Capitalized in the mapping
+    })
+
+    it('should have functional move mappings for vanilla', () => {
+      const mapping = vanillaConfig.mappings.moves
+      expect(mapping).toBeDefined()
+      expect(mapping.size).toBeGreaterThan(0)
+
+      // Test specific mappings
+      const pound = mapping.get(1)
+      expect(pound).toBeDefined()
+      expect(pound?.id).toBe(1)
+      expect(pound?.name).toBe('Pound') // Capitalized in the mapping
+    })
+
+    it('should have functional item mappings for vanilla', () => {
+      const mapping = vanillaConfig.mappings.items
+      expect(mapping).toBeDefined()
+      expect(mapping.size).toBeGreaterThan(0)
+    })
+
+    it('should have functional mappings for Quetzal', () => {
+      expect(quetzalConfig.mappings.pokemon.size).toBeGreaterThan(0)
+      expect(quetzalConfig.mappings.moves.size).toBeGreaterThan(0)
+      expect(quetzalConfig.mappings.items.size).toBeGreaterThan(0)
     })
   })
 })

@@ -116,7 +116,8 @@ export class QuetzalConfig extends BaseGameConfig implements GameConfig {
 
   setEV (_data: Uint8Array, view: DataView, index: number, value: number): void {
     const evOffsets = [this.quetzalOffsets.hpEV, this.quetzalOffsets.atkEV, this.quetzalOffsets.defEV, this.quetzalOffsets.speEV, this.quetzalOffsets.spaEV, this.quetzalOffsets.spdEV]
-    view.setUint8(evOffsets[index]!, value)
+    const clampedValue = Math.max(0, Math.min(255, value))
+    view.setUint8(evOffsets[index]!, clampedValue)
   }
 
   getIVs (_data: Uint8Array, view: DataView): readonly number[] {
@@ -128,7 +129,8 @@ export class QuetzalConfig extends BaseGameConfig implements GameConfig {
     if (values.length !== 6) throw new Error('IVs array must have 6 values')
     let packed = 0
     for (let i = 0; i < 6; i++) {
-      packed |= (values[i]! & 0x1F) << (i * 5)
+      const clampedValue = Math.max(0, Math.min(31, values[i]!))
+      packed |= (clampedValue & 0x1F) << (i * 5)
     }
     view.setUint32(this.quetzalOffsets.ivData, packed, true)
   }

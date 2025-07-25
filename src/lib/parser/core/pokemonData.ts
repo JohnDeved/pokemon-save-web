@@ -81,6 +81,30 @@ export class PokemonData {
     return orderTable[personality % 24]!
   }
 
+  protected setEncryptedSubstruct (substructIndex: number, decryptedData: Uint8Array): void {
+    const view = new DataView(this.data.buffer, this.data.byteOffset, this.data.byteLength)
+    const personality = view.getUint32(0x00, true)
+    const order = this.getSubstructOrder(personality)
+    const actualIndex = order[substructIndex]!
+    const substructOffset = 0x20 + actualIndex * 12
+
+    if (decryptedData.length !== 12) {
+      throw new Error(`Substruct data must be 12 bytes, got ${decryptedData.length}`)
+    }
+
+    // Encrypt the data
+    const key = this.getEncryptionKey(this.data)
+    for (let i = 0; i < 12; i += 4) {
+      const decView = new DataView(decryptedData.buffer, decryptedData.byteOffset + i, 4)
+      const decrypted = decView.getUint32(0, true)
+      const encrypted = decrypted ^ key
+
+      // Write encrypted data back to original location
+      const origView = new DataView(this.data.buffer, this.data.byteOffset + substructOffset + i, 4)
+      origView.setUint32(0, encrypted, true)
+    }
+  }
+
   protected getDecryptedSubstruct (data: Uint8Array, substructIndex: number): Uint8Array {
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
     const personality = view.getUint32(0x00, true)
@@ -299,8 +323,19 @@ export class PokemonData {
     }
   }
 
-  private setVanillaEV (_index: number, _value: number): void {
-    console.warn('Setting EVs on vanilla Pokemon is not yet implemented')
+  private setVanillaEV (index: number, value: number): void {
+    try {
+      // Get current substruct 2 (EVs)
+      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+
+      // Modify the EV at the given index
+      substruct2[index] = Math.max(0, Math.min(255, value))
+
+      // Encrypt and write back to the original data
+      this.setEncryptedSubstruct(2, substruct2)
+    } catch (error) {
+      console.warn('Failed to set vanilla EV:', error)
+    }
   }
 
   private getVanillaIVs (): readonly number[] {
@@ -322,8 +357,31 @@ export class PokemonData {
     }
   }
 
-  private setVanillaIVs (_values: readonly number[]): void {
-    console.warn('Setting IVs on vanilla Pokemon is not yet implemented')
+  private setVanillaIVs (values: readonly number[]): void {
+    try {
+      if (values.length !== 6) throw new Error('IVs array must have 6 values')
+
+      // Get current substruct 3 (IVs and other data)
+      const substruct3 = this.getDecryptedSubstruct(this.data, 3)
+      const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
+
+      // Pack IVs into 32-bit value (same format as reading)
+      let ivData = 0
+      ivData |= (values[0]! & 0x1F) << 0 // HP
+      ivData |= (values[1]! & 0x1F) << 5 // Attack
+      ivData |= (values[2]! & 0x1F) << 10 // Defense
+      ivData |= (values[3]! & 0x1F) << 15 // Speed
+      ivData |= (values[4]! & 0x1F) << 20 // Sp. Attack
+      ivData |= (values[5]! & 0x1F) << 25 // Sp. Defense
+
+      // Write the packed IV data back to substruct 3 at offset 4
+      subView.setUint32(4, ivData, true)
+
+      // Encrypt and write back to the original data
+      this.setEncryptedSubstruct(3, substruct3)
+    } catch (error) {
+      console.warn('Failed to set vanilla IVs:', error)
+    }
   }
 
   private getVanillaIsShiny (): boolean {
