@@ -7,9 +7,11 @@ import { readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { PokemonSaveParser } from '../pokemonSaveParser'
-import type { SaveData } from '../types'
-import { calculateTotalStats } from '../utils'
+import { autoDetectGameConfig } from '../core/autoDetect'
+import { PokemonSaveParser } from '../core/pokemonSaveParser'
+import { QuetzalConfig } from '../games/quetzal/config'
+import type { SaveData } from '../core/types'
+import { calculateTotalStats } from '../core/utils'
 
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
@@ -27,6 +29,7 @@ describe('PokemonSaveParser - Integration Tests', () => {
   }
 
   beforeAll(async () => {
+    // Start with auto-detection parser
     parser = new PokemonSaveParser()
 
     try {
@@ -47,6 +50,26 @@ describe('PokemonSaveParser - Integration Tests', () => {
       console.warn('Could not load test data files:', error)
       // Skip these tests if files are not available
     }
+  })
+
+  describe('Auto-Detection', () => {
+    it('should auto-detect Quetzal config from save file', () => {
+      const saveData = new Uint8Array(testSaveData)
+      const detectedConfig = autoDetectGameConfig(saveData)
+
+      expect(detectedConfig).not.toBeNull()
+      expect(detectedConfig).toBeInstanceOf(QuetzalConfig)
+      expect(detectedConfig!.name).toBe('Pokemon Quetzal')
+    })
+
+    it('should use auto-detected config in parser', async () => {
+      const autoDetectParser = new PokemonSaveParser()
+      const result = await autoDetectParser.parseSaveFile(testSaveData)
+
+      expect(autoDetectParser.getGameConfig()).toBeInstanceOf(QuetzalConfig)
+      expect(autoDetectParser.getGameConfig()!.name).toBe('Pokemon Quetzal')
+      expect(result.party_pokemon).toHaveLength(groundTruth.party_pokemon.length)
+    })
   })
 
   describe('Real Save File Parsing', () => {

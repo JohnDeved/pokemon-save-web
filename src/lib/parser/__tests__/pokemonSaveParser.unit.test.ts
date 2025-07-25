@@ -1,13 +1,15 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { PokemonSaveParser } from '../pokemonSaveParser'
-import { CONSTANTS } from '../types'
-import { bytesToGbaString } from '../utils'
+import { PokemonSaveParser } from '../core/pokemonSaveParser'
+import { QuetzalConfig } from '../games/quetzal/config'
+import { bytesToGbaString } from '../core/utils'
 
 describe('PokemonSaveParser - Unit Tests', () => {
   let parser: PokemonSaveParser
+  let config: QuetzalConfig
 
   beforeAll(() => {
-    parser = new PokemonSaveParser()
+    config = new QuetzalConfig()
+    parser = new PokemonSaveParser(undefined, config)
   })
 
   describe('Constructor', () => {
@@ -24,6 +26,12 @@ describe('PokemonSaveParser - Unit Tests', () => {
     it('should create parser with forced slot 2', () => {
       const slot2Parser = new PokemonSaveParser(2)
       expect(slot2Parser).toBeInstanceOf(PokemonSaveParser)
+    })
+
+    it('should create parser with config injection', () => {
+      const configParser = new PokemonSaveParser(undefined, config)
+      expect(configParser).toBeInstanceOf(PokemonSaveParser)
+      expect(configParser.getGameConfig()).toBe(config)
     })
   })
 
@@ -43,48 +51,54 @@ describe('PokemonSaveParser - Unit Tests', () => {
       const emptyBuffer = new ArrayBuffer(0)
       await expect(parser.loadSaveFile(emptyBuffer)).resolves.not.toThrow() // Loading should work, parsing should fail
     })
+
+    it('should fail auto-detection without config', async () => {
+      const parserWithoutConfig = new PokemonSaveParser()
+      const buffer = new ArrayBuffer(131072)
+      await expect(parserWithoutConfig.loadSaveFile(buffer)).rejects.toThrow('Unable to detect game type from save file')
+    })
   })
 
   describe('Constants Validation', () => {
     it('should have valid constants defined', () => {
-      expect(CONSTANTS.SECTOR_SIZE).toBeDefined()
-      expect(CONSTANTS.SECTOR_SIZE).toBeGreaterThan(0)
+      expect(config.offsets.sectorSize).toBeDefined()
+      expect(config.offsets.sectorSize).toBeGreaterThan(0)
 
-      expect(CONSTANTS.SECTOR_DATA_SIZE).toBeDefined()
-      expect(CONSTANTS.SECTOR_DATA_SIZE).toBeGreaterThan(0)
+      expect(config.offsets.sectorDataSize).toBeDefined()
+      expect(config.offsets.sectorDataSize).toBeGreaterThan(0)
 
-      expect(CONSTANTS.SECTOR_FOOTER_SIZE).toBeDefined()
-      expect(CONSTANTS.SECTOR_FOOTER_SIZE).toBeGreaterThan(0)
+      expect(config.offsets.sectorFooterSize).toBeDefined()
+      expect(config.offsets.sectorFooterSize).toBeGreaterThan(0)
 
-      expect(CONSTANTS.EMERALD_SIGNATURE).toBeDefined()
-      expect(CONSTANTS.EMERALD_SIGNATURE).toBeTypeOf('number')
+      expect(config.signature).toBeDefined()
+      expect(config.signature).toBeTypeOf('number')
 
-      expect(CONSTANTS.MAX_PARTY_SIZE).toBeDefined()
-      expect(CONSTANTS.MAX_PARTY_SIZE).toBe(6)
+      expect(config.offsets.maxPartySize).toBeDefined()
+      expect(config.offsets.maxPartySize).toBe(6)
 
-      expect(CONSTANTS.PARTY_POKEMON_SIZE).toBeDefined()
-      expect(CONSTANTS.PARTY_POKEMON_SIZE).toBeGreaterThan(0)
+      expect(config.offsets.partyPokemonSize).toBeDefined()
+      expect(config.offsets.partyPokemonSize).toBeGreaterThan(0)
     })
   })
 
   describe('Error Handling', () => {
     it('should throw error when parsing without loaded data', async () => {
-      const freshParser = new PokemonSaveParser()
+      const freshParser = new PokemonSaveParser(undefined, config)
       const buffer = new ArrayBuffer(1024) // Small buffer that will fail validation
       await expect(freshParser.parseSaveFile(buffer)).rejects.toThrow()
     })
 
     it('should handle corrupted sector data', async () => {
-      const corruptedBuffer = new ArrayBuffer(CONSTANTS.SECTOR_SIZE * 32)
+      const corruptedBuffer = new ArrayBuffer(config.offsets.sectorSize * 32)
       await expect(parser.parseSaveFile(corruptedBuffer)).rejects.toThrow()
     })
   })
 
   describe('Forced Slot Behavior', () => {
     it('should respect forced slot 1', async () => {
-      const slot1Parser = new PokemonSaveParser(1)
+      const slot1Parser = new PokemonSaveParser(1, config)
       // Create a buffer with some mock sector data
-      const mockBuffer = new ArrayBuffer(CONSTANTS.SECTOR_SIZE * 32)
+      const mockBuffer = new ArrayBuffer(config.offsets.sectorSize * 32)
 
       try {
         const result = await slot1Parser.parseSaveFile(mockBuffer)
@@ -96,8 +110,8 @@ describe('PokemonSaveParser - Unit Tests', () => {
     })
 
     it('should respect forced slot 2', async () => {
-      const slot2Parser = new PokemonSaveParser(2)
-      const mockBuffer = new ArrayBuffer(CONSTANTS.SECTOR_SIZE * 32)
+      const slot2Parser = new PokemonSaveParser(2, config)
+      const mockBuffer = new ArrayBuffer(config.offsets.sectorSize * 32)
 
       try {
         const result = await slot2Parser.parseSaveFile(mockBuffer)
@@ -144,6 +158,22 @@ describe('PokemonSaveParser - Unit Tests', () => {
       // String with control characters that should be skipped
       const withControl = new Uint8Array([187, 250, 188, 0xFF]) // "A[line break]B" - should skip line break
       expect(bytesToGbaString(withControl)).toBe('AB')
+    })
+  })
+
+  describe('Game Config and Auto-Detection', () => {
+    it('should allow manual config injection', () => {
+      const parserWithConfig = new PokemonSaveParser(undefined, config)
+      expect(parserWithConfig.getGameConfig()).toBe(config)
+      expect(parserWithConfig.getGameConfig()?.name).toBe('Pokemon Quetzal')
+    })
+
+    it('should allow config to be set after construction', () => {
+      const parser = new PokemonSaveParser()
+      expect(parser.getGameConfig()).toBe(null)
+
+      parser.setGameConfig(config)
+      expect(parser.getGameConfig()).toBe(config)
     })
   })
 })
