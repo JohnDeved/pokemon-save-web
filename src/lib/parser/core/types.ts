@@ -1,6 +1,6 @@
 /**
  * TypeScript type definitions for Pokemon save file parsing
- * Port of poke_types.py with modern TypeScript features
+ * Redesigned with vanilla Emerald as baseline and clean override system
  */
 
 import type { PokemonData } from './pokemonData'
@@ -69,9 +69,7 @@ export interface SaveData {
   readonly rawSaveData: Uint8Array // Add raw save data for rehydration
 }
 
-// GameConfig interfaces for dependency injection
-
-// Simplified mapping interfaces using inheritance
+// Mapping interfaces for ID translation
 interface BaseMapping {
   readonly name: string
   readonly id_name: string
@@ -90,74 +88,100 @@ export interface MoveMapping extends BaseMapping {
 }
 
 /**
- * Pokemon data offsets (vanilla Emerald baseline)
+ * Vanilla Pokemon Emerald configuration (baseline)
+ * All offsets and layouts defined here represent the vanilla game structure
  */
-export interface PokemonOffsets {
-  readonly personality: number
-  readonly otId: number
-  readonly nickname: number
-  readonly nicknameLength: number
-  readonly otName: number
-  readonly otNameLength: number
-  readonly currentHp: number
-  readonly maxHp: number
-  readonly attack: number
-  readonly defense: number
-  readonly speed: number
-  readonly spAttack: number
-  readonly spDefense: number
-  readonly status: number
-  readonly level: number
+export const VANILLA_POKEMON_OFFSETS = {
+  // Basic Pokemon data (unencrypted section)
+  personality: 0x00,
+  otId: 0x04,
+  nickname: 0x08,
+  nicknameLength: 10,
+  otName: 0x14,
+  otNameLength: 7,
+  currentHp: 0x56,
+  maxHp: 0x58,
+  attack: 0x5A,
+  defense: 0x5C,
+  speed: 0x5E,
+  spAttack: 0x60,
+  spDefense: 0x62,
+  status: 0x50,
+  level: 0x54,
+}
+
+export const VANILLA_SAVE_LAYOUT = {
+  sectorSize: 4096,
+  sectorDataSize: 3968,
+  sectorCount: 32,
+  slotsPerSave: 18,
+  saveBlockSize: 3968 * 4,
+  partyOffset: 0x238,
+  partyCountOffset: 0x234,
+  pokemonSize: 100,
+  maxPartySize: 6,
+  playTimeHours: 0x0E,
+  playTimeMinutes: 0x10,
+  playTimeSeconds: 0x11,
 }
 
 /**
- * Save file layout structure (vanilla Emerald baseline)
+ * Vanilla Pokemon Emerald game signature
  */
-export interface SaveLayout {
-  readonly sectorSize: number
-  readonly sectorDataSize: number
-  readonly sectorCount: number
-  readonly slotsPerSave: number
-  readonly saveBlockSize: number
-  readonly partyOffset: number
-  readonly partyCountOffset: number
-  readonly pokemonSize: number
-  readonly maxPartySize: number
-  readonly playTimeHours: number
-  readonly playTimeMinutes: number
-  readonly playTimeSeconds: number
+export const VANILLA_EMERALD_SIGNATURE = 0x08012025
+
+/**
+ * Type definitions for overridable configurations
+ */
+export type PokemonOffsetsOverride = {
+  readonly [K in keyof typeof VANILLA_POKEMON_OFFSETS]?: number
+}
+
+export type SaveLayoutOverride = {
+  readonly [K in keyof typeof VANILLA_SAVE_LAYOUT]?: number
 }
 
 /**
- * Simplified GameConfig interface
- * Provides only game-specific overrides, with vanilla Emerald as baseline
+ * Game configuration interface - minimal overrides only
+ * Vanilla Emerald behavior is the default, games only override what's different
  */
 export interface GameConfig {
   /** Human-readable name of the Pokemon game/ROM hack */
   readonly name: string
 
-  /** Unique signature for game detection */
-  readonly signature: number
+  /** Unique signature for game detection (defaults to vanilla Emerald) */
+  readonly signature?: number
 
   /** Pokemon size in bytes (defaults to 100 for vanilla) */
   readonly pokemonSize?: number
 
-  /** Basic offsets for unencrypted data (optional overrides) */
-  readonly offsets?: Partial<PokemonOffsets>
+  /** Offset overrides for games with different data layouts */
+  readonly offsetOverrides?: PokemonOffsetsOverride
 
-  /** Save file layout configuration (optional overrides) */
-  readonly saveLayout?: Partial<SaveLayout>
+  /** Save layout overrides for games with different save structures */
+  readonly saveLayoutOverrides?: SaveLayoutOverride
 
-  /** Determine which save slot is currently active (optional override) */
-  determineActiveSlot?(getCounterSum: (range: number[]) => number): number
+  /** Final merged save layout for easy access */
+  readonly saveLayout: Record<string, number>
+
+  /** ID mapping data for translating internal IDs to external IDs */
+  readonly mappings?: {
+    readonly pokemon?: ReadonlyMap<number, PokemonMapping>
+    readonly items?: ReadonlyMap<number, ItemMapping>
+    readonly moves?: ReadonlyMap<number, MoveMapping>
+  }
 
   /** Check if this config can handle the given save data */
   canHandle(saveData: Uint8Array): boolean
 
-  /** Calculate nature from personality value (optional override for game-specific formulas) */
+  // Optional behavioral overrides for game-specific mechanics
   calculateNature?(personality: number): string
+  determineActiveSlot?(getCounterSum: (range: number[]) => number): number
+  isShiny?(personality: number, otId: number): boolean
+  getShinyValue?(personality: number, otId: number): number
+  isRadiant?(personality: number, otId: number): boolean
 
-  // Optional game-specific data access method overrides
+  // Optional data structure overrides (for games with completely different layouts)
   getSpeciesId?(data: Uint8Array, view: DataView): number
   getPokemonName?(data: Uint8Array, view: DataView): string | undefined
   getItem?(data: Uint8Array, view: DataView): number
@@ -168,7 +192,4 @@ export interface GameConfig {
   setEV?(data: Uint8Array, view: DataView, index: number, value: number): void
   getIVs?(data: Uint8Array, view: DataView): readonly number[]
   setIVs?(data: Uint8Array, view: DataView, values: readonly number[]): void
-  getIsShiny?(data: Uint8Array, view: DataView): boolean
-  getShinyNumber?(data: Uint8Array, view: DataView): number
-  getIsRadiant?(data: Uint8Array, view: DataView): boolean
 }

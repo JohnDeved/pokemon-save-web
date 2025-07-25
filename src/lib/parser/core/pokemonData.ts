@@ -1,61 +1,32 @@
 /**
- * Pokemon data implementation based on vanilla Pokemon Emerald structure
- * Serves as the baseline with all vanilla Emerald logic built-in
- * Game-specific behavior is controlled via optional GameConfig overrides
+ * Pokemon data implementation with vanilla Pokemon Emerald as the baseline
+ * All vanilla behavior is built-in, game configs only override what's different
  */
 
-import type { GameConfig, PokemonOffsets, SaveLayout } from '../core/types'
+import type {
+  GameConfig,
+} from '../core/types'
+import {
+  VANILLA_POKEMON_OFFSETS,
+  VANILLA_SAVE_LAYOUT,
+} from '../core/types'
 import type { MoveData, PokemonMoves } from './types'
 import { bytesToGbaString, natureEffects, natures, statStrings } from './utils'
 
-// Vanilla Pokemon Emerald baseline configuration
-const VANILLA_OFFSETS: PokemonOffsets = {
-  personality: 0x00,
-  otId: 0x04,
-  nickname: 0x08,
-  nicknameLength: 10,
-  otName: 0x14,
-  otNameLength: 7,
-  currentHp: 0x56,
-  maxHp: 0x58,
-  attack: 0x5A,
-  defense: 0x5C,
-  speed: 0x5E,
-  spAttack: 0x60,
-  spDefense: 0x62,
-  status: 0x50,
-  level: 0x54,
-}
-
-const VANILLA_SAVE_LAYOUT: SaveLayout = {
-  sectorSize: 4096,
-  sectorDataSize: 3968,
-  sectorCount: 32,
-  slotsPerSave: 18,
-  saveBlockSize: 3968 * 4,
-  partyOffset: 0x238,
-  partyCountOffset: 0x234,
-  pokemonSize: 100,
-  maxPartySize: 6,
-  playTimeHours: 0x0E,
-  playTimeMinutes: 0x10,
-  playTimeSeconds: 0x11,
-}
-
 /**
- * Pokemon data class based on vanilla Pokemon Emerald with encryption support
- * Serves as the baseline implementation that can be overridden by game configs
+ * Pokemon data class with vanilla Pokemon Emerald as the baseline
+ * Game configs provide minimal overrides for different games
  */
 export class PokemonData {
   protected readonly view: DataView
   protected readonly config: GameConfig
-  protected readonly offsets: PokemonOffsets
-  protected readonly saveLayout: SaveLayout
+  protected readonly offsets: typeof VANILLA_POKEMON_OFFSETS
+  protected readonly saveLayout: typeof VANILLA_SAVE_LAYOUT
 
   constructor (protected readonly data: Uint8Array, config: GameConfig) {
     // Merge config overrides with vanilla defaults
-    this.offsets = { ...VANILLA_OFFSETS, ...config.offsets }
-    this.saveLayout = { ...VANILLA_SAVE_LAYOUT, ...config.saveLayout }
+    this.offsets = { ...VANILLA_POKEMON_OFFSETS, ...config.offsetOverrides }
+    this.saveLayout = { ...VANILLA_SAVE_LAYOUT, ...config.saveLayoutOverrides }
     const pokemonSize = config.pokemonSize ?? VANILLA_SAVE_LAYOUT.pokemonSize
 
     if (data.length < pokemonSize) {
@@ -134,35 +105,57 @@ export class PokemonData {
 
   // Game-specific data access with config overrides or vanilla defaults
   get speciesId () {
-    return this.config.getSpeciesId?.(this.data, this.view) ?? this.getVanillaSpeciesId()
+    const rawSpecies = this.config.getSpeciesId?.(this.data, this.view) ?? this.getVanillaSpeciesId()
+    // Apply ID mapping if available
+    return this.config.mappings?.pokemon?.get(rawSpecies)?.id ?? rawSpecies
   }
 
   get nameId () {
-    return this.config.getPokemonName?.(this.data, this.view) ?? this.getVanillaPokemonName()
+    const configName = this.config.getPokemonName?.(this.data, this.view)
+    if (configName) return configName
+    
+    // For vanilla, try to get name from mapping
+    const rawSpecies = this.getVanillaSpeciesId()
+    return this.config.mappings?.pokemon?.get(rawSpecies)?.name ?? this.getVanillaPokemonName()
   }
 
   get item () {
-    return this.config.getItem?.(this.data, this.view) ?? this.getVanillaItem()
+    const rawItem = this.config.getItem?.(this.data, this.view) ?? this.getVanillaItem()
+    // Apply ID mapping if available
+    return this.config.mappings?.items?.get(rawItem)?.id ?? rawItem
   }
 
   get itemIdName () {
-    return this.config.getItemName?.(this.data, this.view) ?? this.getVanillaItemName()
+    const configName = this.config.getItemName?.(this.data, this.view)
+    if (configName) return configName
+    
+    // For vanilla, try to get name from mapping
+    const rawItem = this.getVanillaItem()
+    return this.config.mappings?.items?.get(rawItem)?.name ?? this.getVanillaItemName()
   }
 
   get move1 () {
-    return this.config.getMove?.(this.data, this.view, 0) ?? this.getVanillaMove(0)
+    const rawMove = this.config.getMove?.(this.data, this.view, 0) ?? this.getVanillaMove(0)
+    // Apply ID mapping if available
+    return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
   get move2 () {
-    return this.config.getMove?.(this.data, this.view, 1) ?? this.getVanillaMove(1)
+    const rawMove = this.config.getMove?.(this.data, this.view, 1) ?? this.getVanillaMove(1)
+    // Apply ID mapping if available
+    return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
   get move3 () {
-    return this.config.getMove?.(this.data, this.view, 2) ?? this.getVanillaMove(2)
+    const rawMove = this.config.getMove?.(this.data, this.view, 2) ?? this.getVanillaMove(2)
+    // Apply ID mapping if available
+    return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
   get move4 () {
-    return this.config.getMove?.(this.data, this.view, 3) ?? this.getVanillaMove(3)
+    const rawMove = this.config.getMove?.(this.data, this.view, 3) ?? this.getVanillaMove(3)
+    // Apply ID mapping if available
+    return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
   get pp1 () {
@@ -238,15 +231,15 @@ export class PokemonData {
   }
 
   get isShiny (): boolean {
-    return this.config.getIsShiny?.(this.data, this.view) ?? this.getVanillaIsShiny()
+    return this.config.isShiny?.(this.personality, this.otId) ?? this.getVanillaIsShiny()
   }
 
   get shinyNumber (): number {
-    return this.config.getShinyNumber?.(this.data, this.view) ?? this.getVanillaShinyNumber()
+    return this.config.getShinyValue?.(this.personality, this.otId) ?? this.getVanillaShinyNumber()
   }
 
   get isRadiant (): boolean {
-    return this.config.getIsRadiant?.(this.data, this.view) ?? false // Vanilla doesn't have radiant
+    return this.config.isRadiant?.(this.personality, this.otId) ?? false // Vanilla doesn't have radiant
   }
 
   // Vanilla Emerald implementation methods (with encryption)

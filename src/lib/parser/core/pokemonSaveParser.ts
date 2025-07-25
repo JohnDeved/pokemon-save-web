@@ -7,70 +7,33 @@ import type {
   PlayTimeData,
   SaveData,
   SectorInfo,
-  SaveLayout,
-  PokemonOffsets,
 } from './types'
 
 import type { GameConfig } from '../core/types'
+import { VANILLA_EMERALD_SIGNATURE, VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from '../core/types'
 import { PokemonData } from './pokemonData'
-import { autoDetectGameConfig } from './autoDetect'
+import { GameConfigRegistry } from '../games'
 
 // Import character map for decoding text
 import charMap from '../data/pokemon_charmap.json'
 
-// Vanilla Emerald defaults (same as in PokemonData)
-const DEFAULT_POKEMON_SIZE = 100
-const DEFAULT_OFFSETS: PokemonOffsets = {
-  personality: 0x00,
-  otId: 0x04,
-  nickname: 0x08,
-  nicknameLength: 10,
-  otName: 0x14,
-  otNameLength: 7,
-  currentHp: 0x56,
-  maxHp: 0x58,
-  attack: 0x5A,
-  defense: 0x5C,
-  speed: 0x5E,
-  spAttack: 0x60,
-  spDefense: 0x62,
-  status: 0x50,
-  level: 0x54,
-}
-
-const DEFAULT_SAVE_LAYOUT: SaveLayout = {
-  sectorSize: 4096,
-  sectorDataSize: 3968,
-  sectorCount: 32,
-  slotsPerSave: 18,
-  saveBlockSize: 3968 * 4,
-  partyOffset: 0x238,
-  partyCountOffset: 0x234,
-  pokemonSize: 100,
-  maxPartySize: 6,
-  playTimeHours: 0x0E,
-  playTimeMinutes: 0x10,
-  playTimeSeconds: 0x11,
-}
-
 /**
- * Helper to merge config with defaults
+ * Effective configuration for the parser with defaults merged with config overrides
  */
-function getEffectiveConfig (config: GameConfig): {
+interface EffectiveConfig {
+  offsets: typeof VANILLA_POKEMON_OFFSETS
+  saveLayout: typeof VANILLA_SAVE_LAYOUT
   pokemonSize: number
-  offsets: PokemonOffsets
-  saveLayout: SaveLayout
-} {
+}
+
+function createEffectiveConfig (config: GameConfig): EffectiveConfig {
   return {
-    pokemonSize: config.pokemonSize ?? DEFAULT_POKEMON_SIZE,
-    offsets: { ...DEFAULT_OFFSETS, ...config.offsets },
-    saveLayout: { ...DEFAULT_SAVE_LAYOUT, ...config.saveLayout },
+    offsets: { ...VANILLA_POKEMON_OFFSETS, ...config.offsetOverrides },
+    saveLayout: { ...VANILLA_SAVE_LAYOUT, ...config.saveLayoutOverrides },
+    pokemonSize: config.pokemonSize ?? VANILLA_SAVE_LAYOUT.pokemonSize,
   }
 }
 
-/**
- * Parses raw Pokemon data from save file bytes into structured format
- */
 /**
  * Decode Pokemon character-encoded text to string
  */
@@ -149,7 +112,7 @@ export class PokemonSaveParser {
 
       // Auto-detect config if not provided
       if (!this.config) {
-        this.config = autoDetectGameConfig(this.saveData)
+        this.config = GameConfigRegistry.detectGameConfig(this.saveData)
         if (!this.config) {
           throw new Error('Unable to detect game type from save file')
         }
@@ -167,7 +130,7 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
-    const effectiveConfig = getEffectiveConfig(this.config)
+    const effectiveConfig = createEffectiveConfig(this.config)
     const footerOffset = (sectorIndex * effectiveConfig.saveLayout.sectorSize) + effectiveConfig.saveLayout.sectorSize - 12
 
     if (footerOffset + 12 > this.saveData.length) {
@@ -186,7 +149,7 @@ export class PokemonSaveParser {
       const signature = view.getUint32(4, true)
       const counter = view.getUint32(8, true)
 
-      if (signature !== this.config.signature) {
+      if (signature !== VANILLA_EMERALD_SIGNATURE) {
         return { id: sectorId, checksum, counter, valid: false }
       }
 
@@ -272,7 +235,7 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
-    const effectiveConfig = getEffectiveConfig(this.config)
+    const effectiveConfig = createEffectiveConfig(this.config)
     const saveblock1Sectors = [1, 2, 3, 4].filter(id => this.sectorMap.has(id))
     if (saveblock1Sectors.length === 0) {
       // Instead of throwing, return a zero-filled buffer to allow parsing to continue gracefully
@@ -304,7 +267,7 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
-    const effectiveConfig = getEffectiveConfig(this.config)
+    const effectiveConfig = createEffectiveConfig(this.config)
 
     if (!this.sectorMap.has(0)) {
       throw new Error('SaveBlock2 sector (ID 0) not found')
@@ -323,7 +286,7 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    const effectiveConfig = getEffectiveConfig(this.config)
+    const effectiveConfig = createEffectiveConfig(this.config)
     const partyPokemon: PokemonData[] = []
 
     for (let slot = 0; slot < effectiveConfig.saveLayout.maxPartySize; slot++) {
@@ -366,7 +329,7 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    const effectiveConfig = getEffectiveConfig(this.config)
+    const effectiveConfig = createEffectiveConfig(this.config)
     const view = new DataView(saveblock2Data.buffer, saveblock2Data.byteOffset)
 
     return {
@@ -384,7 +347,7 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    const effectiveConfig = getEffectiveConfig(this.config)
+    const effectiveConfig = createEffectiveConfig(this.config)
 
     if (sectorData.length < effectiveConfig.saveLayout.sectorDataSize) {
       return 0
@@ -418,7 +381,7 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    const effectiveConfig = getEffectiveConfig(this.config)
+    const effectiveConfig = createEffectiveConfig(this.config)
 
     if (saveblock1.length < effectiveConfig.saveLayout.saveBlockSize) {
       throw new Error(`SaveBlock1 must be at least ${effectiveConfig.saveLayout.saveBlockSize} bytes`)
@@ -492,7 +455,7 @@ export class PokemonSaveParser {
   reconstructSaveFile (partyPokemon: readonly PokemonData[]): Uint8Array {
     if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
 
-    const effectiveConfig = getEffectiveConfig(this.config)
+    const effectiveConfig = createEffectiveConfig(this.config)
     const baseSaveblock1 = this.extractSaveblock1()
     const updatedSaveblock1 = this.updatePartyInSaveblock1(baseSaveblock1, partyPokemon)
     const newSave = new Uint8Array(this.saveData)

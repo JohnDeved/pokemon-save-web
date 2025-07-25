@@ -67,9 +67,6 @@ describe('PokemonSaveParser - Unit Tests', () => {
       expect(config.saveLayout.sectorDataSize).toBeDefined()
       expect(config.saveLayout.sectorDataSize).toBeGreaterThan(0)
 
-      expect(config.signature).toBeDefined()
-      expect(config.signature).toBeTypeOf('number')
-
       expect(config.saveLayout.maxPartySize).toBeDefined()
       expect(config.saveLayout.maxPartySize).toBe(6)
 

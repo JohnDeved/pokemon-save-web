@@ -92,8 +92,8 @@ describe('Vanilla Emerald Save Parser', () => {
       const vanillaConfig = new VanillaConfig()
       const quetzalConfig = new QuetzalConfig()
 
-      // Vanilla should NOT handle Quetzal saves
-      expect(vanillaConfig.canHandle(quetzalData)).toBe(false)
+      // Vanilla SHOULD handle Quetzal saves (it's the fallback)
+      expect(vanillaConfig.canHandle(quetzalData)).toBe(true)
       // Quetzal SHOULD handle Quetzal saves
       expect(quetzalConfig.canHandle(quetzalData)).toBe(true)
 
