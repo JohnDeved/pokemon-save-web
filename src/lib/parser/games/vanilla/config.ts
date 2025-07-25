@@ -1,12 +1,15 @@
 /**
- * Vanilla Pokemon Emerald configuration stub
- * Provides basic configuration for vanilla Pokemon Emerald saves
- * This is a minimal example implementation
+ * Vanilla Pokemon Emerald configuration
+ * Provides complete configuration for vanilla Pokemon Emerald saves
+ * Based on pokeemerald official source constants
  */
 
-import type { GameConfig } from '../../core/types'
+import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
 import { BasePokemonData } from '../../core/pokemonData'
 import { natures } from '../../core/utils'
+import itemMapData from './data/item_map.json'
+import moveMapData from './data/move_map.json'
+import pokemonMapData from './data/pokemon_map.json'
 
 /**
  * Vanilla Pokemon Emerald data implementation
@@ -57,7 +60,7 @@ class VanillaPokemonData extends BasePokemonData {
       const substruct0 = this.getDecryptedSubstruct(0)
       const view = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
       const rawSpecies = view.getUint16(0, true) // species is first field in substruct 0
-      return rawSpecies // Return raw species ID directly for vanilla
+      return this.config.translations.translatePokemonId?.(rawSpecies) ?? rawSpecies
     } catch (error) {
       return 0
     }
@@ -68,7 +71,8 @@ class VanillaPokemonData extends BasePokemonData {
     try {
       const substruct0 = this.getDecryptedSubstruct(0)
       const view = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
-      return view.getUint16(2, true) // item is at offset 2 in substruct 0
+      const rawItem = view.getUint16(2, true) // item is at offset 2 in substruct 0
+      return this.config.translations.translateItemId?.(rawItem) ?? rawItem
     } catch {
       return 0
     }
@@ -95,7 +99,8 @@ class VanillaPokemonData extends BasePokemonData {
     try {
       const substruct1 = this.getDecryptedSubstruct(1)
       const view = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
-      return view.getUint16(index * 2, true) // Return raw move ID
+      const rawMove = view.getUint16(index * 2, true)
+      return this.config.translations.translateMoveId?.(rawMove) ?? rawMove
     } catch {
       return 0
     }
@@ -198,6 +203,25 @@ export class VanillaConfig implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
   readonly signature = 0x08012025 // Same as Quetzal for Emerald base
 
+  // Load mapping data with proper typing
+  private readonly pokemonMap = new Map<number, PokemonMapping>(
+    Object.entries(pokemonMapData as Record<string, unknown>)
+      .filter(([_, v]) => typeof v === 'object' && v !== null && 'id' in v && v.id !== null)
+      .map(([k, v]) => [parseInt(k, 10), v as PokemonMapping]),
+  )
+
+  private readonly moveMap = new Map<number, MoveMapping>(
+    Object.entries(moveMapData as Record<string, unknown>)
+      .filter(([_, v]) => typeof v === 'object' && v !== null && 'id' in v && v.id !== null)
+      .map(([k, v]) => [parseInt(k, 10), v as MoveMapping]),
+  )
+
+  private readonly itemMap = new Map<number, ItemMapping>(
+    Object.entries(itemMapData as Record<string, unknown>)
+      .filter(([_, v]) => typeof v === 'object' && v !== null && 'id' in v && v.id !== null)
+      .map(([k, v]) => [parseInt(k, 10), v as ItemMapping]),
+  )
+
   readonly layout = {
     // Sector configuration
     sectors: {
@@ -276,14 +300,14 @@ export class VanillaConfig implements GameConfig {
     },
   }
 
-  // No translations needed for vanilla - return raw values
+  // Translation functions for vanilla Emerald mapping
   readonly translations = {
-    translatePokemonId: undefined,
-    translateItemId: undefined,
-    translateMoveId: undefined,
-    translatePokemonName: undefined,
-    translateItemName: undefined,
-    translateMoveName: undefined,
+    translatePokemonId: (id: number) => this.pokemonMap.get(id)?.id ?? id,
+    translateItemId: (id: number) => this.itemMap.get(id)?.id ?? id,
+    translateMoveId: (id: number) => this.moveMap.get(id)?.id ?? id,
+    translatePokemonName: (id: number) => this.pokemonMap.get(id)?.name ?? `Unknown Pokemon ${id}`,
+    translateItemName: (id: number) => this.itemMap.get(id)?.name ?? `Unknown Item ${id}`,
+    translateMoveName: (id: number) => this.moveMap.get(id)?.name ?? `Unknown Move ${id}`,
   } as const
 
   /**
@@ -322,9 +346,40 @@ export class VanillaConfig implements GameConfig {
 
   /**
    * Check if this config can handle the given save file
-   * Acts as fallback - only accepts vanilla saves, rejects ROM hacks
+   * Acts as fallback - accepts saves that are roughly the right size
+   * and don't appear to be ROM hacks based on basic checks
    */
-  canHandle (_saveData: Uint8Array): boolean {
-    return true
+  canHandle (saveData: Uint8Array): boolean {
+    try {
+      // Basic size check - must be roughly the right size for an Emerald save
+      const size = saveData.length
+      if (size < 131072 || size > 131200) {
+        return false
+      }
+
+      // Quick check to see if this might be a ROM hack with extended data
+      // If we can find clear signs of ROM hack features, reject it
+      const view = new DataView(saveData.buffer, saveData.byteOffset, Math.min(saveData.length, 131072))
+
+      // Check for some common ROM hack patterns in the first few KB
+      // Most vanilla saves shouldn't have large non-zero values in specific ranges
+      let suspiciousValues = 0
+      for (let i = 0; i < Math.min(1000, saveData.length - 4); i += 4) {
+        const value = view.getUint32(i, true)
+        // Look for unusually large values that might indicate ROM hack features
+        if (value > 0x10000000) {
+          suspiciousValues++
+        }
+      }
+
+      // If too many suspicious values, probably a ROM hack
+      if (suspiciousValues > 50) {
+        return false
+      }
+
+      return true
+    } catch {
+      return false
+    }
   }
 }
