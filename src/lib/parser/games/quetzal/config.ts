@@ -157,7 +157,7 @@ export class QuetzalConfig implements GameConfig {
 
   /**
    * Check if this config can handle the given save file
-   * For Quetzal, we check for the Emerald signature and specific characteristics
+   * For Quetzal, we check for the Emerald signature and Quetzal-specific characteristics
    */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
@@ -166,6 +166,7 @@ export class QuetzalConfig implements GameConfig {
     }
 
     // Check for at least one valid sector with Emerald signature
+    let hasValidSignature = false
     for (let i = 0; i < this.offsets.totalSectors; i++) {
       const footerOffset = (i * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
 
@@ -178,13 +179,81 @@ export class QuetzalConfig implements GameConfig {
         const signature = view.getUint32(4, true)
 
         if (signature === this.signature) {
-          return true
+          hasValidSignature = true
+          break
         }
       } catch {
         continue
       }
     }
 
+    if (!hasValidSignature) {
+      return false
+    }
+
+    // Quetzal-specific detection: Look for extended Pokemon species or moves that indicate ROM hack
+    try {
+      const activeSlot = this.determineActiveSlot((sectors: number[]) => {
+        let sum = 0
+        for (const sectorIndex of sectors) {
+          const footerOffset = (sectorIndex * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
+          if (footerOffset + this.offsets.sectorFooterSize <= saveData.length) {
+            const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+            const signature = view.getUint32(4, true)
+            if (signature === this.signature) {
+              sum += view.getUint16(8, true) // counter
+            }
+          }
+        }
+        return sum
+      })
+
+      // Check party Pokemon for Quetzal-specific features in both possible slots
+      // Sometimes Pokemon data might be in a different slot than the "active" one
+      const slotsToCheck = [activeSlot, activeSlot === 0 ? 14 : 0]
+      
+      for (const slotToCheck of slotsToCheck) {
+        const saveBlock1Offset = slotToCheck * this.offsets.sectorSize
+        
+        for (let slot = 0; slot < this.offsets.maxPartySize; slot++) {
+          const pokemonOffset = saveBlock1Offset + this.offsets.partyStartOffset + (slot * this.offsets.partyPokemonSize)
+          
+          if (pokemonOffset + this.offsets.partyPokemonSize <= saveData.length) {
+            const pokemonData = new Uint8Array(saveData.buffer, saveData.byteOffset + pokemonOffset, this.offsets.partyPokemonSize)
+            
+            // Check if Pokemon slot is empty (species ID = 0)
+            const rawSpeciesId = new DataView(pokemonData.buffer, pokemonData.byteOffset + this.offsets.pokemonData.species, 2).getUint16(0, true)
+            if (rawSpeciesId === 0) {
+              break // End of party in this slot
+            }
+            
+            const pokemon = this.createPokemonData(pokemonData)
+            
+            // Check for Quetzal-specific features:
+            // 1. Species ID > 493 (indicates extended Pokedex)
+            if (rawSpeciesId > 493) {
+              return true // Definitely Quetzal with extended species
+            }
+            
+            // 2. Check for radiant Pokemon (shinyNumber === 2)
+            if (pokemon.isRadiant) {
+              return true // Radiant Pokemon are Quetzal-specific
+            }
+            
+            // 3. Check moves > standard Gen 3 range
+            const moves = [pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]
+            if (moves.some(moveId => moveId > 354)) { // Gen 3 has moves 1-354
+              return true // Extended move set indicates ROM hack
+            }
+          }
+        }
+      }
+    } catch {
+      // If any error occurs, fall back to basic signature check
+      return hasValidSignature
+    }
+
+    // If no Quetzal-specific features found, this is likely vanilla Emerald
     return false
   }
 }

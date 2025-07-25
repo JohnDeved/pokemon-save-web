@@ -362,7 +362,7 @@ export class VanillaConfig implements GameConfig {
 
   /**
    * Check if this config can handle the given save file
-   * For vanilla Emerald, we use heuristics to differentiate from ROM hacks
+   * For vanilla Emerald, we act as a fallback after ROM hack detection
    */
   canHandle (saveData: Uint8Array): boolean {
     // Basic size check
@@ -396,9 +396,45 @@ export class VanillaConfig implements GameConfig {
       return false
     }
 
-    // For now, return false by default since this should be the fallback config
-    // In practice, this will only be used when explicitly specified
-    // TODO: Add more specific detection logic to distinguish vanilla from ROM hacks
+    // Vanilla Emerald: Accept any valid Emerald save that doesn't have ROM hack features
+    // Since this config comes after ROM hack configs in the registry, it acts as a fallback
+    try {
+      const activeSlot = this.determineActiveSlot((sectors: number[]) => {
+        let sum = 0
+        for (const sectorIndex of sectors) {
+          const footerOffset = (sectorIndex * this.offsets.sectorSize) + this.offsets.sectorSize - this.offsets.sectorFooterSize
+          if (footerOffset + this.offsets.sectorFooterSize <= saveData.length) {
+            const view = new DataView(saveData.buffer, saveData.byteOffset + footerOffset, this.offsets.sectorFooterSize)
+            const signature = view.getUint32(4, true)
+            if (signature === this.signature) {
+              sum += view.getUint16(8, true) // counter
+            }
+          }
+        }
+        return sum
+      })
+
+      // Basic validation: check if we can parse the save structure
+      const saveBlock1Offset = activeSlot * this.offsets.sectorSize
+      
+      // Check if SaveBlock2 data looks reasonable
+      const slot2Offset = activeSlot === 0 ? 14 * this.offsets.sectorSize : 0
+      const playTimeOffset = slot2Offset + this.offsets.playTimeHours
+      if (playTimeOffset + 4 <= saveData.length) {
+        const view = new DataView(saveData.buffer, saveData.byteOffset + playTimeOffset, 4)
+        const hours = view.getUint16(0, true)
+        const minutes = view.getUint8(2)
+        
+        // Reasonable play time validation (not corrupted data)
+        if (hours <= 9999 && minutes <= 59) {
+          return true // Valid vanilla Emerald save
+        }
+      }
+    } catch {
+      // If any parsing error occurs, reject this save
+      return false
+    }
+
     return false
   }
 }

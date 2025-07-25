@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { PokemonSaveParser } from '../core/pokemonSaveParser'
 import { VanillaConfig } from '../games/vanilla/config'
+import { QuetzalConfig } from '../games/quetzal/config'
 import type { SaveData } from '../core/types'
 
 // Handle ES modules in Node.js
@@ -67,21 +68,41 @@ describe('Vanilla Emerald Save Parser', () => {
   })
 
   describe('Vanilla Config Detection', () => {
-    it('should handle emerald save file when explicitly configured', async () => {
-      // Note: Auto-detection is currently conservative and defaults to Quetzal
-      // This test verifies that vanilla parsing works when explicitly configured
+    it('should handle emerald save file when auto-detected', async () => {
       const config = new VanillaConfig()
       const saveData = new Uint8Array(testSaveData)
       
-      // For now, canHandle returns false as a conservative approach
-      // The config works correctly when explicitly provided to the parser
-      expect(config.canHandle(saveData)).toBe(false)
+      // Vanilla config should now handle the save file correctly
+      expect(config.canHandle(saveData)).toBe(true)
       
-      // But the parsing works correctly when the config is explicitly used
-      const vanillaParser = new PokemonSaveParser(undefined, config)
-      const result = await vanillaParser.parseSaveFile(testSaveData)
-      expect(result.party_pokemon.length).toBe(1)
-      expect(result.party_pokemon[0]?.speciesId).toBe(252)
+      // Auto-detection should also work correctly
+      const autoParser = new PokemonSaveParser()
+      const autoResult = await autoParser.parseSaveFile(testSaveData)
+      expect(autoResult.party_pokemon.length).toBe(1)
+      expect(autoResult.party_pokemon[0]?.speciesId).toBe(252)
+      expect(autoResult.party_pokemon[0]?.nature).toBe('Hasty')
+    })
+
+    it('should not interfere with Quetzal detection', async () => {
+      // Load Quetzal test data and verify it's detected as Quetzal, not Vanilla
+      const quetzalPath = resolve(__dirname, 'test_data', 'quetzal.sav')
+      const quetzalBuffer = readFileSync(quetzalPath)
+      const quetzalData = new Uint8Array(quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength))
+      
+      const vanillaConfig = new VanillaConfig()
+      const quetzalConfig = new QuetzalConfig()
+      
+      // Vanilla should NOT handle Quetzal saves
+      expect(vanillaConfig.canHandle(quetzalData)).toBe(false)
+      // Quetzal SHOULD handle Quetzal saves
+      expect(quetzalConfig.canHandle(quetzalData)).toBe(true)
+      
+      // Auto-detection should pick Quetzal for quetzal.sav
+      const autoParser = new PokemonSaveParser()
+      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
+      const autoResult = await autoParser.parseSaveFile(quetzalArrayBuffer)
+      expect(autoParser.gameConfig?.name).toBe('Pokemon Quetzal')
+      expect(autoResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon
     })
   })
 
