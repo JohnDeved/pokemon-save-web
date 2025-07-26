@@ -129,220 +129,236 @@ export class PokemonBase {
 
   // Game-specific data access with config overrides or vanilla defaults
   get speciesId () {
-    const rawSpecies = this.config.getSpeciesId?.(this.data, this.view) ?? this.getVanillaSpeciesId()
-    // Apply ID mapping if available
+    if (this.config.getSpeciesId) {
+      const rawSpecies = this.config.getSpeciesId(this.data, this.view)
+      return this.config.mappings?.pokemon?.get(rawSpecies)?.id ?? rawSpecies
+    }
+    // Vanilla: species ID is first 2 bytes of decrypted substruct 0
+    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+    const rawSpecies = subView.getUint16(0, true)
     return this.config.mappings?.pokemon?.get(rawSpecies)?.id ?? rawSpecies
   }
 
   get nameId () {
-    const configName = this.config.getPokemonName?.(this.data, this.view)
-    if (configName) return configName
-
-    // For vanilla, try to get name from mapping
-    const rawSpecies = this.getVanillaSpeciesId()
-    return this.config.mappings?.pokemon?.get(rawSpecies)?.name ?? this.getVanillaPokemonName()
+    if (this.config.getPokemonName) {
+      return this.config.getPokemonName(this.data, this.view)
+    }
+    // Vanilla: species ID is first 2 bytes of decrypted substruct 0
+    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+    const rawSpecies = subView.getUint16(0, true)
+    return this.config.mappings?.pokemon?.get(rawSpecies)?.name ?? undefined
   }
 
   get item () {
-    const rawItem = this.config.getItem?.(this.data, this.view) ?? this.getVanillaItem()
-    // Apply ID mapping if available
+    if (this.config.getItem) {
+      const rawItem = this.config.getItem(this.data, this.view)
+      return this.config.mappings?.items?.get(rawItem)?.id ?? rawItem
+    }
+    // Vanilla: item is bytes 2-3 of decrypted substruct 0
+    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+    const rawItem = subView.getUint16(2, true)
     return this.config.mappings?.items?.get(rawItem)?.id ?? rawItem
   }
 
   get itemIdName () {
-    const configName = this.config.getItemName?.(this.data, this.view)
-    if (configName) return configName
-
-    // For vanilla, try to get name from mapping
-    const rawItem = this.getVanillaItem()
+    if (this.config.getItemName) {
+      return this.config.getItemName(this.data, this.view)
+    }
+    // Vanilla: item is bytes 2-3 of decrypted substruct 0
+    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+    const rawItem = subView.getUint16(2, true)
     return this.config.mappings?.items?.get(rawItem)?.id_name
   }
 
   get move1 () {
-    const rawMove = this.config.getMove?.(this.data, this.view, 0) ?? this.getVanillaMove(0)
-    // Apply ID mapping if available
+    if (this.config.getMove) {
+      const rawMove = this.config.getMove(this.data, this.view, 0)
+      return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
+    }
+    // Vanilla: move1 is bytes 0-1 of decrypted substruct 1
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    const subView = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
+    const rawMove = subView.getUint16(0, true)
     return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
   get move2 () {
-    const rawMove = this.config.getMove?.(this.data, this.view, 1) ?? this.getVanillaMove(1)
-    // Apply ID mapping if available
+    if (this.config.getMove) {
+      const rawMove = this.config.getMove(this.data, this.view, 1)
+      return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
+    }
+    // Vanilla: move2 is bytes 2-3 of decrypted substruct 1
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    const subView = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
+    const rawMove = subView.getUint16(2, true)
     return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
   get move3 () {
-    const rawMove = this.config.getMove?.(this.data, this.view, 2) ?? this.getVanillaMove(2)
-    // Apply ID mapping if available
+    if (this.config.getMove) {
+      const rawMove = this.config.getMove(this.data, this.view, 2)
+      return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
+    }
+    // Vanilla: move3 is bytes 4-5 of decrypted substruct 1
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    const subView = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
+    const rawMove = subView.getUint16(4, true)
     return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
   get move4 () {
-    const rawMove = this.config.getMove?.(this.data, this.view, 3) ?? this.getVanillaMove(3)
-    // Apply ID mapping if available
+    if (this.config.getMove) {
+      const rawMove = this.config.getMove(this.data, this.view, 3)
+      return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
+    }
+    // Vanilla: move4 is bytes 6-7 of decrypted substruct 1
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    const subView = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
+    const rawMove = subView.getUint16(6, true)
     return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
   get pp1 () {
-    return this.config.getPP?.(this.data, this.view, 0) ?? this.getVanillaPP(0)
+    if (this.config.getPP) return this.config.getPP(this.data, this.view, 0)
+    // Vanilla: pp1 is byte 8 of decrypted substruct 1
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    return substruct1[8]!
   }
 
   get pp2 () {
-    return this.config.getPP?.(this.data, this.view, 1) ?? this.getVanillaPP(1)
+    if (this.config.getPP) return this.config.getPP(this.data, this.view, 1)
+    // Vanilla: pp2 is byte 9 of decrypted substruct 1
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    return substruct1[9]!
   }
 
   get pp3 () {
-    return this.config.getPP?.(this.data, this.view, 2) ?? this.getVanillaPP(2)
+    if (this.config.getPP) return this.config.getPP(this.data, this.view, 2)
+    // Vanilla: pp3 is byte 10 of decrypted substruct 1
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    return substruct1[10]!
   }
 
   get pp4 () {
-    return this.config.getPP?.(this.data, this.view, 3) ?? this.getVanillaPP(3)
+    if (this.config.getPP) return this.config.getPP(this.data, this.view, 3)
+    // Vanilla: pp4 is byte 11 of decrypted substruct 1
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    return substruct1[11]!
   }
 
   get hpEV () {
-    return this.config.getEV?.(this.data, this.view, 0) ?? this.getVanillaEV(0)
+    if (this.config.getEV) return this.config.getEV(this.data, this.view, 0)
+    // Vanilla: hpEV is byte 0 of decrypted substruct 2
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    return substruct2[0]!
   }
 
   set hpEV (value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 0, value)
     } else {
-      this.setVanillaEV(0, value)
+      // Inline vanilla logic
+      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+      substruct2[0] = Math.max(0, Math.min(255, value))
+      this.setEncryptedSubstruct(2, substruct2)
     }
   }
 
   get atkEV () {
-    return this.config.getEV?.(this.data, this.view, 1) ?? this.getVanillaEV(1)
+    if (this.config.getEV) return this.config.getEV(this.data, this.view, 1)
+    // Vanilla: atkEV is byte 1 of decrypted substruct 2
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    return substruct2[1]!
   }
 
   set atkEV (value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 1, value)
     } else {
-      this.setVanillaEV(1, value)
+      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+      substruct2[1] = Math.max(0, Math.min(255, value))
+      this.setEncryptedSubstruct(2, substruct2)
     }
   }
 
   get defEV () {
-    return this.config.getEV?.(this.data, this.view, 2) ?? this.getVanillaEV(2)
+    if (this.config.getEV) return this.config.getEV(this.data, this.view, 2)
+    // Vanilla: defEV is byte 2 of decrypted substruct 2
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    return substruct2[2]!
   }
 
   set defEV (value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 2, value)
     } else {
-      this.setVanillaEV(2, value)
+      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+      substruct2[2] = Math.max(0, Math.min(255, value))
+      this.setEncryptedSubstruct(2, substruct2)
     }
   }
 
   get speEV () {
-    return this.config.getEV?.(this.data, this.view, 3) ?? this.getVanillaEV(3)
+    if (this.config.getEV) return this.config.getEV(this.data, this.view, 3)
+    // Vanilla: speEV is byte 3 of decrypted substruct 2
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    return substruct2[3]!
   }
 
   set speEV (value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 3, value)
     } else {
-      this.setVanillaEV(3, value)
+      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+      substruct2[3] = Math.max(0, Math.min(255, value))
+      this.setEncryptedSubstruct(2, substruct2)
     }
   }
 
   get spaEV () {
-    return this.config.getEV?.(this.data, this.view, 4) ?? this.getVanillaEV(4)
+    if (this.config.getEV) return this.config.getEV(this.data, this.view, 4)
+    // Vanilla: spaEV is byte 4 of decrypted substruct 2
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    return substruct2[4]!
   }
 
   set spaEV (value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 4, value)
     } else {
-      this.setVanillaEV(4, value)
+      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+      substruct2[4] = Math.max(0, Math.min(255, value))
+      this.setEncryptedSubstruct(2, substruct2)
     }
   }
 
   get spdEV () {
-    return this.config.getEV?.(this.data, this.view, 5) ?? this.getVanillaEV(5)
+    if (this.config.getEV) return this.config.getEV(this.data, this.view, 5)
+    // Vanilla: spdEV is byte 5 of decrypted substruct 2
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    return substruct2[5]!
   }
 
   set spdEV (value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 5, value)
     } else {
-      this.setVanillaEV(5, value)
+      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+      substruct2[5] = Math.max(0, Math.min(255, value))
+      this.setEncryptedSubstruct(2, substruct2)
     }
   }
 
   get ivs (): readonly number[] {
-    return this.config.getIVs?.(this.data, this.view) ?? this.getVanillaIVs()
-  }
-
-  set ivs (values: readonly number[]) {
-    if (this.config.setIVs) {
-      this.config.setIVs(this.data, this.view, values)
-    } else {
-      this.setVanillaIVs(values)
-    }
-  }
-
-  get isShiny (): boolean {
-    return this.config.isShiny?.(this.personality, this.otId) ?? this.getVanillaIsShiny()
-  }
-
-  get shinyNumber (): number {
-    return this.config.getShinyValue?.(this.personality, this.otId) ?? this.getVanillaShinyNumber()
-  }
-
-  get isRadiant (): boolean {
-    return this.config.isRadiant?.(this.personality, this.otId) ?? false // Vanilla doesn't have radiant
-  }
-
-  // Vanilla Emerald implementation methods (with encryption)
-  private getVanillaSpeciesId (): number {
-    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
-    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
-    return subView.getUint16(0, true)
-  }
-
-  private getVanillaPokemonName (): string | undefined {
-    return undefined // Vanilla stores raw species ID, name lookup is external
-  }
-
-  private getVanillaItem (): number {
-    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
-    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
-    return subView.getUint16(2, true)
-  }
-
-  private getVanillaMove (index: number): number {
-    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
-    const subView = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
-    return subView.getUint16(index * 2, true)
-  }
-
-  private getVanillaPP (index: number): number {
-    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
-    return substruct1[8 + index]!
-  }
-
-  private getVanillaEV (index: number): number {
-    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
-    return substruct2[index]!
-  }
-
-  private setVanillaEV (index: number, value: number): void {
-    // Get current substruct 2 (EVs)
-    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
-
-    // Modify the EV at the given index
-    substruct2[index] = Math.max(0, Math.min(255, value))
-
-    // Encrypt and write back to the original data
-    this.setEncryptedSubstruct(2, substruct2)
-  }
-
-  private getVanillaIVs (): readonly number[] {
+    if (this.config.getIVs) return this.config.getIVs(this.data, this.view)
+    // Vanilla: IVs are packed into bytes 4-7 of decrypted substruct 3
     const substruct3 = this.getDecryptedSubstruct(this.data, 3)
     const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
     const ivData = subView.getUint32(4, true)
-
     return [
       (ivData >> 0) & 0x1F, // HP
       (ivData >> 5) & 0x1F, // Attack
@@ -353,34 +369,41 @@ export class PokemonBase {
     ]
   }
 
-  private setVanillaIVs (values: readonly number[]): void {
-    if (values.length !== 6) throw new Error('IVs array must have 6 values')
-
-    // Get current substruct 3 (IVs and other data)
-    const substruct3 = this.getDecryptedSubstruct(this.data, 3)
-    const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
-
-    // Pack IVs into 32-bit value (same format as reading)
-    let ivData = 0
-    ivData |= (values[0]! & 0x1F) << 0 // HP
-    ivData |= (values[1]! & 0x1F) << 5 // Attack
-    ivData |= (values[2]! & 0x1F) << 10 // Defense
-    ivData |= (values[3]! & 0x1F) << 15 // Speed
-    ivData |= (values[4]! & 0x1F) << 20 // Sp. Attack
-    ivData |= (values[5]! & 0x1F) << 25 // Sp. Defense
-
-    // Write the packed IV data back to substruct 3 at offset 4
-    subView.setUint32(4, ivData, true)
-
-    // Encrypt and write back to the original data
-    this.setEncryptedSubstruct(3, substruct3)
+  set ivs (values: readonly number[]) {
+    if (this.config.setIVs) {
+      this.config.setIVs(this.data, this.view, values)
+    } else {
+      if (values.length !== 6) throw new Error('IVs array must have 6 values')
+      const substruct3 = this.getDecryptedSubstruct(this.data, 3)
+      const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
+      let ivData = 0
+      ivData |= (values[0]! & 0x1F) << 0 // HP
+      ivData |= (values[1]! & 0x1F) << 5 // Attack
+      ivData |= (values[2]! & 0x1F) << 10 // Defense
+      ivData |= (values[3]! & 0x1F) << 15 // Speed
+      ivData |= (values[4]! & 0x1F) << 20 // Sp. Attack
+      ivData |= (values[5]! & 0x1F) << 25 // Sp. Defense
+      subView.setUint32(4, ivData, true)
+      this.setEncryptedSubstruct(3, substruct3)
+    }
   }
 
-  private getVanillaIsShiny (): boolean {
-    return this.getVanillaShinyNumber() < 8
+  get isShiny (): boolean {
+    if (this.config.isShiny) return this.config.isShiny(this.personality, this.otId)
+    // Vanilla: shiny if shiny number < 8
+    const personality = this.view.getUint32(0x00, true)
+    const otId = this.view.getUint32(0x04, true)
+    const trainerId = otId & 0xFFFF
+    const secretId = (otId >> 16) & 0xFFFF
+    const personalityLow = personality & 0xFFFF
+    const personalityHigh = (personality >> 16) & 0xFFFF
+    const shinyNumber = trainerId ^ secretId ^ personalityLow ^ personalityHigh
+    return shinyNumber < 8
   }
 
-  private getVanillaShinyNumber (): number {
+  get shinyNumber (): number {
+    if (this.config.getShinyValue) return this.config.getShinyValue(this.personality, this.otId)
+    // Vanilla: shiny number calculation
     const personality = this.view.getUint32(0x00, true)
     const otId = this.view.getUint32(0x04, true)
     const trainerId = otId & 0xFFFF
@@ -388,6 +411,11 @@ export class PokemonBase {
     const personalityLow = personality & 0xFFFF
     const personalityHigh = (personality >> 16) & 0xFFFF
     return trainerId ^ secretId ^ personalityLow ^ personalityHigh
+  }
+
+  get isRadiant (): boolean {
+    if (this.config.isRadiant) return this.config.isRadiant(this.personality, this.otId)
+    return false // Vanilla doesn't have radiant
   }
 
   get rawBytes () { return new Uint8Array(this.data) }
