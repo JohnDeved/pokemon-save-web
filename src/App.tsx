@@ -47,7 +47,6 @@ export const App: React.FC = () => {
         <ShaderBackground/>
       </Suspense>
       <Toaster richColors position="bottom-center"/>
-      <PWAInstallPrompt/>
       <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
         <SaveFileDropzone
           onFileLoad={saveFileParser.parseSaveFile}
@@ -165,6 +164,7 @@ export const App: React.FC = () => {
           </main>
         )}
       </div>
+      <PWAInstallPrompt/>
     </>
   )
 }
