@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y \
     qtmultimedia5-dev \
     liblua5.4-dev \
     lua5.4 \
-    lua-socket \
     zlib1g-dev \
     libpng-dev \
     libsdl2-dev \
@@ -26,9 +25,9 @@ RUN apt-get update && apt-get install -y \
     netcat \
     && rm -rf /var/lib/apt/lists/*
 
-# Build mGBA from source with minimal dependencies
+# Build mGBA from source with Lua support
 WORKDIR /build
-RUN git clone https://github.com/mgba-emu/mgba.git --depth 1 --branch 0.10.3
+RUN git clone https://github.com/mgba-emu/mgba.git --depth 1 --branch master
 WORKDIR /build/mgba
 RUN mkdir build && cd build && \
     cmake .. \

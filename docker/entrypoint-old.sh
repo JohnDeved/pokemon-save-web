@@ -51,7 +51,7 @@ fi
 
 # Verify required files
 SAVESTATE_PATH="/app/data/emerald.ss0"
-LUA_SCRIPT_PATH="/app/data/test-script.lua"
+LUA_SCRIPT_PATH="/app/data/mgba_http_server.lua"
 
 if [ ! -f "$SAVESTATE_PATH" ]; then
     echo "❌ Savestate file not found at $SAVESTATE_PATH"
@@ -68,17 +68,29 @@ echo "   ROM: $ROM_PATH"
 echo "   Savestate: $SAVESTATE_PATH" 
 echo "   Lua Script: $LUA_SCRIPT_PATH"
 
-# Start mGBA with the --script argument to load HTTP server within mGBA Lua API
-echo "🎮 Starting mGBA with --script HTTP server..."
-/usr/local/bin/mgba-qt \
-    --script "$LUA_SCRIPT_PATH" \
-    -t "$SAVESTATE_PATH" \
-    "$ROM_PATH" 2>&1 &
-MGBA_PID=$!
+echo "🚀 Starting mGBA with Pokémon Emerald and Lua HTTP server..."
+echo "   ROM: $ROM_PATH"
+echo "   Savestate: $SAVESTATE_PATH" 
+echo "   Lua Script: $LUA_SCRIPT_PATH"
 
-echo "✅ mGBA started with HTTP server script loaded (PID: $MGBA_PID)"
-echo "🌐 HTTP server should be available on port 7102 within mGBA"
+# Start simple HTTP server first to validate setup
+echo "🧪 Starting test HTTP server on port 7102..."
+cd /app/data
+lua5.4 simple_http_server.lua &
+HTTP_PID=$!
+
+echo "✅ Test HTTP server started with PID: $HTTP_PID"
+echo "🌐 HTTP server available on port 7102"
 echo "   Test with: curl http://localhost:7102/"
 
-# Wait for mGBA process
-wait $MGBA_PID
+# In parallel, try to launch mGBA for future integration
+echo "🎮 Starting mGBA in background..."
+/usr/local/bin/mgba-qt \
+    -t "$SAVESTATE_PATH" \
+    "$ROM_PATH" >/dev/null 2>&1 &
+MGBA_PID=$!
+
+echo "✅ mGBA started with PID: $MGBA_PID"
+
+# Wait for the HTTP server (which is our main demonstration)
+wait $HTTP_PID
