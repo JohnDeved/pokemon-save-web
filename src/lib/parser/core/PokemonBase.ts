@@ -296,13 +296,9 @@ export class PokemonBase {
 
   // Vanilla Emerald implementation methods (with encryption)
   private getVanillaSpeciesId (): number {
-    try {
-      const substruct0 = this.getDecryptedSubstruct(this.data, 0)
-      const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
-      return subView.getUint16(0, true)
-    } catch {
-      return 0
-    }
+    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+    return subView.getUint16(0, true)
   }
 
   private getVanillaPokemonName (): string | undefined {
@@ -310,102 +306,74 @@ export class PokemonBase {
   }
 
   private getVanillaItem (): number {
-    try {
-      const substruct0 = this.getDecryptedSubstruct(this.data, 0)
-      const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
-      return subView.getUint16(2, true)
-    } catch {
-      return 0
-    }
+    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+    return subView.getUint16(2, true)
   }
 
   private getVanillaMove (index: number): number {
-    try {
-      const substruct1 = this.getDecryptedSubstruct(this.data, 1)
-      const subView = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
-      return subView.getUint16(index * 2, true)
-    } catch {
-      return 0
-    }
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    const subView = new DataView(substruct1.buffer, substruct1.byteOffset, substruct1.byteLength)
+    return subView.getUint16(index * 2, true)
   }
 
   private getVanillaPP (index: number): number {
-    try {
-      const substruct1 = this.getDecryptedSubstruct(this.data, 1)
-      return substruct1[8 + index]!
-    } catch {
-      return 0
-    }
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    return substruct1[8 + index]!
   }
 
   private getVanillaEV (index: number): number {
-    try {
-      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
-      return substruct2[index]!
-    } catch {
-      return 0
-    }
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    return substruct2[index]!
   }
 
   private setVanillaEV (index: number, value: number): void {
-    try {
-      // Get current substruct 2 (EVs)
-      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    // Get current substruct 2 (EVs)
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
 
-      // Modify the EV at the given index
-      substruct2[index] = Math.max(0, Math.min(255, value))
+    // Modify the EV at the given index
+    substruct2[index] = Math.max(0, Math.min(255, value))
 
-      // Encrypt and write back to the original data
-      this.setEncryptedSubstruct(2, substruct2)
-    } catch (error) {
-      console.warn('Failed to set vanilla EV:', error)
-    }
+    // Encrypt and write back to the original data
+    this.setEncryptedSubstruct(2, substruct2)
   }
 
   private getVanillaIVs (): readonly number[] {
-    try {
-      const substruct3 = this.getDecryptedSubstruct(this.data, 3)
-      const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
-      const ivData = subView.getUint32(4, true)
+    const substruct3 = this.getDecryptedSubstruct(this.data, 3)
+    const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
+    const ivData = subView.getUint32(4, true)
 
-      return [
-        (ivData >> 0) & 0x1F, // HP
-        (ivData >> 5) & 0x1F, // Attack
-        (ivData >> 10) & 0x1F, // Defense
-        (ivData >> 15) & 0x1F, // Speed
-        (ivData >> 20) & 0x1F, // Sp. Attack
-        (ivData >> 25) & 0x1F, // Sp. Defense
-      ]
-    } catch {
-      return [0, 0, 0, 0, 0, 0]
-    }
+    return [
+      (ivData >> 0) & 0x1F, // HP
+      (ivData >> 5) & 0x1F, // Attack
+      (ivData >> 10) & 0x1F, // Defense
+      (ivData >> 15) & 0x1F, // Speed
+      (ivData >> 20) & 0x1F, // Sp. Attack
+      (ivData >> 25) & 0x1F, // Sp. Defense
+    ]
   }
 
   private setVanillaIVs (values: readonly number[]): void {
-    try {
-      if (values.length !== 6) throw new Error('IVs array must have 6 values')
+    if (values.length !== 6) throw new Error('IVs array must have 6 values')
 
-      // Get current substruct 3 (IVs and other data)
-      const substruct3 = this.getDecryptedSubstruct(this.data, 3)
-      const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
+    // Get current substruct 3 (IVs and other data)
+    const substruct3 = this.getDecryptedSubstruct(this.data, 3)
+    const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
 
-      // Pack IVs into 32-bit value (same format as reading)
-      let ivData = 0
-      ivData |= (values[0]! & 0x1F) << 0 // HP
-      ivData |= (values[1]! & 0x1F) << 5 // Attack
-      ivData |= (values[2]! & 0x1F) << 10 // Defense
-      ivData |= (values[3]! & 0x1F) << 15 // Speed
-      ivData |= (values[4]! & 0x1F) << 20 // Sp. Attack
-      ivData |= (values[5]! & 0x1F) << 25 // Sp. Defense
+    // Pack IVs into 32-bit value (same format as reading)
+    let ivData = 0
+    ivData |= (values[0]! & 0x1F) << 0 // HP
+    ivData |= (values[1]! & 0x1F) << 5 // Attack
+    ivData |= (values[2]! & 0x1F) << 10 // Defense
+    ivData |= (values[3]! & 0x1F) << 15 // Speed
+    ivData |= (values[4]! & 0x1F) << 20 // Sp. Attack
+    ivData |= (values[5]! & 0x1F) << 25 // Sp. Defense
 
-      // Write the packed IV data back to substruct 3 at offset 4
-      subView.setUint32(4, ivData, true)
+    // Write the packed IV data back to substruct 3 at offset 4
+    subView.setUint32(4, ivData, true)
 
-      // Encrypt and write back to the original data
-      this.setEncryptedSubstruct(3, substruct3)
-    } catch (error) {
-      console.warn('Failed to set vanilla IVs:', error)
-    }
+    // Encrypt and write back to the original data
+    this.setEncryptedSubstruct(3, substruct3)
   }
 
   private getVanillaIsShiny (): boolean {
