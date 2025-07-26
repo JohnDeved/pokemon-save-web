@@ -21,7 +21,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
 }) => {
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
-      <div className="p-4 border-b border-slate-800">
+      <div className="p-3 border-b border-slate-800">
         {/* Row 1: Name and Dex ID */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl text-white tracking-tight flex items-center gap-2 h-8">
@@ -78,7 +78,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
                 setNature?.(pokemon.id, nature)
               }}
             >
-              <SelectTrigger className="text-xs">
+              <SelectTrigger className="text-xs min-h-[44px] lg:min-h-[36px]">
                 <SelectValue placeholder="Nature"/>
               </SelectTrigger>
               <SelectContent>

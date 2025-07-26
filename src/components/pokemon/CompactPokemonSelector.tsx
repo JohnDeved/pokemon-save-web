@@ -28,9 +28,9 @@ export const CompactPokemonSelector: React.FC<CompactPokemonSelectorProps> = ({
       : 'from-red-500 to-rose-600'
 
   return (
-    <Card className="p-4 lg:hidden">
+    <Card className="p-3 lg:hidden">
       {/* Currently Selected Pokemon */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-16 h-16 flex-shrink-0 relative">
             <img
@@ -49,8 +49,8 @@ export const CompactPokemonSelector: React.FC<CompactPokemonSelectorProps> = ({
               <span className="text-slate-300 text-sm ml-2">Lv.{selectedPokemon.data.level}</span>
             </div>
             <div className="w-full bg-slate-900/30 border border-slate-700 rounded-sm h-2 mt-2 overflow-hidden">
-              <div 
-                className={cn('bg-gradient-to-r h-full transition-all duration-500', hpColor)} 
+              <div
+                className={cn('bg-gradient-to-r h-full transition-all duration-500', hpColor)}
                 style={{ width: `${hpPercentage}%` }}
               />
             </div>
@@ -62,10 +62,10 @@ export const CompactPokemonSelector: React.FC<CompactPokemonSelectorProps> = ({
         {onShowFullList && (
           <button
             onClick={onShowFullList}
-            className="p-2 text-slate-400 hover:text-white transition-colors"
+            className="p-2 text-slate-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Show full Pokemon list"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5"/>
           </button>
         )}
       </div>
@@ -81,11 +81,11 @@ export const CompactPokemonSelector: React.FC<CompactPokemonSelectorProps> = ({
                 key={pokemon.id}
                 onClick={() => onSelect(pokemon.id)}
                 className={cn(
-                  'flex-shrink-0 w-14 h-14 rounded-lg transition-all duration-200 overflow-hidden',
-                  'border-2 cursor-pointer hover:scale-105',
-                  isSelected 
-                    ? 'border-cyan-400 bg-cyan-500/20 shadow-lg shadow-cyan-500/30' 
-                    : 'border-slate-600 hover:border-slate-500 bg-slate-800/50'
+                  'flex-shrink-0 w-16 h-16 rounded-lg transition-all duration-200 overflow-hidden',
+                  'border-2 cursor-pointer hover:scale-105 min-w-[44px] min-h-[44px]',
+                  isSelected
+                    ? 'border-cyan-400 bg-cyan-500/20 shadow-lg shadow-cyan-500/30'
+                    : 'border-slate-600 hover:border-slate-500 bg-slate-800/50',
                 )}
                 aria-label={`Select ${pokemon.data.nickname}`}
               >

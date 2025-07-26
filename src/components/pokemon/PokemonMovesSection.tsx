@@ -17,7 +17,7 @@ export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({
   const totalSlots = 4
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
         {Array.from({ length: totalSlots }).map((_, i) => {
           const move = moves[i]!
           if (!isLoading && move.id === 0) {

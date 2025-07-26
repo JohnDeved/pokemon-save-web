@@ -11,21 +11,21 @@ export const useBreakpoint = () => {
     if (typeof window === 'undefined') return false
     return window.innerWidth < 1024
   })
-  
+
   useEffect(() => {
     const checkBreakpoint = () => {
       const newIsMobile = window.innerWidth < 1024
       setIsMobile(newIsMobile)
     }
-    
+
     // Listen for window resize
     window.addEventListener('resize', checkBreakpoint)
-    
+
     // Check immediately in case the window was resized before the hook ran
     checkBreakpoint()
-    
+
     return () => window.removeEventListener('resize', checkBreakpoint)
   }, [])
-  
+
   return { isMobile }
 }
