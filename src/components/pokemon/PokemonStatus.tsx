@@ -81,7 +81,7 @@ const PokemonSprite: React.FC<{
       <img
         src={imgSrc}
         className={cn(
-          'absolute z-0 opacity-40 blur-md object-contain',
+          'absolute z-0 opacity-80 blur-md object-contain',
           '[image-rendering:pixelated]',
           'max-w-[96px] max-h-[96px]',
         )}
@@ -95,6 +95,7 @@ const PokemonSprite: React.FC<{
           'z-10 object-contain transition-transform duration-300',
           '[image-rendering:pixelated]',
           'max-w-[96px] max-h-[96px]',
+          'drop-shadow-[2px_2px_2px_black]',
         )}
         onError={handleError}
         alt={alt}
