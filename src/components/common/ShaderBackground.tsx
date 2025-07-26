@@ -1,43 +1,56 @@
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useMemo } from 'react'
+import { useMemo, memo, useState, useEffect } from 'react'
 import { ShaderMaterial } from 'three'
 
 import fragmentShader from '../../glsl/shader.glsl?raw'
 
 const vertexShader = 'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}'
-const uniforms = {
-  time: { value: 0 },
-  resolution: { value: [window.innerWidth, window.innerHeight] },
-}
 
-const Scene = () => {
-  const material = useMemo(
-    () => new ShaderMaterial({ uniforms, fragmentShader, vertexShader }),
-    [],
-  )
+const Scene = memo(() => {
+  const { material, uniformsRef } = useMemo(() => {
+    const uniforms = {
+      time: { value: 0 },
+      resolution: { value: [window.innerWidth, window.innerHeight] },
+    }
+    const mat = new ShaderMaterial({ uniforms, fragmentShader, vertexShader })
+    return { material: mat, uniformsRef: uniforms }
+  }, [])
+
   useFrame((_, delta) => {
-    uniforms.time.value += delta
-    uniforms.resolution.value = [window.innerWidth, window.innerHeight]
+    uniformsRef.time.value += delta
+    uniformsRef.resolution.value = [window.innerWidth, window.innerHeight]
   })
+
   return (
     <mesh>
       <planeGeometry args={[2, 2]}/>
       <primitive object={material}/>
     </mesh>
   )
-}
+})
 
-export const ShaderBackground = () => {
+Scene.displayName = 'Scene'
+
+export const ShaderBackground = memo(() => {
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  useEffect(() => {
+    // Delay the shader fade-in to allow pattern to render first
+    const timer = setTimeout(() => setIsLoaded(true), 100)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
-    <div className="fixed inset-0">
-      {useMemo(
-        () => (
-          <Canvas>
-            <Scene/>
-          </Canvas>
-        ),
-        [],
-      )}
+    <div
+      className={`fixed inset-0 transition-opacity duration-500 ${
+        isLoaded ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      <Canvas gl={{ antialias: false, powerPreference: 'high-performance' }}>
+        <Scene/>
+      </Canvas>
     </div>
   )
-}
+})
+
+ShaderBackground.displayName = 'ShaderBackground'

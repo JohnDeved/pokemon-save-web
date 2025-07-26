@@ -1,15 +1,29 @@
 # Pokemon Save Web
 
-A web-based Pokemon save file editor, CLI tool, and TypeScript parser core.
+A web-based Pokemon save file editor, CLI tool, and TypeScript parser core with PWA support.
+
+## 🚀 Features
+
+- **Progressive Web App (PWA)**: Install for offline use and app-like experience
+- **Multi-Game Support**: Works with various Pokemon games and ROM hacks
+- **Real-time Editing**: Interactive Pokemon data visualization and editing
+- **File System Integration**: Modern browser file API support
+- **Cross-Platform**: Web, CLI, and library usage
 
 ## Quick Start
 
-### Web Application
+### Web Application (PWA)
 ```bash
 npm install
 npm run dev
 ```
 Open your browser and drag & drop a Pokemon save file to get started.
+
+**PWA Features:**
+- 📱 Install as native app on desktop and mobile
+- 🔄 Works offline with previously loaded save files
+- ⚡ Fast loading with optimized caching
+- 🎨 Native app-like interface and theming
 
 ### Command Line
 ```bash
@@ -38,7 +52,8 @@ The main web application provides a user-friendly interface for uploading and an
 ```bash
 npm install
 npm run dev    # Start development server
-npm run build  # Build for production
+npm run build  # Build for production (includes PWA)
+npm run preview # Preview PWA build locally
 ```
 
 **Features:**
@@ -46,6 +61,8 @@ npm run build  # Build for production
 - Interactive Pokemon data visualization  
 - Real-time editing capabilities
 - File System Access API support for modern browsers
+- **PWA Support**: Install as native app with offline functionality
+- **Optimized Performance**: Code splitting and smart caching
 
 ### 2. JavaScript/TypeScript Library
 
@@ -105,6 +122,26 @@ export class MyGameConfig implements GameConfig {
 ```
 
 For detailed instructions, see [src/lib/parser/README.md](./src/lib/parser/README.md#adding-game-support).
+
+## PWA (Progressive Web App)
+
+This application is built as a PWA with:
+
+- **Offline Support**: Edit previously loaded save files without internet
+- **Native Installation**: Install on desktop and mobile devices
+- **Performance Optimized**: Smart caching and code splitting
+- **SEO Optimized**: Complete meta tags and search engine support
+
+See [PWA_IMPLEMENTATION.md](./PWA_IMPLEMENTATION.md) for detailed PWA features and technical implementation.
+
+## Performance
+
+The app uses advanced optimization techniques:
+
+- **Code Splitting**: Vendor libraries, UI components, and 3D assets are loaded separately
+- **Lazy Loading**: 3D shader background loads only when needed
+- **Smart Caching**: Service worker caches assets and fonts for fast loading
+- **Bundle Analysis**: Optimized chunk sizes for better caching strategies
 
 ## License
 

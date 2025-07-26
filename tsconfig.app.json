@@ -6,7 +6,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "types": ["vitest/globals", "wicg-file-system-access"],
+    "types": ["vite/client"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -33,5 +33,5 @@
       ]
     }
   },
-  "include": ["src", "scripts"],
+  "include": ["src"],
 }

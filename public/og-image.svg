@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#000000"/>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <circle cx="2" cy="2" r="1" fill="#ffffff33"/>
+  </pattern>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  
+  <!-- Main content area -->
+  <rect x="100" y="100" width="1000" height="430" fill="#1e293b" rx="20"/>
+  
+  <!-- Pokeball logo -->
+  <circle cx="300" cy="315" r="80" fill="#ffffff"/>
+  <path d="M 220 315 A 80 80 0 0 1 380 315" fill="#dc2626"/>
+  <rect x="220" y="305" width="160" height="20" fill="#1e293b"/>
+  <circle cx="300" cy="315" r="20" fill="#ffffff" stroke="#1e293b" stroke-width="4"/>
+  
+  <!-- Title -->
+  <text x="450" y="280" fill="#f1f5f9" font-family="system-ui" font-size="48" font-weight="bold">Pokemon Save Editor</text>
+  <text x="450" y="320" fill="#94a3b8" font-family="system-ui" font-size="24">Edit Pokemon save files online</text>
+  
+  <!-- Features -->
+  <text x="450" y="380" fill="#94a3b8" font-family="system-ui" font-size="18">✓ Support for multiple Pokemon games</text>
+  <text x="450" y="410" fill="#94a3b8" font-family="system-ui" font-size="18">✓ Edit stats, moves, and abilities</text>
+  <text x="450" y="440" fill="#94a3b8" font-family="system-ui" font-size="18">✓ Works offline as a PWA</text>
+  
+  <!-- Code accent -->
+  <text x="900" y="200" fill="#3b82f6" font-family="monospace" font-size="24" opacity="0.7">&lt;/&gt;</text>
+  <text x="920" y="450" fill="#3b82f6" font-family="monospace" font-size="24" opacity="0.7">{}</text>
+</svg>

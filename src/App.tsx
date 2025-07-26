@@ -1,5 +1,7 @@
-import { Suspense, lazy, useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { Card } from './components/common'
+import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
+import { ShaderBackground } from './components/common/ShaderBackground'
 import {
   PokemonAbilitySection,
   PokemonHeader,
@@ -11,13 +13,6 @@ import {
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
 import { usePokemonData } from './hooks'
-
-// Dynamically import ShaderBackground to code-split heavy 3D dependencies
-const ShaderBackground = lazy(() =>
-  import('./components/common/ShaderBackground').then(module => ({
-    default: module.ShaderBackground,
-  })),
-)
 
 export const App: React.FC = () => {
   const {
@@ -45,12 +40,14 @@ export const App: React.FC = () => {
 
   return (
     <>
-      <Suspense fallback={<div className="fixed inset-0 bg-black"/>}>
+      {/* Background pattern appears immediately */}
+      <div className="fixed inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"/>
+      {/* Shader overlay fades in after pattern */}
+      <Suspense fallback={null}>
         <ShaderBackground/>
       </Suspense>
       <Toaster richColors position="bottom-center"/>
       <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
-        <div className="absolute inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"/>
         <SaveFileDropzone
           onFileLoad={saveFileParser.parseSaveFile}
           error={saveFileParser.error}
@@ -167,6 +164,7 @@ export const App: React.FC = () => {
           </main>
         )}
       </div>
+      <PWAInstallPrompt/>
     </>
   )
 }

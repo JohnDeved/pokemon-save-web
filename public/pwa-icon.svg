@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#1e293b"/>
+  <circle cx="256" cy="256" r="240" fill="#334155"/>
+  
+  <!-- Pokeball design -->
+  <circle cx="256" cy="256" r="180" fill="#ffffff" stroke="#1e293b" stroke-width="4"/>
+  <path d="M 76 256 A 180 180 0 0 1 436 256" fill="#dc2626" stroke="#1e293b" stroke-width="4"/>
+  <rect x="76" y="240" width="360" height="32" fill="#1e293b"/>
+  
+  <!-- Center button -->
+  <circle cx="256" cy="256" r="40" fill="#ffffff" stroke="#1e293b" stroke-width="6"/>
+  <circle cx="256" cy="256" r="20" fill="#1e293b"/>
+  
+  <!-- Code symbols overlay -->
+  <text x="160" y="140" fill="#94a3b8" font-family="monospace" font-size="24" opacity="0.7">&lt;/&gt;</text>
+  <text x="320" y="380" fill="#94a3b8" font-family="monospace" font-size="24" opacity="0.7">{}</text>
+</svg>
