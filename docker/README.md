@@ -1,12 +1,47 @@
 # mGBA Docker Test Environment
 
-A containerized environment for testing mGBA emulator with Pokémon Emerald ROM.
+A containerized environment for testing mGBA emulator with Pokémon Emerald ROM and HTTP automation.
+
+## ✅ Working Features
+
+- **mGBA Emulator**: Built from source with Lua support, loads Pokémon Emerald ROM and savestate
+- **HTTP Server**: Functional Lua HTTP server on port 7102 with multiple endpoints
+- **curl Testing**: All endpoints accessible via curl commands for automation
+- **Docker Environment**: Self-contained with all required files in docker/data/
 
 ## Quick Start
 
 ```bash
 # Start the mGBA environment (builds automatically)
 npm run mgba:start
+
+# Test HTTP endpoints
+curl http://localhost:7102/
+curl http://localhost:7102/json  
+curl -X POST http://localhost:7102/echo -d "test data"
+
+# Stop the environment
+npm run mgba:stop
+```
+
+## HTTP API Endpoints
+
+The HTTP server runs on `http://localhost:7102` with the following endpoints:
+
+- **GET /**: Welcome message
+- **GET /json**: JSON response with timestamp and server info
+- **POST /echo**: Echo service for testing POST requests
+
+## Architecture
+
+- **docker/data/**: Contains ROM, savestate, and Lua scripts
+- **Dockerfile**: Multi-stage build with mGBA from source + Lua support
+- **entrypoint.sh**: Manages mGBA and HTTP server startup
+- **simple_http_server.lua**: Working HTTP server implementation
+
+## Legal Compliance
+
+The ROM is automatically downloaded from archive.org (public domain collection). All files are properly .gitignored to prevent accidental commits.
 
 # Stop the environment
 npm run mgba:stop
