@@ -39,4 +39,7 @@ test_data/*.zip
 test_data/*.7z
 test_data/*.rar
 
+# mGBA AppImage
+test_data/*.appimage
+
 
