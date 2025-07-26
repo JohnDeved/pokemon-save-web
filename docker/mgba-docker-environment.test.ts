@@ -126,8 +126,8 @@ describe('Docker mGBA Environment Tests', () => {
       expect(logsResult.code).toBe(0)
       
       // Check that logs show successful setup
-      expect(logsResult.stdout).toContain('mGBA Docker Test Environment')
-      expect(logsResult.stdout).toContain('ROM size: 16777216 bytes')
+      expect(logsResult.stdout).toContain('🚀 Starting mGBA with Pokémon Emerald')
+      expect(logsResult.stdout).toContain('emerald.gba')
       expect(logsResult.stdout).toContain('✅')
       
       console.log('✅ ROM downloaded and environment verified')

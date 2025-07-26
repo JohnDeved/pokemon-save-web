@@ -1,6 +1,6 @@
 # mGBA Docker Test Environment
 
-A containerized environment for testing mGBA emulator with Pokémon Emerald ROM and Lua HTTP server automation.
+A containerized environment for testing mGBA emulator with Pokémon Emerald ROM.
 
 ## Quick Start
 
@@ -12,22 +12,27 @@ npm run mgba:start
 npm run mgba:stop
 ```
 
+## Current Status
+
+✅ **Working**: mGBA emulator with ROM and savestate loading  
+⚠️ **Limited**: HTTP server not available (mGBA 0.9.3 lacks --script support)  
+🔧 **Future**: Upgrade to mGBA 0.10.0+ needed for full Lua HTTP server functionality
+
 ## Implementation
 
 - **File**: `Dockerfile`
-- **Purpose**: Complete mGBA build with Lua HTTP server support
-- **Build time**: ~5 minutes  
-- **Features**: Built-from-source mGBA, Lua scripting, HTTP API endpoints, ROM auto-download
+- **Purpose**: Basic mGBA environment using system packages
+- **Build time**: ~30 seconds  
+- **Features**: mGBA emulator, ROM auto-download, savestate loading
 
 ## Environment Details
 
 **Container**: `mgba-test-environment`  
-**Port**: `7102` (HTTP server when using complex version)  
 **ROM**: Downloads Pokémon Emerald (16MB) from archive.org automatically  
 **Files**: 
 - `test_data/emerald.gba` - ROM file (auto-downloaded)
 - `test_data/emerald.ss0` - Memory savestate 
-- `test_data/mgba_http_server.lua` - HTTP server script
+- `test_data/mgba_http_server.lua` - HTTP server script (for future use)
 
 ## Management Commands
 
@@ -39,8 +44,8 @@ npm run mgba:stop     # Stop mGBA environment
 The start command automatically handles:
 - Building the Docker image if needed
 - Downloading the ROM from archive.org  
-- Starting the container with all services
-- Setting up the HTTP server on port 7102
+- Starting the container with mGBA emulator
+- Loading the ROM and savestate
 
 ## Testing
 
@@ -59,9 +64,10 @@ The test suite validates:
 
 ```
 docker/
-├── Dockerfile               # Complete mGBA environment
-├── docker-compose.yml       # Container orchestration
+├── Dockerfile               # mGBA environment
+├── docker-compose.yml       # Container orchestration  
 ├── docker-mgba.js          # Management script
+├── entrypoint.sh           # Container startup script
 ├── mgba-docker-environment.test.ts  # Test suite
 └── README.md               # This file
 
@@ -69,6 +75,12 @@ test_data/
 ├── emerald.ss0             # Memory savestate
 └── mgba_http_server.lua    # HTTP server script
 ```
+
+## Future Enhancements
+
+To enable HTTP server functionality:
+1. Upgrade to mGBA 0.10.0+ with Lua support and --script argument
+2. Alternative: Use `Dockerfile.complex` to build from source (requires fixing build dependencies)
 
 ## Legal Notes
 
