@@ -163,7 +163,8 @@ export const usePokemonData = () => {
   const initialPartyList = useMemo(() => {
     if (!saveData?.party_pokemon) return []
     return saveData.party_pokemon.map((parsedPokemon, index) => {
-      const isShiny = parsedPokemon.shinyNumber > 0
+      // Use the isShiny property which correctly implements vanilla (shinyNumber < 8) and Quetzal logic
+      const isShiny = parsedPokemon.isShiny
       const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
       const spriteUrl = isShiny
         ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
