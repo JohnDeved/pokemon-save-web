@@ -45,6 +45,9 @@ test_data/mgba-source/
 test_data/squashfs-root/
 test_data/mgba-build/
 
+# Docker volumes and build cache
+.docker/
+
 # Test artifacts
 test_data/*.txt
 test_data/*log*.txt
