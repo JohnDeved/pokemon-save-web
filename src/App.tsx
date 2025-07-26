@@ -1,5 +1,6 @@
 import { Suspense, lazy, useRef } from 'react'
 import { Card } from './components/common'
+import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
 import {
   PokemonAbilitySection,
   PokemonHeader,
@@ -49,6 +50,7 @@ export const App: React.FC = () => {
         <ShaderBackground/>
       </Suspense>
       <Toaster richColors position="bottom-center"/>
+      <PWAInstallPrompt/>
       <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
         <div className="absolute inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"/>
         <SaveFileDropzone
