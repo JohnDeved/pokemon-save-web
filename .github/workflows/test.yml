@@ -1,4 +1,4 @@
-name: Lint
+name: Test
 
 on:
   pull_request:
@@ -6,12 +6,12 @@ on:
     paths:
       - 'src/**'
       - 'package*.json'
-      - '.eslintrc*'
-      - '.eslintignore'
-      - '.github/workflows/lint.yml'
+      - 'vitest.config.ts'
+      - 'tsconfig*.json'
+      - '.github/workflows/test.yml'
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -36,15 +36,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run lint
-        run: npm run lint
+      - name: Run tests
+        run: npm run test:run
 
-      - name: Upload lint results
+      - name: Upload test results
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: lint-results
-          path: |
-            eslint-report.json
-            eslint-report.html
-          retention-days: 7
+          name: test-results
+          path: coverage/
+          retention-days: 30

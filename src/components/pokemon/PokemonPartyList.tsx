@@ -1,7 +1,10 @@
-import { CONSTANTS } from '../../lib/parser'
+import { QuetzalConfig } from '../../lib/parser/games/quetzal/config'
 import type { Pokemon } from '../../types'
 import { PokemonStatus } from './PokemonStatus'
 import { PokemonStatusPlaceholder } from './PokemonStatusPlaceholder'
+
+// Use Quetzal config for constants since that's what most users will be using
+const config = new QuetzalConfig()
 
 interface PokemonPartyListProps {
   partyList: Pokemon[]
@@ -18,7 +21,7 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
   isRenaming,
   onPokemonHover,
 }) => {
-  const emptySlots = Array.from({ length: Math.max(0, CONSTANTS.MAX_PARTY_SIZE - partyList.length) })
+  const emptySlots = Array.from({ length: Math.max(0, config.saveLayout.maxPartySize - partyList.length) })
 
   return (
     <section className="flex flex-col gap-4">

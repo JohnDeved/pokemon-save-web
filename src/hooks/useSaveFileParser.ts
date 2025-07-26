@@ -1,8 +1,8 @@
 import { saveAs } from 'file-saver'
 import { useReducer, useRef } from 'react'
 import { toast } from 'sonner'
-import { PokemonSaveParser } from '../lib/parser'
-import type { SaveData } from '../lib/parser/types'
+import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
+import type { SaveData } from '../lib/parser/core/types'
 
 export interface SaveFileParserState {
   saveData: SaveData | null

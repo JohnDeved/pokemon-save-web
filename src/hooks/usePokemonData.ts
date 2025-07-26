@@ -17,7 +17,7 @@ import {
   PokemonTypeSchema,
 } from '../types'
 
-import { calculateTotalStats, natures } from '@/lib/parser/utils'
+import { calculateTotalStats, natures } from '@/lib/parser/core/utils'
 import { useSaveFileParser } from './useSaveFileParser'
 
 // --- Constants ---
@@ -163,7 +163,8 @@ export const usePokemonData = () => {
   const initialPartyList = useMemo(() => {
     if (!saveData?.party_pokemon) return []
     return saveData.party_pokemon.map((parsedPokemon, index) => {
-      const isShiny = parsedPokemon.shinyNumber > 0
+      // Use the isShiny property which correctly implements vanilla (shinyNumber < 8) and Quetzal logic
+      const isShiny = parsedPokemon.isShiny
       const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
       const spriteUrl = isShiny
         ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
@@ -262,7 +263,7 @@ export const usePokemonData = () => {
 
       // Directly mutate the class instance
       p.data.setEvByIndex(statIndex, finalEvValue)
-      p.data.stats = calculateTotalStats(p.data, p.details.baseStats)
+      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
       // Return a new object reference for React to detect change
       return { ...p }
     }))
@@ -278,7 +279,7 @@ export const usePokemonData = () => {
 
       // Directly mutate the class instance
       p.data.setIvByIndex(statIndex, ivValue)
-      p.data.stats = calculateTotalStats(p.data, p.details.baseStats)
+      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
       // Return a new object reference for React to detect change
       return { ...p }
     }))
@@ -287,14 +288,13 @@ export const usePokemonData = () => {
   // Set nature by updating natureRaw and state
   const setNature = useCallback((pokemonId: number, nature: string) => {
     setPartyList(prevList => prevList.map(p => {
-      console.log('Setting nature:', pokemonId, nature)
       const natureValue = natures.indexOf(nature)
       if (p.id !== pokemonId || !p.details) return p
       // Only update if the value actually changed
       if (p.data.natureRaw === natureValue) return p
-      p.data.natureRaw = natureValue
+      p.data.setNatureRaw(natureValue)
       // Optionally, recalculate stats if needed
-      p.data.stats = calculateTotalStats(p.data, p.details.baseStats)
+      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
       return { ...p }
     }))
   }, [])

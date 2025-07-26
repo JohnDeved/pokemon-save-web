@@ -23,5 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# Million Lint
-.million
+# Save files and archives
+*.sav
+*.zip
+__MACOSX/
+
+

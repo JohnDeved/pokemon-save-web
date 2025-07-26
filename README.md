@@ -1,69 +1,111 @@
-# React + TypeScript + Vite
+# Pokemon Save Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based Pokemon save file editor, CLI tool, and TypeScript parser core.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Web Application
+```bash
+npm install
+npm run dev
+```
+Open your browser and drag & drop a Pokemon save file to get started.
 
-## Expanding the ESLint configuration
+### Command Line
+```bash
+# Parse a save file
+npx github:JohnDeved/pokemon-save-web save.sav
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# With debug output
+npx github:JohnDeved/pokemon-save-web save.sav --debug
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### As a Library
+```typescript
+import { PokemonSaveParser } from './lib/parser'
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+const parser = new PokemonSaveParser()
+const saveData = await parser.parseSaveFile(file)
+console.log(`Player: ${saveData.player_name}`)
 ```
+
+## Usage
+
+### 1. Web Application
+
+The main web application provides a user-friendly interface for uploading and analyzing save files.
+
+```bash
+npm install
+npm run dev    # Start development server
+npm run build  # Build for production
+```
+
+**Features:**
+- Drag-and-drop save file upload
+- Interactive Pokemon data visualization  
+- Real-time editing capabilities
+- File System Access API support for modern browsers
+
+### 2. JavaScript/TypeScript Library
+
+Use the parser as a library in your own projects with full TypeScript support.
+
+```typescript
+import { PokemonSaveParser } from './lib/parser'
+
+// Auto-detect game type and parse
+const parser = new PokemonSaveParser()
+const saveData = await parser.parseSaveFile(file)
+console.log(`Player: ${saveData.player_name}`)
+console.log(`Party size: ${saveData.party_pokemon.length}`)
+
+// Manual configuration
+const config = new QuetzalConfig()
+const parser = new PokemonSaveParser(undefined, config)
+```
+
+### 3. Command Line Interface
+
+Parse save files from the command line with multiple output formats.
+
+```bash
+# Local usage
+npm run parse save.sav --debug
+
+# NPX usage (direct from GitHub)  
+npx github:JohnDeved/pokemon-save-web save.sav --graph
+```
+
+**CLI Options:**
+- `--debug` - Show raw bytes for each party Pokemon after the summary table
+- `--graph` - Show colored hex/field graph for each party Pokemon
+- `--toBytes=STRING` - Convert a string to GBA byte encoding
+- `--toString=HEX` - Convert space/comma-separated hex bytes to a decoded GBA string
+
+## Adding Game Support
+
+The parser uses a flexible GameConfig system that makes it easy to add support for new Pokemon games and ROM hacks.
+
+```typescript
+export class MyGameConfig implements GameConfig {
+  readonly name = 'My Pokemon Game'
+  readonly signature = 0x12345678
+  readonly offsets = { /* game-specific offsets */ }
+  readonly mappings = { /* pokemon/item/move mappings */ }
+  
+  canHandle(saveData: Uint8Array): boolean {
+    // Detection logic
+  }
+  
+  determineActiveSlot(getCounterSum: (range: number[]) => number): number {
+    // Slot selection logic
+  }
+}
+```
+
+For detailed instructions, see [src/lib/parser/README.md](./src/lib/parser/README.md#adding-game-support).
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
