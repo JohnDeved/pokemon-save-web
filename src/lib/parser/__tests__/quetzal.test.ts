@@ -536,5 +536,30 @@ describe('Pokemon Quetzal Tests', () => {
         expect(pokemon.nature).toBe(expectedNature)
       })
     })
+
+    it('should use correct Quetzal shiny logic distinct from vanilla', async () => {
+      const result = await parser.parseSaveFile(testSaveData)
+
+      result.party_pokemon.forEach((pokemon) => {
+        // Verify shiny logic is different from vanilla
+        // In Quetzal: shinyNumber = 1 means shiny, shinyNumber = 2 means radiant
+        // In vanilla: shinyNumber < 8 means shiny (no radiant)
+
+        const expectedIsShiny = pokemon.shinyNumber === 1
+        const expectedIsRadiant = pokemon.shinyNumber === 2
+
+        expect(pokemon.isShiny).toBe(expectedIsShiny)
+        expect(pokemon.isRadiant).toBe(expectedIsRadiant)
+
+        // Ensure isShiny and isRadiant are mutually exclusive
+        if (pokemon.isRadiant) {
+          expect(pokemon.isShiny).toBe(false)
+        }
+
+        // Based on test data, we know some Pokemon have shinyNumber = 2 (radiant)
+        // and some have shinyNumber = 0 (normal)
+        expect([0, 1, 2]).toContain(pokemon.shinyNumber)
+      })
+    })
   })
 })

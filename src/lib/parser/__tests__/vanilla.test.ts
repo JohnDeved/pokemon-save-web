@@ -318,6 +318,58 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     })
   })
 
+  describe('Shiny Detection', () => {
+    it('should correctly identify non-shiny Pokémon in vanilla saves', async () => {
+      const parsedData = await parser.parseSaveFile(testSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        const pokemon = parsedData.party_pokemon[0]! // Treecko from test data
+
+        // Treecko in test data has shinyNumber = 11355, which is > 8, so it should NOT be shiny
+        expect(pokemon.shinyNumber).toBeGreaterThan(8)
+        expect(pokemon.isShiny).toBe(false)
+
+        // Verify vanilla shiny logic: shinyNumber < 8 means shiny
+        const shouldBeShiny = pokemon.shinyNumber < 8
+        expect(pokemon.isShiny).toBe(shouldBeShiny)
+      }
+    })
+
+    it('should use correct vanilla shiny logic (shinyNumber < 8)', async () => {
+      const parsedData = await parser.parseSaveFile(testSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        const pokemon = parsedData.party_pokemon[0]!
+
+        // Validate shiny calculation matches vanilla Gen 3 formula
+        const personality = pokemon.personality
+        const otId = pokemon.otId
+        const trainerId = otId & 0xFFFF
+        const secretId = (otId >> 16) & 0xFFFF
+        const personalityLow = personality & 0xFFFF
+        const personalityHigh = (personality >> 16) & 0xFFFF
+        const expectedShinyNumber = trainerId ^ secretId ^ personalityLow ^ personalityHigh
+
+        expect(pokemon.shinyNumber).toBe(expectedShinyNumber)
+
+        // Vanilla logic: shiny if shinyNumber < 8
+        const expectedIsShiny = expectedShinyNumber < 8
+        expect(pokemon.isShiny).toBe(expectedIsShiny)
+      }
+    })
+
+    it('should handle isRadiant property for vanilla saves', async () => {
+      const parsedData = await parser.parseSaveFile(testSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        const pokemon = parsedData.party_pokemon[0]!
+
+        // Vanilla saves don't have radiant Pokémon
+        expect(pokemon.isRadiant).toBe(false)
+      }
+    })
+  })
+
   describe('Save File Reconstruction', () => {
     it('should produce identical save file when reconstructing with unchanged party', async () => {
       const parsed = await parser.parseSaveFile(testSaveData)
