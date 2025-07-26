@@ -15,7 +15,7 @@ import { existsSync } from 'fs'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const PROJECT_ROOT = resolve(__dirname, '../../../')
+const PROJECT_ROOT = resolve(__dirname, '../../')
 const TEST_DATA_DIR = join(PROJECT_ROOT, 'test_data')
 
 // Docker configuration

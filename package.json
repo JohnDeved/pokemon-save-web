@@ -22,10 +22,7 @@
     "parse": "tsx src/lib/parser/cli.ts",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
-    "mgba:test": "node scripts/launch-mgba.js",
-    "mgba:manual": "node scripts/launch-mgba.js --no-lua",
-    "mgba:test-http": "node scripts/test-mgba-http.js",
-    "mgba:help": "node scripts/launch-mgba.js --help",
+
     "mgba:docker:build": "node scripts/docker-mgba.js build",
     "mgba:docker:start": "node scripts/docker-mgba.js start",
     "mgba:docker:stop": "node scripts/docker-mgba.js stop",
