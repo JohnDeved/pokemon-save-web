@@ -5,31 +5,19 @@ A containerized environment for testing mGBA emulator with Pokémon Emerald ROM 
 ## Quick Start
 
 ```bash
-# Build and start environment
-npm run mgba:docker:build
-npm run mgba:docker:start
+# Start the mGBA environment (builds automatically)
+npm run mgba:start
 
-# Check status
-npm run mgba:docker:logs
-npm run mgba:docker:status
-
-# Stop environment
-npm run mgba:docker:stop
+# Stop the environment
+npm run mgba:stop
 ```
 
-## Implementation Options
+## Implementation
 
-### 1. Simplified Version (Current - Fast Setup)
-- **File**: `Dockerfile` 
-- **Purpose**: Demonstrates concept with ROM download and file validation
-- **Build time**: ~8 seconds
-- **Features**: ROM auto-download, file verification, setup documentation
-
-### 2. Full Implementation (Advanced)
-- **File**: `Dockerfile.complex`
+- **File**: `Dockerfile`
 - **Purpose**: Complete mGBA build with Lua HTTP server support
 - **Build time**: ~5 minutes  
-- **Features**: Built-from-source mGBA, Lua scripting, HTTP API endpoints
+- **Features**: Built-from-source mGBA, Lua scripting, HTTP API endpoints, ROM auto-download
 
 ## Environment Details
 
@@ -44,13 +32,15 @@ npm run mgba:docker:stop
 ## Management Commands
 
 ```bash
-npm run mgba:docker:build   # Build container image
-npm run mgba:docker:start   # Start container
-npm run mgba:docker:stop    # Stop container  
-npm run mgba:docker:logs    # View container logs
-npm run mgba:docker:status  # Check container status
-npm run mgba:docker:clean   # Remove container and image
+npm run mgba:start    # Start mGBA environment (builds automatically)
+npm run mgba:stop     # Stop mGBA environment
 ```
+
+The start command automatically handles:
+- Building the Docker image if needed
+- Downloading the ROM from archive.org  
+- Starting the container with all services
+- Setting up the HTTP server on port 7102
 
 ## Testing
 
@@ -69,16 +59,15 @@ The test suite validates:
 
 ```
 docker/
-├── Dockerfile              # Simplified version (current)
-├── Dockerfile.complex      # Full mGBA build
-├── docker-compose.yml      # Container orchestration
-├── docker-mgba.js         # Management script
+├── Dockerfile               # Complete mGBA environment
+├── docker-compose.yml       # Container orchestration
+├── docker-mgba.js          # Management script
 ├── mgba-docker-environment.test.ts  # Test suite
-└── README.md              # This file
+└── README.md               # This file
 
 test_data/
-├── emerald.ss0            # Memory savestate
-└── mgba_http_server.lua   # HTTP server script
+├── emerald.ss0             # Memory savestate
+└── mgba_http_server.lua    # HTTP server script
 ```
 
 ## Legal Notes

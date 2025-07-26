@@ -18,28 +18,23 @@ const SERVER_PORT = 7102
 
 function showHelp() {
   console.log(`
-🐳 Docker mGBA Management
+🐳 mGBA Docker Environment
 
-Usage: node docker/docker-mgba.js <command>
+Usage: npm run mgba:start | npm run mgba:stop
 
 Commands:
-  build    Build the Docker image
-  start    Start the container
-  stop     Stop the container  
-  restart  Restart the container
-  logs     Show container logs
-  status   Show container status
-  clean    Remove container and image
-  help     Show this help
-
-Examples:
-  npm run mgba:docker:build
-  npm run mgba:docker:start
-  npm run mgba:docker:logs
+  start    Build and start the mGBA environment
+  stop     Stop the mGBA environment
 
 Environment:
   Container: ${CONTAINER_NAME}
-  Port: ${SERVER_PORT}
+  Port: ${SERVER_PORT} (HTTP server)
+  
+Features:
+  - Automatic ROM download from archive.org
+  - Built-from-source mGBA with Lua support
+  - HTTP API endpoints for automation
+  - WebSocket interface for real-time control
 `)
 }
 
@@ -69,52 +64,29 @@ async function handleCommand(command) {
   
   try {
     switch (command) {
-      case 'build':
-        console.log('🔨 Building mGBA Docker image...')
-        await runCommand('docker', ['compose', '-f', composeFile, 'build'])
-        console.log('✅ Build completed successfully')
-        break
-
       case 'start':
-        console.log('🚀 Starting mGBA container...')
-        await runCommand('docker', ['compose', '-f', composeFile, 'up', '-d'])
-        console.log('✅ Container started successfully')
-        console.log(`🌐 HTTP server will be available at http://localhost:${SERVER_PORT}`)
-        console.log('⏳ Waiting for emulator to initialize...')
+        console.log('🚀 Starting mGBA environment...')
+        console.log('🔨 Building if needed...')
+        await runCommand('docker', ['compose', '-f', composeFile, 'up', '-d', '--build'])
+        console.log('✅ mGBA environment started successfully')
+        console.log(`🌐 HTTP server available at http://localhost:${SERVER_PORT}`)
+        console.log('⏳ Emulator is initializing (may take a few minutes on first run)...')
+        
+        // Wait a moment then show status
+        setTimeout(async () => {
+          try {
+            console.log('\n📊 Environment status:')
+            await runCommand('docker', ['compose', '-f', composeFile, 'ps'])
+          } catch (e) {
+            // Ignore status check errors
+          }
+        }, 2000)
         break
 
       case 'stop':
-        console.log('🛑 Stopping mGBA container...')
+        console.log('🛑 Stopping mGBA environment...')
         await runCommand('docker', ['compose', '-f', composeFile, 'down'])
-        console.log('✅ Container stopped successfully')
-        break
-
-      case 'restart':
-        console.log('🔄 Restarting mGBA container...')
-        await runCommand('docker', ['compose', '-f', composeFile, 'restart'])
-        console.log('✅ Container restarted successfully')
-        break
-
-      case 'logs':
-        console.log('📋 Showing container logs...')
-        const extraArgs = process.argv.slice(3)
-        await runCommand('docker', ['compose', '-f', composeFile, 'logs', ...extraArgs])
-        break
-
-      case 'status':
-        console.log('📊 Container status:')
-        await runCommand('docker', ['compose', '-f', composeFile, 'ps'])
-        break
-
-      case 'clean':
-        console.log('🧹 Cleaning up Docker resources...')
-        await runCommand('docker', ['compose', '-f', composeFile, 'down', '--rmi', 'all'])
-        console.log('✅ Cleanup completed successfully')
-        break
-
-      case 'test':
-        console.log('🧪 Testing HTTP endpoints...')
-        await testEndpoints()
+        console.log('✅ mGBA environment stopped successfully')
         break
 
       default:

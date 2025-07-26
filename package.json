@@ -22,13 +22,8 @@
     "parse": "tsx src/lib/parser/cli.ts",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
-    "mgba:docker:build": "node docker/docker-mgba.js build",
-    "mgba:docker:start": "node docker/docker-mgba.js start",
-    "mgba:docker:stop": "node docker/docker-mgba.js stop",
-    "mgba:docker:test": "node docker/docker-mgba.js test",
-    "mgba:docker:logs": "node docker/docker-mgba.js logs",
-    "mgba:docker:status": "node docker/docker-mgba.js status",
-    "mgba:docker:clean": "node docker/docker-mgba.js clean"
+    "mgba:start": "node docker/docker-mgba.js start",
+    "mgba:stop": "node docker/docker-mgba.js stop"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",
