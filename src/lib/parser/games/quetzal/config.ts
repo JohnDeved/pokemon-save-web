@@ -143,6 +143,42 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   }
 
   /**
+   * Override nature setting for Quetzal-specific implementation
+   */
+  setNature (_data: Uint8Array, view: DataView, value: number): void {
+    // Quetzal uses (personality & 0xFF) % 25 for nature calculation
+    const currentPersonality = view.getUint32(0x00, true)
+    const currentFirstByte = currentPersonality & 0xFF
+    const currentNature = currentFirstByte % 25
+
+    if (currentNature === value) return
+
+    // Calculate new first byte that gives desired nature
+    let newFirstByte = currentFirstByte
+    const diff = value - currentNature
+    newFirstByte += diff
+
+    // Handle wraparound
+    if (newFirstByte < 0) {
+      newFirstByte += 25
+    } else if (newFirstByte > 255) {
+      newFirstByte = value + (newFirstByte & 0xE0) // Keep upper bits, set lower to desired nature
+    }
+
+    // Ensure we get the right nature
+    if ((newFirstByte % 25) !== value) {
+      newFirstByte = (newFirstByte & 0xE0) + value // Keep upper 3 bits, set lower 5 to achieve nature
+      if (newFirstByte > 255) {
+        newFirstByte = value
+      }
+    }
+
+    // Update personality with new first byte
+    const newPersonality = (currentPersonality & 0xFFFFFF00) | (newFirstByte & 0xFF)
+    view.setUint32(0x00, newPersonality >>> 0, true)
+  }
+
+  /**
    * Override active slot determination for Quetzal
    */
   determineActiveSlot (getCounterSum: (range: number[]) => number): number {
