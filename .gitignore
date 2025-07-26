@@ -28,4 +28,11 @@ dist-ssr
 *.zip
 __MACOSX/
 
+# ROM files and test data that should not be committed
+test_data/*.gba
+test_data/*.rom
+test_data/*.zip
+test_data/*.7z
+test_data/*.rar
+
 
