@@ -11,16 +11,6 @@ on:
       - 'scripts/mgba-lua/**/*.ts'
       - 'scripts/mgba-lua/**/*.js'
       - '.github/workflows/lua-tests.yml'
-  
-  # Trigger on pushes to main that modify Lua files
-  push:
-    branches:
-      - main
-    paths:
-      - 'scripts/mgba-lua/**/*.lua'
-      - 'scripts/mgba-lua/**/*.ts'
-      - 'scripts/mgba-lua/**/*.js'
-      - '.github/workflows/lua-tests.yml'
 
 jobs:
   test-lua-server:
