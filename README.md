@@ -146,3 +146,47 @@ The app uses advanced optimization techniques:
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+## mGBA Test Environment
+
+This repository includes an automated test environment for mGBA emulator with Pokémon Emerald, enabling automated testing via HTTP interface.
+
+### Quick Start
+
+1. **Provide your own legally obtained Pokémon Emerald ROM**:
+   - Place `emerald.gba` in the `test_data/` directory
+   - See `test_data/README.md` for legal ROM acquisition instructions
+
+2. **Launch the test environment**:
+   ```bash
+   # Launch mGBA with ROM, savestate, and HTTP server
+   npm run mgba:test
+   
+   # Launch without HTTP server (manual testing)
+   npm run mgba:manual
+   
+   # Test the HTTP interface
+   npm run mgba:test-http
+   
+   # Show help for launch options
+   npm run mgba:help
+   ```
+
+3. **HTTP API**: When running with the HTTP server, access the automation interface at `http://localhost:7102`
+
+### Features
+
+- **Automated ROM and savestate loading**: Pre-configured with Pokémon Emerald test data
+- **HTTP API**: RESTful endpoints for emulator automation (`/json`, `/echo`)
+- **WebSocket support**: Real-time Lua code execution for advanced automation
+- **CORS enabled**: Cross-origin requests supported for web-based testing
+- **Test scripts**: Built-in HTTP interface testing and validation
+
+### Use Cases
+
+- **Automated testing**: Verify save file parsing against live emulator state
+- **Integration testing**: Test web application features with real emulator data
+- **Research and development**: Rapid prototyping of emulator automation scripts
+- **Quality assurance**: Validate ROM hack compatibility and save file integrity
+
+See `test_data/README.md` for detailed setup instructions and legal requirements.

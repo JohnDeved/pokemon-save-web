@@ -28,4 +28,10 @@ dist-ssr
 *.zip
 __MACOSX/
 
+# ROM files (should be provided by user)
+*.gba
+*.gbc
+*.gb
+*.rom
+
 
