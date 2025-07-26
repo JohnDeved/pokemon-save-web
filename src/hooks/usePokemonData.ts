@@ -287,7 +287,6 @@ export const usePokemonData = () => {
   // Set nature by updating natureRaw and state
   const setNature = useCallback((pokemonId: number, nature: string) => {
     setPartyList(prevList => prevList.map(p => {
-      console.log('Setting nature:', pokemonId, nature)
       const natureValue = natures.indexOf(nature)
       if (p.id !== pokemonId || !p.details) return p
       // Only update if the value actually changed

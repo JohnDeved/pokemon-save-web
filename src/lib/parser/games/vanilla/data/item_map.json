@@ -1,0 +1,1492 @@
+{
+  "5": {
+    "name": "Safari Ball",
+    "id_name": "safari-ball",
+    "id": 5
+  },
+  "6": {
+    "name": "Net Ball",
+    "id_name": "net-ball",
+    "id": 6
+  },
+  "7": {
+    "name": "Dive Ball",
+    "id_name": "dive-ball",
+    "id": 7
+  },
+  "8": {
+    "name": "Nest Ball",
+    "id_name": "nest-ball",
+    "id": 8
+  },
+  "9": {
+    "name": "Repeat Ball",
+    "id_name": "repeat-ball",
+    "id": 9
+  },
+  "10": {
+    "name": "Timer Ball",
+    "id_name": "timer-ball",
+    "id": 10
+  },
+  "11": {
+    "name": "Luxury Ball",
+    "id_name": "luxury-ball",
+    "id": 11
+  },
+  "12": {
+    "name": "Premier Ball",
+    "id_name": "premier-ball",
+    "id": 12
+  },
+  "13": {
+    "name": "Potion",
+    "id_name": "potion",
+    "id": 17
+  },
+  "14": {
+    "name": "Antidote",
+    "id_name": "antidote",
+    "id": 18
+  },
+  "15": {
+    "name": "Burn Heal",
+    "id_name": "burn-heal",
+    "id": 19
+  },
+  "16": {
+    "name": "Ice Heal",
+    "id_name": "ice-heal",
+    "id": 20
+  },
+  "17": {
+    "name": "Awakening",
+    "id_name": "awakening",
+    "id": 21
+  },
+  "18": {
+    "name": "Paralyze Heal",
+    "id_name": "paralyze-heal",
+    "id": 22
+  },
+  "19": {
+    "name": "Full Restore",
+    "id_name": "full-restore",
+    "id": 23
+  },
+  "20": {
+    "name": "Max Potion",
+    "id_name": "max-potion",
+    "id": 24
+  },
+  "21": {
+    "name": "Hyper Potion",
+    "id_name": "hyper-potion",
+    "id": 25
+  },
+  "22": {
+    "name": "Super Potion",
+    "id_name": "super-potion",
+    "id": 26
+  },
+  "23": {
+    "name": "Full Heal",
+    "id_name": "full-heal",
+    "id": 27
+  },
+  "24": {
+    "name": "Revive",
+    "id_name": "revive",
+    "id": 28
+  },
+  "25": {
+    "name": "Max Revive",
+    "id_name": "max-revive",
+    "id": 29
+  },
+  "26": {
+    "name": "Fresh Water",
+    "id_name": "fresh-water",
+    "id": 30
+  },
+  "27": {
+    "name": "Soda Pop",
+    "id_name": "soda-pop",
+    "id": 31
+  },
+  "28": {
+    "name": "Lemonade",
+    "id_name": "lemonade",
+    "id": 32
+  },
+  "29": {
+    "name": "Moomoo Milk",
+    "id_name": "moomoo-milk",
+    "id": 33
+  },
+  "30": {
+    "name": "Energy Powder",
+    "id_name": "energy-powder",
+    "id": 34
+  },
+  "31": {
+    "name": "Energy Root",
+    "id_name": "energy-root",
+    "id": 35
+  },
+  "32": {
+    "name": "Heal Powder",
+    "id_name": "heal-powder",
+    "id": 36
+  },
+  "33": {
+    "name": "Revival Herb",
+    "id_name": "revival-herb",
+    "id": 37
+  },
+  "34": {
+    "name": "Ether",
+    "id_name": "ether",
+    "id": 38
+  },
+  "35": {
+    "name": "Max Ether",
+    "id_name": "max-ether",
+    "id": 39
+  },
+  "36": {
+    "name": "Elixir",
+    "id_name": "elixir",
+    "id": 40
+  },
+  "37": {
+    "name": "Max Elixir",
+    "id_name": "max-elixir",
+    "id": 41
+  },
+  "38": {
+    "name": "Lava Cookie",
+    "id_name": "lava-cookie",
+    "id": 42
+  },
+  "39": {
+    "name": "Blue Flute",
+    "id_name": "blue-flute",
+    "id": 65
+  },
+  "40": {
+    "name": "Yellow Flute",
+    "id_name": "yellow-flute",
+    "id": 66
+  },
+  "41": {
+    "name": "Red Flute",
+    "id_name": "red-flute",
+    "id": 67
+  },
+  "42": {
+    "name": "Black Flute",
+    "id_name": "black-flute",
+    "id": 68
+  },
+  "43": {
+    "name": "White Flute",
+    "id_name": "white-flute",
+    "id": 69
+  },
+  "44": {
+    "name": "Berry Juice",
+    "id_name": "berry-juice",
+    "id": 43
+  },
+  "45": {
+    "name": "Sacred Ash",
+    "id_name": "sacred-ash",
+    "id": 44
+  },
+  "46": {
+    "name": "Shoal Salt",
+    "id_name": "shoal-salt",
+    "id": 70
+  },
+  "47": {
+    "name": "Shoal Shell",
+    "id_name": "shoal-shell",
+    "id": 71
+  },
+  "48": {
+    "name": "Red Shard",
+    "id_name": "red-shard",
+    "id": 72
+  },
+  "49": {
+    "name": "Blue Shard",
+    "id_name": "blue-shard",
+    "id": 73
+  },
+  "50": {
+    "name": "Yellow Shard",
+    "id_name": "yellow-shard",
+    "id": 74
+  },
+  "51": {
+    "name": "Green Shard",
+    "id_name": "green-shard",
+    "id": 75
+  },
+  "63": {
+    "name": "Hp Up",
+    "id_name": "hp-up",
+    "id": 45
+  },
+  "64": {
+    "name": "Protein",
+    "id_name": "protein",
+    "id": 46
+  },
+  "65": {
+    "name": "Iron",
+    "id_name": "iron",
+    "id": 47
+  },
+  "66": {
+    "name": "Carbos",
+    "id_name": "carbos",
+    "id": 48
+  },
+  "67": {
+    "name": "Calcium",
+    "id_name": "calcium",
+    "id": 49
+  },
+  "68": {
+    "name": "Rare Candy",
+    "id_name": "rare-candy",
+    "id": 50
+  },
+  "69": {
+    "name": "Pp Up",
+    "id_name": "pp-up",
+    "id": 51
+  },
+  "70": {
+    "name": "Zinc",
+    "id_name": "zinc",
+    "id": 52
+  },
+  "71": {
+    "name": "Pp Max",
+    "id_name": "pp-max",
+    "id": 53
+  },
+  "73": {
+    "name": "Guard Spec",
+    "id_name": "guard-spec",
+    "id": 55
+  },
+  "74": {
+    "name": "Dire Hit",
+    "id_name": "dire-hit",
+    "id": 56
+  },
+  "75": {
+    "name": "X Attack",
+    "id_name": "x-attack",
+    "id": 57
+  },
+  "77": {
+    "name": "X Speed",
+    "id_name": "x-speed",
+    "id": 59
+  },
+  "78": {
+    "name": "X Accuracy",
+    "id_name": "x-accuracy",
+    "id": 60
+  },
+  "80": {
+    "name": "Poke Doll",
+    "id_name": "poke-doll",
+    "id": 63
+  },
+  "81": {
+    "name": "Fluffy Tail",
+    "id_name": "fluffy-tail",
+    "id": 64
+  },
+  "83": {
+    "name": "Super Repel",
+    "id_name": "super-repel",
+    "id": 76
+  },
+  "84": {
+    "name": "Max Repel",
+    "id_name": "max-repel",
+    "id": 77
+  },
+  "85": {
+    "name": "Escape Rope",
+    "id_name": "escape-rope",
+    "id": 78
+  },
+  "86": {
+    "name": "Repel",
+    "id_name": "repel",
+    "id": 79
+  },
+  "93": {
+    "name": "Sun Stone",
+    "id_name": "sun-stone",
+    "id": 80
+  },
+  "94": {
+    "name": "Moon Stone",
+    "id_name": "moon-stone",
+    "id": 81
+  },
+  "95": {
+    "name": "Fire Stone",
+    "id_name": "fire-stone",
+    "id": 82
+  },
+  "96": {
+    "name": "Thunder Stone",
+    "id_name": "thunder-stone",
+    "id": 83
+  },
+  "97": {
+    "name": "Water Stone",
+    "id_name": "water-stone",
+    "id": 84
+  },
+  "98": {
+    "name": "Leaf Stone",
+    "id_name": "leaf-stone",
+    "id": 85
+  },
+  "103": {
+    "name": "Tiny Mushroom",
+    "id_name": "tiny-mushroom",
+    "id": 86
+  },
+  "104": {
+    "name": "Big Mushroom",
+    "id_name": "big-mushroom",
+    "id": 87
+  },
+  "106": {
+    "name": "Pearl",
+    "id_name": "pearl",
+    "id": 88
+  },
+  "107": {
+    "name": "Big Pearl",
+    "id_name": "big-pearl",
+    "id": 89
+  },
+  "108": {
+    "name": "Stardust",
+    "id_name": "stardust",
+    "id": 90
+  },
+  "109": {
+    "name": "Star Piece",
+    "id_name": "star-piece",
+    "id": 91
+  },
+  "110": {
+    "name": "Nugget",
+    "id_name": "nugget",
+    "id": 92
+  },
+  "111": {
+    "name": "Heart Scale",
+    "id_name": "heart-scale",
+    "id": 93
+  },
+  "121": {
+    "name": "Orange Mail",
+    "id_name": "orange-mail",
+    "id": 515
+  },
+  "122": {
+    "name": "Harbor Mail",
+    "id_name": "harbor-mail",
+    "id": 516
+  },
+  "123": {
+    "name": "Glitter Mail",
+    "id_name": "glitter-mail",
+    "id": 517
+  },
+  "124": {
+    "name": "Mech Mail",
+    "id_name": "mech-mail",
+    "id": 518
+  },
+  "125": {
+    "name": "Wood Mail",
+    "id_name": "wood-mail",
+    "id": 519
+  },
+  "126": {
+    "name": "Wave Mail",
+    "id_name": "wave-mail",
+    "id": 520
+  },
+  "127": {
+    "name": "Bead Mail",
+    "id_name": "bead-mail",
+    "id": 521
+  },
+  "128": {
+    "name": "Shadow Mail",
+    "id_name": "shadow-mail",
+    "id": 522
+  },
+  "129": {
+    "name": "Tropic Mail",
+    "id_name": "tropic-mail",
+    "id": 523
+  },
+  "130": {
+    "name": "Dream Mail",
+    "id_name": "dream-mail",
+    "id": 524
+  },
+  "131": {
+    "name": "Fab Mail",
+    "id_name": "fab-mail",
+    "id": 525
+  },
+  "132": {
+    "name": "Retro Mail",
+    "id_name": "retro-mail",
+    "id": 526
+  },
+  "133": {
+    "name": "Cheri Berry",
+    "id_name": "cheri-berry",
+    "id": 126
+  },
+  "134": {
+    "name": "Chesto Berry",
+    "id_name": "chesto-berry",
+    "id": 127
+  },
+  "135": {
+    "name": "Pecha Berry",
+    "id_name": "pecha-berry",
+    "id": 128
+  },
+  "136": {
+    "name": "Rawst Berry",
+    "id_name": "rawst-berry",
+    "id": 129
+  },
+  "137": {
+    "name": "Aspear Berry",
+    "id_name": "aspear-berry",
+    "id": 130
+  },
+  "138": {
+    "name": "Leppa Berry",
+    "id_name": "leppa-berry",
+    "id": 131
+  },
+  "139": {
+    "name": "Oran Berry",
+    "id_name": "oran-berry",
+    "id": 132
+  },
+  "140": {
+    "name": "Persim Berry",
+    "id_name": "persim-berry",
+    "id": 133
+  },
+  "141": {
+    "name": "Lum Berry",
+    "id_name": "lum-berry",
+    "id": 134
+  },
+  "142": {
+    "name": "Sitrus Berry",
+    "id_name": "sitrus-berry",
+    "id": 135
+  },
+  "143": {
+    "name": "Figy Berry",
+    "id_name": "figy-berry",
+    "id": 136
+  },
+  "144": {
+    "name": "Wiki Berry",
+    "id_name": "wiki-berry",
+    "id": 137
+  },
+  "145": {
+    "name": "Mago Berry",
+    "id_name": "mago-berry",
+    "id": 138
+  },
+  "146": {
+    "name": "Aguav Berry",
+    "id_name": "aguav-berry",
+    "id": 139
+  },
+  "147": {
+    "name": "Iapapa Berry",
+    "id_name": "iapapa-berry",
+    "id": 140
+  },
+  "148": {
+    "name": "Razz Berry",
+    "id_name": "razz-berry",
+    "id": 141
+  },
+  "149": {
+    "name": "Bluk Berry",
+    "id_name": "bluk-berry",
+    "id": 142
+  },
+  "150": {
+    "name": "Nanab Berry",
+    "id_name": "nanab-berry",
+    "id": 143
+  },
+  "151": {
+    "name": "Wepear Berry",
+    "id_name": "wepear-berry",
+    "id": 144
+  },
+  "152": {
+    "name": "Pinap Berry",
+    "id_name": "pinap-berry",
+    "id": 145
+  },
+  "153": {
+    "name": "Pomeg Berry",
+    "id_name": "pomeg-berry",
+    "id": 146
+  },
+  "154": {
+    "name": "Kelpsy Berry",
+    "id_name": "kelpsy-berry",
+    "id": 147
+  },
+  "155": {
+    "name": "Qualot Berry",
+    "id_name": "qualot-berry",
+    "id": 148
+  },
+  "156": {
+    "name": "Hondew Berry",
+    "id_name": "hondew-berry",
+    "id": 149
+  },
+  "157": {
+    "name": "Grepa Berry",
+    "id_name": "grepa-berry",
+    "id": 150
+  },
+  "158": {
+    "name": "Tamato Berry",
+    "id_name": "tamato-berry",
+    "id": 151
+  },
+  "159": {
+    "name": "Cornn Berry",
+    "id_name": "cornn-berry",
+    "id": 152
+  },
+  "160": {
+    "name": "Magost Berry",
+    "id_name": "magost-berry",
+    "id": 153
+  },
+  "161": {
+    "name": "Rabuta Berry",
+    "id_name": "rabuta-berry",
+    "id": 154
+  },
+  "162": {
+    "name": "Nomel Berry",
+    "id_name": "nomel-berry",
+    "id": 155
+  },
+  "163": {
+    "name": "Spelon Berry",
+    "id_name": "spelon-berry",
+    "id": 156
+  },
+  "164": {
+    "name": "Pamtre Berry",
+    "id_name": "pamtre-berry",
+    "id": 157
+  },
+  "165": {
+    "name": "Watmel Berry",
+    "id_name": "watmel-berry",
+    "id": 158
+  },
+  "166": {
+    "name": "Durin Berry",
+    "id_name": "durin-berry",
+    "id": 159
+  },
+  "167": {
+    "name": "Belue Berry",
+    "id_name": "belue-berry",
+    "id": 160
+  },
+  "168": {
+    "name": "Liechi Berry",
+    "id_name": "liechi-berry",
+    "id": 178
+  },
+  "169": {
+    "name": "Ganlon Berry",
+    "id_name": "ganlon-berry",
+    "id": 179
+  },
+  "170": {
+    "name": "Salac Berry",
+    "id_name": "salac-berry",
+    "id": 180
+  },
+  "171": {
+    "name": "Petaya Berry",
+    "id_name": "petaya-berry",
+    "id": 181
+  },
+  "172": {
+    "name": "Apicot Berry",
+    "id_name": "apicot-berry",
+    "id": 182
+  },
+  "173": {
+    "name": "Lansat Berry",
+    "id_name": "lansat-berry",
+    "id": 183
+  },
+  "174": {
+    "name": "Starf Berry",
+    "id_name": "starf-berry",
+    "id": 184
+  },
+  "175": {
+    "name": "Enigma Berry",
+    "id_name": "enigma-berry",
+    "id": 185
+  },
+  "179": {
+    "name": "Bright Powder",
+    "id_name": "bright-powder",
+    "id": 190
+  },
+  "180": {
+    "name": "White Herb",
+    "id_name": "white-herb",
+    "id": 191
+  },
+  "181": {
+    "name": "Macho Brace",
+    "id_name": "macho-brace",
+    "id": 192
+  },
+  "182": {
+    "name": "Exp Share",
+    "id_name": "exp-share",
+    "id": 193
+  },
+  "183": {
+    "name": "Quick Claw",
+    "id_name": "quick-claw",
+    "id": 194
+  },
+  "184": {
+    "name": "Soothe Bell",
+    "id_name": "soothe-bell",
+    "id": 195
+  },
+  "185": {
+    "name": "Mental Herb",
+    "id_name": "mental-herb",
+    "id": 196
+  },
+  "186": {
+    "name": "Choice Band",
+    "id_name": "choice-band",
+    "id": 197
+  },
+  "187": {
+    "name": "Kings Rock",
+    "id_name": "kings-rock",
+    "id": 198
+  },
+  "188": {
+    "name": "Silver Powder",
+    "id_name": "silver-powder",
+    "id": 199
+  },
+  "189": {
+    "name": "Amulet Coin",
+    "id_name": "amulet-coin",
+    "id": 200
+  },
+  "190": {
+    "name": "Cleanse Tag",
+    "id_name": "cleanse-tag",
+    "id": 201
+  },
+  "191": {
+    "name": "Soul Dew",
+    "id_name": "soul-dew",
+    "id": 202
+  },
+  "192": {
+    "name": "Deep Sea Tooth",
+    "id_name": "deep-sea-tooth",
+    "id": 203
+  },
+  "193": {
+    "name": "Deep Sea Scale",
+    "id_name": "deep-sea-scale",
+    "id": 204
+  },
+  "194": {
+    "name": "Smoke Ball",
+    "id_name": "smoke-ball",
+    "id": 205
+  },
+  "195": {
+    "name": "Everstone",
+    "id_name": "everstone",
+    "id": 206
+  },
+  "196": {
+    "name": "Focus Band",
+    "id_name": "focus-band",
+    "id": 207
+  },
+  "197": {
+    "name": "Lucky Egg",
+    "id_name": "lucky-egg",
+    "id": 208
+  },
+  "198": {
+    "name": "Scope Lens",
+    "id_name": "scope-lens",
+    "id": 209
+  },
+  "199": {
+    "name": "Metal Coat",
+    "id_name": "metal-coat",
+    "id": 210
+  },
+  "200": {
+    "name": "Leftovers",
+    "id_name": "leftovers",
+    "id": 211
+  },
+  "201": {
+    "name": "Dragon Scale",
+    "id_name": "dragon-scale",
+    "id": 212
+  },
+  "202": {
+    "name": "Light Ball",
+    "id_name": "light-ball",
+    "id": 213
+  },
+  "203": {
+    "name": "Soft Sand",
+    "id_name": "soft-sand",
+    "id": 214
+  },
+  "204": {
+    "name": "Hard Stone",
+    "id_name": "hard-stone",
+    "id": 215
+  },
+  "205": {
+    "name": "Miracle Seed",
+    "id_name": "miracle-seed",
+    "id": 216
+  },
+  "206": {
+    "name": "Black Glasses",
+    "id_name": "black-glasses",
+    "id": 217
+  },
+  "207": {
+    "name": "Black Belt",
+    "id_name": "black-belt",
+    "id": 218
+  },
+  "208": {
+    "name": "Magnet",
+    "id_name": "magnet",
+    "id": 219
+  },
+  "209": {
+    "name": "Mystic Water",
+    "id_name": "mystic-water",
+    "id": 220
+  },
+  "210": {
+    "name": "Sharp Beak",
+    "id_name": "sharp-beak",
+    "id": 221
+  },
+  "211": {
+    "name": "Poison Barb",
+    "id_name": "poison-barb",
+    "id": 222
+  },
+  "212": {
+    "name": "Never Melt Ice",
+    "id_name": "never-melt-ice",
+    "id": 223
+  },
+  "213": {
+    "name": "Spell Tag",
+    "id_name": "spell-tag",
+    "id": 224
+  },
+  "214": {
+    "name": "Twisted Spoon",
+    "id_name": "twisted-spoon",
+    "id": 225
+  },
+  "215": {
+    "name": "Charcoal",
+    "id_name": "charcoal",
+    "id": 226
+  },
+  "216": {
+    "name": "Dragon Fang",
+    "id_name": "dragon-fang",
+    "id": 227
+  },
+  "217": {
+    "name": "Silk Scarf",
+    "id_name": "silk-scarf",
+    "id": 228
+  },
+  "218": {
+    "name": "Up Grade",
+    "id_name": "up-grade",
+    "id": 229
+  },
+  "219": {
+    "name": "Shell Bell",
+    "id_name": "shell-bell",
+    "id": 230
+  },
+  "220": {
+    "name": "Sea Incense",
+    "id_name": "sea-incense",
+    "id": 231
+  },
+  "221": {
+    "name": "Lax Incense",
+    "id_name": "lax-incense",
+    "id": 232
+  },
+  "222": {
+    "name": "Lucky Punch",
+    "id_name": "lucky-punch",
+    "id": 233
+  },
+  "223": {
+    "name": "Metal Powder",
+    "id_name": "metal-powder",
+    "id": 234
+  },
+  "224": {
+    "name": "Thick Club",
+    "id_name": "thick-club",
+    "id": 235
+  },
+  "225": {
+    "name": "Stick",
+    "id_name": "stick",
+    "id": 236
+  },
+  "254": {
+    "name": "Red Scarf",
+    "id_name": "red-scarf",
+    "id": 237
+  },
+  "255": {
+    "name": "Blue Scarf",
+    "id_name": "blue-scarf",
+    "id": 238
+  },
+  "256": {
+    "name": "Pink Scarf",
+    "id_name": "pink-scarf",
+    "id": 239
+  },
+  "257": {
+    "name": "Green Scarf",
+    "id_name": "green-scarf",
+    "id": 240
+  },
+  "258": {
+    "name": "Yellow Scarf",
+    "id_name": "yellow-scarf",
+    "id": 241
+  },
+  "259": {
+    "name": "Mach Bike",
+    "id_name": "mach-bike",
+    "id": 527
+  },
+  "260": {
+    "name": "Coin Case",
+    "id_name": "coin-case",
+    "id": 421
+  },
+  "262": {
+    "name": "Old Rod",
+    "id_name": "old-rod",
+    "id": 422
+  },
+  "263": {
+    "name": "Good Rod",
+    "id_name": "good-rod",
+    "id": 423
+  },
+  "264": {
+    "name": "Super Rod",
+    "id_name": "super-rod",
+    "id": 424
+  },
+  "265": {
+    "name": "Ss Ticket",
+    "id_name": "ss-ticket",
+    "id": 433
+  },
+  "266": {
+    "name": "Contest Pass",
+    "id_name": "contest-pass",
+    "id": 434
+  },
+  "268": {
+    "name": "Wailmer Pail",
+    "id_name": "wailmer-pail",
+    "id": 529
+  },
+  "269": {
+    "name": "Devon Goods",
+    "id_name": "devon-goods",
+    "id": 530
+  },
+  "270": {
+    "name": "Soot Sack",
+    "id_name": "soot-sack",
+    "id": 531
+  },
+  "271": {
+    "name": "Basement Key",
+    "id_name": "basement-key",
+    "id": 476
+  },
+  "272": {
+    "name": "Acro Bike",
+    "id_name": "acro-bike",
+    "id": 528
+  },
+  "273": {
+    "name": "Pokeblock Case",
+    "id_name": "pokeblock-case",
+    "id": 532
+  },
+  "274": {
+    "name": "Letter",
+    "id_name": "letter",
+    "id": 533
+  },
+  "275": {
+    "name": "Eon Ticket",
+    "id_name": "eon-ticket",
+    "id": 534
+  },
+  "276": {
+    "name": "Red Orb",
+    "id_name": "red-orb",
+    "id": 467
+  },
+  "277": {
+    "name": "Blue Orb",
+    "id_name": "blue-orb",
+    "id": 468
+  },
+  "278": {
+    "name": "Scanner",
+    "id_name": "scanner",
+    "id": 535
+  },
+  "279": {
+    "name": "Go Goggles",
+    "id_name": "go-goggles",
+    "id": 536
+  },
+  "280": {
+    "name": "Meteorite",
+    "id_name": "meteorite",
+    "id": 537
+  },
+  "285": {
+    "name": "Storage Key",
+    "id_name": "storage-key",
+    "id": 440
+  },
+  "286": {
+    "name": "Root Fossil",
+    "id_name": "root-fossil",
+    "id": 99
+  },
+  "287": {
+    "name": "Claw Fossil",
+    "id_name": "claw-fossil",
+    "id": 100
+  },
+  "288": {
+    "name": "Devon Scope",
+    "id_name": "devon-scope",
+    "id": 542
+  },
+  "289": {
+    "name": "Tm01",
+    "id_name": "tm01",
+    "id": 305
+  },
+  "290": {
+    "name": "Tm02",
+    "id_name": "tm02",
+    "id": 306
+  },
+  "291": {
+    "name": "Tm03",
+    "id_name": "tm03",
+    "id": 307
+  },
+  "292": {
+    "name": "Tm04",
+    "id_name": "tm04",
+    "id": 308
+  },
+  "293": {
+    "name": "Tm05",
+    "id_name": "tm05",
+    "id": 309
+  },
+  "294": {
+    "name": "Tm06",
+    "id_name": "tm06",
+    "id": 310
+  },
+  "295": {
+    "name": "Tm07",
+    "id_name": "tm07",
+    "id": 311
+  },
+  "296": {
+    "name": "Tm08",
+    "id_name": "tm08",
+    "id": 312
+  },
+  "297": {
+    "name": "Tm09",
+    "id_name": "tm09",
+    "id": 313
+  },
+  "298": {
+    "name": "Tm10",
+    "id_name": "tm10",
+    "id": 314
+  },
+  "299": {
+    "name": "Tm11",
+    "id_name": "tm11",
+    "id": 315
+  },
+  "300": {
+    "name": "Tm12",
+    "id_name": "tm12",
+    "id": 316
+  },
+  "301": {
+    "name": "Tm13",
+    "id_name": "tm13",
+    "id": 317
+  },
+  "302": {
+    "name": "Tm14",
+    "id_name": "tm14",
+    "id": 318
+  },
+  "303": {
+    "name": "Tm15",
+    "id_name": "tm15",
+    "id": 319
+  },
+  "304": {
+    "name": "Tm16",
+    "id_name": "tm16",
+    "id": 320
+  },
+  "305": {
+    "name": "Tm17",
+    "id_name": "tm17",
+    "id": 321
+  },
+  "306": {
+    "name": "Tm18",
+    "id_name": "tm18",
+    "id": 322
+  },
+  "307": {
+    "name": "Tm19",
+    "id_name": "tm19",
+    "id": 323
+  },
+  "308": {
+    "name": "Tm20",
+    "id_name": "tm20",
+    "id": 324
+  },
+  "309": {
+    "name": "Tm21",
+    "id_name": "tm21",
+    "id": 325
+  },
+  "310": {
+    "name": "Tm22",
+    "id_name": "tm22",
+    "id": 326
+  },
+  "311": {
+    "name": "Tm23",
+    "id_name": "tm23",
+    "id": 327
+  },
+  "312": {
+    "name": "Tm24",
+    "id_name": "tm24",
+    "id": 328
+  },
+  "313": {
+    "name": "Tm25",
+    "id_name": "tm25",
+    "id": 329
+  },
+  "314": {
+    "name": "Tm26",
+    "id_name": "tm26",
+    "id": 330
+  },
+  "315": {
+    "name": "Tm27",
+    "id_name": "tm27",
+    "id": 331
+  },
+  "316": {
+    "name": "Tm28",
+    "id_name": "tm28",
+    "id": 332
+  },
+  "317": {
+    "name": "Tm29",
+    "id_name": "tm29",
+    "id": 333
+  },
+  "318": {
+    "name": "Tm30",
+    "id_name": "tm30",
+    "id": 334
+  },
+  "319": {
+    "name": "Tm31",
+    "id_name": "tm31",
+    "id": 335
+  },
+  "320": {
+    "name": "Tm32",
+    "id_name": "tm32",
+    "id": 336
+  },
+  "321": {
+    "name": "Tm33",
+    "id_name": "tm33",
+    "id": 337
+  },
+  "322": {
+    "name": "Tm34",
+    "id_name": "tm34",
+    "id": 338
+  },
+  "323": {
+    "name": "Tm35",
+    "id_name": "tm35",
+    "id": 339
+  },
+  "324": {
+    "name": "Tm36",
+    "id_name": "tm36",
+    "id": 340
+  },
+  "325": {
+    "name": "Tm37",
+    "id_name": "tm37",
+    "id": 341
+  },
+  "326": {
+    "name": "Tm38",
+    "id_name": "tm38",
+    "id": 342
+  },
+  "327": {
+    "name": "Tm39",
+    "id_name": "tm39",
+    "id": 343
+  },
+  "328": {
+    "name": "Tm40",
+    "id_name": "tm40",
+    "id": 344
+  },
+  "329": {
+    "name": "Tm41",
+    "id_name": "tm41",
+    "id": 345
+  },
+  "330": {
+    "name": "Tm42",
+    "id_name": "tm42",
+    "id": 346
+  },
+  "331": {
+    "name": "Tm43",
+    "id_name": "tm43",
+    "id": 347
+  },
+  "332": {
+    "name": "Tm44",
+    "id_name": "tm44",
+    "id": 348
+  },
+  "333": {
+    "name": "Tm45",
+    "id_name": "tm45",
+    "id": 349
+  },
+  "334": {
+    "name": "Tm46",
+    "id_name": "tm46",
+    "id": 350
+  },
+  "335": {
+    "name": "Tm47",
+    "id_name": "tm47",
+    "id": 351
+  },
+  "336": {
+    "name": "Tm48",
+    "id_name": "tm48",
+    "id": 352
+  },
+  "337": {
+    "name": "Tm49",
+    "id_name": "tm49",
+    "id": 353
+  },
+  "338": {
+    "name": "Tm50",
+    "id_name": "tm50",
+    "id": 354
+  },
+  "339": {
+    "name": "Hm01",
+    "id_name": "hm01",
+    "id": 397
+  },
+  "340": {
+    "name": "Hm02",
+    "id_name": "hm02",
+    "id": 398
+  },
+  "341": {
+    "name": "Hm03",
+    "id_name": "hm03",
+    "id": 399
+  },
+  "342": {
+    "name": "Hm04",
+    "id_name": "hm04",
+    "id": 400
+  },
+  "343": {
+    "name": "Hm05",
+    "id_name": "hm05",
+    "id": 401
+  },
+  "344": {
+    "name": "Hm06",
+    "id_name": "hm06",
+    "id": 402
+  },
+  "345": {
+    "name": "Hm07",
+    "id_name": "hm07",
+    "id": 403
+  },
+  "346": {
+    "name": "Hm08",
+    "id_name": "hm08",
+    "id": 404
+  },
+  "349": {
+    "name": "Oaks Parcel",
+    "id_name": "oaks-parcel",
+    "id": 543
+  },
+  "350": {
+    "name": "Poke Flute",
+    "id_name": "poke-flute",
+    "id": 544
+  },
+  "351": {
+    "name": "Secret Key",
+    "id_name": "secret-key",
+    "id": 445
+  },
+  "352": {
+    "name": "Bike Voucher",
+    "id_name": "bike-voucher",
+    "id": 545
+  },
+  "353": {
+    "name": "Gold Teeth",
+    "id_name": "gold-teeth",
+    "id": 546
+  },
+  "354": {
+    "name": "Old Amber",
+    "id_name": "old-amber",
+    "id": 103
+  },
+  "355": {
+    "name": "Card Key",
+    "id_name": "card-key",
+    "id": 475
+  },
+  "356": {
+    "name": "Lift Key",
+    "id_name": "lift-key",
+    "id": 547
+  },
+  "357": {
+    "name": "Helix Fossil",
+    "id_name": "helix-fossil",
+    "id": 101
+  },
+  "358": {
+    "name": "Dome Fossil",
+    "id_name": "dome-fossil",
+    "id": 102
+  },
+  "359": {
+    "name": "Silph Scope",
+    "id_name": "silph-scope",
+    "id": 548
+  },
+  "360": {
+    "name": "Bicycle",
+    "id_name": "bicycle",
+    "id": 427
+  },
+  "361": {
+    "name": "Town Map",
+    "id_name": "town-map",
+    "id": 419
+  },
+  "362": {
+    "name": "Vs Seeker",
+    "id_name": "vs-seeker",
+    "id": 420
+  },
+  "363": {
+    "name": "Fame Checker",
+    "id_name": "fame-checker",
+    "id": 549
+  },
+  "364": {
+    "name": "Tm Case",
+    "id_name": "tm-case",
+    "id": 550
+  },
+  "365": {
+    "name": "Berry Pouch",
+    "id_name": "berry-pouch",
+    "id": 551
+  },
+  "366": {
+    "name": "Teachy Tv",
+    "id_name": "teachy-tv",
+    "id": 552
+  },
+  "367": {
+    "name": "Tri Pass",
+    "id_name": "tri-pass",
+    "id": 553
+  },
+  "368": {
+    "name": "Rainbow Pass",
+    "id_name": "rainbow-pass",
+    "id": 554
+  },
+  "369": {
+    "name": "Tea",
+    "id_name": "tea",
+    "id": 555
+  },
+  "370": {
+    "name": "Mysticticket",
+    "id_name": "mysticticket",
+    "id": 556
+  },
+  "371": {
+    "name": "Auroraticket",
+    "id_name": "auroraticket",
+    "id": 557
+  },
+  "372": {
+    "name": "Powder Jar",
+    "id_name": "powder-jar",
+    "id": 558
+  },
+  "373": {
+    "name": "Ruby",
+    "id_name": "ruby",
+    "id": 559
+  },
+  "374": {
+    "name": "Sapphire",
+    "id_name": "sapphire",
+    "id": 560
+  },
+  "375": {
+    "name": "Magma Emblem",
+    "id_name": "magma-emblem",
+    "id": 561
+  },
+  "376": {
+    "name": "Old Sea Map",
+    "id_name": "old-sea-map",
+    "id": 562
+  }
+}

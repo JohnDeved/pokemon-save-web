@@ -9,13 +9,6 @@ on:
       - 'vitest.config.ts'
       - 'tsconfig*.json'
       - '.github/workflows/test.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'package*.json'
-      - 'vitest.config.ts'
-      - 'tsconfig*.json'
 
 jobs:
   test:

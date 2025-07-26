@@ -16,7 +16,7 @@ const __dirname = dirname(__filename)
 describe('Parser CLI Tests', () => {
   const cliPath = resolve(__dirname, '..', 'cli.ts')
   const testDataDir = resolve(__dirname, 'test_data')
-  const testSavePath = resolve(testDataDir, 'player1.sav')
+  const testSavePath = resolve(testDataDir, 'quetzal.sav')
   const tempDir = resolve(__dirname, 'temp_cli_test')
 
   beforeAll(() => {
