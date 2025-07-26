@@ -10,6 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { PokemonSaveParser } from '../core/PokemonSaveParser'
 import { QuetzalConfig } from '../games/quetzal/config'
 import { VanillaConfig } from '../games/vanilla/config'
+import { natures } from '../core/utils'
 
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
@@ -322,6 +323,236 @@ describe('Value Isolation Tests', () => {
           expect(pokemon.speciesId).toBe(initial.speciesId)
           expect(pokemon.level).toBe(initial.level)
           expect(pokemon.personality).toBe(initial.personality)
+        })
+      }
+    })
+  })
+
+  describe('Nature Writing Isolation', () => {
+    it('should modify only the nature when writing nature values (Quetzal)', async () => {
+      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        const pokemon = parsedData.party_pokemon[0]!
+
+        // Capture initial state
+        const initialEvs = [...pokemon.evs]
+        const initialIvs = [...pokemon.ivs]
+        const initialSpeciesId = pokemon.speciesId
+        const initialLevel = pokemon.level
+        const initialIsShiny = pokemon.isShiny
+        const initialOtId = pokemon.otId
+        const initialNickname = pokemon.nickname
+        const initialOtName = pokemon.otName
+
+        // Test setting different natures
+        const testNatures = ['Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Timid', 'Modest']
+
+        for (const targetNature of testNatures) {
+          const targetNatureIndex = natures.indexOf(targetNature)
+
+          // Set the nature
+          pokemon.setNatureRaw(targetNatureIndex)
+
+          // Verify nature changed correctly
+          expect(pokemon.nature).toBe(targetNature)
+          expect(pokemon.natureRaw).toBe(targetNatureIndex)
+
+          // Verify all other important data remained unchanged
+          expect(pokemon.evs).toEqual(initialEvs)
+          expect(pokemon.ivs).toEqual(initialIvs)
+          expect(pokemon.speciesId).toBe(initialSpeciesId)
+          expect(pokemon.level).toBe(initialLevel)
+          expect(pokemon.isShiny).toBe(initialIsShiny)
+          expect(pokemon.otId).toBe(initialOtId)
+          expect(pokemon.nickname).toBe(initialNickname)
+          expect(pokemon.otName).toBe(initialOtName)
+        }
+      }
+    })
+
+    it('should modify only the nature when writing nature values (Vanilla)', async () => {
+      const parsedData = await vanillaParser.parseSaveFile(vanillaSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        const pokemon = parsedData.party_pokemon[0]!
+
+        // Capture initial state
+        const initialEvs = [...pokemon.evs]
+        const initialIvs = [...pokemon.ivs]
+        const initialSpeciesId = pokemon.speciesId
+        const initialLevel = pokemon.level
+        const initialIsShiny = pokemon.isShiny
+        const initialOtId = pokemon.otId
+        const initialNickname = pokemon.nickname
+        const initialOtName = pokemon.otName
+
+        // Test setting different natures with encrypted Pokemon data
+        const testNatures = ['Docile', 'Relaxed', 'Impish', 'Lax', 'Hasty', 'Serious', 'Jolly']
+
+        for (const targetNature of testNatures) {
+          const targetNatureIndex = natures.indexOf(targetNature)
+
+          // Set the nature
+          pokemon.setNatureRaw(targetNatureIndex)
+
+          // Verify nature changed correctly
+          expect(pokemon.nature).toBe(targetNature)
+          expect(pokemon.natureRaw).toBe(targetNatureIndex)
+
+          // Verify all other important data remained unchanged
+          expect(pokemon.evs).toEqual(initialEvs)
+          expect(pokemon.ivs).toEqual(initialIvs)
+          expect(pokemon.speciesId).toBe(initialSpeciesId)
+          expect(pokemon.level).toBe(initialLevel)
+          expect(pokemon.isShiny).toBe(initialIsShiny)
+          expect(pokemon.otId).toBe(initialOtId)
+          expect(pokemon.nickname).toBe(initialNickname)
+          expect(pokemon.otName).toBe(initialOtName)
+        }
+      }
+    })
+
+    it('should persist nature changes correctly across save/reload cycles', async () => {
+      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        const pokemon = parsedData.party_pokemon[0]!
+
+        // Change to specific nature
+        const targetNature = 'Adamant'
+        const targetNatureIndex = natures.indexOf(targetNature)
+        pokemon.setNatureRaw(targetNatureIndex)
+
+        // Verify the change
+        expect(pokemon.nature).toBe(targetNature)
+
+        // Reconstruct save
+        const reconstructed = quetzalParser.reconstructSaveFile(parsedData.party_pokemon)
+
+        // Parse reconstructed save
+        const reparsed = await quetzalParser.parseSaveFile(reconstructed)
+        const reparsedPokemon = reparsed.party_pokemon[0]!
+
+        // Verify nature persisted correctly
+        expect(reparsedPokemon.nature).toBe(targetNature)
+        expect(reparsedPokemon.natureRaw).toBe(targetNatureIndex)
+
+        // Verify other data remained unchanged
+        expect(reparsedPokemon.speciesId).toBe(pokemon.speciesId)
+        expect(reparsedPokemon.level).toBe(pokemon.level)
+        expect(reparsedPokemon.otId).toBe(pokemon.otId)
+      }
+    })
+
+    it('should handle nature changes on shiny Pokemon without affecting shininess', async () => {
+      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        // Find a shiny Pokemon or make one shiny for testing
+        const pokemon = parsedData.party_pokemon[0]!
+        const originalShininess = pokemon.isShiny
+
+        // Test nature changes on both shiny and non-shiny Pokemon
+        const testCases = [
+          { nature: 'Modest', description: 'Modest nature' },
+          { nature: 'Jolly', description: 'Jolly nature' },
+          { nature: 'Timid', description: 'Timid nature' },
+        ]
+
+        for (const testCase of testCases) {
+          const targetNatureIndex = natures.indexOf(testCase.nature)
+
+          // Set the nature
+          pokemon.setNatureRaw(targetNatureIndex)
+
+          // Verify nature changed correctly
+          expect(pokemon.nature).toBe(testCase.nature)
+
+          // Verify shininess remained unchanged
+          expect(pokemon.isShiny).toBe(originalShininess)
+        }
+      }
+    })
+
+    it('should handle edge cases for nature values', async () => {
+      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        const pokemon = parsedData.party_pokemon[0]!
+
+        // Test boundary values
+        expect(() => pokemon.setNatureRaw(-1)).toThrow('Nature value must be between 0 and 24')
+        expect(() => pokemon.setNatureRaw(25)).toThrow('Nature value must be between 0 and 24')
+        expect(() => pokemon.setNatureRaw(100)).toThrow('Nature value must be between 0 and 24')
+
+        // Test valid boundary values
+        pokemon.setNatureRaw(0) // Hardy
+        expect(pokemon.nature).toBe('Hardy')
+
+        pokemon.setNatureRaw(24) // Quirky
+        expect(pokemon.nature).toBe('Quirky')
+      }
+    })
+
+    it('should not change nature when setting to same nature', async () => {
+      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+
+      if (parsedData.party_pokemon.length > 0) {
+        const pokemon = parsedData.party_pokemon[0]!
+
+        // Capture initial state
+        const initialPersonality = pokemon.personality
+        const initialNature = pokemon.nature
+        const initialNatureRaw = pokemon.natureRaw
+
+        // Set to the same nature
+        pokemon.setNatureRaw(initialNatureRaw)
+
+        // Verify everything remained the same
+        expect(pokemon.personality).toBe(initialPersonality)
+        expect(pokemon.nature).toBe(initialNature)
+        expect(pokemon.natureRaw).toBe(initialNatureRaw)
+      }
+    })
+
+    it('should modify only target Pokemon nature when multiple Pokemon exist', async () => {
+      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+
+      if (parsedData.party_pokemon.length > 1) {
+        // Capture initial states of all Pokemon
+        const initialStates = parsedData.party_pokemon.map(p => ({
+          personality: p.personality,
+          nature: p.nature,
+          natureRaw: p.natureRaw,
+          evs: [...p.evs],
+          ivs: [...p.ivs],
+          speciesId: p.speciesId,
+          level: p.level,
+        }))
+
+        // Modify only the second Pokemon's nature
+        const targetPokemon = parsedData.party_pokemon[1]!
+        const targetNature = 'Brave'
+        const targetNatureIndex = natures.indexOf(targetNature)
+        targetPokemon.setNatureRaw(targetNatureIndex)
+
+        // Verify target Pokemon nature changed
+        expect(targetPokemon.nature).toBe(targetNature)
+        expect(targetPokemon.natureRaw).toBe(targetNatureIndex)
+
+        // Verify all other Pokemon remained unchanged
+        parsedData.party_pokemon.forEach((pokemon, index) => {
+          if (index === 1) return // Skip the target Pokemon
+
+          const initial = initialStates[index]!
+          expect(pokemon.personality).toBe(initial.personality)
+          expect(pokemon.nature).toBe(initial.nature)
+          expect(pokemon.natureRaw).toBe(initial.natureRaw)
+          expect(pokemon.evs).toEqual(initial.evs)
+          expect(pokemon.ivs).toEqual(initial.ivs)
+          expect(pokemon.speciesId).toBe(initial.speciesId)
+          expect(pokemon.level).toBe(initial.level)
         })
       }
     })

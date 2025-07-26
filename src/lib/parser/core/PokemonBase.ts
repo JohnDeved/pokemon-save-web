@@ -148,7 +148,7 @@ export class PokemonBase {
     const substruct0 = this.getDecryptedSubstruct(this.data, 0)
     const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
     const rawSpecies = subView.getUint16(0, true)
-    return this.config.mappings?.pokemon?.get(rawSpecies)?.name ?? undefined
+    return this.config.mappings?.pokemon?.get(rawSpecies)?.id_name ?? undefined
   }
 
   get item () {
@@ -444,7 +444,39 @@ export class PokemonBase {
   }
 
   set natureRaw (value: number) {
-    throw new Error(`Setting nature to ${value} directly is not supported. Modify personality instead.`)
+    if (value < 0 || value >= 25) {
+      throw new Error(`Nature value must be between 0 and 24, got ${value}`)
+    }
+
+    if (this.config.setNature) {
+      this.config.setNature(this.data, this.view, value)
+    } else {
+      // Vanilla implementation: modify personality to achieve desired nature
+      // For encrypted Pokemon data, we need to preserve all encrypted data
+      // when changing the personality value, since it affects the encryption key
+
+      // Calculate the current nature and return early if already correct
+      const currentNature = this.personality % 25
+      if (currentNature === value) return
+
+      // First, decrypt all substructs with the current key
+      const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+      const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+      const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+      const substruct3 = this.getDecryptedSubstruct(this.data, 3)
+
+      // Calculate new personality: preserve quotient, set remainder to desired nature
+      const newPersonality = (this.personality - currentNature) + value
+
+      // Update the personality value in the data
+      this.view.setUint32(this.offsets.personality, newPersonality >>> 0, true)
+
+      // Re-encrypt all substructs with the new key (which uses the new personality)
+      this.setEncryptedSubstruct(0, substruct0)
+      this.setEncryptedSubstruct(1, substruct1)
+      this.setEncryptedSubstruct(2, substruct2)
+      this.setEncryptedSubstruct(3, substruct3)
+    }
   }
 
   get natureModifiers (): { increased: number, decreased: number } {

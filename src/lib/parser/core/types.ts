@@ -176,6 +176,7 @@ export interface GameConfig {
 
   // Optional behavioral overrides for game-specific mechanics
   calculateNature?(personality: number): string
+  setNature?(data: Uint8Array, view: DataView, value: number): void
   determineActiveSlot?(getCounterSum: (range: number[]) => number): number
   isShiny?(personality: number, otId: number): boolean
   getShinyValue?(personality: number, otId: number): number

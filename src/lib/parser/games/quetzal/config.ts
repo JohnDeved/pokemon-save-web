@@ -80,8 +80,8 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   getPokemonName (_data: Uint8Array, view: DataView): string | undefined {
     const rawSpecies = view.getUint16(this.quetzalOffsets.species, true)
-    // Apply name mapping using the base mapping system
-    return this.mappings.pokemon.get(rawSpecies)?.name
+    // Apply name mapping using the base mapping system - use id_name for sprite filenames
+    return this.mappings.pokemon.get(rawSpecies)?.id_name
   }
 
   getItem (_data: Uint8Array, view: DataView): number {
@@ -140,6 +140,25 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   calculateNature (personality: number): string {
     // Quetzal uses only the first byte of personality modulo 25
     return natures[(personality & 0xFF) % 25]!
+  }
+
+  /**
+   * Override nature setting for Quetzal-specific implementation
+   */
+  setNature (_data: Uint8Array, view: DataView, value: number): void {
+    // Quetzal uses (personality & 0xFF) % 25 for nature calculation
+    const currentPersonality = view.getUint32(0x00, true)
+    const currentFirstByte = currentPersonality & 0xFF
+    const currentNature = currentFirstByte % 25
+
+    if (currentNature === value) return
+
+    // Calculate new first byte: preserve quotient, set remainder to desired nature
+    const newFirstByte = (currentFirstByte - currentNature) + value
+
+    // Update personality with new first byte
+    const newPersonality = (currentPersonality & 0xFFFFFF00) | (newFirstByte & 0xFF)
+    view.setUint32(0x00, newPersonality >>> 0, true)
   }
 
   /**
