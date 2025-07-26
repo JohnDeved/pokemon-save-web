@@ -28,31 +28,4 @@ dist-ssr
 *.zip
 __MACOSX/
 
-# ROM files (should be provided by user)
-*.gba
-*.gbc
-*.gb
-*.rom
-
-# ROM archives
-test_data/*.zip
-test_data/*.7z
-test_data/*.rar
-
-# mGBA build artifacts and downloaded binaries
-test_data/*.appimage
-test_data/mgba-source/
-test_data/squashfs-root/
-test_data/mgba-build/
-
-# Docker volumes and build cache
-.docker/
-
-# Test artifacts
-test_data/*.txt
-test_data/*log*.txt
-test_data/simple_*.lua
-test_data/test_*.lua
-test_data/verify_*.lua
-test_data/api_*.lua
 
