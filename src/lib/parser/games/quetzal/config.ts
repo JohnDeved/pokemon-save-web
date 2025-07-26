@@ -93,7 +93,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   getItemName (_data: Uint8Array, view: DataView): string | undefined {
     const rawItem = view.getUint16(this.quetzalOffsets.item, true)
     // Apply name mapping using the base mapping system
-    return this.mappings.items.get(rawItem)?.name
+    return this.mappings.items.get(rawItem)?.id_name
   }
 
   getMove (_data: Uint8Array, view: DataView, index: number): number {

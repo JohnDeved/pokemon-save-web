@@ -155,7 +155,7 @@ export class PokemonBase {
 
     // For vanilla, try to get name from mapping
     const rawItem = this.getVanillaItem()
-    return this.config.mappings?.items?.get(rawItem)?.name ?? this.getVanillaItemName()
+    return this.config.mappings?.items?.get(rawItem)?.id_name
   }
 
   get move1 () {
@@ -317,10 +317,6 @@ export class PokemonBase {
     } catch {
       return 0
     }
-  }
-
-  private getVanillaItemName (): string | undefined {
-    return undefined // Vanilla stores raw item ID, name lookup is external
   }
 
   private getVanillaMove (index: number): number {
