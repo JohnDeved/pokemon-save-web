@@ -148,7 +148,7 @@ export class PokemonBase {
     const substruct0 = this.getDecryptedSubstruct(this.data, 0)
     const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
     const rawSpecies = subView.getUint16(0, true)
-    return this.config.mappings?.pokemon?.get(rawSpecies)?.name ?? undefined
+    return this.config.mappings?.pokemon?.get(rawSpecies)?.id_name ?? undefined
   }
 
   get item () {

@@ -80,8 +80,8 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   getPokemonName (_data: Uint8Array, view: DataView): string | undefined {
     const rawSpecies = view.getUint16(this.quetzalOffsets.species, true)
-    // Apply name mapping using the base mapping system
-    return this.mappings.pokemon.get(rawSpecies)?.name
+    // Apply name mapping using the base mapping system - use id_name for sprite filenames
+    return this.mappings.pokemon.get(rawSpecies)?.id_name
   }
 
   getItem (_data: Uint8Array, view: DataView): number {
