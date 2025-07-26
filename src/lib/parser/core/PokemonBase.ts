@@ -444,7 +444,115 @@ export class PokemonBase {
   }
 
   set natureRaw (value: number) {
-    throw new Error(`Setting nature to ${value} directly is not supported. Modify personality instead.`)
+    if (value < 0 || value >= 25) {
+      throw new Error(`Nature value must be between 0 and 24, got ${value}`)
+    }
+
+    // Calculate the current nature from personality using config's method
+    const currentNature = this.config.calculateNature?.(this.personality) ?? natures[this.personality % 25]!
+    const currentNatureIndex = natures.indexOf(currentNature)
+
+    // If the nature is already correct, no need to change anything
+    if (currentNatureIndex === value) return
+
+    // Handle different game configs differently
+    if (this.config.calculateNature) {
+      // Game has custom nature calculation (like Quetzal)
+      // Need to determine how to set the nature based on the config's logic
+      this.setNatureForCustomConfig(value)
+    } else {
+      // Vanilla Gen 3 calculation: personality % 25
+      this.setNatureForVanilla(value)
+    }
+  }
+
+  private setNatureForCustomConfig (value: number): void {
+    // For configs with custom nature calculation, we need to understand their formula
+    if (this.config.name === 'Pokemon Quetzal') {
+      // Quetzal uses (personality & 0xFF) % 25
+      const currentFirstByte = this.personality & 0xFF
+      const currentNature = currentFirstByte % 25
+
+      if (currentNature === value) return
+
+      // Calculate new first byte that gives desired nature
+      let newFirstByte = currentFirstByte
+      const diff = value - currentNature
+      newFirstByte += diff
+
+      // Handle wraparound
+      if (newFirstByte < 0) {
+        newFirstByte += 25
+      } else if (newFirstByte > 255) {
+        newFirstByte = (newFirstByte % 25) + Math.floor(newFirstByte / 25) * 25
+        if (newFirstByte > 255) {
+          newFirstByte = value + (newFirstByte & 0xE0) // Keep upper bits, set lower to desired nature
+        }
+      }
+
+      // Ensure we get the right nature
+      if ((newFirstByte % 25) !== value) {
+        newFirstByte = (newFirstByte & 0xE0) + value // Keep upper 3 bits, set lower 5 to achieve nature
+        if (newFirstByte > 255) {
+          newFirstByte = value
+        }
+      }
+
+      // Update personality with new first byte
+      const newPersonality = (this.personality & 0xFFFFFF00) | (newFirstByte & 0xFF)
+      this.view.setUint32(this.offsets.personality, newPersonality >>> 0, true)
+    } else {
+      // For other custom configs, fall back to vanilla method
+      this.setNatureForVanilla(value)
+    }
+  }
+
+  private setNatureForVanilla (value: number): void {
+    // For encrypted Pokemon data (vanilla), we need to preserve all encrypted data
+    // when changing the personality value, since it affects the encryption key
+
+    // First, decrypt all substructs with the current key
+    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+    const substruct1 = this.getDecryptedSubstruct(this.data, 1)
+    const substruct2 = this.getDecryptedSubstruct(this.data, 2)
+    const substruct3 = this.getDecryptedSubstruct(this.data, 3)
+
+    // Calculate the adjustment needed for the nature
+    const currentNature = this.personality % 25
+    const adjustment = value - currentNature
+
+    // Create new personality value that preserves important properties
+    let newPersonality = this.personality + adjustment
+
+    // Handle wraparound cases to ensure we get the exact nature we want
+    const finalNature = newPersonality % 25
+    if (finalNature !== value) {
+      // If we have a negative result or other edge case, adjust accordingly
+      if (finalNature < 0) {
+        newPersonality += 25
+      } else {
+        // Calculate the correction needed
+        const correction = value - finalNature
+        newPersonality += correction
+      }
+    }
+
+    // Ensure the final result gives us the correct nature
+    if (newPersonality % 25 !== value) {
+      // As a last resort, set the personality to a value that definitely works
+      // while trying to preserve as much of the original personality as possible
+      const personalityBase = Math.floor(this.personality / 25) * 25
+      newPersonality = personalityBase + value
+    }
+
+    // Update the personality value in the data
+    this.view.setUint32(this.offsets.personality, newPersonality >>> 0, true)
+
+    // Re-encrypt all substructs with the new key (which uses the new personality)
+    this.setEncryptedSubstruct(0, substruct0)
+    this.setEncryptedSubstruct(1, substruct1)
+    this.setEncryptedSubstruct(2, substruct2)
+    this.setEncryptedSubstruct(3, substruct3)
   }
 
   get natureModifiers (): { increased: number, decreased: number } {
