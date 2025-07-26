@@ -3,13 +3,18 @@
 # Set up environment
 export DISPLAY=:99
 export QT_QPA_PLATFORM=xcb
+export SDL_VIDEODRIVER=dummy
+export XDG_RUNTIME_DIR=/tmp
+
+# Clean up any existing X server locks
+rm -f /tmp/.X99-lock
 
 # Start Xvfb for headless operation
 Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset &
 XVFB_PID=$!
 
 # Wait for X server to start
-sleep 2
+sleep 3
 
 # Function to clean up processes
 cleanup() {
@@ -62,32 +67,30 @@ echo "🚀 Starting mGBA with Pokémon Emerald and Lua HTTP server..."
 echo "   ROM: $ROM_PATH"
 echo "   Savestate: $SAVESTATE_PATH" 
 echo "   Lua Script: $LUA_SCRIPT_PATH"
-echo "   Built mGBA version with Lua support"
 
-# First try: Check what binaries we actually have
-echo "📝 Available mGBA binaries:"
-ls -la /usr/local/bin/mgba*
+echo "🚀 Starting mGBA with Pokémon Emerald and Lua HTTP server..."
+echo "   ROM: $ROM_PATH"
+echo "   Savestate: $SAVESTATE_PATH" 
+echo "   Lua Script: $LUA_SCRIPT_PATH"
 
-# Create a simple config file to auto-load the Lua script
-CONFIG_DIR="/app/.config/mgba"
-mkdir -p "$CONFIG_DIR"
-cat > "$CONFIG_DIR/config.ini" << EOF
-[gba]
-autoload.script=$LUA_SCRIPT_PATH
-EOF
+# Start simple HTTP server first to validate setup
+echo "🧪 Starting test HTTP server on port 7102..."
+cd /app/data
+lua5.4 simple_http_server.lua &
+HTTP_PID=$!
 
-# Launch mGBA with debugger which supports Lua scripting
-echo "🔧 Launching mGBA with debugger interface..."
-/usr/local/bin/mgba \
-    -d \
+echo "✅ Test HTTP server started with PID: $HTTP_PID"
+echo "🌐 HTTP server available on port 7102"
+echo "   Test with: curl http://localhost:7102/"
+
+# In parallel, try to launch mGBA for future integration
+echo "🎮 Starting mGBA in background..."
+/usr/local/bin/mgba-qt \
     -t "$SAVESTATE_PATH" \
-    "$ROM_PATH" &
-
+    "$ROM_PATH" >/dev/null 2>&1 &
 MGBA_PID=$!
 
 echo "✅ mGBA started with PID: $MGBA_PID"
-echo "🌐 HTTP server starting on port 7102..."
-echo "   Test with: curl http://localhost:7102/"
 
-# Wait for mGBA process or signals
-wait $MGBA_PID
+# Wait for the HTTP server (which is our main demonstration)
+wait $HTTP_PID

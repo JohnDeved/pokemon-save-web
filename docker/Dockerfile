@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     qtmultimedia5-dev \
     liblua5.4-dev \
     lua5.4 \
+    lua-socket \
     zlib1g-dev \
     libpng-dev \
     libsdl2-dev \
@@ -22,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     curl \
     unzip \
+    netcat \
     && rm -rf /var/lib/apt/lists/*
 
 # Build mGBA from source with minimal dependencies
