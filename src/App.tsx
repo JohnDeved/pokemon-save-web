@@ -3,6 +3,7 @@ import { Card } from './components/common'
 import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
 import { ShaderBackground } from './components/common/ShaderBackground'
 import {
+  CompactPokemonSelector,
   PokemonAbilitySection,
   PokemonHeader,
   PokemonMovesSection,
@@ -56,6 +57,11 @@ export const App: React.FC = () => {
         />
         {hasSaveData && (
           <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
+            <CompactPokemonSelector
+              selectedPokemon={activePokemon}
+              partyList={partyList}
+              onSelect={setActivePokemonId}
+            />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 z-10">
               <div className="flex flex-col gap-4">
                 <Menubar className="geist-font">
@@ -124,13 +130,15 @@ export const App: React.FC = () => {
                     </MenubarContent>
                   </MenubarMenu>
                 </Menubar>
-                <PokemonPartyList
-                  partyList={partyList}
-                  activePokemonId={activePokemonId}
-                  onPokemonSelect={setActivePokemonId}
-                  isRenaming={false}
-                  onPokemonHover={preloadPokemonDetails}
-                />
+                <div className="hidden lg:block">
+                  <PokemonPartyList
+                    partyList={partyList}
+                    activePokemonId={activePokemonId}
+                    onPokemonSelect={setActivePokemonId}
+                    isRenaming={false}
+                    onPokemonHover={preloadPokemonDetails}
+                  />
+                </div>
               </div>
               <div className="grid grid-rows-[auto_auto_1fr] gap-4">
                 <Card className="z-30">

@@ -103,7 +103,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
   const overlayClasses = cn(
     'fixed inset-0 z-50 transition-colors duration-200',
     isDragActive ? 'bg-black/20' : 'bg-transparent',
-    showDropzone ? 'p-48' : 'p-0',
+    showDropzone ? 'p-4 sm:p-8 lg:p-48' : 'p-0',
     !showDropzone && !isDragActive && 'pointer-events-none',
   )
 
@@ -140,18 +140,18 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
         className={dropzoneStateClasses}
       >
         <input {...getInputProps()}/>
-        <div className="text-center p-8 flex flex-col items-center">
+        <div className="text-center p-4 sm:p-6 lg:p-8 flex flex-col items-center">
           <img
             src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
             alt="Pokeball"
-            className="w-24 h-24 mb-8"
+            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 lg:mb-8"
             style={{ imageRendering: 'pixelated' }}
           />
-          <h2 className="text-2xl font-bold text-slate-100">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-100">
             {isDragActive ? 'Drop your Savegame to load!' : 'Drop your Savegame here'}
           </h2>
           {showDropzone && (
-            <span className="text-slate-400 mt-1">or click to browse</span>
+            <span className="text-slate-400 mt-1 text-sm sm:text-base">or click to browse</span>
           )}
           <p className="text-xs text-slate-500 mt-2">Supported: .sav, .sa2</p>
         </div>

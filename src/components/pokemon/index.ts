@@ -1,3 +1,4 @@
+export { CompactPokemonSelector } from './CompactPokemonSelector'
 export { PokemonAbilitySection } from './PokemonAbilitySection'
 export { PokemonHeader } from './PokemonHeader'
 export { PokemonMoveButton } from './PokemonMoveButton'
