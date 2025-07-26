@@ -34,4 +34,9 @@ __MACOSX/
 *.gb
 *.rom
 
+# ROM archives
+test_data/*.zip
+test_data/*.7z
+test_data/*.rar
+
 
