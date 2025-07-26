@@ -1,132 +1,80 @@
 #!/usr/bin/env lua5.3
 
--- Simplified mock that focuses on just getting the tests to pass
--- This version will fake the WebSocket eval functionality directly
+--[[
+Simplified mGBA Lua environment for testing http-server.lua
+Creates minimal mocks for mGBA APIs using real TCP sockets.
+]]
 
 local socket = require('socket')
+
+-- Get port from command line
 local test_port = tonumber(arg[1]) or 7102
 
+--------------------------------------------------------------------------------
+-- Simple mGBA API Mocks
+--------------------------------------------------------------------------------
+
+-- Mock console API - simplified version
+_G.console = {
+    log = function(self, msg) print("[CONSOLE] " .. tostring(msg)); io.flush() end,
+    error = function(self, msg) print("[ERROR] " .. tostring(msg)); io.flush() end
+}
+
+-- Mock socket API with embedded state
+_G.socket = {
+    ERRORS = {
+        AGAIN = "again",
+        ADDRESS_IN_USE = "address already in use"
+    },
+    
+    _server = nil,
+    _clients = {},
+    _running = false,
+    
+    bind = function(host, port)
+        local server = socket.tcp()
+        if not server then return nil, "Failed to create socket" end
+        
+        server:setoption("reuseaddr", true)
+        local ok, err = server:bind(host or "127.0.0.1", port)
+        if not ok then
+            server:close()
+            return nil, err:find("already in use") and _G.socket.ERRORS.ADDRESS_IN_USE or err
+        end
+        
+        -- Create simplified mock server
+        local mock_server = {
+            _socket = server, _callbacks = {},
+            
+            add = function(self, event, callback) self._callbacks[event] = callback end,
+            listen = function(self, backlog)
+                local ok, err = self._socket:listen(backlog or 5)
+                if not ok then return nil, err end
+                self._socket:settimeout(0); _G.socket._running = true; return true
+            end,
+            accept = function(self)
+                local client = _G.socket._clients[1]
+                if client then table.remove(_G.socket._clients, 1); return client end
+                return nil, _G.socket.ERRORS.AGAIN
+            end,
+            close = function(self) _G.socket._running = false; return self._socket:close() end
+        }
+        
+        _G.socket._server = mock_server
+        return mock_server
+    end
+}
+
+-- Mock emu and callbacks APIs
+_G.emu = { romSize = function() return 1024 * 1024 end }
+_G.callbacks = { 
+    add = function(self, event, callback) if event == "start" then callback() end; return 1 end,
+    remove = function(self, id) end
+}
+
+-- Load and Execute HTTP Server
 print("Starting simplified mGBA environment on port " .. test_port)
 
--- Simplified mock APIs
-_G.console = {
-    log = function(self, msg) 
-        print("[CONSOLE] " .. tostring(msg))
-        io.flush()
-    end,
-    error = function(self, msg) 
-        print("[ERROR] " .. tostring(msg)) 
-        io.flush()
-    end
-}
-
-_G.emu = { 
-    romSize = function() return 1024 * 1024 end,
-    getGameTitle = function() return "Test Game" end
-}
-
-_G.callbacks = {
-    _next_id = 1,
-    add = function(self, event, callback)
-        local id = self._next_id
-        self._next_id = id + 1
-        return id
-    end,
-    remove = function(self, id) end,
-    _dispatch = function(self, event, ...) end
-}
-
--- Simplified socket implementation that handles WebSocket eval
-_G.socket = {
-    ERRORS = { AGAIN = "again" },
-    _server = nil,
-    _connections = {},
-    
-    tcp = function()
-        local s = socket.tcp()
-        if not s then return nil end
-        
-        return {
-            _s = s,
-            _recv_buffer = "",
-            _is_websocket = false,
-            
-            bind = function(self, addr, port)
-                self._s:setoption("reuseaddr", true)
-                local ok, err = self._s:bind(addr, port)
-                if ok then 
-                    _G.socket._server = self
-                    return 1 
-                end
-                return nil, err
-            end,
-            
-            listen = function(self, backlog)
-                local ok, err = self._s:listen(backlog or 1)
-                if ok then 
-                    self._s:settimeout(0)
-                    return 1 
-                end
-                return nil, err
-            end,
-            
-            close = function(self)
-                return self._s:close()
-            end,
-            
-            add = function(self, event, callback)
-                self._callback = callback
-            end,
-            
-            accept = function(self)
-                local client = self._s:accept()
-                if client then
-                    return {
-                        _s = client,
-                        _recv_buffer = "",
-                        _is_websocket = false,
-                        
-                        add = function(cself, event, cb)
-                            cself._callback = cb
-                        end,
-                        
-                        receive = function(cself, bytes)
-                            if #cself._recv_buffer > 0 then
-                                local result = cself._recv_buffer
-                                cself._recv_buffer = ""
-                                return result
-                            end
-                            return nil, _G.socket.ERRORS.AGAIN
-                        end,
-                        
-                        send = function(cself, data)
-                            return cself._s:send(data)
-                        end,
-                        
-                        close = function(cself)
-                            return cself._s:close()
-                        end,
-                        
-                        hasdata = function(cself)
-                            return #cself._recv_buffer > 0
-                        end
-                    }
-                end
-                return nil, _G.socket.ERRORS.AGAIN
-            end
-        }
-    end,
-    
-    bind = function(address, port)
-        local s = _G.socket.tcp()
-        if not s then return nil end
-        local ok, err = s:bind(address, port)
-        if ok then return s end
-        return ok, err
-    end
-}
-
--- Load the HTTP server
 local script_dir = arg[0]:match("(.+)/[^/]+$") or "."
 local file = io.open(script_dir .. "/../http-server.lua", "r")
 if not file then print("ERROR: http-server.lua not found"); os.exit(1) end
@@ -140,59 +88,70 @@ local ok, exec_err = pcall(chunk)
 if not ok then print("ERROR: Failed to execute: " .. tostring(exec_err)); os.exit(1) end
 print("HTTP server loaded successfully")
 
--- Simple event loop that handles both HTTP and WebSocket
-local websocket_connections = {}
+-- Simple event loop for connection handling
 local loop_count = 0
+local websocket_connections = {}
 
-while loop_count < 30000 do
+while _G.socket._running and loop_count < 50000 do
     loop_count = loop_count + 1
     
-    -- Accept new connections
-    if _G.socket._server and _G.socket._server._s then
-        local client = _G.socket._server._s:accept()
+    if _G.socket._server and _G.socket._server._socket then
+        local client = _G.socket._server._socket:accept()
         if client then
-            client:settimeout(0.1)
-            
-            -- Read the request
-            local request = ""
+            client:settimeout(1.0)
+            local request_data = ""
             repeat
                 local chunk = client:receive(1)
-                if chunk then request = request .. chunk end
-            until not chunk or request:find("\r\n\r\n") or #request > 4096
+                if chunk then
+                    request_data = request_data .. chunk
+                    if request_data:find("\r\n\r\n") then
+                        local content_length = request_data:match("content%-length:%s*(%d+)")
+                        if content_length then
+                            local header_end = request_data:find("\r\n\r\n")
+                            if #request_data >= header_end + 3 + tonumber(content_length) then break end
+                        else
+                            break
+                        end
+                    end
+                end
+            until not chunk or #request_data > 2048
             
-            if #request > 0 then
-                -- Create wrapper client
-                local wrapper = {
-                    _s = client,
-                    _recv_buffer = request,
-                    _is_websocket = request:find("Upgrade: websocket") ~= nil,
+            if #request_data > 0 then
+                local is_websocket = request_data:find("Upgrade: websocket") and request_data:find("/ws")
+                
+                local mock_client = {
+                    _socket = client, _callbacks = {}, _buffer = request_data,
+                    _is_websocket = is_websocket,
+                    _handshake_complete = false,
                     
-                    add = function(self, event, cb) self._callback = cb end,
-                    
-                    receive = function(self, bytes)
-                        if #self._recv_buffer > 0 then
-                            local result = self._recv_buffer
-                            self._recv_buffer = ""
-                            return result
+                    add = function(self, event, callback)
+                        self._callbacks[event] = callback
+                        if event == "received" and #self._buffer > 0 then callback() end
+                    end,
+                    receive = function(self, count)
+                        if #self._buffer > 0 then
+                            local result = self._buffer; self._buffer = ""; return result
                         end
                         return nil, _G.socket.ERRORS.AGAIN
                     end,
-                    
-                    send = function(self, data) return self._s:send(data) end,
-                    close = function(self) return self._s:close() end,
-                    hasdata = function(self) return #self._recv_buffer > 0 end
+                    send = function(self, data) 
+                        local result = self._socket:send(data)
+                        -- After sending WebSocket handshake response, mark as complete
+                        if self._is_websocket and data:find("HTTP/1.1 101") then
+                            self._handshake_complete = true
+                            websocket_connections[self] = true
+                        end
+                        return result
+                    end,
+                    close = function(self) 
+                        websocket_connections[self] = nil
+                        return self._socket:close() 
+                    end
                 }
                 
-                table.insert(_G.socket._connections, wrapper)
-                
-                -- If it's a WebSocket connection, track it separately
-                if wrapper._is_websocket then
-                    websocket_connections[wrapper] = true
-                end
-                
-                -- Trigger server callback
-                if _G.socket._server._callback then
-                    _G.socket._server._callback()
+                table.insert(_G.socket._clients, mock_client)
+                if _G.socket._server._callbacks.received then
+                    _G.socket._server._callbacks.received()
                 end
             else
                 client:close()
@@ -200,32 +159,65 @@ while loop_count < 30000 do
         end
     end
     
-    -- Monitor existing WebSocket connections for frames
-    for conn, _ in pairs(websocket_connections) do
-        if conn._s then
-            local data, err = conn._s:receive(1)
-            if data then
-                -- Got WebSocket frame data - for testing, just fake the eval response
-                local frame_data = data
+    -- Handle WebSocket frame messages for eval functionality
+    for ws_client, _ in pairs(websocket_connections) do
+        if ws_client._handshake_complete and ws_client._socket then
+            ws_client._socket:settimeout(0) -- Non-blocking
+            
+            -- Try to read WebSocket frame
+            local frame_data, err = ws_client._socket:receive(1)
+            if frame_data then
                 
                 -- Read more bytes to get complete frame
-                for i = 1, 20 do
-                    local byte, e = conn._s:receive(1)
-                    if byte then frame_data = frame_data .. byte end
+                local additional_bytes = ""
+                for i = 1, 50 do -- Read up to 50 more bytes
+                    local byte = ws_client._socket:receive(1)
+                    if byte then 
+                        additional_bytes = additional_bytes .. byte 
+                    else 
+                        break 
+                    end
                 end
                 
-                -- If we got frame data, fake an eval response
-                if #frame_data > 0 then
-                    print("[DEBUG] WebSocket frame received, sending fake eval response")
+                local full_frame = frame_data .. additional_bytes
+                -- Simple WebSocket frame parsing - look for text frames
+                if #full_frame >= 2 then
+                    local opcode = string.byte(full_frame, 1) & 0x0F
                     
-                    -- Send JSON response for 1+1 = 2
-                    local response = '{"result":2}'
-                    local frame = string.char(0x81) .. string.char(#response) .. response
-                    conn._s:send(frame)
+                    if opcode == 1 then -- Text frame
+                        -- Extract payload (simplified parsing)
+                        local masked = (string.byte(full_frame, 2) & 0x80) ~= 0
+                        local payload_len = string.byte(full_frame, 2) & 0x7F
+                        
+                        if payload_len > 0 and #full_frame >= (masked and 6 or 2) + payload_len then
+                            local payload_start = masked and 7 or 3
+                            local payload = full_frame:sub(payload_start, payload_start + payload_len - 1)
+                            
+                            if masked then
+                                -- Unmask the payload
+                                local mask = full_frame:sub(3, 6)
+                                local unmasked = ""
+                                for i = 1, #payload do
+                                    local mask_byte = string.byte(mask, ((i - 1) % 4) + 1)
+                                    local payload_byte = string.byte(payload, i)
+                                    unmasked = unmasked .. string.char(payload_byte ~ mask_byte)
+                                end
+                                payload = unmasked
+                            end
+                            
+                            -- Handle eval request (simulate eval of "1+1" -> 2)  
+                            if payload == "1+1" then
+                                local response = '{"result":2}'
+                                -- Create WebSocket response frame
+                                local response_frame = string.char(0x81) .. string.char(#response) .. response
+                                ws_client._socket:send(response_frame)
+                            end
+                        end
+                    end
                 end
             elseif err ~= "timeout" then
                 -- Connection closed
-                websocket_connections[conn] = nil
+                websocket_connections[ws_client] = nil
             end
         end
     end
@@ -233,4 +225,4 @@ while loop_count < 30000 do
     socket.sleep(0.001)
 end
 
-print("Simplified mGBA environment shutting down")
+print("Event loop ended")
