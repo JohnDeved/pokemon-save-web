@@ -51,7 +51,7 @@ fi
 
 # Verify required files
 SAVESTATE_PATH="/app/data/emerald.ss0"
-LUA_SCRIPT_PATH="/app/data/test-script.lua"
+LUA_SCRIPT_PATH="/app/data/http-server.lua"
 
 if [ ! -f "$SAVESTATE_PATH" ]; then
     echo "❌ Savestate file not found at $SAVESTATE_PATH"
