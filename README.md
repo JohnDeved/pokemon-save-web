@@ -165,14 +165,18 @@ This repository includes an automated test environment for mGBA emulator with Po
    # Launch without HTTP server (manual testing)
    npm run mgba:manual
    
-   # Test the HTTP interface
+   # Test the HTTP interface with curl
    npm run mgba:test-http
    
    # Show help for launch options
    npm run mgba:help
    ```
 
-3. **HTTP API**: When running with the HTTP server, access the automation interface at `http://localhost:7102`
+3. **Test with curl**: When running with the HTTP server, test the automation interface:
+   ```bash
+   curl http://localhost:7102/
+   curl http://localhost:7102/json
+   ```
 
 ### Features
 
