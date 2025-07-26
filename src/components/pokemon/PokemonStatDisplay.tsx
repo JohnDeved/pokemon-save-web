@@ -80,8 +80,8 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
 
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
-      <div className="p-4 space-y-2 text-xs">
-        <div className="grid grid-cols-10 gap-2 text-slate-400">
+      <div className="p-3 sm:p-4 space-y-1 sm:space-y-2 text-xs w-full">
+        <div className="grid grid-cols-10 gap-1 sm:gap-2 text-slate-400">
           <div className="col-span-1">STAT</div>
           <div className="col-span-5 text-end">EV</div>
           <div className="text-center">IV</div>
@@ -110,15 +110,15 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
           }
 
           return (
-            <div key={statName} className="grid grid-cols-10 gap-2 items-center">
+            <div key={statName} className="grid grid-cols-10 gap-1 sm:gap-2 items-center">
               <div className="text-white">{statName}</div>
-              <div className="col-span-5 flex items-center gap-2">
+              <div className="col-span-5 flex items-center gap-1 sm:gap-2">
                 <EVSlider
                   value={evs?.[index] ?? 0}
                   onChange={newValue => { handleEvChange(index, newValue) }}
                   maxVisualValue={maxVisualValue}
                 />
-                <span className="text-white w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
+                <span className="text-white w-6 sm:w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
               </div>
               <div
                 className={`text-center text-sm ${ivClass} ${iv !== MAX_IV ? 'cursor-pointer hover:text-cyan-300 transition-colors' : ''}`}
