@@ -9,13 +9,6 @@ on:
       - '.eslintrc*'
       - '.eslintignore'
       - '.github/workflows/lint.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'package*.json'
-      - '.eslintrc*'
-      - '.eslintignore'
 
 jobs:
   lint:

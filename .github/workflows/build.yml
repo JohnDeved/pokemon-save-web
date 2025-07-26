@@ -11,15 +11,6 @@ on:
       - 'index.html'
       - 'public/**'
       - '.github/workflows/build.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'package*.json'
-      - 'vite.config.ts'
-      - 'tsconfig*.json'
-      - 'index.html'
-      - 'public/**'
 
 jobs:
   build:
