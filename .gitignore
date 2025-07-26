@@ -25,4 +25,8 @@ dist-ssr
 *.zip
 __MACOSX/
 
-
+# Docker environment ROM files
+docker/data/*.gba
+docker/data/*.zip
+docker/data/*.7z
+docker/data/*.rar

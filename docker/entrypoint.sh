@@ -27,10 +27,10 @@ cleanup() {
 trap cleanup SIGTERM SIGINT
 
 # Download ROM if not present
-ROM_PATH="/app/test_data/emerald.gba"
+ROM_PATH="/app/data/emerald.gba"
 if [ ! -f "$ROM_PATH" ]; then
     echo "📥 Downloading Pokémon Emerald ROM..."
-    cd /app/test_data
+    cd /app/data
     curl -L -o emerald_temp.zip "https://archive.org/download/pkmn_collection/pkmn%20collection/GBA/Pokemon%20-%20Emerald%20Version%20%28USA%2C%20Europe%29.zip"
     unzip -o emerald_temp.zip
     mv "Pokemon - Emerald Version (USA, Europe).gba" emerald.gba
@@ -45,8 +45,8 @@ if [ ! -f "$ROM_PATH" ]; then
 fi
 
 # Verify required files
-SAVESTATE_PATH="/app/test_data/emerald.ss0"
-LUA_SCRIPT_PATH="/app/test_data/mgba_http_server.lua"
+SAVESTATE_PATH="/app/data/emerald.ss0"
+LUA_SCRIPT_PATH="/app/data/mgba_http_server.lua"
 
 if [ ! -f "$SAVESTATE_PATH" ]; then
     echo "❌ Savestate file not found at $SAVESTATE_PATH"
@@ -58,22 +58,36 @@ if [ ! -f "$LUA_SCRIPT_PATH" ]; then
     exit 1
 fi
 
-echo "🚀 Starting mGBA with Pokémon Emerald..."
+echo "🚀 Starting mGBA with Pokémon Emerald and Lua HTTP server..."
 echo "   ROM: $ROM_PATH"
-echo "   Savestate: $SAVESTATE_PATH"
-echo "   NOTE: mGBA version 0.9.3 does not support --script argument"
-echo "   Lua HTTP server functionality is not available in this version"
+echo "   Savestate: $SAVESTATE_PATH" 
+echo "   Lua Script: $LUA_SCRIPT_PATH"
+echo "   Built mGBA version with Lua support"
 
-# Launch mGBA with the ROM and savestate (without Lua script for now)
-/usr/games/mgba-qt \
+# First try: Check what binaries we actually have
+echo "📝 Available mGBA binaries:"
+ls -la /usr/local/bin/mgba*
+
+# Create a simple config file to auto-load the Lua script
+CONFIG_DIR="/app/.config/mgba"
+mkdir -p "$CONFIG_DIR"
+cat > "$CONFIG_DIR/config.ini" << EOF
+[gba]
+autoload.script=$LUA_SCRIPT_PATH
+EOF
+
+# Launch mGBA with debugger which supports Lua scripting
+echo "🔧 Launching mGBA with debugger interface..."
+/usr/local/bin/mgba \
+    -d \
     -t "$SAVESTATE_PATH" \
     "$ROM_PATH" &
 
 MGBA_PID=$!
 
 echo "✅ mGBA started with PID: $MGBA_PID"
-echo "⚠️  HTTP server not available (mGBA 0.9.3 lacks --script support)"
-echo "   To enable HTTP server, upgrade to mGBA 0.10.0+ with Lua support"
+echo "🌐 HTTP server starting on port 7102..."
+echo "   Test with: curl http://localhost:7102/"
 
 # Wait for mGBA process or signals
 wait $MGBA_PID

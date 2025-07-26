@@ -66,21 +66,21 @@ async function handleCommand(command) {
     switch (command) {
       case 'start':
         console.log('🚀 Starting mGBA environment...')
-        console.log('🔨 Building if needed...')
+        console.log('🔨 Building mGBA from source with Lua support...')
         await runCommand('docker', ['compose', '-f', composeFile, 'up', '-d', '--build'])
         console.log('✅ mGBA environment started successfully')
         console.log(`🌐 HTTP server available at http://localhost:${SERVER_PORT}`)
-        console.log('⏳ Emulator is initializing (may take a few minutes on first run)...')
+        console.log('⏳ mGBA is initializing and loading ROM...')
         
-        // Wait a moment then show status
+        // Wait for server to be ready
         setTimeout(async () => {
           try {
-            console.log('\n📊 Environment status:')
-            await runCommand('docker', ['compose', '-f', composeFile, 'ps'])
+            console.log('\n🧪 Testing HTTP endpoints:')
+            await testEndpoints()
           } catch (e) {
-            // Ignore status check errors
+            console.log('   Server still starting up, try testing manually in a few moments')
           }
-        }, 2000)
+        }, 10000)
         break
 
       case 'stop':

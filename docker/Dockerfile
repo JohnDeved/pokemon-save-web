@@ -1,26 +1,51 @@
-# Simple Docker for mGBA test environment using pre-built packages
+# mGBA Docker environment with Lua HTTP server support  
 FROM ubuntu:22.04
 
 # Set environment to avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies and mGBA
+# Install build and runtime dependencies
 RUN apt-get update && apt-get install -y \
-    mgba-qt \
+    build-essential \
+    cmake \
+    git \
+    pkg-config \
+    qtbase5-dev \
+    qtmultimedia5-dev \
+    liblua5.4-dev \
     lua5.4 \
+    zlib1g-dev \
+    libpng-dev \
+    libsdl2-dev \
+    libedit-dev \
+    libsqlite3-dev \
     xvfb \
     curl \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Create working directory
+# Build mGBA from source with minimal dependencies
+WORKDIR /build
+RUN git clone https://github.com/mgba-emu/mgba.git --depth 1 --branch 0.10.3
+WORKDIR /build/mgba
+RUN mkdir build && cd build && \
+    cmake .. \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DUSE_LUA=ON \
+    -DBUILD_QT=ON \
+    -DBUILD_SDL=ON \
+    -DUSE_DISCORD_RPC=OFF \
+    -DUSE_FFMPEG=OFF \
+    -DUSE_MINIZIP=OFF \
+    -DUSE_LIBZIP=OFF \
+    && make -j$(nproc) && make install
+
+# Configure library path
+RUN ldconfig
+
+# Create working directory and copy data
 WORKDIR /app
-
-# Copy test data and scripts
-COPY test_data/ /app/test_data/
-COPY scripts/ /app/scripts/
-
-# Copy entrypoint script
+COPY docker/data/ /app/data/
 COPY docker/entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable
