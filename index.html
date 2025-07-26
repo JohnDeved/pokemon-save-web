@@ -47,18 +47,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Press+Start+2P&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Press+Start+2P&display=swap" rel="stylesheet"></noscript>
     
-    <!-- Critical Resource Hints for faster DNS resolution -->
+    <!-- Preload critical assets -->
+    <link rel="preload" href="/src/main.tsx" as="script" crossorigin>
+    <link rel="prefetch" href="/pwa-512x512.png">
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
-    
-    <!-- Preload critical assets with high priority -->
-    <link rel="modulepreload" href="/src/main.tsx" as="script">
-    <link rel="modulepreload" href="/src/components/pokemon/SaveFileDropzone.tsx" as="script">
-    <link rel="modulepreload" href="/src/components/common/index.ts" as="script">
-    
-    <!-- Prefetch non-critical assets -->
-    <link rel="prefetch" href="/pwa-512x512.png">
-    <link rel="prefetch" href="/src/components/common/ShaderBackground.tsx" as="script">
     
     <!-- Security Headers -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />

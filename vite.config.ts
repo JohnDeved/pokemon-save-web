@@ -86,36 +86,20 @@ export default defineConfig({
       compress: {
         drop_console: true,
         drop_debugger: true,
-        pure_funcs: ['console.log'],
-        passes: 2
-      },
-      mangle: {
-        safari10: true
+        pure_funcs: ['console.log']
       }
     },
     rollupOptions: {
       output: {
         manualChunks: {
-          // Keep React core small and fast
           vendor: ['react', 'react-dom'],
-          // UI components in separate chunk
           ui: ['@radix-ui/react-menubar', '@radix-ui/react-select', '@radix-ui/react-slider', '@radix-ui/react-slot', '@radix-ui/react-tooltip'],
-          // Heavy 3D graphics - lazy loaded
           three: ['three', '@react-three/fiber'],
-          // Utility libraries
-          utils: ['clsx', 'tailwind-merge', 'class-variance-authority'],
-          // Animation library separate for conditional loading
-          motion: ['framer-motion'],
-          // File handling utilities
-          fileHandling: ['file-saver', 'react-dropzone', 'file-selector']
+          utils: ['clsx', 'tailwind-merge', 'class-variance-authority']
         }
       }
     },
-    sourcemap: false, // Disable source maps in production for smaller bundle
-    chunkSizeWarningLimit: 800, // Lower threshold to catch large chunks
-    cssCodeSplit: true, // Enable CSS code splitting
-    reportCompressedSize: true,
-    // Optimize chunk loading
-    assetsInlineLimit: 4096 // Inline small assets as base64
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000
   }
 })

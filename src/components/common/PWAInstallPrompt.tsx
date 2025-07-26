@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Button } from '../ui/button'
-import { Download, X } from 'lucide-react'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
@@ -34,9 +32,7 @@ export const PWAInstallPrompt: React.FC = () => {
     await deferredPrompt.prompt()
 
     // Wait for the user to respond
-    const { outcome } = await deferredPrompt.userChoice
-
-    console.log(`User ${outcome} the install prompt`)
+    await deferredPrompt.userChoice
 
     // Reset the deferred prompt variable
     setDeferredPrompt(null)
@@ -57,7 +53,9 @@ export const PWAInstallPrompt: React.FC = () => {
       <div className="bg-slate-800 border border-slate-600 rounded-lg p-4 shadow-lg">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
-            <Download className="w-6 h-6 text-blue-400"/>
+            <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+            </svg>
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-medium text-slate-100">
@@ -71,25 +69,24 @@ export const PWAInstallPrompt: React.FC = () => {
             onClick={handleDismiss}
             className="flex-shrink-0 text-slate-400 hover:text-slate-200 transition-colors"
           >
-            <X className="w-5 h-5"/>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div className="flex gap-2 mt-3">
-          <Button
+          <button
             onClick={handleInstall}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-            size="sm"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors"
           >
             Install
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleDismiss}
-            variant="outline"
-            className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
-            size="sm"
+            className="flex-1 px-3 py-1.5 border border-slate-600 text-slate-300 hover:text-slate-100 hover:border-slate-500 rounded text-sm transition-colors"
           >
             Not now
-          </Button>
+          </button>
         </div>
       </div>
     </div>

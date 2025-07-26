@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef, useState, useEffect, memo, useCallback } from 'react'
+import { Suspense, lazy, useRef } from 'react'
 import { Card } from './components/common'
 import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
 import {
@@ -14,14 +14,13 @@ import { Toaster } from './components/ui/sonner'
 import { usePokemonData } from './hooks'
 
 // Dynamically import ShaderBackground to code-split heavy 3D dependencies
-// Only load after critical content is rendered
 const ShaderBackground = lazy(() =>
   import('./components/common/ShaderBackground').then(module => ({
     default: module.ShaderBackground,
   })),
 )
 
-export const App: React.FC = memo(() => {
+export const App: React.FC = () => {
   const {
     partyList,
     activePokemonId,
@@ -36,18 +35,6 @@ export const App: React.FC = memo(() => {
     setNature,
   } = usePokemonData()
 
-  // Defer background loading until after critical content
-  const [showBackground, setShowBackground] = useState(false)
-  
-  useEffect(() => {
-    // Delay background loading to prioritize main content
-    const timer = setTimeout(() => {
-      setShowBackground(true)
-    }, 100) // Further reduced delay for better UX
-    
-    return () => clearTimeout(timer)
-  }, [])
-
   // Check if the browser supports the File System Access API
   const canSaveAs = typeof window !== 'undefined' && !!window.showSaveFilePicker
   // Determine if there is save data to display
@@ -56,37 +43,21 @@ export const App: React.FC = memo(() => {
   const shouldShowDropzone = !hasSaveData && !saveFileParser.lastParseFailed
   // Store the file picker function from SaveFileDropzone using a ref to avoid update loops
   const filePickerRef = useRef<() => void>(null)
-  
-  const handleOpenFilePicker = useCallback((fn: () => void) => {
-    filePickerRef.current = fn
-  }, [])
 
   return (
     <>
-      {/* Defer background loading until after critical content */}
-      {showBackground && (
-        <Suspense fallback={
-          <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-600/20 via-slate-900/50 to-black"></div>
-          </div>
-        }>
-          <ShaderBackground/>
-        </Suspense>
-      )}
-      
-      {/* Critical UI components load immediately */}
+      <Suspense fallback={<div className="fixed inset-0 bg-black"/>}>
+        <ShaderBackground/>
+      </Suspense>
       <Toaster richColors position="bottom-center"/>
       <PWAInstallPrompt/>
-      
       <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
-        {/* Fallback background pattern (lightweight) */}
         <div className="absolute inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"/>
-        
         <SaveFileDropzone
           onFileLoad={saveFileParser.parseSaveFile}
           error={saveFileParser.error}
           showDropzone={shouldShowDropzone}
-          onOpenFilePicker={handleOpenFilePicker}
+          onOpenFilePicker={fn => { filePickerRef.current = fn }}
         />
         {hasSaveData && (
           <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
@@ -200,6 +171,4 @@ export const App: React.FC = memo(() => {
       </div>
     </>
   )
-})
-
-App.displayName = 'App'
+}
