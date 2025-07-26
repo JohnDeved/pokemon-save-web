@@ -41,7 +41,7 @@ export const ShaderBackground = memo(() => {
   }, [])
 
   return (
-    <div 
+    <div
       className={`fixed inset-0 transition-opacity duration-500 ${
         isLoaded ? 'opacity-100' : 'opacity-0'
       }`}

@@ -89,7 +89,7 @@ export const useSaveFileParser = () => {
     if (method === 'saveAs') {
       try {
         if (!window.showSaveFilePicker) {
-          throw new Error('File System Access API not supported');
+          throw new Error('File System Access API not supported')
         }
         const handle = await window.showSaveFilePicker({
           suggestedName: defaultFileName,

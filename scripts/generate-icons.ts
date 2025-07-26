@@ -25,14 +25,14 @@ async function generateIcons() {
   }
 }
 
-// Generate favicon.ico using the 32x32 PNG
+// Generate favicon.png using the 32x32 PNG
 async function generateFavicon() {
   await sharp(svgBuffer)
     .resize(32, 32)
     .png()
-    .toFile(join(publicDir, 'favicon.ico'));
+    .toFile(join(publicDir, 'favicon.png'));
   
-  console.log('Generated favicon.ico');
+  console.log('Generated favicon.png');
 }
 
 generateIcons()
