@@ -153,25 +153,8 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
     if (currentNature === value) return
 
-    // Calculate new first byte that gives desired nature
-    let newFirstByte = currentFirstByte
-    const diff = value - currentNature
-    newFirstByte += diff
-
-    // Handle wraparound
-    if (newFirstByte < 0) {
-      newFirstByte += 25
-    } else if (newFirstByte > 255) {
-      newFirstByte = value + (newFirstByte & 0xE0) // Keep upper bits, set lower to desired nature
-    }
-
-    // Ensure we get the right nature
-    if ((newFirstByte % 25) !== value) {
-      newFirstByte = (newFirstByte & 0xE0) + value // Keep upper 3 bits, set lower 5 to achieve nature
-      if (newFirstByte > 255) {
-        newFirstByte = value
-      }
-    }
+    // Calculate new first byte: preserve quotient, set remainder to desired nature
+    const newFirstByte = (currentFirstByte - currentNature) + value
 
     // Update personality with new first byte
     const newPersonality = (currentPersonality & 0xFFFFFF00) | (newFirstByte & 0xFF)

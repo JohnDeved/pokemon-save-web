@@ -465,32 +465,8 @@ export class PokemonBase {
       const substruct2 = this.getDecryptedSubstruct(this.data, 2)
       const substruct3 = this.getDecryptedSubstruct(this.data, 3)
 
-      // Calculate the adjustment needed for the nature
-      const adjustment = value - currentNature
-
-      // Create new personality value that preserves important properties
-      let newPersonality = this.personality + adjustment
-
-      // Handle wraparound cases to ensure we get the exact nature we want
-      const finalNature = newPersonality % 25
-      if (finalNature !== value) {
-        // If we have a negative result or other edge case, adjust accordingly
-        if (finalNature < 0) {
-          newPersonality += 25
-        } else {
-          // Calculate the correction needed
-          const correction = value - finalNature
-          newPersonality += correction
-        }
-      }
-
-      // Ensure the final result gives us the correct nature
-      if (newPersonality % 25 !== value) {
-        // As a last resort, set the personality to a value that definitely works
-        // while trying to preserve as much of the original personality as possible
-        const personalityBase = Math.floor(this.personality / 25) * 25
-        newPersonality = personalityBase + value
-      }
+      // Calculate new personality: preserve quotient, set remainder to desired nature
+      const newPersonality = (this.personality - currentNature) + value
 
       // Update the personality value in the data
       this.view.setUint32(this.offsets.personality, newPersonality >>> 0, true)
