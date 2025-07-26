@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useMemo, memo } from 'react'
+import { useMemo, memo, useState, useEffect } from 'react'
 import { ShaderMaterial } from 'three'
 
 import fragmentShader from '../../glsl/shader.glsl?raw'
@@ -32,8 +32,20 @@ const Scene = memo(() => {
 Scene.displayName = 'Scene'
 
 export const ShaderBackground = memo(() => {
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  useEffect(() => {
+    // Delay the shader fade-in to allow pattern to render first
+    const timer = setTimeout(() => setIsLoaded(true), 100)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
-    <div className="fixed inset-0">
+    <div 
+      className={`fixed inset-0 transition-opacity duration-500 ${
+        isLoaded ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
       <Canvas gl={{ antialias: false, powerPreference: 'high-performance' }}>
         <Scene/>
       </Canvas>
