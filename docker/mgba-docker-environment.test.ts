@@ -176,7 +176,7 @@ describe('Docker mGBA Environment Tests', () => {
       join(__dirname, 'Dockerfile'),
       join(__dirname, 'docker-compose.yml'),
       join(TEST_DATA_DIR, 'emerald.ss0'),
-      join(TEST_DATA_DIR, 'mgba_http_server_enhanced.lua')
+      join(TEST_DATA_DIR, 'mgba_http_server.lua')
     ]
 
     for (const file of requiredFiles) {

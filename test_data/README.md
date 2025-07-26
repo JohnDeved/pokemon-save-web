@@ -22,15 +22,6 @@ To use this test environment, you must:
    - Use homebrew software on a GBA flash cart
    - Use dedicated ROM dumping hardware
 
-### Tested ROM Sources
-
-For testing and development purposes, you can use preserved ROMs from Internet Archive:
-- **Archive.org**: https://archive.org/download/pkmn_collection/pkmn%20collection/GBA/Pokemon%20-%20Emerald%20Version%20%28USA%2C%20Europe%29.zip
-  - ✅ **Tested and working** with this mGBA test environment
-  - File: `Pokemon - Emerald Version (USA, Europe).gba`
-  - Size: 16,777,216 bytes (16 MB)
-  - MD5: [varies by dump]
-
 ### ROM File Requirements
 
 - **File name**: `emerald.gba` (place it in this directory)

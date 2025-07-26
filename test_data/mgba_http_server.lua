@@ -1,6 +1,3 @@
--- Enhanced mGBA HTTP Server with Emulator API Validation
--- This script confirms that real mGBA emulator APIs are available and working
-
 ---@class Request
 ---@field method string
 ---@field path string
@@ -210,109 +207,6 @@ function HttpServer.parseWebSocketFrame(data)
         return payload, offset + len
     end
     return "", offset + len
-end
-
---- Validates that emulator APIs are available and working
----@return table
-function HttpServer.validateEmulatorAPIs()
-    local validation = {
-        environment = "mGBA Lua Script Environment",
-        timestamp = os.time(),
-        apis = {},
-        rom_info = {},
-        system_info = {}
-    }
-    
-    -- Test console API
-    validation.apis.console = {
-        available = type(console) == "table" and type(console.log) == "function",
-        tested = false
-    }
-    if validation.apis.console.available then
-        local ok, err = pcall(function() console:log("API validation test") end)
-        validation.apis.console.tested = ok
-        if not ok then validation.apis.console.error = tostring(err) end
-    end
-    
-    -- Test emu API
-    validation.apis.emu = {
-        available = type(emu) == "table",
-        methods = {},
-        rom_loaded = false,
-        rom_size = 0
-    }
-    if validation.apis.emu.available then
-        -- Check available methods
-        local emu_methods = {}
-        for k, v in pairs(emu) do
-            if type(v) == "function" then
-                emu_methods[k] = "function"
-            else
-                emu_methods[k] = type(v)
-            end
-        end
-        validation.apis.emu.methods = emu_methods
-        
-        -- Test ROM access
-        if type(emu.romSize) == "function" then
-            local ok, size = pcall(emu.romSize, emu)
-            if ok and size and size > 0 then
-                validation.apis.emu.rom_loaded = true
-                validation.apis.emu.rom_size = size
-                validation.rom_info.size = size
-            end
-        end
-        
-        -- Get ROM information if loaded
-        if validation.apis.emu.rom_loaded then
-            -- Try to get title if available
-            if type(emu.getGameTitle) == "function" then
-                local ok, title = pcall(emu.getGameTitle, emu)
-                if ok and title then validation.rom_info.title = title end
-            end
-            
-            -- Try to get game code if available
-            if type(emu.getGameCode) == "function" then
-                local ok, code = pcall(emu.getGameCode, emu)
-                if ok and code then validation.rom_info.code = code end
-            end
-        end
-    end
-    
-    -- Test callbacks API
-    validation.apis.callbacks = {
-        available = type(callbacks) == "table" and type(callbacks.add) == "function",
-        tested = false
-    }
-    if validation.apis.callbacks.available then
-        local ok, err = pcall(function()
-            -- Try a simple callbacks test
-            local testCallback = function() end
-            local cbid = callbacks:add("frame", testCallback)
-            if cbid then
-                callbacks:remove(cbid)
-                return true
-            end
-            return false
-        end)
-        validation.apis.callbacks.tested = ok
-        if not ok then validation.apis.callbacks.error = tostring(err) end
-    end
-    
-    -- Test socket API
-    validation.apis.socket = {
-        available = type(socket) == "table" and type(socket.bind) == "function",
-        tested = false
-    }
-    if validation.apis.socket.available then
-        validation.apis.socket.tested = true -- If we're here, socket is working since the HTTP server is running
-    end
-    
-    -- System information
-    validation.system_info.lua_version = _VERSION
-    validation.system_info.platform = "mGBA"
-    
-    return validation
 end
 
 --------------------------------------------------------------------------------
@@ -681,7 +575,7 @@ function HttpServer:listen(port, callback)
 end
 
 --------------------------------------------------------------------------------
--- Example Usage with Enhanced API Validation
+-- Example Usage
 --------------------------------------------------------------------------------
 
 local app = HttpServer:new()
@@ -691,9 +585,9 @@ app:use(function(req, res)
     console:log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
 end)
 
--- Basic routes
+-- Routes
 app:get("/", function(req, res)
-    res:send("200 OK", "Welcome to mGBA HTTP Server with Emulator API Validation!")
+    res:send("200 OK", "Welcome to mGBA HTTP Server!")
 end)
 
 app:get("/json", HttpServer.cors(), function(req, res)
@@ -704,65 +598,13 @@ app:post("/echo", function(req, res)
     res:send("200 OK", req.body, req.headers['content-type'])
 end)
 
--- Enhanced API validation endpoint
-app:get("/api/validate", HttpServer.cors(), function(req, res)
-    local validation = HttpServer.validateEmulatorAPIs()
-    res:send("200 OK", validation)
-end)
-
--- Emulator status endpoint
-app:get("/api/emulator", HttpServer.cors(), function(req, res)
-    local status = {
-        running = true,
-        timestamp = os.time(),
-        lua_version = _VERSION,
-        platform = "mGBA"
-    }
-    
-    if emu then
-        status.rom_loaded = (emu.romSize and emu:romSize() > 0) or false
-        if status.rom_loaded then
-            status.rom_size = emu:romSize()
-            if emu.getGameTitle then
-                local ok, title = pcall(emu.getGameTitle, emu)
-                if ok then status.rom_title = title end
-            end
-        end
-    end
-    
-    res:send("200 OK", status)
-end)
-
--- WebSocket route with enhanced testing
+-- WebSocket route
 app:websocket("/ws", function(ws)
     console:log("WebSocket connected: " .. ws.path)
 
     ws.onMessage = function(code)
         local function safe_eval()
             console:log("WebSocket eval request: " .. tostring(code))
-            
-            -- Special commands for API testing
-            if code == "test:apis" then
-                local validation = HttpServer.validateEmulatorAPIs()
-                ws:send(HttpServer.jsonStringify({result = validation}))
-                return
-            elseif code == "test:emu" then
-                if emu then
-                    local info = {
-                        available = true,
-                        rom_loaded = (emu.romSize and emu:romSize() > 0) or false
-                    }
-                    if info.rom_loaded then
-                        info.rom_size = emu:romSize()
-                    end
-                    ws:send(HttpServer.jsonStringify({result = info}))
-                else
-                    ws:send(HttpServer.jsonStringify({result = {available = false}}))
-                end
-                return
-            end
-            
-            -- Regular Lua code evaluation
             local chunk = code
             if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end)") then
                 chunk = "return " .. code
@@ -791,13 +633,10 @@ app:websocket("/ws", function(ws)
         console:log("WebSocket disconnected: " .. ws.path)
     end
 
-    ws:send("Welcome to enhanced WebSocket Eval! Send Lua code or 'test:apis' or 'test:emu' for validation.")
+    ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
 end)
 
 -- Start server
 app:listen(7102, function(port)
-    console:log("🚀 Enhanced mGBA HTTP Server started on port " .. port)
-    console:log("📡 API validation available at /api/validate")
-    console:log("🔧 Emulator status at /api/emulator")
-    console:log("🌐 WebSocket testing at ws://localhost:" .. port .. "/ws")
+    console:log("🚀 mGBA HTTP Server started on port " .. port)
 end)
