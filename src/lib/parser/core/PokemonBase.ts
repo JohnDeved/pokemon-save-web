@@ -484,10 +484,7 @@ export class PokemonBase {
       if (newFirstByte < 0) {
         newFirstByte += 25
       } else if (newFirstByte > 255) {
-        newFirstByte = (newFirstByte % 25) + Math.floor(newFirstByte / 25) * 25
-        if (newFirstByte > 255) {
-          newFirstByte = value + (newFirstByte & 0xE0) // Keep upper bits, set lower to desired nature
-        }
+        newFirstByte = value + (newFirstByte & 0xE0) // Keep upper bits, set lower to desired nature
       }
 
       // Ensure we get the right nature
