@@ -3,6 +3,7 @@ import { Card } from './components/common'
 import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
 import { ShaderBackground } from './components/common/ShaderBackground'
 import {
+  CompactPokemonSelector,
   PokemonAbilitySection,
   PokemonHeader,
   PokemonMovesSection,
@@ -12,7 +13,7 @@ import {
 } from './components/pokemon'
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
-import { usePokemonData } from './hooks'
+import { useBreakpoint, usePokemonData } from './hooks'
 
 export const App: React.FC = () => {
   const {
@@ -28,6 +29,8 @@ export const App: React.FC = () => {
     getRemainingEvs,
     setNature,
   } = usePokemonData()
+
+  const { isMobile } = useBreakpoint()
 
   // Check if the browser supports the File System Access API
   const canSaveAs = typeof window !== 'undefined' && !!window.showSaveFilePicker
@@ -56,8 +59,9 @@ export const App: React.FC = () => {
         />
         {hasSaveData && (
           <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 z-10">
-              <div className="flex flex-col gap-4">
+            {isMobile ? (
+              // Mobile Layout: Single column with compact Pokemon selector
+              <>
                 <Menubar className="geist-font">
                   <MenubarMenu>
                     <MenubarTrigger>File</MenubarTrigger>
@@ -124,43 +128,150 @@ export const App: React.FC = () => {
                     </MenubarContent>
                   </MenubarMenu>
                 </Menubar>
-                <PokemonPartyList
+                
+                <CompactPokemonSelector
+                  selectedPokemon={activePokemon}
                   partyList={partyList}
-                  activePokemonId={activePokemonId}
-                  onPokemonSelect={setActivePokemonId}
-                  isRenaming={false}
-                  onPokemonHover={preloadPokemonDetails}
+                  onSelect={setActivePokemonId}
                 />
+                
+                <div className="grid grid-rows-[auto_auto_1fr] gap-4">
+                  <Card className="z-30">
+                    <PokemonHeader
+                      pokemon={activePokemon}
+                      setNature={setNature}
+                      isLoading={isLoading}
+                    />
+                    <PokemonMovesSection
+                      moves={activePokemon?.details?.moves}
+                      isLoading={!activePokemon?.details || isLoading}
+                    />
+                  </Card>
+                  <Card className="z-20">
+                    <PokemonStatDisplay
+                      setEvIndex={setEvIndex}
+                      setIvIndex={setIvIndex}
+                      pokemon={activePokemon}
+                      isLoading={!activePokemon?.details || isLoading}
+                      getRemainingEvs={getRemainingEvs}
+                    />
+                  </Card>
+                  <Card className="z-10">
+                    <PokemonAbilitySection
+                      pokemon={activePokemon}
+                      isLoading={!activePokemon?.details || isLoading}
+                    />
+                  </Card>
+                </div>
+              </>
+            ) : (
+              // Desktop Layout: Two column grid (unchanged)
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 z-10">
+                <div className="flex flex-col gap-4">
+                  <Menubar className="geist-font">
+                    <MenubarMenu>
+                      <MenubarTrigger>File</MenubarTrigger>
+                      <MenubarContent>
+                        <MenubarItem onClick={() => { filePickerRef.current?.() }}>
+                          Open
+                        </MenubarItem>
+                        <MenubarItem disabled>Open Recent</MenubarItem>
+                        <MenubarSeparator/>
+                        <MenubarItem
+                          disabled={!saveFileParser.parser?.fileHandle}
+                          onClick={() => saveFileParser.reconstructAndDownload('save')}
+                        >Save <MenubarShortcut>Ctrl+S</MenubarShortcut>
+                        </MenubarItem>
+                        <MenubarItem
+                          onClick={() => saveFileParser.reconstructAndDownload('saveAs')}
+                          disabled={!canSaveAs}
+                        >Save As
+                        </MenubarItem>
+                        <MenubarItem
+                          onClick={() => saveFileParser.reconstructAndDownload()}
+                        >Download
+                        </MenubarItem>
+                        <MenubarSeparator/>
+                        <MenubarSub>
+                          <MenubarSubTrigger>Party</MenubarSubTrigger>
+                          <MenubarSubContent>
+                            <MenubarItem disabled>Load from File</MenubarItem>
+                            <MenubarItem disabled>Storage</MenubarItem>
+                            <MenubarSeparator/>
+                            <MenubarItem disabled>Save As</MenubarItem>
+                            <MenubarItem disabled>Download</MenubarItem>
+                            <MenubarItem disabled>Store</MenubarItem>
+                          </MenubarSubContent>
+                        </MenubarSub>
+                        <MenubarSeparator/>
+                        <MenubarSub>
+                          <MenubarSubTrigger>Player</MenubarSubTrigger>
+                          <MenubarSubContent>
+                            <MenubarItem disabled>Info <MenubarShortcut>{saveFileParser.saveData?.player_name}</MenubarShortcut></MenubarItem>
+                            <MenubarItem disabled>Rename</MenubarItem>
+                          </MenubarSubContent>
+                        </MenubarSub>
+                        <MenubarSeparator/>
+                        <MenubarItem disabled>Share</MenubarItem>
+                      </MenubarContent>
+                    </MenubarMenu>
+                    <MenubarMenu>
+                      <MenubarTrigger>Edit</MenubarTrigger>
+                      <MenubarContent>
+                        <MenubarItem disabled>Undo <MenubarShortcut>Ctrl+Z</MenubarShortcut></MenubarItem>
+                        <MenubarItem disabled>Redo <MenubarShortcut>Ctrl+Shift+Y</MenubarShortcut></MenubarItem>
+                        <MenubarSeparator/>
+                        <MenubarItem disabled>Reset</MenubarItem>
+                      </MenubarContent>
+                    </MenubarMenu>
+                    <MenubarMenu>
+                      <MenubarTrigger>Help</MenubarTrigger>
+                      <MenubarContent>
+                        <MenubarItem onClick={() => { location.reload() }}>Restart</MenubarItem>
+                        <MenubarSeparator/>
+                        <MenubarItem disabled>Github</MenubarItem>
+                        <MenubarItem disabled>About</MenubarItem>
+                      </MenubarContent>
+                    </MenubarMenu>
+                  </Menubar>
+                  <PokemonPartyList
+                    partyList={partyList}
+                    activePokemonId={activePokemonId}
+                    onPokemonSelect={setActivePokemonId}
+                    isRenaming={false}
+                    onPokemonHover={preloadPokemonDetails}
+                  />
+                </div>
+                <div className="grid grid-rows-[auto_auto_1fr] gap-4">
+                  <Card className="z-30">
+                    <PokemonHeader
+                      pokemon={activePokemon}
+                      setNature={setNature}
+                      isLoading={isLoading}
+                    />
+                    <PokemonMovesSection
+                      moves={activePokemon?.details?.moves}
+                      isLoading={!activePokemon?.details || isLoading}
+                    />
+                  </Card>
+                  <Card className="z-20">
+                    <PokemonStatDisplay
+                      setEvIndex={setEvIndex}
+                      setIvIndex={setIvIndex}
+                      pokemon={activePokemon}
+                      isLoading={!activePokemon?.details || isLoading}
+                      getRemainingEvs={getRemainingEvs}
+                    />
+                  </Card>
+                  <Card className="z-10">
+                    <PokemonAbilitySection
+                      pokemon={activePokemon}
+                      isLoading={!activePokemon?.details || isLoading}
+                    />
+                  </Card>
+                </div>
               </div>
-              <div className="grid grid-rows-[auto_auto_1fr] gap-4">
-                <Card className="z-30">
-                  <PokemonHeader
-                    pokemon={activePokemon}
-                    setNature={setNature}
-                    isLoading={isLoading}
-                  />
-                  <PokemonMovesSection
-                    moves={activePokemon?.details?.moves}
-                    isLoading={!activePokemon?.details || isLoading}
-                  />
-                </Card>
-                <Card className="z-20">
-                  <PokemonStatDisplay
-                    setEvIndex={setEvIndex}
-                    setIvIndex={setIvIndex}
-                    pokemon={activePokemon}
-                    isLoading={!activePokemon?.details || isLoading}
-                    getRemainingEvs={getRemainingEvs}
-                  />
-                </Card>
-                <Card className="z-10">
-                  <PokemonAbilitySection
-                    pokemon={activePokemon}
-                    isLoading={!activePokemon?.details || isLoading}
-                  />
-                </Card>
-              </div>
-            </div>
+            )}
           </main>
         )}
       </div>
