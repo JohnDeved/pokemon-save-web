@@ -5,7 +5,7 @@
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
   
   <url>
-    <loc>https://pokemon-save-web.vercel.app/</loc>
+    <loc>https://pokemon-save-web.pages.dev/</loc>
     <lastmod>2024-07-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
