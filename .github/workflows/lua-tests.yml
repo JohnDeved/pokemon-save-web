@@ -52,12 +52,15 @@ jobs:
         id: install-lua
         run: |
           echo "Installing Lua and dependencies..."
-          if ! command -v lua5.3 &> /dev/null; then
+          if ! command -v lua &> /dev/null; then
             sudo apt-get update
-            if sudo apt-get install -y lua5.3 lua5.3-dev luarocks; then
-              if sudo luarocks install luasocket; then
+            if sudo apt-get install -y lua5.4 lua5.4-dev luarocks; then
+              # Set lua5.4 as the default lua command via alternatives
+              sudo update-alternatives --set lua-interpreter /usr/bin/lua5.4 2>/dev/null || true
+              # Verify lua command is available and socket library works
+              if command -v lua &> /dev/null && lua -e "local socket = require('socket'); print('Socket test successful')"; then
                 echo "lua_available=true" >> $GITHUB_OUTPUT
-                echo "✅ Lua installed successfully"
+                echo "✅ Lua 5.4 installed successfully"
               else
                 echo "lua_available=false" >> $GITHUB_OUTPUT
                 echo "⚠️ Lua socket installation failed"
@@ -78,17 +81,17 @@ jobs:
       - name: Verify Lua installation
         if: steps.install-lua.outputs.lua_available == 'true'
         run: |
-          lua5.3 -v
-          lua5.3 -e "print('Lua test successful')"
+          lua -v
+          lua -e "print('Lua test successful')"
           # Test socket library
-          lua5.3 -e "local socket = require('socket'); print('Socket library loaded successfully')"
+          lua -e "local socket = require('socket'); print('Socket library loaded successfully')"
       
       - name: Test Lua server startup (smoke test)
         if: steps.install-lua.outputs.lua_available == 'true'
         run: |
           echo "Running basic Lua server startup test..."
           cd scripts/mgba-lua/__tests__
-          timeout 10s lua5.3 mgba-env-mock.lua 7999 &
+          timeout 10s lua mgba-env-mock.lua 7999 &
           PID=$!
           sleep 3
           # Check if process is still running

@@ -18,7 +18,7 @@ const __dirname = dirname(__filename)
 // Helper function to check if Lua is available
 function checkLuaAvailability(): Promise<boolean> {
   return new Promise((resolve) => {
-    const luaCheck = spawn('lua', ['--version'], { stdio: 'ignore' })
+    const luaCheck = spawn('lua', ['-v'], { stdio: 'ignore' })
     luaCheck.on('error', () => resolve(false))
     luaCheck.on('exit', (code) => resolve(code === 0))
   })

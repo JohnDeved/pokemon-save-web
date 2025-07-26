@@ -1,5 +1,4 @@
 ---@diagnostic disable: unused-local, redundant-return-value, missing-fields
-#!/usr/bin/env lua5.3
 -- Minimal mGBA mock for testing http-server.lua
 local socket = require('socket')
 local test_port = tonumber(arg[1]) or 7102
@@ -58,7 +57,8 @@ _G.socket = {
 -- Load and start HTTP server
 print("Starting mGBA environment on port " .. test_port)
 local code = assert(io.open((arg[0]:match("(.+)/[^/]+$") or ".") .. "/../http-server.lua", "r")):read("*all")
-assert(pcall(assert(load(code:gsub("app:listen%(7102", "app:listen(" .. test_port), "http-server.lua"))))
+local load_func = loadstring or load
+assert(pcall(assert(load_func(code:gsub("app:listen%(7102", "app:listen(" .. test_port)))))
 print("HTTP server loaded successfully")
 
 -- Event loop
