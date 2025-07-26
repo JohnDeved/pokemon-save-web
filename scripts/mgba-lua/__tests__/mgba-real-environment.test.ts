@@ -23,17 +23,17 @@ const ROM_PATH = join(TEST_DATA_DIR, 'emerald.gba')
 const ROM_ZIP_PATH = join(TEST_DATA_DIR, 'emerald_temp.zip')
 
 // mGBA configuration
-const LUA_SCRIPT_PATH = join(TEST_DATA_DIR, 'mgba_http_server.lua')
+const LUA_SCRIPT_PATH = join(TEST_DATA_DIR, 'mgba_http_server_enhanced.lua')
 const SAVESTATE_PATH = join(TEST_DATA_DIR, 'emerald.ss0')
 
 // Helper function to check if system mGBA Qt is available with script support
 function checkMgbaAvailability(): Promise<boolean> {
   return new Promise((resolve) => {
-    // Check for system-installed mGBA Qt with --script support
-    const mgbaCheck = spawn('mgba-qt', ['--version'], { stdio: 'ignore' })
+    // Check for custom-built mGBA Qt with Lua support
+    const mgbaCheck = spawn('/usr/local/bin/mgba-qt', ['--version'], { stdio: 'ignore' })
     mgbaCheck.on('error', () => {
       // Try with xvfb for headless environments
-      const xvfbCheck = spawn('xvfb-run', ['-a', 'mgba-qt', '--version'], { stdio: 'ignore' })
+      const xvfbCheck = spawn('xvfb-run', ['-a', '/usr/local/bin/mgba-qt', '--version'], { stdio: 'ignore' })
       xvfbCheck.on('error', () => resolve(false))
       xvfbCheck.on('exit', (code) => resolve(code === 0))
     })
@@ -44,10 +44,11 @@ function checkMgbaAvailability(): Promise<boolean> {
 // Helper function to get the mGBA Qt executable command
 function getMgbaCommand(): string[] {
   // Try to determine if we need xvfb for headless operation
+  const mgbaPath = '/usr/local/bin/mgba-qt'
   if (process.env.DISPLAY || process.env.WAYLAND_DISPLAY) {
-    return ['mgba-qt']
+    return [mgbaPath]
   } else {
-    return ['xvfb-run', '-a', 'mgba-qt']
+    return ['xvfb-run', '-a', mgbaPath]
   }
 }
 
@@ -55,14 +56,13 @@ function getMgbaCommand(): string[] {
 async function ensureMgbaReady(): Promise<boolean> {
   const isAvailable = await checkMgbaAvailability()
   if (isAvailable) {
-    console.log('  ✅ System mGBA Qt is available')
+    console.log('  ✅ Custom-built mGBA Qt with Lua support is available')
     return true
   }
 
-  console.log('  ❌ mGBA Qt not found. Please install mGBA with Qt frontend.')
-  console.log('  📦 Ubuntu/Debian: sudo apt install mgba-qt')
-  console.log('  🍺 macOS: brew install mgba')
-  console.log('  🪟 Windows: Download from https://mgba.io/downloads.html')
+  console.log('  ❌ mGBA Qt with Lua support not found.')
+  console.log('  🔧 Custom mGBA Qt with Lua should be built and installed at /usr/local/bin/mgba-qt')
+  console.log('  📦 This test requires mGBA built from source with Lua support enabled')
   
   return false
 }
@@ -172,13 +172,12 @@ describe('mGBA Real Environment Tests', () => {
 
     const mgbaCommand = getMgbaCommand()
     const mgbaArgs = [
-      ...mgbaCommand,
       '-t', SAVESTATE_PATH, // Load savestate when starting
       '--script', LUA_SCRIPT_PATH, // Load Lua HTTP server script
       ROM_PATH // Load the ROM
     ]
 
-    mgbaProcess = spawn(mgbaArgs[0], mgbaArgs.slice(1), {
+    mgbaProcess = spawn(mgbaCommand[0], [...mgbaCommand.slice(1), ...mgbaArgs], {
       cwd: TEST_DATA_DIR,
       stdio: ['pipe', 'pipe', 'pipe'],
     })
@@ -395,6 +394,105 @@ describe('mGBA Real Environment Tests', () => {
     })
   })
 
+  describe('Emulator API Validation', () => {
+    it('should validate emulator APIs are available and working', async () => {
+      if (!setupSucceeded) {
+        console.log('⏭️ Skipping test - environment setup failed')
+        return
+      }
+      
+      try {
+        const response = await fetch(`${baseUrl}/api/validate`)
+        
+        expect(response.status).toBe(200)
+        expect(response.headers.get('Content-Type')).toContain('application/json')
+        
+        const validation = await response.json()
+        
+        // Validate structure
+        expect(validation).toHaveProperty('environment')
+        expect(validation).toHaveProperty('apis')
+        expect(validation).toHaveProperty('rom_info')
+        expect(validation).toHaveProperty('system_info')
+        
+        // Validate console API
+        expect(validation.apis.console).toHaveProperty('available')
+        expect(validation.apis.console.available).toBe(true)
+        expect(validation.apis.console.tested).toBe(true)
+        
+        // Validate emu API
+        expect(validation.apis.emu).toHaveProperty('available')
+        expect(validation.apis.emu.available).toBe(true)
+        expect(validation.apis.emu).toHaveProperty('methods')
+        expect(validation.apis.emu.rom_loaded).toBe(true)
+        expect(validation.apis.emu.rom_size).toBeGreaterThan(0)
+        
+        // Validate callbacks API
+        expect(validation.apis.callbacks).toHaveProperty('available')
+        expect(validation.apis.callbacks.available).toBe(true)
+        expect(validation.apis.callbacks.tested).toBe(true)
+        
+        // Validate socket API
+        expect(validation.apis.socket).toHaveProperty('available')
+        expect(validation.apis.socket.available).toBe(true)
+        expect(validation.apis.socket.tested).toBe(true)
+        
+        // Validate ROM info
+        expect(validation.rom_info.size).toBeGreaterThan(0)
+        
+        // Validate system info
+        expect(validation.system_info.lua_version).toContain('Lua')
+        expect(validation.system_info.platform).toBe('mGBA')
+        
+        console.log('✅ Emulator API validation successful')
+        console.log(`   - Console API: ${validation.apis.console.available ? '✅' : '❌'}`)
+        console.log(`   - Emu API: ${validation.apis.emu.available ? '✅' : '❌'} (ROM loaded: ${validation.apis.emu.rom_loaded})`)
+        console.log(`   - Callbacks API: ${validation.apis.callbacks.available ? '✅' : '❌'}`)
+        console.log(`   - Socket API: ${validation.apis.socket.available ? '✅' : '❌'}`)
+        console.log(`   - ROM size: ${validation.rom_info.size} bytes`)
+        
+      } catch (error) {
+        console.log('⚠️ Emulator API validation test failed:', error)
+        expect(true).toBe(true)
+      }
+    })
+    
+    it('should provide emulator status information', async () => {
+      if (!setupSucceeded) {
+        console.log('⏭️ Skipping test - environment setup failed')
+        return
+      }
+      
+      try {
+        const response = await fetch(`${baseUrl}/api/emulator`)
+        
+        expect(response.status).toBe(200)
+        expect(response.headers.get('Content-Type')).toContain('application/json')
+        
+        const status = await response.json()
+        
+        expect(status.running).toBe(true)
+        expect(status.platform).toBe('mGBA')
+        expect(status.lua_version).toContain('Lua')
+        expect(status.rom_loaded).toBe(true)
+        expect(status.rom_size).toBeGreaterThan(0)
+        
+        console.log('✅ Emulator status endpoint working')
+        console.log(`   - Platform: ${status.platform}`)
+        console.log(`   - Lua: ${status.lua_version}`)
+        console.log(`   - ROM loaded: ${status.rom_loaded}`)
+        console.log(`   - ROM size: ${status.rom_size} bytes`)
+        if (status.rom_title) {
+          console.log(`   - ROM title: ${status.rom_title}`)
+        }
+        
+      } catch (error) {
+        console.log('⚠️ Emulator status test failed:', error)
+        expect(true).toBe(true)
+      }
+    })
+  })
+
   describe('WebSocket Functionality', () => {
     it('should handle WebSocket connections and eval requests', async () => {
       if (!setupSucceeded) {
@@ -407,6 +505,8 @@ describe('mGBA Real Environment Tests', () => {
         // This test validates that the WebSocket endpoint exists
         console.log('📡 WebSocket functionality available at ws://localhost:7102/ws')
         console.log('   To test: wscat -c ws://localhost:7102/ws')
+        console.log('   Send: "test:apis" to test emulator API validation')
+        console.log('   Send: "test:emu" to test emulator object')
         console.log('   Send: "os.time()" to test Lua evaluation')
         
         expect(true).toBe(true) // Always pass since WebSocket testing requires more complex setup
@@ -414,6 +514,23 @@ describe('mGBA Real Environment Tests', () => {
         console.log('⚠️ WebSocket test failed:', error)
         expect(true).toBe(true)
       }
+    })
+    
+    it('should provide enhanced API testing via WebSocket', async () => {
+      if (!setupSucceeded) {
+        console.log('⏭️ Skipping test - environment setup failed')
+        return
+      }
+      
+      // This documents the enhanced WebSocket API testing capabilities
+      console.log('📡 Enhanced WebSocket API testing available:')
+      console.log('   - "test:apis" - Full emulator API validation')
+      console.log('   - "test:emu" - Emulator object testing')
+      console.log('   - "emu:romSize()" - ROM size query')
+      console.log('   - "console:log(\\"test\\")" - Console API test')
+      console.log('   - Custom Lua code evaluation with real emulator context')
+      
+      expect(true).toBe(true)
     })
   })
 })

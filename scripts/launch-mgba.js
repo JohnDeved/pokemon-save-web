@@ -20,7 +20,7 @@ const CONFIG = {
   testDataDir: join(__dirname, '..', 'test_data'),
   romFile: 'emerald.gba',
   savestateFile: 'emerald.ss0',
-  luaScript: 'mgba_http_server.lua',
+  luaScript: 'mgba_http_server_enhanced.lua',
   mgbaExecutable: 'mgba-qt' // Default executable name
 }
 
