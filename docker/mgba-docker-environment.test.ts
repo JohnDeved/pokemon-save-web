@@ -15,7 +15,7 @@ import { existsSync } from 'fs'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const PROJECT_ROOT = resolve(__dirname, '../../')
+const PROJECT_ROOT = resolve(__dirname, '../')
 const TEST_DATA_DIR = join(PROJECT_ROOT, 'test_data')
 
 // Docker configuration
@@ -77,7 +77,7 @@ function runDockerCommand(args: string[], options: { cwd?: string } = {}): Promi
 // Helper function to run Docker Compose commands
 function runDockerComposeCommand(args: string[], options: { cwd?: string } = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const process = spawn('docker', ['compose', ...args], {
+    const process = spawn('docker', ['compose', '-f', 'docker/docker-compose.yml', ...args], {
       cwd: options.cwd || PROJECT_ROOT,
       stdio: 'pipe'
     })
@@ -99,7 +99,7 @@ function runDockerComposeCommand(args: string[], options: { cwd?: string } = {})
 
     process.on('error', (error) => {
       // Try legacy docker-compose
-      const legacyProcess = spawn('docker-compose', args, {
+      const legacyProcess = spawn('docker-compose', ['-f', 'docker/docker-compose.yml', ...args], {
         cwd: options.cwd || PROJECT_ROOT,
         stdio: 'pipe'
       })
@@ -173,8 +173,8 @@ describe('Docker mGBA Environment Tests', () => {
 
     // Ensure required files exist
     const requiredFiles = [
-      join(PROJECT_ROOT, 'Dockerfile'),
-      join(PROJECT_ROOT, 'docker-compose.yml'),
+      join(__dirname, 'Dockerfile'),
+      join(__dirname, 'docker-compose.yml'),
       join(TEST_DATA_DIR, 'emerald.ss0'),
       join(TEST_DATA_DIR, 'mgba_http_server_enhanced.lua')
     ]

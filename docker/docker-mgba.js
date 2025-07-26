@@ -21,7 +21,7 @@ function showHelp() {
   console.log(`
 🐳 Docker mGBA Management Script
 
-Usage: node scripts/docker-mgba.js <command> [options]
+Usage: node docker/docker-mgba.js <command> [options]
 
 Commands:
   build         Build the mGBA Docker image
@@ -73,7 +73,7 @@ function runCommand(command, args, options = {}) {
 async function buildImage() {
   console.log('🔨 Building mGBA Docker image...')
   try {
-    await runCommand('docker', ['compose', 'build'])
+    await runCommand('docker', ['compose', '-f', 'docker/docker-compose.yml', 'build'])
     console.log('✅ Build completed successfully')
   } catch (error) {
     console.error('❌ Build failed:', error.message)
@@ -84,7 +84,7 @@ async function buildImage() {
 async function startContainer() {
   console.log('🚀 Starting mGBA container...')
   try {
-    await runCommand('docker', ['compose', 'up', '-d'])
+    await runCommand('docker', ['compose', '-f', 'docker/docker-compose.yml', 'up', '-d'])
     console.log('✅ Container started successfully')
     console.log(`🌐 HTTP server will be available at http://localhost:${SERVER_PORT}`)
     console.log('⏳ Waiting for emulator to initialize...')
@@ -112,7 +112,7 @@ async function startContainer() {
 async function stopContainer() {
   console.log('🛑 Stopping mGBA container...')
   try {
-    await runCommand('docker', ['compose', 'down'])
+    await runCommand('docker', ['compose', '-f', 'docker/docker-compose.yml', 'down'])
     console.log('✅ Container stopped successfully')
   } catch (error) {
     console.error('❌ Stop failed:', error.message)
@@ -123,7 +123,7 @@ async function stopContainer() {
 async function restartContainer() {
   console.log('🔄 Restarting mGBA container...')
   try {
-    await runCommand('docker', ['compose', 'restart'])
+    await runCommand('docker', ['compose', '-f', 'docker/docker-compose.yml', 'restart'])
     console.log('✅ Container restarted successfully')
   } catch (error) {
     console.error('❌ Restart failed:', error.message)
@@ -135,7 +135,7 @@ async function showLogs() {
   console.log('📋 Showing container logs...')
   const extraArgs = process.argv.slice(3) // Get additional arguments like -f
   try {
-    await runCommand('docker', ['compose', 'logs', ...extraArgs])
+    await runCommand('docker', ['compose', '-f', 'docker/docker-compose.yml', 'logs', ...extraArgs])
   } catch (error) {
     console.error('❌ Logs command failed:', error.message)
     process.exit(1)
@@ -200,7 +200,7 @@ async function testHttp() {
 async function showStatus() {
   console.log('📊 Container status:')
   try {
-    await runCommand('docker', ['compose', 'ps'])
+    await runCommand('docker', ['compose', '-f', 'docker/docker-compose.yml', 'ps'])
     console.log('\n🔍 Container health:')
     await runCommand('docker', ['inspect', '--format', '{{.State.Health.Status}}', CONTAINER_NAME])
   } catch (error) {
@@ -211,7 +211,7 @@ async function showStatus() {
 async function cleanUp() {
   console.log('🧹 Cleaning up Docker resources...')
   try {
-    await runCommand('docker', ['compose', 'down', '--rmi', 'all', '--volumes'])
+    await runCommand('docker', ['compose', '-f', 'docker/docker-compose.yml', 'down', '--rmi', 'all', '--volumes'])
     console.log('✅ Cleanup completed successfully')
   } catch (error) {
     console.error('❌ Cleanup failed:', error.message)

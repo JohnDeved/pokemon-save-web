@@ -23,15 +23,15 @@
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
 
-    "mgba:docker:build": "node scripts/docker-mgba.js build",
-    "mgba:docker:start": "node scripts/docker-mgba.js start",
-    "mgba:docker:stop": "node scripts/docker-mgba.js stop",
-    "mgba:docker:restart": "node scripts/docker-mgba.js restart",
-    "mgba:docker:logs": "node scripts/docker-mgba.js logs",
-    "mgba:docker:test": "node scripts/docker-mgba.js test",
-    "mgba:docker:status": "node scripts/docker-mgba.js status",
-    "mgba:docker:clean": "node scripts/docker-mgba.js clean",
-    "mgba:docker:help": "node scripts/docker-mgba.js help"
+    "mgba:docker:build": "node docker/docker-mgba.js build",
+    "mgba:docker:start": "node docker/docker-mgba.js start",
+    "mgba:docker:stop": "node docker/docker-mgba.js stop",
+    "mgba:docker:restart": "node docker/docker-mgba.js restart",
+    "mgba:docker:logs": "node docker/docker-mgba.js logs",
+    "mgba:docker:test": "node docker/docker-mgba.js test",
+    "mgba:docker:status": "node docker/docker-mgba.js status",
+    "mgba:docker:clean": "node docker/docker-mgba.js clean",
+    "mgba:docker:help": "node docker/docker-mgba.js help"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",
