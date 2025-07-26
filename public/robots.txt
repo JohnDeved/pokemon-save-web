@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://pokemon-save-web.vercel.app/sitemap.xml
+Sitemap: https://pokemon-save-web.pages.dev/sitemap.xml
 
 # Disallow development files
 Disallow: /src/
