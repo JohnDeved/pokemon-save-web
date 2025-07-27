@@ -33,6 +33,6 @@
       ]
     }
   },
-  "include": ["src"],
+  "include": ["src", "docker/mgba-docker.ts"],
   "exclude": ["src/__tests__"]
 }

@@ -17,3 +17,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    volumes:
+      - ../src/lib/parser/__tests__/test_data:/app/data:rw
+      - ../scripts/mgba-lua/http-server.lua:/app/data/mgba_http_server.lua:ro
