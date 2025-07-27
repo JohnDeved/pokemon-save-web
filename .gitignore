@@ -29,4 +29,13 @@ dist-ssr
 *.gba
 __MACOSX/
 
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.production
+
+# Docker files and volumes
+docker-compose.override.yml
+.docker/
+
 
