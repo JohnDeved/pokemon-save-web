@@ -10,19 +10,90 @@ on:
       - 'scripts/mgba-lua/**/*.lua'
       - 'scripts/mgba-lua/**/*.ts'
       - 'scripts/mgba-lua/**/*.js'
+      - 'docker/**'
       - '.github/workflows/lua-tests.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/mgba-test-env
 
 jobs:
   test-lua-server:
     name: Test Lua HTTP Server
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: Cache Lua dependencies
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install Node.js dependencies
+        run: npm ci
+      
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Try to pull pre-built image
+        id: pull-image
+        run: |
+          echo "Attempting to pull pre-built mGBA image..."
+          if docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest 2>/dev/null; then
+            echo "✅ Successfully pulled pre-built image"
+            echo "image_available=true" >> $GITHUB_OUTPUT
+            echo "image_source=ghcr" >> $GITHUB_OUTPUT
+            # Tag it for local use
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest mgba-test-env:latest
+          elif docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main 2>/dev/null; then
+            echo "✅ Successfully pulled main branch image"
+            echo "image_available=true" >> $GITHUB_OUTPUT
+            echo "image_source=ghcr" >> $GITHUB_OUTPUT
+            # Tag it for local use
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main mgba-test-env:latest
+          else
+            echo "⚠️ Pre-built image not available, will build from source"
+            echo "image_available=false" >> $GITHUB_OUTPUT
+            echo "image_source=build" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+      
+      - name: Build mGBA image from source (fallback)
+        if: steps.pull-image.outputs.image_available != 'true'
+        run: |
+          echo "Building mGBA image from source..."
+          docker build -f docker/Dockerfile -t mgba-test-env:latest .
+          echo "✅ Built mGBA image from source"
+      
+      - name: Start mGBA container for testing
+        run: |
+          echo "Starting mGBA container..."
+          docker run -d --name mgba-test \
+            -p 7102:7102 \
+            -e DISPLAY=:99 \
+            -e QT_QPA_PLATFORM=xcb \
+            mgba-test-env:latest
+          
+          # Wait for container to be ready
+          echo "Waiting for mGBA HTTP server to be ready..."
+          timeout 60s bash -c 'until curl -sf http://localhost:7102/ > /dev/null 2>&1; do sleep 2; done'
+          echo "✅ mGBA HTTP server is ready"
+      
+      - name: Verify mGBA container health
+        run: |
+          echo "Testing mGBA HTTP server endpoints..."
+          curl -sf http://localhost:7102/ || { echo "❌ Root endpoint failed"; exit 1; }
+          echo "✅ mGBA HTTP server is responding correctly"
+      
+      - name: Cache Lua dependencies (backup)
         uses: actions/cache@v4
         with:
           path: |
@@ -32,16 +103,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-lua-
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Install Lua (with error handling)
+      - name: Install Lua (backup method)
         id: install-lua
         run: |
-          echo "Installing Lua and dependencies..."
+          echo "Installing Lua as backup for local tests..."
           if ! command -v lua &> /dev/null; then
             sudo apt-get update
             if sudo apt-get install -y lua5.4 lua5.4-dev luarocks; then
@@ -65,49 +130,28 @@ jobs:
           fi
         continue-on-error: true
       
-      - name: Install Node.js dependencies
-        run: npm ci
-      
-      - name: Verify Lua installation
-        if: steps.install-lua.outputs.lua_available == 'true'
-        run: |
-          lua -v
-          lua -e "print('Lua test successful')"
-          # Test socket library
-          lua -e "local socket = require('socket'); print('Socket library loaded successfully')"
-      
-      - name: Test Lua server startup (smoke test)
-        if: steps.install-lua.outputs.lua_available == 'true'
-        run: |
-          echo "Running basic Lua server startup test..."
-          cd scripts/mgba-lua/__tests__
-          timeout 10s lua mgba-env-mock.lua 7999 &
-          PID=$!
-          sleep 3
-          # Check if process is still running
-          if kill -0 $PID 2>/dev/null; then
-            echo "✅ Lua server started successfully"
-            kill $PID
-          else
-            echo "❌ Lua server failed to start"
-            exit 1
-          fi
-        continue-on-error: true
-      
       - name: Run Lua HTTP Server integration tests
         run: |
-          if [[ "${{ steps.install-lua.outputs.lua_available }}" == "true" ]]; then
-            echo "Running Lua HTTP Server integration tests..."
-            npm run test:run scripts/mgba-lua/__tests__/lua-http-server.integration.test.ts
-          else
-            echo "⚠️ Skipping Lua tests - Lua not available"
-            echo "This is expected in environments where Lua cannot be installed"
-            # Still run the tests to verify graceful skipping
-            npm run test:run scripts/mgba-lua/__tests__/lua-http-server.integration.test.ts || echo "Tests completed with expected skips"
-          fi
+          echo "Running Lua HTTP Server integration tests..."
+          echo "Image source: ${{ steps.pull-image.outputs.image_source }}"
+          npm run test:run scripts/mgba-lua/__tests__/lua-http-server.integration.test.ts
         env:
           # Ensure tests run in CI environment
           CI: true
+          # Make container available for tests
+          MGBA_HTTP_URL: http://localhost:7102
+      
+      - name: Container logs (if tests fail)
+        if: failure()
+        run: |
+          echo "=== mGBA Container Logs ==="
+          docker logs mgba-test || echo "No container logs available"
+      
+      - name: Stop mGBA container
+        if: always()
+        run: |
+          docker stop mgba-test || true
+          docker rm mgba-test || true
       
       - name: Upload test results
         if: always()

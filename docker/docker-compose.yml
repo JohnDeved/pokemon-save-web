@@ -1,5 +1,7 @@
 services:
   mgba-test:
+    # Use pre-built image from GHCR if available, otherwise build locally
+    image: ${MGBA_IMAGE:-ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest}
     build:
       context: ..
       dockerfile: docker/Dockerfile
