@@ -5,19 +5,17 @@ A complete Docker environment for running mGBA emulator with Lua HTTP server aut
 ## Overview
 
 This Docker environment provides:
-- **Real mGBA Emulator**: Uses prebuilt mGBA binary with Qt frontend and Lua 5.4 support
+- **Real mGBA Emulator**: Automatically downloads or builds mGBA with Qt frontend and Lua 5.4 support
 - **HTTP Server Automation**: Lua script runs within mGBA providing REST API
 - **Cross-Platform**: Works on Windows, macOS, Linux via Docker
 - **Automatic ROM Setup**: Downloads Pokémon Emerald ROM automatically
 - **Headless Operation**: Uses xvfb for display-less operation
-- **Fast Deployment**: No compilation required, uses prebuilt binaries for speed
+- **Smart Binary Management**: Downloads prebuilt binary or falls back to source compilation
+- **Zero Setup**: No manual binary preparation required
 
 ## Quick Start
 
-**Prerequisites:**
-- Place a prebuilt `mgba-qt` binary in `docker/data/mgba-qt`
-- The binary should be built with `--script` support and Lua enabled
-- See `docker/BUILD_MGBA.md` for build instructions
+**No prerequisites needed** - the environment automatically handles everything:
 
 ```bash
 # Start the mGBA environment (builds automatically)
@@ -51,9 +49,23 @@ All endpoints include proper CORS headers for web integration:
 
 ## Technical Implementation
 
+### Automatic Binary Management
+
+The Docker environment intelligently handles mGBA binary setup:
+
+1. **Prebuilt Download**: First attempts to download from GitHub releases
+2. **Verification**: Checks if binary has required `--script` support  
+3. **Source Fallback**: If download fails, automatically builds from source
+4. **Always Works**: Guarantees working mGBA installation regardless of network/availability
+
+**Download Configuration:**
+- Primary source: `https://github.com/JohnDeved/pokemon-save-web/releases/download/mgba-prebuilt/mgba-qt-linux-x64`
+- Fallback: Source compilation with verified cmake configuration
+- Zero manual setup required
+
 ### Build Configuration
 
-The Docker environment uses a prebuilt mGBA binary for fast deployment. The binary should be built with these configuration flags:
+When building from source (fallback scenario), uses these configuration flags:
 
 ```bash
 cmake -B build \
@@ -67,12 +79,13 @@ cmake -B build \
     -DUSE_DISCORD_RPC=OFF
 ```
 
-**Prebuilt Binary Setup:**
-1. Place the prebuilt `mgba-qt` binary in `docker/data/mgba-qt`
-2. Ensure the binary has `--script` argument support for Lua automation
-3. Include any required shared libraries in `docker/data/` if needed
+**Binary Management Process:**
+1. Attempts download from GitHub releases (10-second setup)
+2. Verifies `--script` argument support and Lua functionality
+3. Falls back to source compilation if download unavailable (4-5 minutes)
+4. Ensures working mGBA installation with HTTP server capabilities
 
-> **⚠️ Important**: The Docker environment now uses prebuilt binaries for speed and reliability. You must provide a compatible `mgba-qt` binary built with the configuration flags shown above.
+> **✅ Zero Setup Required**: The environment automatically handles binary management, downloads, compilation, and verification. No manual preparation needed.
 
 ### Runtime Environment
 
@@ -88,14 +101,16 @@ cmake -B build \
 
 ```
 docker/
-├── Dockerfile               # Source build approach (for reference)
-├── Dockerfile.prebuilt      # Fast deployment using prebuilt mGBA binary (ACTIVE)
-├── docker-compose.yml       # Service configuration (uses prebuilt)
-├── entrypoint.sh            # Container startup script
+├── Dockerfile                # Legacy source build approach  
+├── Dockerfile.auto           # Smart auto-download with fallback (ACTIVE)
+├── Dockerfile.prebuilt       # Manual prebuilt binary approach
+├── docker-compose.yml        # Service configuration (uses auto-download)
+├── entrypoint.sh             # Container startup script
+├── scripts/
+│   └── download-mgba.sh      # Smart binary download/build script
 ├── data/
-│   ├── mgba-qt              # Prebuilt mGBA binary (user provided)
-│   ├── emerald.ss0          # Pokémon Emerald savestate
-│   └── emerald.sav          # Save file
+│   ├── emerald.ss0           # Pokémon Emerald savestate
+│   └── emerald.sav           # Save file
 └── __tests__/
     └── docker-environment.test.cjs  # Test suite
 ```
@@ -146,17 +161,18 @@ curl http://localhost:7102/
 
 ## Comparison with Native Environment
 
-| Feature | Docker (Prebuilt) | Docker (Source Build) | Native |
-|---------|-------|------------|--------|
-| Build Time | ~10 seconds | ~4-5 minutes | ~3-4 minutes |
-| Dependencies | Runtime only | Full build chain | Manual setup |
-| Performance | Near-native | Near-native | Native |
-| Portability | Cross-platform | Cross-platform | Linux only |
-| Isolation | Complete | Complete | Shared system |
-| Setup | Automated | Automated | Manual |
-| Memory Usage | Low | High (build) | Medium |
-| Binary Maintenance | Manual | Automated | Manual |
-| **Current Default** | **✅ YES** | No | No |
+| Feature | Docker (Auto-Download) | Docker (Prebuilt) | Docker (Source Build) | Native |
+|---------|-------|-------|------------|--------|
+| Build Time | ~10 seconds (download) / ~4-5 minutes (fallback) | ~10 seconds | ~4-5 minutes | ~3-4 minutes |
+| Dependencies | None required | Prebuilt binary needed | Full build chain | Manual setup |
+| Performance | Near-native | Near-native | Near-native | Native |
+| Portability | Cross-platform | Cross-platform | Cross-platform | Linux only |
+| Isolation | Complete | Complete | Complete | Shared system |
+| Setup | Fully automated | Manual binary | Automated | Manual |
+| Memory Usage | Low / Medium (fallback) | Low | High (build) | Medium |
+| Binary Maintenance | Automated | Manual | Automated | Manual |
+| Reliability | High (always works) | Medium (binary dependency) | High | Medium |
+| **Current Default** | **✅ YES** | No | No | No |
 
 ## Use Cases
 

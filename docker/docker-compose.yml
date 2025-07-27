@@ -2,7 +2,7 @@ services:
   mgba-test:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.prebuilt
+      dockerfile: docker/Dockerfile.auto
     container_name: mgba-test-environment
     ports:
       - "7102:7102"
