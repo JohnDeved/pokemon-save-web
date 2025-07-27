@@ -5,7 +5,8 @@ export default defineConfig({
   test: {
     globals: true,
     include: ['src/**/*.{test,spec}.{js,ts,tsx}', 'scripts/**/*.{test,spec}.{js,ts,tsx}'],
-    exclude: ['node_modules', 'dist'],
+    exclude: ['node_modules', 'dist', 'src/**/*.e2e.test.ts'],
+    setupFiles: ['src/__tests__/setup.ts'],
   },
   resolve: {
     alias: {
@@ -19,6 +20,8 @@ export default defineConfig({
       test: {
         environment: 'jsdom',
         include: ['src/**/*.{test,spec}.{js,ts,tsx}'],
+        exclude: ['src/**/*.e2e.test.ts'],
+        setupFiles: ['src/__tests__/setup.ts'],
       },
     },
     {
