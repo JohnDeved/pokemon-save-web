@@ -1,5 +1,6 @@
 services:
   mgba-test:
+    image: ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
