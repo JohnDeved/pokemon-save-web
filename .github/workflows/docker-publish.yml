@@ -28,7 +28,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/mgba-test-env
+  IMAGE_NAME: johndeved/pokemon-save-web/mgba-test-env
 
 jobs:
   build-and-publish:
