@@ -52,6 +52,33 @@ export class GameConfigRegistry {
   }
 
   /**
+   * Get a specific config by name
+   */
+  static getConfig(name: string): GameConfig | null {
+    const registry = gameConfigRegistry
+    
+    // Try to find and instantiate config by name
+    for (const ConfigClass of registry.configs) {
+      try {
+        const config = new ConfigClass()
+        if (name === 'emerald' && config.name.toLowerCase().includes('emerald')) {
+          return config
+        }
+        if (name === 'vanilla' && config.name.toLowerCase().includes('vanilla')) {
+          return config
+        }
+        if (name === 'quetzal' && config.name.toLowerCase().includes('quetzal')) {
+          return config
+        }
+      } catch {
+        continue
+      }
+    }
+    
+    return null
+  }
+
+  /**
    * Clear all registered configs (for testing)
    */
   clear (): void {

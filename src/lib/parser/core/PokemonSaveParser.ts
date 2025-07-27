@@ -13,6 +13,7 @@ import type {
 import { VANILLA_EMERALD_SIGNATURE, VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from './types'
 import { PokemonBase } from './PokemonBase'
 import { GameConfigRegistry } from '../games'
+import { WebSocketClient } from './WebSocketClient'
 
 // Import character map for decoding text
 import charMap from '../data/pokemon_charmap.json'
@@ -33,6 +34,17 @@ function createEffectiveConfig (config: GameConfig): EffectiveConfig {
     pokemonSize: config.pokemonSize ?? VANILLA_SAVE_LAYOUT.pokemonSize,
   }
 }
+
+/**
+ * Memory addresses for Pokémon Emerald (USA) in mGBA
+ * From official mGBA pokemon.lua script
+ */
+const EMERALD_MEMORY_ADDRESSES = {
+  PARTY_DATA: 0x20244ec,    // _party address from pokemon.lua
+  PARTY_COUNT: 0x20244e9,   // _partyCount address from pokemon.lua
+  POKEMON_SIZE: 100,        // Size of each Pokemon struct (0x64 bytes)
+  MAX_PARTY_SIZE: 6,        // Maximum party size
+} as const
 
 /**
  * Decode Pokemon character-encoded text to string
@@ -58,6 +70,7 @@ function decodePokemonText (bytes: Uint8Array): string {
 /**
  * Main Pokemon Save File Parser class
  * Handles parsing of Pokemon Emerald save files in the browser with dependency injection
+ * Now supports both file-based and memory-based parsing via WebSocket
  */
 export class PokemonSaveParser {
   private saveData: Uint8Array | null = null
@@ -68,18 +81,34 @@ export class PokemonSaveParser {
   public saveFileName: string | null = null
   public fileHandle: FileSystemFileHandle | null = null
 
+  // Memory mode properties
+  private webSocketClient: WebSocketClient | null = null
+  private isMemoryMode = false
+
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
     this.config = gameConfig ?? null
   }
 
   /**
-   * Load save file data from a File or ArrayBuffer
+   * Load save file data from a File, ArrayBuffer, or WebSocket connection
+   * When WebSocket is provided, switches to memory mode
    */
-  async loadSaveFile (input: File | ArrayBuffer | FileSystemFileHandle): Promise<void> {
+  async loadSaveFile (input: File | ArrayBuffer | FileSystemFileHandle | WebSocketClient): Promise<void> {
     try {
       // Always clear sectorMap before loading new data to avoid stale state
       this.sectorMap.clear()
+
+      // Check if input is a WebSocket client for memory mode
+      if (input instanceof WebSocketClient) {
+        await this.initializeMemoryMode(input)
+        return
+      }
+
+      // Reset memory mode for file operations
+      this.isMemoryMode = false
+      this.webSocketClient = null
+      
       let buffer: ArrayBuffer
 
       // Only check instanceof FileSystemFileHandle if it exists (browser)
@@ -120,6 +149,37 @@ export class PokemonSaveParser {
     } catch (error) {
       throw new Error(`Failed to load save file: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
+  }
+
+  /**
+   * Initialize memory mode with WebSocket client
+   */
+  private async initializeMemoryMode(client: WebSocketClient): Promise<void> {
+    this.webSocketClient = client
+    this.isMemoryMode = true
+
+    // Check if connected
+    if (!client.isConnected()) {
+      throw new Error('WebSocket client is not connected to mGBA')
+    }
+
+    // Get game title to check compatibility
+    const gameTitle = await client.getGameTitle()
+    console.log(`Memory mode: Connected to game "${gameTitle}"`)
+
+    // Auto-detect config based on game title if not provided
+    if (!this.config) {
+      if (gameTitle.includes('EMERALD') || gameTitle.includes('Emerald')) {
+        this.config = GameConfigRegistry.getConfig('emerald')
+        if (!this.config) {
+          throw new Error('Emerald config not found in registry')
+        }
+      } else {
+        throw new Error(`Unsupported game for memory parsing: "${gameTitle}". Currently only Pokémon Emerald is supported.`)
+      }
+    }
+
+    console.log(`Memory mode initialized for ${gameTitle}`)
   }
 
   /**
@@ -279,11 +339,21 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Parse party Pokemon from SaveBlock1 data
+   * Parse party Pokemon from SaveBlock1 data or memory
    */
-  private parsePartyPokemon (saveblock1Data: Uint8Array): PokemonBase[] {
+  private async parsePartyPokemon (saveblock1Data?: Uint8Array): Promise<PokemonBase[]> {
     if (!this.config) {
       throw new Error('Config not loaded')
+    }
+
+    // Memory mode: read directly from emulator memory
+    if (this.isMemoryMode && this.webSocketClient) {
+      return await this.parsePartyPokemonFromMemory()
+    }
+
+    // File mode: parse from SaveBlock1 data
+    if (!saveblock1Data) {
+      throw new Error('SaveBlock1 data required for file mode')
     }
 
     const effectiveConfig = createEffectiveConfig(this.config)
@@ -311,6 +381,53 @@ export class PokemonSaveParser {
     }
 
     return partyPokemon
+  }
+
+  /**
+   * Parse party Pokemon directly from emulator memory
+   * Uses fixed addresses from mGBA pokemon.lua
+   */
+  private async parsePartyPokemonFromMemory(): Promise<PokemonBase[]> {
+    if (!this.webSocketClient || !this.config) {
+      throw new Error('Memory mode not properly initialized')
+    }
+
+    // Get party count from memory
+    const partyCount = await this.webSocketClient.readByte(EMERALD_MEMORY_ADDRESSES.PARTY_COUNT)
+    
+    if (partyCount < 0 || partyCount > EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE) {
+      throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-6.`)
+    }
+
+    console.log(`📋 Reading ${partyCount} Pokemon from party memory`)
+    
+    const pokemon: PokemonBase[] = []
+    
+    for (let i = 0; i < partyCount; i++) {
+      const pokemonAddress = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
+      console.log(`  Reading Pokemon ${i + 1} at address 0x${pokemonAddress.toString(16)}`)
+      
+      try {
+        // Read the full 100-byte Pokemon structure from memory
+        const pokemonBytes = await this.webSocketClient.readBytes(pokemonAddress, EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
+        
+        // Create PokemonBase instance from memory data
+        const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
+        
+        // Check if Pokemon slot is empty (species ID = 0)
+        if (pokemonInstance.speciesId === 0) {
+          break
+        }
+        
+        pokemon.push(pokemonInstance)
+      } catch (error) {
+        console.error(`Failed to read Pokemon ${i + 1}:`, error)
+        throw new Error(`Failed to read Pokemon ${i + 1} from memory: ${error}`)
+      }
+    }
+    
+    console.log(`✅ Successfully read ${pokemon.length} Pokemon from memory`)
+    return pokemon
   }
 
   /**
@@ -401,10 +518,26 @@ export class PokemonSaveParser {
 
   /**
    * Parse the complete save file and return structured data
+   * Now supports both file and memory input via WebSocket
    */
-  async parseSaveFile (input: File | ArrayBuffer | FileSystemFileHandle): Promise<SaveData> {
+  async parseSaveFile (input: File | ArrayBuffer | FileSystemFileHandle | WebSocketClient): Promise<SaveData> {
     await this.loadSaveFile(input)
 
+    // Memory mode: read directly from emulator memory
+    if (this.isMemoryMode && this.webSocketClient) {
+      const partyPokemon = await this.parsePartyPokemon()
+      
+      return {
+        party_pokemon: partyPokemon,
+        player_name: 'MEMORY', // TODO: Read from memory if needed
+        play_time: { hours: 0, minutes: 0, seconds: 0 }, // TODO: Read from memory if needed
+        active_slot: 0, // Memory doesn't have multiple save slots
+        sector_map: new Map(), // Not applicable for memory parsing
+        rawSaveData: new Uint8Array(131072) // Standard GBA save size for compatibility
+      }
+    }
+
+    // File mode: existing logic
     this.determineActiveSlot()
     this.buildSectorMap()
 
@@ -412,7 +545,7 @@ export class PokemonSaveParser {
     const saveblock2Data = this.extractSaveblock2()
 
     const playerName = this.parsePlayerName(saveblock2Data)
-    const partyPokemon = this.parsePartyPokemon(saveblock1Data)
+    const partyPokemon = await this.parsePartyPokemon(saveblock1Data)
     const playTime = this.parsePlayTime(saveblock2Data)
 
     return {
@@ -449,11 +582,22 @@ export class PokemonSaveParser {
   /**
    * Reconstruct the full save file from a new party (PokemonInstance[]).
    * Updates SaveBlock1 with the given party and returns a new Uint8Array representing the reconstructed save file.
+   * For memory mode, writes directly to emulator memory instead.
    *
    * @param partyPokemon Array of PokemonInstance to update party in SaveBlock1
    */
-  reconstructSaveFile (partyPokemon: readonly PokemonBase[]): Uint8Array {
-    if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
+  async reconstructSaveFile (partyPokemon: readonly PokemonBase[]): Promise<Uint8Array> {
+    if (!this.config) throw new Error('Config not loaded')
+
+    // Memory mode: write directly to emulator memory
+    if (this.isMemoryMode && this.webSocketClient) {
+      await this.writePartyToMemory(partyPokemon)
+      // Return dummy data for compatibility
+      return new Uint8Array(131072)
+    }
+
+    // File mode: existing logic
+    if (!this.saveData) throw new Error('Save data not loaded')
 
     const effectiveConfig = createEffectiveConfig(this.config)
     const baseSaveblock1 = this.extractSaveblock1()
@@ -480,6 +624,54 @@ export class PokemonSaveParser {
       writeSector(sectorId, chunk)
     }
     return newSave
+  }
+
+  /**
+   * Write entire party to emulator memory
+   * Updates party count and writes all Pokemon data
+   */
+  private async writePartyToMemory(party: readonly PokemonBase[]): Promise<void> {
+    if (!this.webSocketClient) {
+      throw new Error('WebSocket client not available')
+    }
+
+    if (party.length > EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE) {
+      throw new Error(`Party too large: ${party.length}. Maximum is ${EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE}.`)
+    }
+    
+    console.log(`📝 Writing party of ${party.length} Pokemon to memory`)
+    
+    // Update party count
+    await this.webSocketClient.writeByte(EMERALD_MEMORY_ADDRESSES.PARTY_COUNT, party.length)
+    
+    // Write each Pokemon
+    for (let i = 0; i < party.length; i++) {
+      const address = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
+      await this.webSocketClient.writeBytes(address, party[i].rawBytes)
+    }
+    
+    // Clear remaining slots with empty data
+    const emptyPokemon = new Uint8Array(EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
+    for (let i = party.length; i < EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE; i++) {
+      const address = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
+      await this.webSocketClient.writeBytes(address, emptyPokemon)
+    }
+    
+    console.log(`✅ Successfully wrote party to memory`)
+  }
+
+  /**
+   * Check if parser is in memory mode
+   */
+  isInMemoryMode(): boolean {
+    return this.isMemoryMode
+  }
+
+  /**
+   * Get the WebSocket client (for memory mode)
+   */
+  getWebSocketClient(): WebSocketClient | null {
+    return this.webSocketClient
   }
 }
 
