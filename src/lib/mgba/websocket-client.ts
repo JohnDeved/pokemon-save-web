@@ -14,15 +14,15 @@ export class MgbaWebSocketClient {
   private ws: WebSocket | null = null
   private connected = false
   private reconnectAttempts = 0
-  private maxReconnectAttempts = 5
-  private reconnectDelay = 1000
+  private readonly maxReconnectAttempts = 5
+  private readonly reconnectDelay = 1000
 
-  constructor(private url: string = 'ws://localhost:7102/ws') {}
+  constructor (private readonly url = 'ws://localhost:7102/ws') {}
 
   /**
    * Connect to the mGBA WebSocket server
    */
-  async connect(): Promise<void> {
+  async connect (): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.url)
@@ -46,7 +46,6 @@ export class MgbaWebSocketClient {
           // Disable auto-reconnect for testing
           // this.attemptReconnect()
         })
-
       } catch (error) {
         reject(error)
       }
@@ -56,7 +55,7 @@ export class MgbaWebSocketClient {
   /**
    * Disconnect from the WebSocket server
    */
-  disconnect(): void {
+  disconnect (): void {
     if (this.ws) {
       this.ws.close()
       this.ws = null
@@ -67,14 +66,14 @@ export class MgbaWebSocketClient {
   /**
    * Check if currently connected
    */
-  isConnected(): boolean {
+  isConnected (): boolean {
     return this.connected && this.ws?.readyState === WebSocket.OPEN
   }
 
   /**
    * Execute Lua code on the mGBA emulator
    */
-  async eval(code: string): Promise<MgbaEvalResponse> {
+  async eval (code: string): Promise<MgbaEvalResponse> {
     if (!this.isConnected()) {
       throw new Error('Not connected to mGBA WebSocket server')
     }
@@ -88,15 +87,15 @@ export class MgbaWebSocketClient {
       // Set up one-time message handler for this eval
       const messageHandler = (data: Buffer) => {
         const message = data.toString()
-        
+
         // Skip welcome messages and other non-JSON responses
-        if (message.includes('Welcome to WebSocket Eval') || 
+        if (message.includes('Welcome to WebSocket Eval') ||
             message.includes('mGBA WebSocket server ready') ||
             !message.startsWith('{')) {
           console.log('mGBA:', message)
           return // Don't resolve/reject, wait for actual response
         }
-        
+
         try {
           const response = JSON.parse(message) as MgbaEvalResponse
           this.ws?.off('message', messageHandler)
@@ -108,7 +107,7 @@ export class MgbaWebSocketClient {
       }
 
       this.ws.on('message', messageHandler)
-      
+
       // Send the code to evaluate
       this.ws.send(code)
 
@@ -123,7 +122,7 @@ export class MgbaWebSocketClient {
   /**
    * Read a byte from memory
    */
-  async readByte(address: number): Promise<number> {
+  async readByte (address: number): Promise<number> {
     const response = await this.eval(`emu:read8(${address})`)
     if (response.error) {
       throw new Error(`Failed to read byte at 0x${address.toString(16)}: ${response.error}`)
@@ -134,7 +133,7 @@ export class MgbaWebSocketClient {
   /**
    * Read a 16-bit value from memory (little-endian)
    */
-  async readWord(address: number): Promise<number> {
+  async readWord (address: number): Promise<number> {
     const response = await this.eval(`emu:read16(${address})`)
     if (response.error) {
       throw new Error(`Failed to read word at 0x${address.toString(16)}: ${response.error}`)
@@ -145,7 +144,7 @@ export class MgbaWebSocketClient {
   /**
    * Read a 32-bit value from memory (little-endian)
    */
-  async readDWord(address: number): Promise<number> {
+  async readDWord (address: number): Promise<number> {
     const response = await this.eval(`emu:read32(${address})`)
     if (response.error) {
       throw new Error(`Failed to read dword at 0x${address.toString(16)}: ${response.error}`)
@@ -169,7 +168,7 @@ export class MgbaWebSocketClient {
   /**
    * Write a byte to memory
    */
-  async writeByte(address: number, value: number): Promise<void> {
+  async writeByte (address: number, value: number): Promise<void> {
     const response = await this.eval(`emu:write8(${address}, ${value & 0xFF})`)
     if (response.error) {
       throw new Error(`Failed to write byte at 0x${address.toString(16)}: ${response.error}`)
@@ -179,7 +178,7 @@ export class MgbaWebSocketClient {
   /**
    * Write a 16-bit value to memory (little-endian)
    */
-  async writeWord(address: number, value: number): Promise<void> {
+  async writeWord (address: number, value: number): Promise<void> {
     const response = await this.eval(`emu:write16(${address}, ${value & 0xFFFF})`)
     if (response.error) {
       throw new Error(`Failed to write word at 0x${address.toString(16)}: ${response.error}`)
@@ -189,7 +188,7 @@ export class MgbaWebSocketClient {
   /**
    * Write a 32-bit value to memory (little-endian)
    */
-  async writeDWord(address: number, value: number): Promise<void> {
+  async writeDWord (address: number, value: number): Promise<void> {
     const response = await this.eval(`emu:write32(${address}, ${value})`)
     if (response.error) {
       throw new Error(`Failed to write dword at 0x${address.toString(16)}: ${response.error}`)
@@ -211,8 +210,8 @@ export class MgbaWebSocketClient {
   /**
    * Get the current game title to check compatibility
    */
-  async getGameTitle(): Promise<string> {
-    const response = await this.eval(`emu:getGameTitle()`)
+  async getGameTitle (): Promise<string> {
+    const response = await this.eval('emu:getGameTitle()')
     if (response.error) {
       throw new Error(`Failed to get game title: ${response.error}`)
     }
@@ -222,7 +221,7 @@ export class MgbaWebSocketClient {
   /**
    * Attempt to reconnect to the WebSocket server
    */
-  private async attemptReconnect(): Promise<void> {
+  private async attemptReconnect (): Promise<void> {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('Max reconnection attempts reached')
       return
@@ -230,7 +229,7 @@ export class MgbaWebSocketClient {
 
     this.reconnectAttempts++
     console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
-    
+
     setTimeout(async () => {
       try {
         await this.connect()

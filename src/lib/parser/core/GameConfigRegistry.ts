@@ -54,9 +54,9 @@ export class GameConfigRegistry {
   /**
    * Get a specific config by name
    */
-  static getConfig(name: string): GameConfig | null {
+  static getConfig (name: string): GameConfig | null {
     const registry = gameConfigRegistry
-    
+
     // Try to find and instantiate config by name
     for (const ConfigClass of registry.configs) {
       try {
@@ -74,7 +74,7 @@ export class GameConfigRegistry {
         continue
       }
     }
-    
+
     return null
   }
 

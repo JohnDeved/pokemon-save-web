@@ -42,10 +42,10 @@ function createEffectiveConfig (config: GameConfig): EffectiveConfig {
  * From official mGBA pokemon.lua script
  */
 const EMERALD_MEMORY_ADDRESSES = {
-  PARTY_DATA: 0x20244ec,    // _party address from pokemon.lua
-  PARTY_COUNT: 0x20244e9,   // _partyCount address from pokemon.lua
-  POKEMON_SIZE: 100,        // Size of each Pokemon struct (0x64 bytes)
-  MAX_PARTY_SIZE: 6,        // Maximum party size
+  PARTY_DATA: 0x20244ec, // _party address from pokemon.lua
+  PARTY_COUNT: 0x20244e9, // _partyCount address from pokemon.lua
+  POKEMON_SIZE: 100, // Size of each Pokemon struct (0x64 bytes)
+  MAX_PARTY_SIZE: 6, // Maximum party size
 } as const
 
 /**
@@ -103,14 +103,14 @@ export class PokemonSaveParser {
 
       // Check if input is a WebSocket client for memory mode
       if (input && typeof input === 'object' && 'isConnected' in input && typeof input.isConnected === 'function') {
-        await this.initializeMemoryMode(input as MgbaWebSocketClient)
+        await this.initializeMemoryMode(input)
         return
       }
 
       // Reset memory mode for file operations
       this.isMemoryMode = false
       this.webSocketClient = null
-      
+
       let buffer: ArrayBuffer
 
       // Only check instanceof FileSystemFileHandle if it exists (browser)
@@ -156,7 +156,7 @@ export class PokemonSaveParser {
   /**
    * Initialize memory mode with WebSocket client
    */
-  private async initializeMemoryMode(client: MgbaWebSocketClient): Promise<void> {
+  private async initializeMemoryMode (client: MgbaWebSocketClient): Promise<void> {
     this.webSocketClient = client
     this.isMemoryMode = true
 
@@ -185,7 +185,7 @@ export class PokemonSaveParser {
             continue
           }
         }
-        
+
         if (!this.config) {
           throw new Error('Emerald config not found in registry')
         }
@@ -402,45 +402,45 @@ export class PokemonSaveParser {
    * Parse party Pokemon directly from emulator memory
    * Uses fixed addresses from mGBA pokemon.lua
    */
-  private async parsePartyPokemonFromMemory(): Promise<PokemonBase[]> {
+  private async parsePartyPokemonFromMemory (): Promise<PokemonBase[]> {
     if (!this.webSocketClient || !this.config) {
       throw new Error('Memory mode not properly initialized')
     }
 
     // Get party count from memory
     const partyCount = await this.webSocketClient.readByte(EMERALD_MEMORY_ADDRESSES.PARTY_COUNT)
-    
+
     if (partyCount < 0 || partyCount > EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE) {
       throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-6.`)
     }
 
     console.log(`📋 Reading ${partyCount} Pokemon from party memory`)
-    
+
     const pokemon: PokemonBase[] = []
-    
+
     for (let i = 0; i < partyCount; i++) {
       const pokemonAddress = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
       console.log(`  Reading Pokemon ${i + 1} at address 0x${pokemonAddress.toString(16)}`)
-      
+
       try {
         // Read the full 100-byte Pokemon structure from memory
         const pokemonBytes = await this.webSocketClient.readBytes(pokemonAddress, EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
-        
+
         // Create PokemonBase instance from memory data
         const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
-        
+
         // Check if Pokemon slot is empty (species ID = 0)
         if (pokemonInstance.speciesId === 0) {
           break
         }
-        
+
         pokemon.push(pokemonInstance)
       } catch (error) {
         console.error(`Failed to read Pokemon ${i + 1}:`, error)
         throw new Error(`Failed to read Pokemon ${i + 1} from memory: ${error}`)
       }
     }
-    
+
     console.log(`✅ Successfully read ${pokemon.length} Pokemon from memory`)
     return pokemon
   }
@@ -541,14 +541,14 @@ export class PokemonSaveParser {
     // Memory mode: read directly from emulator memory
     if (this.isMemoryMode && this.webSocketClient) {
       const partyPokemon = await this.parsePartyPokemon()
-      
+
       return {
         party_pokemon: partyPokemon,
         player_name: 'MEMORY', // TODO: Read from memory if needed
         play_time: { hours: 0, minutes: 0, seconds: 0 }, // TODO: Read from memory if needed
         active_slot: 0, // Memory doesn't have multiple save slots
         sector_map: new Map(), // Not applicable for memory parsing
-        rawSaveData: new Uint8Array(131072) // Standard GBA save size for compatibility
+        rawSaveData: new Uint8Array(131072), // Standard GBA save size for compatibility
       }
     }
 
@@ -645,7 +645,7 @@ export class PokemonSaveParser {
    * Write entire party to emulator memory
    * Updates party count and writes all Pokemon data
    */
-  private async writePartyToMemory(party: readonly PokemonBase[]): Promise<void> {
+  private async writePartyToMemory (party: readonly PokemonBase[]): Promise<void> {
     if (!this.webSocketClient) {
       throw new Error('WebSocket client not available')
     }
@@ -653,39 +653,39 @@ export class PokemonSaveParser {
     if (party.length > EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE) {
       throw new Error(`Party too large: ${party.length}. Maximum is ${EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE}.`)
     }
-    
+
     console.log(`📝 Writing party of ${party.length} Pokemon to memory`)
-    
+
     // Update party count
     await this.webSocketClient.writeByte(EMERALD_MEMORY_ADDRESSES.PARTY_COUNT, party.length)
-    
+
     // Write each Pokemon
     for (let i = 0; i < party.length; i++) {
       const address = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
       await this.webSocketClient.writeBytes(address, party[i].rawBytes)
     }
-    
+
     // Clear remaining slots with empty data
     const emptyPokemon = new Uint8Array(EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
     for (let i = party.length; i < EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE; i++) {
       const address = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
       await this.webSocketClient.writeBytes(address, emptyPokemon)
     }
-    
-    console.log(`✅ Successfully wrote party to memory`)
+
+    console.log('✅ Successfully wrote party to memory')
   }
 
   /**
    * Check if parser is in memory mode
    */
-  isInMemoryMode(): boolean {
+  isInMemoryMode (): boolean {
     return this.isMemoryMode
   }
 
   /**
    * Get the WebSocket client (for memory mode)
    */
-  getWebSocketClient(): MgbaWebSocketClient | null {
+  getWebSocketClient (): MgbaWebSocketClient | null {
     return this.webSocketClient
   }
 }

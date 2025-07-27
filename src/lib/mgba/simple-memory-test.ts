@@ -7,7 +7,7 @@
 import { MgbaWebSocketClient } from './websocket-client'
 import { EmeraldMemoryParser } from './emerald-memory-parser'
 
-async function main() {
+async function main () {
   console.log('🧪 Testing Emerald Memory Parser...\n')
 
   try {
@@ -29,13 +29,13 @@ async function main() {
 
     if (partyCount >= 0 && partyCount <= 6) {
       console.log('   ✅ Valid party count!')
-      
+
       if (partyCount > 0) {
         console.log('\n🔍 Testing Pokemon personality read...')
         // Read first Pokemon personality at party address + 0 (personality offset)
         const personality = await mgbaClient.readDWord(0x20244ec)
         console.log(`   First Pokemon personality: 0x${personality.toString(16)}`)
-        
+
         console.log('\n🎉 SUCCESS: Basic memory reading works!')
         console.log('   - Memory addresses are accessible')
         console.log('   - Party count is valid')
@@ -49,7 +49,6 @@ async function main() {
 
     mgbaClient.disconnect()
     console.log('\n✅ Basic memory test completed successfully!')
-
   } catch (error) {
     console.error('❌ Test failed:', error)
     console.error('\nPossible issues:')
