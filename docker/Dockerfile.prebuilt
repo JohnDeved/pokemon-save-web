@@ -1,0 +1,51 @@
+# mGBA Docker environment with prebuilt mGBA binary for fast deployment
+FROM ubuntu:22.04
+
+# Set environment to avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install only runtime dependencies (no build tools needed)
+RUN apt-get update && apt-get install -y \
+    qtbase5-dev \
+    qtmultimedia5-dev \
+    liblua5.4-dev \
+    lua5.4 \
+    libpng16-16 \
+    zlib1g \
+    libzip4 \
+    libedit2 \
+    libepoxy0 \
+    xvfb \
+    curl \
+    unzip \
+    libc6 \
+    libgcc-s1 \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
+WORKDIR /app
+
+# Copy prebuilt mGBA binary (to be provided by user)
+# This should be a complete mgba-qt binary built with:
+# cmake -DBUILD_QT=ON -DBUILD_SDL=OFF -DUSE_LUA=ON -DCMAKE_BUILD_TYPE=Release
+COPY docker/data/mgba-qt /usr/local/bin/mgba-qt
+RUN chmod +x /usr/local/bin/mgba-qt
+
+# Copy any required shared libraries if needed
+# COPY docker/data/libmgba.so.* /usr/local/lib/
+# RUN ldconfig
+
+# Copy required files
+COPY docker/data/ /app/data/
+COPY scripts/mgba-lua/http-server.lua /app/data/http-server.lua
+COPY docker/entrypoint.sh /app/entrypoint.sh
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
+# Expose HTTP server port
+EXPOSE 7102
+
+# Set entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]

@@ -5,11 +5,12 @@ A complete Docker environment for running mGBA emulator with Lua HTTP server aut
 ## Overview
 
 This Docker environment provides:
-- **Real mGBA Emulator**: Built from source with Qt frontend and Lua 5.4 support
+- **Real mGBA Emulator**: Uses prebuilt mGBA binary with Qt frontend and Lua 5.4 support
 - **HTTP Server Automation**: Lua script runs within mGBA providing REST API
 - **Cross-Platform**: Works on Windows, macOS, Linux via Docker
 - **Automatic ROM Setup**: Downloads Pokémon Emerald ROM automatically
 - **Headless Operation**: Uses xvfb for display-less operation
+- **Fast Deployment**: No compilation required, uses prebuilt binaries for speed
 
 ## Quick Start
 
@@ -47,9 +48,9 @@ All endpoints include proper CORS headers for web integration:
 
 ### Build Configuration
 
-The Docker environment uses the exact same build configuration as the working native environment:
+The Docker environment uses a prebuilt mGBA binary for fast deployment. The binary should be built with these configuration flags:
 
-```dockerfile
+```bash
 cmake -B build \
     -DBUILD_QT=ON \
     -DBUILD_SDL=OFF \
@@ -61,25 +62,33 @@ cmake -B build \
     -DUSE_DISCORD_RPC=OFF
 ```
 
+**Prebuilt Binary Setup:**
+1. Place the prebuilt `mgba-qt` binary in `docker/data/mgba-qt`
+2. Ensure the binary has `--script` argument support for Lua automation
+3. Include any required shared libraries in `docker/data/` if needed
+
 ### Runtime Environment
 
 - **Base Image**: Ubuntu 22.04
-- **mGBA Version**: Latest master branch with Qt + Lua support
+- **mGBA Version**: Prebuilt binary with Qt + Lua support  
 - **Lua Version**: 5.4.6
 - **ROM**: Pokémon Emerald (USA, Europe) - 16MB
 - **Savestate**: Pre-configured game state
 - **Display**: Headless via xvfb-run
+- **Deployment**: Fast startup using prebuilt binaries
 
 ### File Structure
 
 ```
 docker/
-├── Dockerfile              # Multi-stage build with mGBA compilation
-├── docker-compose.yml      # Service configuration
-├── entrypoint.sh           # Container startup script
+├── Dockerfile               # Fast deployment using prebuilt mGBA binary
+├── Dockerfile.prebuilt      # Alternative prebuilt binary approach  
+├── docker-compose.yml       # Service configuration
+├── entrypoint.sh            # Container startup script
 ├── data/
-│   ├── emerald.ss0         # Pokémon Emerald savestate
-│   └── emerald.sav         # Save file
+│   ├── mgba-qt              # Prebuilt mGBA binary (user provided)
+│   ├── emerald.ss0          # Pokémon Emerald savestate
+│   └── emerald.sav          # Save file
 └── __tests__/
     └── docker-environment.test.cjs  # Test suite
 ```
@@ -130,14 +139,16 @@ curl http://localhost:7102/
 
 ## Comparison with Native Environment
 
-| Feature | Docker | Native |
-|---------|--------|--------|
-| Build Time | ~4-5 minutes | ~3-4 minutes |
-| Dependencies | Self-contained | Manual setup |
-| Performance | Near-native | Native |
-| Portability | Cross-platform | Linux only |
-| Isolation | Complete | Shared system |
-| Setup | Automated | Manual |
+| Feature | Docker (Prebuilt) | Docker (Source Build) | Native |
+|---------|-------|------------|--------|
+| Build Time | ~30 seconds | ~4-5 minutes | ~3-4 minutes |
+| Dependencies | Runtime only | Full build chain | Manual setup |
+| Performance | Near-native | Near-native | Native |
+| Portability | Cross-platform | Cross-platform | Linux only |
+| Isolation | Complete | Complete | Shared system |
+| Setup | Automated | Automated | Manual |
+| Memory Usage | Low | High (build) | Medium |
+| Binary Maintenance | Manual | Automated | Manual |
 
 ## Use Cases
 
