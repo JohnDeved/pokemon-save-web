@@ -200,8 +200,8 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
   console.log(`🔄 Starting watch mode (updating every ${options.interval}ms)...`)
   console.log('Press Ctrl+C to exit')
 
-  // Create parser once and reuse it with silent mode enabled
-  const parser = new PokemonSaveParser(undefined, undefined, true)
+  // Create parser once and reuse it
+  const parser = new PokemonSaveParser()
   let lastDataHash = ''
   let isFirstRun = true
 

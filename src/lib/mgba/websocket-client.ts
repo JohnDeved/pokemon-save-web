@@ -5,41 +5,6 @@
 
 import WebSocket from 'isomorphic-ws'
 
-// Simple EventEmitter implementation for browser compatibility
-class EventEmitter {
-  private events: Record<string, Array<(data: unknown) => void>> = {}
-
-  setMaxListeners (_n: number): void {
-    // No-op for browser compatibility
-  }
-
-  on (event: string, listener: (data: unknown) => void): void {
-    if (!this.events[event]) {
-      this.events[event] = []
-    }
-    this.events[event].push(listener)
-  }
-
-  off (event: string, listener: (data: unknown) => void): void {
-    const listeners = this.events[event]
-    if (listeners) {
-      const index = listeners.indexOf(listener)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
-    }
-  }
-
-  emit (event: string, data: unknown): void {
-    const listeners = this.events[event]
-    if (listeners) {
-      for (const listener of listeners) {
-        listener(data)
-      }
-    }
-  }
-}
-
 export interface MgbaEvalResponse {
   result?: unknown
   error?: string
@@ -69,13 +34,7 @@ const MEMORY_CONSTANTS = {
   MAX_CACHE_SIZE: 50,
 } as const
 
-// Default memory regions for Pokemon Emerald
-const DEFAULT_PRELOAD_REGIONS = [
-  { address: 0x20244e9, size: 7 }, // Party count + context
-  { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
-] as const
-
-export class MgbaWebSocketClient extends EventEmitter {
+export class MgbaWebSocketClient {
   private ws: WebSocket | null = null
   private connected = false
 
@@ -85,12 +44,10 @@ export class MgbaWebSocketClient extends EventEmitter {
   private sharedBufferConfig: SharedBufferConfig = {
     maxCacheSize: MEMORY_CONSTANTS.MAX_CACHE_SIZE,
     cacheTimeout: MEMORY_CONSTANTS.CACHE_TIMEOUT_MS,
-    preloadRegions: [...DEFAULT_PRELOAD_REGIONS],
+    preloadRegions: [], // Will be set from config
   }
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
-    super()
-    this.setMaxListeners(MEMORY_CONSTANTS.MAX_LISTENERS)
   }
 
   /**
@@ -101,57 +58,38 @@ export class MgbaWebSocketClient extends EventEmitter {
       try {
         this.ws = new WebSocket(this.url)
 
-        // Use compatible event handling for both browser and Node.js
-        const setupEventHandlers = () => {
-          if (!this.ws) return
-
-          if ('addEventListener' in this.ws) {
-            // Browser WebSocket API
-            this.ws.addEventListener('open', () => {
-              console.log('Connected to mGBA WebSocket server')
-              this.connected = true
-              resolve()
-            })
-
-            this.ws.addEventListener('error', (error) => {
-              console.error('WebSocket error:', error)
-              this.connected = false
-              reject(error)
-            })
-
-            this.ws.addEventListener('close', () => {
-              console.log('WebSocket connection closed')
-              this.connected = false
-            })
-          } else if ('on' in this.ws) {
-            // Node.js ws library API
-            ;(this.ws as unknown as {
-              on: (event: string, handler: (...args: unknown[]) => void) => void
-            }).on('open', () => {
-              console.log('Connected to mGBA WebSocket server')
-              this.connected = true
-              resolve()
-            })
-
-            ;(this.ws as unknown as {
-              on: (event: string, handler: (...args: unknown[]) => void) => void
-            }).on('error', (...args: unknown[]) => {
-              const error = args[0] as Error
-              console.error('WebSocket error:', error)
-              this.connected = false
-              reject(error)
-            })
-
-            ;(this.ws as unknown as {
-              on: (event: string, handler: (...args: unknown[]) => void) => void
-            }).on('close', () => {
-              console.log('WebSocket connection closed')
-              this.connected = false
-            })
-          }
+        const onOpen = () => {
+          console.log('Connected to mGBA WebSocket server')
+          this.connected = true
+          resolve()
         }
 
-        setupEventHandlers()
+        const onError = (error: ErrorEvent | Event | unknown) => {
+          console.error('WebSocket error:', error)
+          this.connected = false
+          reject(error as Error)
+        }
+
+        const onClose = () => {
+          console.log('WebSocket connection closed')
+          this.connected = false
+        }
+
+        // Use compatible event handling for both browser and Node.js
+        if (typeof this.ws.addEventListener === 'function') {
+          // Browser WebSocket API
+          this.ws.addEventListener('open', onOpen)
+          this.ws.addEventListener('error', onError)
+          this.ws.addEventListener('close', onClose)
+        } else {
+          // Node.js ws library API
+          const nodeWs = this.ws as unknown as {
+            on: (event: string, handler: (...args: unknown[]) => void) => void
+          }
+          nodeWs.on('open', onOpen)
+          nodeWs.on('error', onError)
+          nodeWs.on('close', onClose)
+        }
       } catch (error) {
         reject(error)
       }
@@ -195,39 +133,37 @@ export class MgbaWebSocketClient extends EventEmitter {
         const message = typeof event.data === 'string' ? event.data : String(event.data)
 
         // Skip welcome messages and other non-JSON responses
-        if (message.includes('Welcome to WebSocket Eval') ||
-            message.includes('mGBA WebSocket server ready') ||
-            !message.startsWith('{')) {
+        if (!message.startsWith('{')) {
           return // Don't resolve/reject, wait for actual response
         }
 
         try {
           const response = JSON.parse(message) as MgbaEvalResponse
-          if (this.ws) {
-            if ('removeEventListener' in this.ws) {
-              this.ws.removeEventListener('message', messageHandler)
-            } else if ('off' in this.ws) {
-              ;(this.ws as unknown as { off: (event: string, handler: unknown) => void }).off('message', messageHandler)
-            }
-          }
+          removeMessageHandler()
           resolve(response)
         } catch (error) {
-          if (this.ws) {
-            if ('removeEventListener' in this.ws) {
-              this.ws.removeEventListener('message', messageHandler)
-            } else if ('off' in this.ws) {
-              ;(this.ws as unknown as { off: (event: string, handler: unknown) => void }).off('message', messageHandler)
-            }
-          }
+          removeMessageHandler()
           reject(new Error(`Failed to parse eval response: ${String(error)}`))
         }
       }
 
+      const removeMessageHandler = () => {
+        if (!this.ws) return
+
+        if (typeof this.ws.removeEventListener === 'function') {
+          this.ws.removeEventListener('message', messageHandler)
+        } else {
+          const nodeWs = this.ws as unknown as { off: (event: string, handler: unknown) => void }
+          nodeWs.off('message', messageHandler)
+        }
+      }
+
       // Add event listener using appropriate method
-      if ('addEventListener' in this.ws) {
+      if (typeof this.ws.addEventListener === 'function') {
         this.ws.addEventListener('message', messageHandler)
-      } else if ('on' in this.ws) {
-        ;(this.ws as unknown as { on: (event: string, handler: unknown) => void }).on('message', messageHandler)
+      } else {
+        const nodeWs = this.ws as unknown as { on: (event: string, handler: unknown) => void }
+        nodeWs.on('message', messageHandler)
       }
 
       // Send the code to evaluate
@@ -235,13 +171,7 @@ export class MgbaWebSocketClient extends EventEmitter {
 
       // Timeout after configured time
       setTimeout(() => {
-        if (this.ws) {
-          if ('removeEventListener' in this.ws) {
-            this.ws.removeEventListener('message', messageHandler)
-          } else if ('off' in this.ws) {
-            ;(this.ws as unknown as { off: (event: string, handler: unknown) => void }).off('message', messageHandler)
-          }
-        }
+        removeMessageHandler()
         reject(new Error('Eval request timed out'))
       }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
     })
