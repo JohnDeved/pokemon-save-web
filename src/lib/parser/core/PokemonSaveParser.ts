@@ -536,8 +536,6 @@ export class PokemonSaveParser {
         player_name: 'MEMORY', // TODO: Read from memory if needed
         play_time: { hours: 0, minutes: 0, seconds: 0 }, // TODO: Read from memory if needed
         active_slot: 0, // Memory doesn't have multiple save slots
-        sector_map: undefined, // Not applicable for memory parsing
-        rawSaveData: undefined, // Not applicable for memory parsing
       }
     }
 
@@ -558,7 +556,7 @@ export class PokemonSaveParser {
       play_time: playTime,
       active_slot: this.activeSlotStart,
       sector_map: this.sectorMap,
-      rawSaveData: this.saveData ?? undefined,
+      rawSaveData: this.saveData,
     }
   }
 
