@@ -30,15 +30,7 @@ WORKDIR /build
 RUN git clone https://github.com/mgba-emu/mgba.git --depth 1 --branch master
 WORKDIR /build/mgba
 RUN mkdir build && cd build && \
-    cmake .. \
-    -DCMAKE_INSTALL_PREFIX=/usr/local \
-    -DUSE_LUA=ON \
-    -DBUILD_QT=ON \
-    -DBUILD_SDL=ON \
-    -DUSE_DISCORD_RPC=OFF \
-    -DUSE_FFMPEG=OFF \
-    -DUSE_MINIZIP=OFF \
-    -DUSE_LIBZIP=OFF \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DUSE_LUA=ON -DBUILD_QT=ON -DUSE_DISCORD_RPC=OFF -DUSE_FFMPEG=OFF -DUSE_MINIZIP=OFF -DUSE_LIBZIP=OFF \
     && make -j$(nproc) && make install
 
 # Configure library path
