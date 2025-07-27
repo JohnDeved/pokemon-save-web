@@ -227,7 +227,6 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
       // Only update display if party data changed or first run
       if (dataHash !== lastDataHash || isFirstRun) {
         clearScreen()
-        
         // Only show party summary - no other logs
         displayPartyPokemon(result.party_pokemon, typeof input === 'string' ? 'FILE' : 'MEMORY')
 

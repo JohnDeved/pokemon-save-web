@@ -7,7 +7,7 @@ import { WebSocket } from 'ws'
 import { EventEmitter } from 'events'
 
 export interface MgbaEvalResponse {
-  result?: any
+  result?: unknown
   error?: string
 }
 
@@ -28,19 +28,16 @@ export interface SharedBufferConfig {
 export class MgbaWebSocketClient extends EventEmitter {
   private ws: WebSocket | null = null
   private connected = false
-  private reconnectAttempts = 0
-  private readonly maxReconnectAttempts = 5
-  private readonly reconnectDelay = 1000
-  
+
   // Shared buffer system for memory caching
-  private memoryCache = new Map<string, MemoryRegion>()
+  private readonly memoryCache = new Map<string, MemoryRegion>()
   private sharedBufferConfig: SharedBufferConfig = {
     maxCacheSize: 50, // Max number of cached regions
     cacheTimeout: 5000, // 5 seconds
     preloadRegions: [
       { address: 0x20244e9, size: 7 }, // Party count + some context
       { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
-    ]
+    ],
   }
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
@@ -60,7 +57,6 @@ export class MgbaWebSocketClient extends EventEmitter {
         this.ws.on('open', () => {
           console.log('Connected to mGBA WebSocket server')
           this.connected = true
-          this.reconnectAttempts = 0
           resolve()
         })
 
@@ -132,7 +128,7 @@ export class MgbaWebSocketClient extends EventEmitter {
           resolve(response)
         } catch (error) {
           this.ws?.off('message', messageHandler)
-          reject(new Error(`Failed to parse eval response: ${error}`))
+          reject(new Error(`Failed to parse eval response: ${String(error)}`))
         }
       }
 
@@ -200,7 +196,7 @@ export class MgbaWebSocketClient extends EventEmitter {
     if (length <= 10) {
       return this.readBytesBulk(address, length)
     }
-    
+
     try {
       // Try using readRange API - it returns binary data as a string
       const luaCode = `(function()
@@ -211,16 +207,16 @@ export class MgbaWebSocketClient extends EventEmitter {
         end
         return bytes
       end)()`
-      
+
       const response = await this.eval(luaCode)
       if (response.error) {
         throw new Error(`Failed to native read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
       }
-      
+
       return new Uint8Array(response.result as number[])
     } catch (error) {
       // Fallback to bulk read if readRange fails
-      console.warn(`readRange failed, falling back to bulk read: ${error}`)
+      console.warn(`readRange failed, falling back to bulk read: ${String(error)}`)
       return this.readBytesBulk(address, length)
     }
   }
@@ -239,12 +235,12 @@ export class MgbaWebSocketClient extends EventEmitter {
       end
       return hex
     end)()`
-    
+
     const response = await this.eval(luaCode)
     if (response.error) {
       throw new Error(`Failed to hex read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
     }
-    
+
     // Decode hex string to bytes
     const hexString = response.result as string
     try {
@@ -254,21 +250,22 @@ export class MgbaWebSocketClient extends EventEmitter {
       }
       return bytes
     } catch (error) {
-      throw new Error(`Failed to decode hex response: ${error}`)
+      throw new Error(`Failed to decode hex response: ${String(error)}`)
     }
   }
+
   /**
    * Read multiple bytes using optimized bulk Lua operations (FAST)
    * This is 100x+ faster than individual byte reads
    */
   async readBytesBulk (address: number, length: number): Promise<Uint8Array> {
     const luaCode = `(function() local r = {} for i = 0, ${length - 1} do r[i+1] = emu:read8(${address} + i) end return r end)()`
-    
+
     const response = await this.eval(luaCode)
     if (response.error) {
       throw new Error(`Failed to bulk read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
     }
-    
+
     return new Uint8Array(response.result as number[])
   }
 
@@ -276,15 +273,15 @@ export class MgbaWebSocketClient extends EventEmitter {
    * Read multiple bytes using chunked approach for very large reads
    * Breaks large reads into smaller chunks to avoid Lua memory issues
    */
-  async readBytesChunked (address: number, length: number, chunkSize: number = 100): Promise<Uint8Array> {
+  async readBytesChunked (address: number, length: number, chunkSize = 100): Promise<Uint8Array> {
     const result: number[] = []
-    
+
     for (let offset = 0; offset < length; offset += chunkSize) {
       const currentChunkSize = Math.min(chunkSize, length - offset)
       const chunkData = await this.readBytesBulk(address + offset, currentChunkSize)
       result.push(...Array.from(chunkData))
     }
-    
+
     return new Uint8Array(result)
   }
 
@@ -292,24 +289,24 @@ export class MgbaWebSocketClient extends EventEmitter {
    * Read multiple bytes with parallel chunked approach for maximum speed
    * Uses Promise.all to read multiple chunks simultaneously
    */
-  async readBytesParallel (address: number, length: number, chunkSize: number = 50): Promise<Uint8Array> {
-    const chunks: Promise<Uint8Array>[] = []
-    
+  async readBytesParallel (address: number, length: number, chunkSize = 50): Promise<Uint8Array> {
+    const chunks: Array<Promise<Uint8Array>> = []
+
     for (let offset = 0; offset < length; offset += chunkSize) {
       const currentChunkSize = Math.min(chunkSize, length - offset)
       chunks.push(this.readBytesBulk(address + offset, currentChunkSize))
     }
-    
+
     const chunkResults = await Promise.all(chunks)
     const totalLength = chunkResults.reduce((sum, chunk) => sum + chunk.length, 0)
-    
+
     const result = new Uint8Array(totalLength)
     let offset = 0
     for (const chunk of chunkResults) {
       result.set(chunk, offset)
       offset += chunk.length
     }
-    
+
     return result
   }
 
@@ -371,7 +368,7 @@ export class MgbaWebSocketClient extends EventEmitter {
     if (data.length <= 10) {
       return this.writeBytesBulk(address, data)
     }
-    
+
     // For larger writes, use chunked approach
     return this.writeBytesChunked(address, data, 100)
   }
@@ -382,7 +379,7 @@ export class MgbaWebSocketClient extends EventEmitter {
   async writeBytesBulk (address: number, data: Uint8Array): Promise<void> {
     const bytes = Array.from(data).join(', ')
     const luaCode = `(function() local data = {${bytes}} for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end end)()`
-    
+
     const response = await this.eval(luaCode)
     if (response.error) {
       throw new Error(`Failed to bulk write ${data.length} bytes at 0x${address.toString(16)}: ${response.error}`)
@@ -392,7 +389,7 @@ export class MgbaWebSocketClient extends EventEmitter {
   /**
    * Write multiple bytes using chunked approach for very large writes
    */
-  async writeBytesChunked (address: number, data: Uint8Array, chunkSize: number = 100): Promise<void> {
+  async writeBytesChunked (address: number, data: Uint8Array, chunkSize = 100): Promise<void> {
     for (let offset = 0; offset < data.length; offset += chunkSize) {
       const chunkEnd = Math.min(offset + chunkSize, data.length)
       const chunk = data.slice(offset, chunkEnd)
@@ -426,22 +423,22 @@ export class MgbaWebSocketClient extends EventEmitter {
   /**
    * Configure shared buffer settings
    */
-  configureSharedBuffer(config: Partial<SharedBufferConfig>): void {
+  configureSharedBuffer (config: Partial<SharedBufferConfig>): void {
     this.sharedBufferConfig = { ...this.sharedBufferConfig, ...config }
   }
 
   /**
    * Preload commonly used memory regions into cache
    */
-  async preloadSharedBuffers(): Promise<void> {
+  async preloadSharedBuffers (): Promise<void> {
     console.log('🔄 Preloading shared memory buffers...')
-    
+
     for (const region of this.sharedBufferConfig.preloadRegions) {
       try {
         await this.getSharedBuffer(region.address, region.size)
         console.log(`✅ Preloaded region 0x${region.address.toString(16)} (${region.size} bytes)`)
       } catch (error) {
-        console.warn(`⚠️  Failed to preload region 0x${region.address.toString(16)}: ${error}`)
+        console.warn(`⚠️  Failed to preload region 0x${region.address.toString(16)}: ${String(error)}`)
       }
     }
   }
@@ -450,10 +447,10 @@ export class MgbaWebSocketClient extends EventEmitter {
    * Get data from shared buffer (with caching)
    * This method provides ultra-fast access to frequently used memory regions
    */
-  async getSharedBuffer(address: number, size: number, useCache: boolean = true): Promise<Uint8Array> {
+  async getSharedBuffer (address: number, size: number, useCache = true): Promise<Uint8Array> {
     const cacheKey = `${address}-${size}`
     const now = Date.now()
-    
+
     // Check cache first
     if (useCache) {
       const cached = this.memoryCache.get(cacheKey)
@@ -461,10 +458,10 @@ export class MgbaWebSocketClient extends EventEmitter {
         return cached.data
       }
     }
-    
+
     // Read from memory using fastest method
     const data = await this.readBytesNative(address, size)
-    
+
     // Cache the result
     if (useCache) {
       this.memoryCache.set(cacheKey, {
@@ -472,28 +469,28 @@ export class MgbaWebSocketClient extends EventEmitter {
         size,
         data: new Uint8Array(data), // Make a copy
         lastUpdated: now,
-        dirty: false
+        dirty: false,
       })
-      
+
       // Cleanup old cache entries if needed
       this.cleanupCache()
     }
-    
+
     return data
   }
 
   /**
    * Write data to shared buffer and mark cache as dirty
    */
-  async setSharedBuffer(address: number, data: Uint8Array): Promise<void> {
+  async setSharedBuffer (address: number, data: Uint8Array): Promise<void> {
     // Write to memory
     await this.writeBytes(address, data)
-    
+
     // Mark related cache entries as dirty
-    for (const [cacheKey, region] of this.memoryCache.entries()) {
+    for (const [, region] of this.memoryCache.entries()) {
       const regionEnd = region.address + region.size
       const writeEnd = address + data.length
-      
+
       // Check if write overlaps with cached region
       if (address < regionEnd && writeEnd > region.address) {
         region.dirty = true
@@ -504,7 +501,7 @@ export class MgbaWebSocketClient extends EventEmitter {
   /**
    * Invalidate specific cache entry
    */
-  invalidateCache(address: number, size: number): void {
+  invalidateCache (address: number, size: number): void {
     const cacheKey = `${address}-${size}`
     this.memoryCache.delete(cacheKey)
   }
@@ -512,31 +509,34 @@ export class MgbaWebSocketClient extends EventEmitter {
   /**
    * Clear all cached memory
    */
-  clearCache(): void {
+  clearCache (): void {
     this.memoryCache.clear()
   }
 
   /**
    * Clean up old cache entries
    */
-  private cleanupCache(): void {
+  private cleanupCache (): void {
     const now = Date.now()
     const entries = Array.from(this.memoryCache.entries())
-    
+
     // Remove expired entries
     for (const [key, region] of entries) {
       if ((now - region.lastUpdated) > this.sharedBufferConfig.cacheTimeout) {
         this.memoryCache.delete(key)
       }
     }
-    
+
     // Remove oldest entries if cache is too large
     if (this.memoryCache.size > this.sharedBufferConfig.maxCacheSize) {
       const sortedEntries = entries.sort((a, b) => a[1].lastUpdated - b[1].lastUpdated)
       const toRemove = this.memoryCache.size - this.sharedBufferConfig.maxCacheSize
-      
+
       for (let i = 0; i < toRemove; i++) {
-        this.memoryCache.delete(sortedEntries[i][0])
+        const entry = sortedEntries[i]
+        if (entry) {
+          this.memoryCache.delete(entry[0])
+        }
       }
     }
   }
@@ -544,36 +544,15 @@ export class MgbaWebSocketClient extends EventEmitter {
   /**
    * Get cache statistics
    */
-  getCacheStats(): { size: number, regions: Array<{ address: string, size: number, age: number, dirty: boolean }> } {
+  getCacheStats (): { size: number, regions: Array<{ address: string, size: number, age: number, dirty: boolean }> } {
     const now = Date.now()
-    const regions = Array.from(this.memoryCache.entries()).map(([key, region]) => ({
+    const regions = Array.from(this.memoryCache.entries()).map(([, region]) => ({
       address: `0x${region.address.toString(16)}`,
       size: region.size,
       age: now - region.lastUpdated,
-      dirty: region.dirty
+      dirty: region.dirty,
     }))
-    
+
     return { size: this.memoryCache.size, regions }
-  }
-
-  /**
-   * Attempt to reconnect to the WebSocket server
-   */
-  private async attemptReconnect (): Promise<void> {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached')
-      return
-    }
-
-    this.reconnectAttempts++
-    console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
-
-    setTimeout(async () => {
-      try {
-        await this.connect()
-      } catch (error) {
-        console.error('Reconnection failed:', error)
-      }
-    }, this.reconnectDelay * this.reconnectAttempts)
   }
 }
