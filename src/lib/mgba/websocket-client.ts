@@ -4,7 +4,39 @@
  */
 
 import { WebSocket } from 'ws'
-import { EventEmitter } from 'events'
+
+// Simple EventEmitter implementation for browser compatibility
+class EventEmitter {
+  private events: Record<string, Function[]> = {}
+
+  setMaxListeners(_n: number): void {
+    // No-op for browser compatibility
+  }
+
+  on(event: string, listener: Function): void {
+    if (!this.events[event]) {
+      this.events[event] = []
+    }
+    this.events[event]?.push(listener)
+  }
+
+  off(event: string, listener: Function): void {
+    const listeners = this.events[event]
+    if (listeners) {
+      const index = listeners.indexOf(listener)
+      if (index > -1) {
+        listeners.splice(index, 1)
+      }
+    }
+  }
+
+  emit(event: string, ...args: any[]): void {
+    const listeners = this.events[event]
+    if (listeners) {
+      listeners.forEach(listener => listener(...args))
+    }
+  }
+}
 
 export interface MgbaEvalResponse {
   result?: unknown
@@ -29,11 +61,11 @@ export class MgbaWebSocketClient extends EventEmitter {
   private ws: WebSocket | null = null
   private connected = false
 
-  // Shared buffer system for memory caching
+  // Real-time shared buffer system for memory caching
   private readonly memoryCache = new Map<string, MemoryRegion>()
   private sharedBufferConfig: SharedBufferConfig = {
     maxCacheSize: 50, // Max number of cached regions
-    cacheTimeout: 5000, // 5 seconds
+    cacheTimeout: 100, // 100ms for near real-time updates
     preloadRegions: [
       { address: 0x20244e9, size: 7 }, // Party count + some context
       { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
@@ -118,7 +150,6 @@ export class MgbaWebSocketClient extends EventEmitter {
         if (message.includes('Welcome to WebSocket Eval') ||
             message.includes('mGBA WebSocket server ready') ||
             !message.startsWith('{')) {
-          console.log('mGBA:', message)
           return // Don't resolve/reject, wait for actual response
         }
 
@@ -222,44 +253,17 @@ export class MgbaWebSocketClient extends EventEmitter {
   }
 
   /**
-   * Read multiple bytes using mGBA's native readRange API with Base64 encoding (SAFEST + FAST)
-   * This safely transfers binary data over WebSocket using Base64 encoding
-   */
-  async readBytesNativeBase64 (address: number, length: number): Promise<Uint8Array> {
-    const luaCode = `(function()
-      local data = emu:readRange(${address}, ${length})
-      -- Simple hex encoding instead of Base64 for reliability
-      local hex = ''
-      for i = 1, #data do
-        hex = hex .. string.format('%02x', string.byte(data, i))
-      end
-      return hex
-    end)()`
-
-    const response = await this.eval(luaCode)
-    if (response.error) {
-      throw new Error(`Failed to hex read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
-    }
-
-    // Decode hex string to bytes
-    const hexString = response.result as string
-    try {
-      const bytes = new Uint8Array(hexString.length / 2)
-      for (let i = 0; i < hexString.length; i += 2) {
-        bytes[i / 2] = parseInt(hexString.substring(i, i + 2), 16)
-      }
-      return bytes
-    } catch (error) {
-      throw new Error(`Failed to decode hex response: ${String(error)}`)
-    }
-  }
-
-  /**
    * Read multiple bytes using optimized bulk Lua operations (FAST)
    * This is 100x+ faster than individual byte reads
    */
   async readBytesBulk (address: number, length: number): Promise<Uint8Array> {
-    const luaCode = `(function() local r = {} for i = 0, ${length - 1} do r[i+1] = emu:read8(${address} + i) end return r end)()`
+    const luaCode = `(function() 
+      local r = {} 
+      for i = 0, ${length - 1} do 
+        r[i+1] = emu:read8(${address} + i) 
+      end 
+      return r 
+    end)()`
 
     const response = await this.eval(luaCode)
     if (response.error) {
@@ -308,18 +312,6 @@ export class MgbaWebSocketClient extends EventEmitter {
     }
 
     return result
-  }
-
-  /**
-   * Legacy slow method - reads one byte at a time (for comparison only)
-   */
-  async readBytesIndividual (address: number, length: number): Promise<Uint8Array> {
-    const bytes: number[] = []
-    for (let i = 0; i < length; i++) {
-      const byte = await this.readByte(address + i)
-      bytes.push(byte)
-    }
-    return new Uint8Array(bytes)
   }
 
   /**
@@ -394,18 +386,6 @@ export class MgbaWebSocketClient extends EventEmitter {
       const chunkEnd = Math.min(offset + chunkSize, data.length)
       const chunk = data.slice(offset, chunkEnd)
       await this.writeBytesBulk(address + offset, chunk)
-    }
-  }
-
-  /**
-   * Legacy slow method - writes one byte at a time (for comparison only)
-   */
-  async writeBytesIndividual (address: number, data: Uint8Array): Promise<void> {
-    const bytes = Array.from(data).join(', ')
-    const code = `local data = {${bytes}}; for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end`
-    const response = await this.eval(code)
-    if (response.error) {
-      throw new Error(`Failed to write ${data.length} bytes at 0x${address.toString(16)}: ${response.error}`)
     }
   }
 

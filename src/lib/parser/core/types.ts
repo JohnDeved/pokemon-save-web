@@ -65,8 +65,8 @@ export interface SaveData {
   readonly player_name: string
   readonly play_time: PlayTimeData
   readonly active_slot: number
-  readonly sector_map: ReadonlyMap<number, number> | undefined // Undefined for memory mode
-  readonly rawSaveData: Uint8Array | undefined // Undefined for memory mode
+  readonly sector_map?: ReadonlyMap<number, number> // Undefined for memory mode
+  readonly rawSaveData?: Uint8Array // Undefined for memory mode
 }
 
 // Mapping interfaces for ID translation

@@ -32,8 +32,8 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
   readonly memoryAddresses = {
     partyData: 0x20244ec, // _party address from pokemon.lua
     partyCount: 0x20244e9, // _partyCount address from pokemon.lua
-    pokemonSize: 100, // Size of each Pokemon struct (0x64 bytes)
-    maxPartySize: 6, // Maximum party size
+    pokemonSize: this.saveLayout.pokemonSize, // Size of each Pokemon struct
+    maxPartySize: this.saveLayout.maxPartySize, // Maximum party size
     // TODO: Add player name and play time addresses when implemented
   } as const
 

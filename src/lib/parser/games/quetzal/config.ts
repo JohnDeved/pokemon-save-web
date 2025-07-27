@@ -55,8 +55,8 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   readonly memoryAddresses = {
     partyData: 0x20244ec, // Same as vanilla for now
     partyCount: 0x20244e9, // Same as vanilla for now
-    pokemonSize: 104, // Quetzal uses 104-byte Pokemon structure
-    maxPartySize: 6,
+    pokemonSize: this.pokemonSize, // Quetzal uses 104-byte Pokemon structure
+    maxPartySize: this.saveLayout.maxPartySize,
     // TODO: Add player name and play time addresses when implemented
   } as const
 
@@ -230,10 +230,10 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   /**
    * Check if this config can handle memory parsing for the given game title
-   * Supports Quetzal ROM hack variants
+   * Currently not supported for Quetzal
    */
-  canHandleMemory (gameTitle: string): boolean {
-    return gameTitle.toLowerCase().includes('quetzal') ||
-           (gameTitle.includes('EMERALD') || gameTitle.includes('Emerald') || gameTitle.includes('EMER'))
+  canHandleMemory (_gameTitle: string): boolean {
+    // Return false for now until we implement Quetzal memory support
+    return false
   }
 }

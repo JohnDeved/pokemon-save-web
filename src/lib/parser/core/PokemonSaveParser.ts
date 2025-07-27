@@ -36,18 +36,6 @@ function createEffectiveConfig (config: GameConfig): EffectiveConfig {
 }
 
 /**
- * Memory addresses for Pokémon Emerald (USA) in mGBA
- * From official mGBA pokemon.lua script
- * @deprecated Use config.memoryAddresses instead
- */
-const LEGACY_EMERALD_MEMORY_ADDRESSES = {
-  PARTY_DATA: 0x20244ec, // _party address from pokemon.lua
-  PARTY_COUNT: 0x20244e9, // _partyCount address from pokemon.lua
-  POKEMON_SIZE: 100, // Size of each Pokemon struct (0x64 bytes)
-  MAX_PARTY_SIZE: 6, // Maximum party size
-} as const
-
-/**
  * Decode Pokemon character-encoded text to string
  */
 function decodePokemonText (bytes: Uint8Array): string {
@@ -177,9 +165,9 @@ export class PokemonSaveParser {
     const gameTitle = await client.getGameTitle()
     if (!this.silent) console.log(`Memory mode: Connected to game "${gameTitle}"`)
 
-    // Auto-detect config based on game title using proper config system
+    // Auto-detect config based on game title using overloaded detectGameConfig method
     if (!this.config) {
-      this.config = GameConfigRegistry.getConfigForMemory(gameTitle)
+      this.config = GameConfigRegistry.detectGameConfig(gameTitle)
 
       if (!this.config) {
         throw new Error(`Unsupported game for memory parsing: "${gameTitle}". No compatible config found.`)
@@ -404,12 +392,10 @@ export class PokemonSaveParser {
       throw new Error('Memory mode not properly initialized')
     }
 
-    // Get memory addresses from config, fallback to legacy addresses for compatibility
-    const memoryAddresses = this.config.memoryAddresses ?? {
-      partyData: LEGACY_EMERALD_MEMORY_ADDRESSES.PARTY_DATA,
-      partyCount: LEGACY_EMERALD_MEMORY_ADDRESSES.PARTY_COUNT,
-      pokemonSize: LEGACY_EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE,
-      maxPartySize: LEGACY_EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE,
+    // Get memory addresses from config
+    const memoryAddresses = this.config.memoryAddresses
+    if (!memoryAddresses) {
+      throw new Error(`Config "${this.config.name}" does not define memory addresses for memory parsing`)
     }
 
     // Get party count from memory using shared buffer for faster access
@@ -556,7 +542,7 @@ export class PokemonSaveParser {
         play_time: { hours: 0, minutes: 0, seconds: 0 }, // TODO: Read from memory if needed
         active_slot: 0, // Memory doesn't have multiple save slots
         sector_map: undefined, // Not applicable for memory parsing
-        rawSaveData: undefined, // Not applicable for memory parsing  
+        rawSaveData: undefined, // Not applicable for memory parsing
       }
     }
 
@@ -577,7 +563,7 @@ export class PokemonSaveParser {
       play_time: playTime,
       active_slot: this.activeSlotStart,
       sector_map: this.sectorMap,
-      rawSaveData: this.saveData ?? undefined,
+      rawSaveData: this.saveData || undefined,
     }
   }
 
