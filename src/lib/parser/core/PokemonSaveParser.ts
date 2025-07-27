@@ -420,8 +420,9 @@ export class PokemonSaveParser {
       throw new Error('Memory mode not properly initialized')
     }
 
-    // Get party count from memory
-    const partyCount = await this.webSocketClient.readByte(EMERALD_MEMORY_ADDRESSES.PARTY_COUNT)
+    // Get party count from memory using shared buffer for faster access
+    const partyCountBuffer = await this.webSocketClient.getSharedBuffer(EMERALD_MEMORY_ADDRESSES.PARTY_COUNT, 1)
+    const partyCount = partyCountBuffer[0]
 
     if (partyCount < 0 || partyCount > EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE) {
       throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-6.`)
@@ -440,8 +441,8 @@ export class PokemonSaveParser {
       }
 
       try {
-        // Read the full 100-byte Pokemon structure from memory
-        const pokemonBytes = await this.webSocketClient.readBytes(pokemonAddress, EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
+        // Read the full 100-byte Pokemon structure from memory using shared buffer for maximum performance
+        const pokemonBytes = await this.webSocketClient.getSharedBuffer(pokemonAddress, EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
 
         // Create PokemonBase instance from memory data
         const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
@@ -675,20 +676,20 @@ export class PokemonSaveParser {
 
     console.log(`📝 Writing party of ${party.length} Pokemon to memory`)
 
-    // Update party count
-    await this.webSocketClient.writeByte(EMERALD_MEMORY_ADDRESSES.PARTY_COUNT, party.length)
+    // Update party count using shared buffer system
+    await this.webSocketClient.setSharedBuffer(EMERALD_MEMORY_ADDRESSES.PARTY_COUNT, new Uint8Array([party.length]))
 
-    // Write each Pokemon
+    // Write each Pokemon using shared buffer system
     for (let i = 0; i < party.length; i++) {
       const address = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
-      await this.webSocketClient.writeBytes(address, party[i].rawBytes)
+      await this.webSocketClient.setSharedBuffer(address, party[i].rawBytes)
     }
 
     // Clear remaining slots with empty data
     const emptyPokemon = new Uint8Array(EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
     for (let i = party.length; i < EMERALD_MEMORY_ADDRESSES.MAX_PARTY_SIZE; i++) {
       const address = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
-      await this.webSocketClient.writeBytes(address, emptyPokemon)
+      await this.webSocketClient.setSharedBuffer(address, emptyPokemon)
     }
 
     console.log('✅ Successfully wrote party to memory')

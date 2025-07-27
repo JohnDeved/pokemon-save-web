@@ -97,7 +97,58 @@ export class MgbaBenchmark {
   }
 
   /**
-   * Test 4: Memory region read (if supported by mGBA)
+   * Test 4: Native readRange API (FASTEST POSSIBLE)
+   */
+  async testNativeReadRange(address: number, length: number): Promise<{ data: Uint8Array, time: number }> {
+    const timer = new PerformanceTimer()
+    timer.start()
+
+    try {
+      const data = await this.client.readBytesNative(address, length)
+      const time = timer.end()
+      return { data, time }
+    } catch (error) {
+      const time = timer.end()
+      throw new Error(`Native readRange failed: ${error}`)
+    }
+  }
+
+  /**
+   * Test 4b: Native readRange API with Base64 encoding (SAFE + FAST)
+   */
+  async testNativeReadRangeBase64(address: number, length: number): Promise<{ data: Uint8Array, time: number }> {
+    const timer = new PerformanceTimer()
+    timer.start()
+
+    try {
+      const data = await this.client.readBytesNativeBase64(address, length)
+      const time = timer.end()
+      return { data, time }
+    } catch (error) {
+      const time = timer.end()
+      throw new Error(`Native readRange Base64 failed: ${error}`)
+    }
+  }
+
+  /**
+   * Test 5: Shared buffer with caching
+   */
+  async testSharedBuffer(address: number, length: number): Promise<{ data: Uint8Array, time: number }> {
+    const timer = new PerformanceTimer()
+    timer.start()
+
+    try {
+      const data = await this.client.getSharedBuffer(address, length, true)
+      const time = timer.end()
+      return { data, time }
+    } catch (error) {
+      const time = timer.end()
+      throw new Error(`Shared buffer failed: ${error}`)
+    }
+  }
+
+  /**
+   * Test 6: Memory region read (if supported by mGBA)
    */
   async testMemoryRegionRead(address: number, length: number): Promise<{ data: Uint8Array, time: number }> {
     const timer = new PerformanceTimer()
@@ -122,7 +173,7 @@ export class MgbaBenchmark {
   }
 
   /**
-   * Test 5: Parallel chunk reading
+   * Test 7: Parallel chunk reading
    */
   async testParallelChunkedRead(address: number, length: number, chunkSize: number = 25): Promise<{ data: Uint8Array, time: number }> {
     const timer = new PerformanceTimer()
@@ -165,6 +216,11 @@ export class MgbaBenchmark {
       await this.client.connect()
     }
 
+    // Set up shared buffer for testing
+    console.log('🔄 Setting up shared buffer system...')
+    await this.client.preloadSharedBuffers()
+    console.log('✅ Shared buffer system ready\n')
+
     // Test different data sizes
     const testSizes = [
       { name: 'Single Pokemon', address: EMERALD_MEMORY_ADDRESSES.PARTY_DATA, length: EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE },
@@ -206,28 +262,78 @@ export class MgbaBenchmark {
         console.log(`   ❌ Failed: ${error}`)
       }
 
-      // Test 4: Memory region read
+      // Test 4: Native readRange API
       try {
-        console.log('🧠 Memory region read...')
-        const result4 = await this.testMemoryRegionRead(testSize.address, testSize.length)
+        console.log('⚡ Native readRange API...')
+        const result4 = await this.testNativeReadRange(testSize.address, testSize.length)
         console.log(`   Time: ${result4.time.toFixed(2)}ms`)
         console.log(`   Rate: ${(testSize.length / result4.time * 1000).toFixed(0)} bytes/sec`)
       } catch (error) {
         console.log(`   ❌ Failed: ${error}`)
       }
 
-      // Test 5: Parallel chunked read
+      // Test 4b: Native readRange API with hex encoding
       try {
-        console.log('⚡ Parallel chunked read...')
-        const result5 = await this.testParallelChunkedRead(testSize.address, testSize.length, 25)
+        console.log('🔐 Native readRange API (Hex encoding)...')
+        const result4b = await this.testNativeReadRangeBase64(testSize.address, testSize.length)
+        console.log(`   Time: ${result4b.time.toFixed(2)}ms`)
+        console.log(`   Rate: ${(testSize.length / result4b.time * 1000).toFixed(0)} bytes/sec`)
+      } catch (error) {
+        console.log(`   ❌ Failed: ${error}`)
+      }
+
+      // Test 5: Shared buffer (first time - no cache)
+      try {
+        console.log('💾 Shared buffer (no cache)...')
+        this.client.clearCache() // Clear cache for fair test
+        const result5 = await this.testSharedBuffer(testSize.address, testSize.length)
         console.log(`   Time: ${result5.time.toFixed(2)}ms`)
         console.log(`   Rate: ${(testSize.length / result5.time * 1000).toFixed(0)} bytes/sec`)
       } catch (error) {
         console.log(`   ❌ Failed: ${error}`)
       }
+
+      // Test 6: Shared buffer (cached)
+      try {
+        console.log('🚀 Shared buffer (cached)...')
+        const result6 = await this.testSharedBuffer(testSize.address, testSize.length)
+        console.log(`   Time: ${result6.time.toFixed(2)}ms`)
+        console.log(`   Rate: ${(testSize.length / result6.time * 1000).toFixed(0)} bytes/sec`)
+      } catch (error) {
+        console.log(`   ❌ Failed: ${error}`)
+      }
+
+      // Test 7: Memory region read
+      try {
+        console.log('🧠 Memory region read...')
+        const result7 = await this.testMemoryRegionRead(testSize.address, testSize.length)
+        console.log(`   Time: ${result7.time.toFixed(2)}ms`)
+        console.log(`   Rate: ${(testSize.length / result7.time * 1000).toFixed(0)} bytes/sec`)
+      } catch (error) {
+        console.log(`   ❌ Failed: ${error}`)
+      }
+
+      // Test 8: Parallel chunked read
+      try {
+        console.log('⚡ Parallel chunked read...')
+        const result8 = await this.testParallelChunkedRead(testSize.address, testSize.length, 25)
+        console.log(`   Time: ${result8.time.toFixed(2)}ms`)
+        console.log(`   Rate: ${(testSize.length / result8.time * 1000).toFixed(0)} bytes/sec`)
+      } catch (error) {
+        console.log(`   ❌ Failed: ${error}`)
+      }
+
+      // Show cache statistics
+      const cacheStats = this.client.getCacheStats()
+      console.log(`📊 Cache: ${cacheStats.size} regions cached`)
     }
 
     console.log('\n✅ Benchmark completed!')
+    console.log('\n📈 Performance Summary:')
+    console.log('   ⚡ Native readRange API should be fastest')
+    console.log('   💾 Shared buffer provides excellent caching')
+    console.log('   🚀 Bulk read is good fallback option')
+    console.log('   🐌 Individual bytes should be slowest')
   }
 }
 

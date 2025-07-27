@@ -11,17 +11,42 @@ export interface MgbaEvalResponse {
   error?: string
 }
 
+export interface MemoryRegion {
+  address: number
+  size: number
+  data: Uint8Array
+  lastUpdated: number
+  dirty: boolean
+}
+
+export interface SharedBufferConfig {
+  maxCacheSize: number
+  cacheTimeout: number // in milliseconds
+  preloadRegions: Array<{ address: number, size: number }>
+}
+
 export class MgbaWebSocketClient extends EventEmitter {
   private ws: WebSocket | null = null
   private connected = false
   private reconnectAttempts = 0
   private readonly maxReconnectAttempts = 5
   private readonly reconnectDelay = 1000
+  
+  // Shared buffer system for memory caching
+  private memoryCache = new Map<string, MemoryRegion>()
+  private sharedBufferConfig: SharedBufferConfig = {
+    maxCacheSize: 50, // Max number of cached regions
+    cacheTimeout: 5000, // 5 seconds
+    preloadRegions: [
+      { address: 0x20244e9, size: 7 }, // Party count + some context
+      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
+    ]
+  }
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
     super()
     // Increase max listeners to avoid warnings during parallel operations
-    this.setMaxListeners(50)
+    this.setMaxListeners(100)
   }
 
   /**
@@ -159,13 +184,79 @@ export class MgbaWebSocketClient extends EventEmitter {
 
   /**
    * Read multiple bytes from memory (OPTIMIZED VERSION)
-   * Uses bulk Lua operations for ultra-fast reading instead of individual byte reads
+   * Uses the fastest available method: readRange API when possible, falls back to bulk Lua
    */
   async readBytes (address: number, length: number): Promise<Uint8Array> {
-    // Use optimized bulk read for better performance
-    return this.readBytesBulk(address, length)
+    // Use native readRange API for maximum performance
+    return this.readBytesNative(address, length)
   }
 
+  /**
+   * Read multiple bytes using mGBA's native readRange API (FASTEST)
+   * This is the fastest possible method using mGBA's built-in memory reading
+   */
+  async readBytesNative (address: number, length: number): Promise<Uint8Array> {
+    // For very small reads, use bulk Lua which is more reliable
+    if (length <= 10) {
+      return this.readBytesBulk(address, length)
+    }
+    
+    try {
+      // Try using readRange API - it returns binary data as a string
+      const luaCode = `(function()
+        local data = emu:readRange(${address}, ${length})
+        local bytes = {}
+        for i = 1, #data do
+          bytes[i] = string.byte(data, i)
+        end
+        return bytes
+      end)()`
+      
+      const response = await this.eval(luaCode)
+      if (response.error) {
+        throw new Error(`Failed to native read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
+      }
+      
+      return new Uint8Array(response.result as number[])
+    } catch (error) {
+      // Fallback to bulk read if readRange fails
+      console.warn(`readRange failed, falling back to bulk read: ${error}`)
+      return this.readBytesBulk(address, length)
+    }
+  }
+
+  /**
+   * Read multiple bytes using mGBA's native readRange API with Base64 encoding (SAFEST + FAST)
+   * This safely transfers binary data over WebSocket using Base64 encoding
+   */
+  async readBytesNativeBase64 (address: number, length: number): Promise<Uint8Array> {
+    const luaCode = `(function()
+      local data = emu:readRange(${address}, ${length})
+      -- Simple hex encoding instead of Base64 for reliability
+      local hex = ''
+      for i = 1, #data do
+        hex = hex .. string.format('%02x', string.byte(data, i))
+      end
+      return hex
+    end)()`
+    
+    const response = await this.eval(luaCode)
+    if (response.error) {
+      throw new Error(`Failed to hex read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
+    }
+    
+    // Decode hex string to bytes
+    const hexString = response.result as string
+    try {
+      const bytes = new Uint8Array(hexString.length / 2)
+      for (let i = 0; i < hexString.length; i += 2) {
+        bytes[i / 2] = parseInt(hexString.substr(i, 2), 16)
+      }
+      return bytes
+    } catch (error) {
+      throw new Error(`Failed to decode hex response: ${error}`)
+    }
+  }
   /**
    * Read multiple bytes using optimized bulk Lua operations (FAST)
    * This is 100x+ faster than individual byte reads
@@ -266,10 +357,23 @@ export class MgbaWebSocketClient extends EventEmitter {
 
   /**
    * Write multiple bytes to memory (OPTIMIZED VERSION)
-   * Uses bulk Lua operations for better performance
+   * Uses bulk Lua operations and updates shared buffer cache
    */
   async writeBytes (address: number, data: Uint8Array): Promise<void> {
-    return this.writeBytesBulk(address, data)
+    return this.writeBytesBulkNative(address, data)
+  }
+
+  /**
+   * Write multiple bytes using mGBA's native capabilities (FASTEST)
+   */
+  async writeBytesBulkNative (address: number, data: Uint8Array): Promise<void> {
+    // For small writes, use individual byte writes for reliability
+    if (data.length <= 10) {
+      return this.writeBytesBulk(address, data)
+    }
+    
+    // For larger writes, use chunked approach
+    return this.writeBytesChunked(address, data, 100)
   }
 
   /**
@@ -317,6 +421,139 @@ export class MgbaWebSocketClient extends EventEmitter {
       throw new Error(`Failed to get game title: ${response.error}`)
     }
     return response.result as string
+  }
+
+  /**
+   * Configure shared buffer settings
+   */
+  configureSharedBuffer(config: Partial<SharedBufferConfig>): void {
+    this.sharedBufferConfig = { ...this.sharedBufferConfig, ...config }
+  }
+
+  /**
+   * Preload commonly used memory regions into cache
+   */
+  async preloadSharedBuffers(): Promise<void> {
+    console.log('🔄 Preloading shared memory buffers...')
+    
+    for (const region of this.sharedBufferConfig.preloadRegions) {
+      try {
+        await this.getSharedBuffer(region.address, region.size)
+        console.log(`✅ Preloaded region 0x${region.address.toString(16)} (${region.size} bytes)`)
+      } catch (error) {
+        console.warn(`⚠️  Failed to preload region 0x${region.address.toString(16)}: ${error}`)
+      }
+    }
+  }
+
+  /**
+   * Get data from shared buffer (with caching)
+   * This method provides ultra-fast access to frequently used memory regions
+   */
+  async getSharedBuffer(address: number, size: number, useCache: boolean = true): Promise<Uint8Array> {
+    const cacheKey = `${address}-${size}`
+    const now = Date.now()
+    
+    // Check cache first
+    if (useCache) {
+      const cached = this.memoryCache.get(cacheKey)
+      if (cached && !cached.dirty && (now - cached.lastUpdated) < this.sharedBufferConfig.cacheTimeout) {
+        return cached.data
+      }
+    }
+    
+    // Read from memory using fastest method
+    const data = await this.readBytesNative(address, size)
+    
+    // Cache the result
+    if (useCache) {
+      this.memoryCache.set(cacheKey, {
+        address,
+        size,
+        data: new Uint8Array(data), // Make a copy
+        lastUpdated: now,
+        dirty: false
+      })
+      
+      // Cleanup old cache entries if needed
+      this.cleanupCache()
+    }
+    
+    return data
+  }
+
+  /**
+   * Write data to shared buffer and mark cache as dirty
+   */
+  async setSharedBuffer(address: number, data: Uint8Array): Promise<void> {
+    // Write to memory
+    await this.writeBytes(address, data)
+    
+    // Mark related cache entries as dirty
+    for (const [cacheKey, region] of this.memoryCache.entries()) {
+      const regionEnd = region.address + region.size
+      const writeEnd = address + data.length
+      
+      // Check if write overlaps with cached region
+      if (address < regionEnd && writeEnd > region.address) {
+        region.dirty = true
+      }
+    }
+  }
+
+  /**
+   * Invalidate specific cache entry
+   */
+  invalidateCache(address: number, size: number): void {
+    const cacheKey = `${address}-${size}`
+    this.memoryCache.delete(cacheKey)
+  }
+
+  /**
+   * Clear all cached memory
+   */
+  clearCache(): void {
+    this.memoryCache.clear()
+  }
+
+  /**
+   * Clean up old cache entries
+   */
+  private cleanupCache(): void {
+    const now = Date.now()
+    const entries = Array.from(this.memoryCache.entries())
+    
+    // Remove expired entries
+    for (const [key, region] of entries) {
+      if ((now - region.lastUpdated) > this.sharedBufferConfig.cacheTimeout) {
+        this.memoryCache.delete(key)
+      }
+    }
+    
+    // Remove oldest entries if cache is too large
+    if (this.memoryCache.size > this.sharedBufferConfig.maxCacheSize) {
+      const sortedEntries = entries.sort((a, b) => a[1].lastUpdated - b[1].lastUpdated)
+      const toRemove = this.memoryCache.size - this.sharedBufferConfig.maxCacheSize
+      
+      for (let i = 0; i < toRemove; i++) {
+        this.memoryCache.delete(sortedEntries[i][0])
+      }
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): { size: number, regions: Array<{ address: string, size: number, age: number, dirty: boolean }> } {
+    const now = Date.now()
+    const regions = Array.from(this.memoryCache.entries()).map(([key, region]) => ({
+      address: `0x${region.address.toString(16)}`,
+      size: region.size,
+      age: now - region.lastUpdated,
+      dirty: region.dirty
+    }))
+    
+    return { size: this.memoryCache.size, regions }
   }
 
   /**
