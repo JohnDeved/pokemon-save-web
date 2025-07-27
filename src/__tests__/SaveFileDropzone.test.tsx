@@ -45,7 +45,7 @@ describe('SaveFileDropzone Component', () => {
       error: null,
     }
 
-    return render(<SaveFileDropzone {...defaultProps} {...props} />)
+    return render(<SaveFileDropzone {...defaultProps} {...props}/>)
   }
 
   describe('Initial Render', () => {

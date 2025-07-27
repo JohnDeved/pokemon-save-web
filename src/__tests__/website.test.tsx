@@ -65,13 +65,13 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
         mutations: { retry: false },
       },
     })
-    
+
     // Mock fetch for sprite images
     global.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         blob: () => Promise.resolve(new Blob()),
-      } as Response)
+      } satisfies Partial<Response> as Response),
     )
 
     // Mock window.showSaveFilePicker for File System Access API
@@ -88,15 +88,15 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
   const renderApp = () => {
     return render(
       <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
+        <App/>
+      </QueryClientProvider>,
     )
   }
 
   describe('Initial Load', () => {
     it('should render the dropzone when no save file is loaded', () => {
       renderApp()
-      
+
       expect(screen.getByText('Drop your Savegame here')).toBeInTheDocument()
       expect(screen.getByText('or click to browse')).toBeInTheDocument()
       expect(screen.getByText('Supported: .sav, .sa2')).toBeInTheDocument()
@@ -104,7 +104,7 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
 
     it('should show pokeball image in dropzone', () => {
       renderApp()
-      
+
       const pokeball = screen.getByAltText('Pokeball')
       expect(pokeball).toBeInTheDocument()
     })
@@ -113,7 +113,7 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
   describe('Save File Loading', () => {
     it('should handle file loading through dropzone', async () => {
       const { container } = renderApp()
-      
+
       // Mock the parser to return valid save data
       const mockSaveData = {
         party_pokemon: [
@@ -152,7 +152,7 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
       // This test would simulate having save data loaded
       // and verify that the Pokemon are displayed correctly
       renderApp()
-      
+
       // Mock having save data loaded
       // This would require setting up the context/state properly
     })
@@ -160,7 +160,7 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
     it('should allow editing Pokemon stats', () => {
       // Test EV/IV sliders and nature dropdown functionality
       renderApp()
-      
+
       // This would test the stat editing functionality
     })
   })
@@ -168,14 +168,14 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
   describe('File Operations', () => {
     it('should show file menu options when save data is loaded', () => {
       renderApp()
-      
+
       // Mock having save data and test menu options
       // Should show Open, Save As, Download options
     })
 
     it('should handle save file download', () => {
       renderApp()
-      
+
       // Mock the download functionality
       // Verify file-saver is called correctly
     })
@@ -184,13 +184,13 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
   describe('Error Handling', () => {
     it('should show error toast for invalid save files', () => {
       renderApp()
-      
+
       // Test error handling for corrupted/invalid files
     })
 
     it('should handle missing Pokemon data gracefully', () => {
       renderApp()
-      
+
       // Test edge cases with empty/invalid Pokemon data
     })
   })

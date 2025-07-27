@@ -20,7 +20,7 @@ describe('Pokemon Save Web - Basic Health Check', () => {
   it('should have proper package structure', () => {
     // Verify package.json structure
     const packageJson = require('../../package.json')
-    
+
     expect(packageJson.name).toBe('pokemon-save-web')
     expect(packageJson.scripts).toBeDefined()
     expect(packageJson.scripts.dev).toBeDefined()

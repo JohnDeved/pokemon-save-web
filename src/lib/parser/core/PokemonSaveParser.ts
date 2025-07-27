@@ -401,9 +401,8 @@ export class PokemonSaveParser {
     const partyCountBuffer = await this.webSocketClient.getSharedBuffer(memoryAddresses.partyCount, 1)
     const partyCount = partyCountBuffer[0] ?? 0
 
-    const maxPartySize = this.config.saveLayout.maxPartySize as number
-    const pokemonSize = this.config.saveLayout.pokemonSize as number
-    
+    const maxPartySize = this.config.saveLayout.maxPartySize!
+    const pokemonSize = this.config.saveLayout.pokemonSize!
     if (partyCount < 0 || partyCount > maxPartySize) {
       throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-${maxPartySize}.`)
     }
