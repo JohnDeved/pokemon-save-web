@@ -30,7 +30,7 @@ fi
 
 # Verify required files
 SAVESTATE_PATH="/app/data/emerald.ss0"
-LUA_SCRIPT_PATH="/app/data/http-server.lua"
+LUA_SCRIPT_PATH="/app/data/mgba_http_server.lua"
 
 if [ ! -f "$ROM_PATH" ]; then
     echo "❌ ROM file not found at $ROM_PATH"
@@ -64,7 +64,7 @@ echo "✅ mGBA supports --script argument"
 echo "🎮 Starting mGBA with --script HTTP server..."
 cd /app/data
 xvfb-run -a /usr/local/bin/mgba-qt \
-    --script http-server.lua \
+    --script mgba_http_server.lua \
     --savestate emerald.ss0 \
     emerald.gba &
 MGBA_PID=$!

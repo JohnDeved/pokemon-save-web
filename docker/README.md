@@ -1,33 +1,39 @@
 # mGBA Docker Environment
 
-A complete Docker environment for running mGBA emulator with Lua HTTP server automation, enabling cross-platform testing against a real emulator.
+Docker environment for mGBA emulator with Lua HTTP server automation.
 
-## Overview
+## Features
+- Automatic mGBA build with Lua support
+- HTTP API for emulator automation 
+- Auto-downloads Pokémon Emerald ROM
+- Headless operation with xvfb
 
-This Docker environment provides:
-- **Real mGBA Emulator**: Automatically downloads or builds mGBA with Qt frontend and Lua 5.4 support
-- **HTTP Server Automation**: Lua script runs within mGBA providing REST API
-- **Cross-Platform**: Works on Windows, macOS, Linux via Docker
-- **Automatic ROM Setup**: Downloads Pokémon Emerald ROM automatically
-- **Headless Operation**: Uses xvfb for display-less operation
-- **Smart Binary Management**: Downloads prebuilt binary or falls back to source compilation
-- **Zero Setup**: No manual binary preparation required
-
-## Quick Start
-
-**No prerequisites needed** - the environment automatically handles everything:
+## Usage
 
 ```bash
-# Start the mGBA environment (builds automatically)
+# Start mGBA with HTTP server
 npm run mgba:start
 
 # Test HTTP endpoints
 curl http://localhost:7102/
-curl http://localhost:7102/json
 
-# Stop the environment
+# Stop environment
 npm run mgba:stop
 ```
+
+## HTTP API
+
+- `GET /` - Welcome message
+- `GET /json` - JSON API with CORS headers  
+- `POST /echo` - Echo service
+- WebSocket `/ws` - Real-time Lua evaluation
+
+## Files
+
+- `Dockerfile` - mGBA build configuration
+- `docker-compose.yml` - Service definition
+- `entrypoint.sh` - Startup script
+- `docker-mgba.js` - Management script
 
 ## Features
 

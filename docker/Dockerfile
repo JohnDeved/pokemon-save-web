@@ -44,8 +44,7 @@ RUN cmake -B build \
 
 # Create working directory and copy required files
 WORKDIR /app
-COPY docker/data/ /app/data/
-COPY scripts/mgba-lua/http-server.lua /app/data/http-server.lua
+COPY src/lib/parser/__tests__/test_data/ /app/data/
 COPY docker/entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable
