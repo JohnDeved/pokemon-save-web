@@ -26,6 +26,7 @@ dist-ssr
 # Save files and archives
 *.sav
 *.zip
+*.gba
 __MACOSX/
 
 
