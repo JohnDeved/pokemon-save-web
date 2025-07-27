@@ -77,6 +77,7 @@ describe('Memory vs File Parser Comparison', () => {
       console.log('Memory play time:', memorySaveData.play_time)
       expect(memorySaveData.play_time.hours).toBe(fileSaveData.play_time.hours)
       expect(memorySaveData.play_time.minutes).toBe(fileSaveData.play_time.minutes)
+      expect(memorySaveData.play_time.seconds).toBe(fileSaveData.play_time.seconds)
     })
 
     it('should have the same number of party Pokemon', () => {

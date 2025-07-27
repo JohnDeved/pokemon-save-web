@@ -153,21 +153,14 @@ export class MgbaWebSocketClient {
   /**
    * Read multiple bytes from memory
    */
-  async readBytes(address: number, length: number): Promise<Uint8Array> {
-    const code = `
-    local bytes = {}
-    for i = 0, ${length - 1} do
-      bytes[i + 1] = emu:read8(${address} + i)
-    end
-    return bytes
-    `
-    const response = await this.eval(code)
-    if (response.error) {
-      throw new Error(`Failed to read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
+  async readBytes (address: number, length: number): Promise<Uint8Array> {
+    // For debugging, let's read one byte at a time first
+    const bytes: number[] = []
+    for (let i = 0; i < length; i++) {
+      const byte = await this.readByte(address + i)
+      bytes.push(byte)
     }
-    
-    const result = response.result as number[]
-    return new Uint8Array(result)
+    return new Uint8Array(bytes)
   }
 
   /**
@@ -203,14 +196,9 @@ export class MgbaWebSocketClient {
   /**
    * Write multiple bytes to memory
    */
-  async writeBytes(address: number, data: Uint8Array): Promise<void> {
+  async writeBytes (address: number, data: Uint8Array): Promise<void> {
     const bytes = Array.from(data).join(', ')
-    const code = `
-    local data = {${bytes}}
-    for i = 1, #data do
-      emu:write8(${address} + i - 1, data[i])
-    end
-    `
+    const code = `local data = {${bytes}}; for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end`
     const response = await this.eval(code)
     if (response.error) {
       throw new Error(`Failed to write ${data.length} bytes at 0x${address.toString(16)}: ${response.error}`)

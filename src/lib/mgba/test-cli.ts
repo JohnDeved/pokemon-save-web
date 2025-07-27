@@ -12,14 +12,14 @@ import { VanillaConfig } from '../parser/games/vanilla/config'
 import { MgbaWebSocketClient } from './websocket-client'
 import { EmeraldMemoryParser } from './memory-parser'
 
-async function main() {
+async function main () {
   console.log('🔍 mGBA Memory Parser Test Tool')
   console.log('=====================================\n')
 
   try {
     // Load the test save file
     console.log('📁 Loading test save file...')
-    const savePath = resolve(__dirname, '../parser/__tests__/test_data', 'emerald.sav')
+    const savePath = resolve(process.cwd(), 'src/lib/parser/__tests__/test_data', 'emerald.sav')
     const saveBuffer = readFileSync(savePath)
     const testSaveFile = saveBuffer.buffer.slice(saveBuffer.byteOffset, saveBuffer.byteOffset + saveBuffer.byteLength)
     console.log(`✅ Loaded save file: ${savePath} (${testSaveFile.byteLength} bytes)\n`)
@@ -59,7 +59,7 @@ async function main() {
     
     console.log('\n🎮 Player Information:')
     console.log(`  Name:      File="${fileSaveData.player_name}" | Memory="${memorySaveData.player_name}" | ${fileSaveData.player_name === memorySaveData.player_name ? '✅' : '❌'}`)
-    console.log(`  Play Time: File=${fileSaveData.play_time.hours}h ${fileSaveData.play_time.minutes}m | Memory=${memorySaveData.play_time.hours}h ${memorySaveData.play_time.minutes}m | ${fileSaveData.play_time.hours === memorySaveData.play_time.hours && fileSaveData.play_time.minutes === memorySaveData.play_time.minutes ? '✅' : '❌'}`)
+    console.log(`  Play Time: File=${fileSaveData.play_time.hours}h ${fileSaveData.play_time.minutes}m ${fileSaveData.play_time.seconds}s | Memory=${memorySaveData.play_time.hours}h ${memorySaveData.play_time.minutes}m ${memorySaveData.play_time.seconds}s | ${fileSaveData.play_time.hours === memorySaveData.play_time.hours && fileSaveData.play_time.minutes === memorySaveData.play_time.minutes && fileSaveData.play_time.seconds === memorySaveData.play_time.seconds ? '✅' : '❌'}`)
 
     console.log('\n🐾 Party Pokémon:')
     console.log(`  Count: File=${fileSaveData.party_pokemon.length} | Memory=${memorySaveData.party_pokemon.length} | ${fileSaveData.party_pokemon.length === memorySaveData.party_pokemon.length ? '✅' : '❌'}`)
@@ -91,10 +91,11 @@ async function main() {
     let passedChecks = 0
 
     // Basic checks
-    totalChecks += 3 // player name, play time hours, play time minutes
+    totalChecks += 4 // player name, play time hours, play time minutes, play time seconds
     if (fileSaveData.player_name === memorySaveData.player_name) passedChecks++
     if (fileSaveData.play_time.hours === memorySaveData.play_time.hours) passedChecks++
     if (fileSaveData.play_time.minutes === memorySaveData.play_time.minutes) passedChecks++
+    if (fileSaveData.play_time.seconds === memorySaveData.play_time.seconds) passedChecks++
 
     // Pokemon checks
     for (let i = 0; i < maxPokemon; i++) {
