@@ -70,12 +70,12 @@ echo "   Lua Script: $LUA_SCRIPT_PATH"
 
 # Start mGBA with the --script argument to load HTTP server within mGBA Lua API
 echo "🎮 Starting mGBA with --script HTTP server..."
-echo "📄 Script file content (first 20 lines):"
-head -20 "/app/data/http-server.lua"
+echo "📄 Testing with ultra simple HTTP server script:"
+cat "/app/data/ultra-simple-server.lua"
 echo ""
-echo "🚀 Launching mGBA with the actual HTTP server script..."
+echo "🚀 Launching mGBA with the ultra simple HTTP server..."
 /usr/local/bin/mgba-qt \
-    --script "/app/data/http-server.lua" \
+    --script "/app/data/ultra-simple-server.lua" \
     --log-level 31 \
     -t "$SAVESTATE_PATH" \
     "$ROM_PATH" 2>&1 &
