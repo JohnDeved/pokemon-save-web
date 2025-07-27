@@ -69,23 +69,14 @@ export class PokemonSaveParser {
   private config: GameConfig | null = null
   public saveFileName: string | null = null
   public fileHandle: FileSystemFileHandle | null = null
-  private silent = false
 
   // Memory mode properties
   private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
 
-  constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig, silent?: boolean) {
+  constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
     this.config = gameConfig ?? null
-    this.silent = silent ?? false
-  }
-
-  /**
-   * Set silent mode to suppress console output
-   */
-  setSilent (silent: boolean): void {
-    this.silent = silent
   }
 
   /**
@@ -163,7 +154,7 @@ export class PokemonSaveParser {
 
     // Get game title to check compatibility
     const gameTitle = await client.getGameTitle()
-    if (!this.silent) console.log(`Memory mode: Connected to game "${gameTitle}"`)
+    console.log(`Memory mode: Connected to game "${gameTitle}"`)
 
     // Auto-detect config based on game title using overloaded detectGameConfig method
     if (!this.config) {
@@ -179,7 +170,15 @@ export class PokemonSaveParser {
       }
     }
 
-    if (!this.silent) console.log(`Memory mode initialized for ${gameTitle} using config: ${this.config.name}`)
+    console.log(`Memory mode initialized for ${gameTitle} using config: ${this.config.name}`)
+
+    // Configure and preload memory regions if defined in config
+    if (this.config.memoryAddresses?.preloadRegions) {
+      client.configureSharedBuffer({
+        preloadRegions: [...this.config.memoryAddresses.preloadRegions],
+      })
+      await client.preloadSharedBuffers()
+    }
   }
 
   /**
@@ -407,14 +406,14 @@ export class PokemonSaveParser {
       throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-${maxPartySize}.`)
     }
 
-    if (!this.silent) console.log(`📋 Reading ${partyCount} Pokemon from party memory`)
+    console.log(`📋 Reading ${partyCount} Pokemon from party memory`)
 
     const pokemon: PokemonBase[] = []
 
     for (let i = 0; i < partyCount; i++) {
       const pokemonAddress = memoryAddresses.partyData + (i * pokemonSize)
 
-      if (!this.silent) console.log(`  Reading Pokemon ${i + 1} at address 0x${pokemonAddress.toString(16)}`)
+      console.log(`  Reading Pokemon ${i + 1} at address 0x${pokemonAddress.toString(16)}`)
 
       // Read the full Pokemon structure from memory
       const pokemonBytes = await this.webSocketClient.getSharedBuffer(pokemonAddress, pokemonSize)
@@ -428,7 +427,7 @@ export class PokemonSaveParser {
       pokemon.push(pokemonInstance)
     }
 
-    if (!this.silent) console.log(`✅ Successfully read ${pokemon.length} Pokemon from memory`)
+    console.log(`✅ Successfully read ${pokemon.length} Pokemon from memory`)
     return pokemon
   }
 

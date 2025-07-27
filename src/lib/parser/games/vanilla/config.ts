@@ -33,6 +33,10 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
     partyData: 0x20244ec, // _party address from pokemon.lua
     partyCount: 0x20244e9, // _partyCount address from pokemon.lua
     // TODO: Add player name and play time addresses when implemented
+    preloadRegions: [
+      { address: 0x20244e9, size: 7 }, // Party count + context
+      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
+    ],
   } as const
 
   /**

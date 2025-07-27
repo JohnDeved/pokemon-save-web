@@ -183,6 +183,7 @@ export interface GameConfig {
     readonly partyCount: number
     readonly playerName?: number
     readonly playTime?: number
+    readonly preloadRegions?: ReadonlyArray<{ address: number, size: number }>
   }
 
   // Optional behavioral overrides for game-specific mechanics
