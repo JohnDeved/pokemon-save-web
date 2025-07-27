@@ -29,7 +29,7 @@ dist-ssr
 *.gba
 __MACOSX/
 
-# Environment files (keep .env.example)
+# Environment files
 .env
 .env.local
 .env.production
