@@ -149,7 +149,8 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should have valid sector mapping', () => {
-      expect(parsedData.sector_map.size).toBeGreaterThan(0)
+      expect(parsedData.sector_map).toBeDefined()
+      expect(parsedData.sector_map!.size).toBeGreaterThan(0)
       const expectedSectorMap = new Map(
         Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v]),
       )

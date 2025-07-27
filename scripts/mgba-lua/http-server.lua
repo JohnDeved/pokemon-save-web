@@ -606,9 +606,13 @@ app:websocket("/ws", function(ws)
         local function safe_eval()
             console:log("WebSocket eval request: " .. tostring(code))
             local chunk = code
-            if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end)") then
+            
+            -- Enhanced support for non-self-executing function inputs
+            -- Check if it's already a complete statement or needs a return prefix
+            if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
                 chunk = "return " .. code
             end
+            
             local fn, err = load(chunk, "websocket-eval")
             if not fn then
                 ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))

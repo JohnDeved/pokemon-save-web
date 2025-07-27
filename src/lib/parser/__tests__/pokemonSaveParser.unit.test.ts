@@ -54,26 +54,26 @@ describe('Pokemon Save Parser - Unit Tests', () => {
     it('should accept ArrayBuffer input', async () => {
       const parser = new PokemonSaveParser(undefined, quetzalConfig)
       const buffer = new ArrayBuffer(131072) // 128KB
-      await expect(parser.loadSaveFile(buffer)).resolves.not.toThrow()
+      await expect(parser.loadInputData(buffer)).resolves.not.toThrow()
     })
 
     it('should accept File input', async () => {
       const parser = new PokemonSaveParser(undefined, quetzalConfig)
       const buffer = new ArrayBuffer(131072)
       const file = new File([buffer], 'test.sav', { type: 'application/octet-stream' })
-      await expect(parser.loadSaveFile(file)).resolves.not.toThrow()
+      await expect(parser.loadInputData(file)).resolves.not.toThrow()
     })
 
     it('should handle empty ArrayBuffer', async () => {
       const parser = new PokemonSaveParser(undefined, quetzalConfig)
       const emptyBuffer = new ArrayBuffer(0)
-      await expect(parser.loadSaveFile(emptyBuffer)).resolves.not.toThrow() // Loading should work, parsing should fail
+      await expect(parser.loadInputData(emptyBuffer)).resolves.not.toThrow() // Loading should work, parsing should fail
     })
 
     it('should fail auto-detection without config', async () => {
       const parserWithoutConfig = new PokemonSaveParser()
       const buffer = new ArrayBuffer(131072)
-      await expect(parserWithoutConfig.loadSaveFile(buffer)).rejects.toThrow('Unable to detect game type from save file')
+      await expect(parserWithoutConfig.loadInputData(buffer)).rejects.toThrow('Unable to detect game type from save file')
     })
   })
 

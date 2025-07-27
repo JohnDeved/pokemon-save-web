@@ -15,17 +15,18 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
-
     "test": "vitest run",
     "test:run": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-
+    "test:website": "vitest run src/__tests__/health.test.ts src/__tests__/core-functionality.test.ts src/__tests__/integration-workflow.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:all": "npm run test:website && npm run build",
     "parse": "tsx src/lib/parser/cli.ts",
-
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
-
     "mgba:start": "docker compose -f docker/docker-compose.yml up -d",
     "mgba:start:build": "docker compose -f docker/docker-compose.yml up -d --build",
     "mgba:run": "docker compose -f docker/docker-compose.yml up",
@@ -49,6 +50,7 @@
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.0",
+    "isomorphic-ws": "^5.0.0",
     "lucide-react": "^0.525.0",
     "next-themes": "^0.4.6",
     "react-dropzone": "^14.3.8",
@@ -57,10 +59,13 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.11",
     "three": "^0.178.0",
-    "tsx": "^4.20.3",
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^24.1.0",
     "@types/react": "^19.1.8",

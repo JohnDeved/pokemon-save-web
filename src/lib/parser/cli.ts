@@ -5,6 +5,7 @@ import { PokemonSaveParser } from './core/PokemonSaveParser'
 import type { PokemonBase } from './core/PokemonBase'
 import type { SaveData } from './core/types'
 import { bytesToGbaString, gbaStringToBytes } from './core/utils'
+import { MgbaWebSocketClient } from '../mgba/websocket-client'
 
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [
@@ -37,8 +38,8 @@ function pad (str: string, width: number) {
 }
 
 /** Display party Pokémon in a formatted table. */
-const displayPartyPokemon = (party: readonly PokemonBase[]) => {
-  console.log('\n--- Party Pokémon Summary ---')
+const displayPartyPokemon = (party: readonly PokemonBase[], mode = 'FILE') => {
+  console.log(`\n--- Party Pokémon Summary (${mode} MODE) ---`)
   if (!party.length) return void console.log('No Pokémon found in party.')
   const header = PARTY_COLUMNS.map(col => pad(col.label, col.width)).join('')
   console.log(header, `\n${'-'.repeat(header.length)}`)
@@ -49,8 +50,8 @@ const displayPartyPokemon = (party: readonly PokemonBase[]) => {
 }
 
 /** Display player and save game info. */
-const displaySaveblock2Info = ({ player_name, play_time }: SaveData) => {
-  console.log('\n--- SaveBlock2 Data ---')
+const displaySaveblock2Info = ({ player_name, play_time }: SaveData, mode = 'FILE') => {
+  console.log(`\n--- SaveBlock2 Data (${mode} MODE) ---`)
   console.log(`Player Name: ${player_name}`)
   console.log(`Play Time: ${play_time.hours}h ${play_time.minutes}m ${play_time.seconds}s`)
 }
@@ -139,67 +140,246 @@ const displayPartyPokemonGraph = (party: readonly PokemonBase[]) => {
   })
 }
 
-// CLI entry
-const argv = process.argv
-const debug = argv.includes('--debug')
-const graph = argv.includes('--graph')
-const toBytesArg = argv.find(arg => arg.startsWith('--toBytes='))
-if (toBytesArg) {
-  const str = toBytesArg.split('=')[1] ?? ''
-  const bytes = gbaStringToBytes(str, str.length + 1) // +1 for null terminator
-  console.log(`GBA bytes for "${str}":`)
-  console.log(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '))
-  process.exit(0)
+/**
+ * Parse and display save data from either file or WebSocket
+ */
+async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, skipDisplay?: boolean }): Promise<SaveData> {
+  const parser = new PokemonSaveParser()
+  let result: SaveData
+  let mode: string
+
+  if (typeof input === 'string') {
+    // File mode
+    mode = 'FILE'
+    const absPath = path.resolve(input)
+    const buffer = fs.readFileSync(absPath)
+    result = await parser.parseSaveFile(buffer)
+    if (!options.skipDisplay) {
+      console.log(`📁 Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
+    }
+  } else {
+    // WebSocket mode
+    mode = 'MEMORY'
+    result = await parser.parseSaveFile(input)
+    if (!options.skipDisplay) {
+      console.log(`🎮 Connected to: ${parser.gameConfig?.name ?? 'unknown'} (via mGBA WebSocket)`)
+    }
+  }
+
+  if (!options.skipDisplay) {
+    console.log(`Active save slot: ${result.active_slot}`)
+
+    // Only show sector info for file mode (memory mode doesn't have sectors)
+    if (result.sector_map) {
+      console.log(`Valid sectors found: ${result.sector_map.size}`)
+    }
+
+    if (options.graph) {
+      displayPartyPokemonGraph(result.party_pokemon)
+    } else {
+      displayPartyPokemon(result.party_pokemon, mode)
+      if (options.debug) displayPartyPokemonRaw(result.party_pokemon)
+      displaySaveblock2Info(result, mode)
+    }
+  }
+
+  return result
 }
-const toStringArg = argv.find(arg => arg.startsWith('--toString='))
-if (toStringArg) {
-  const hexStr = toStringArg.split('=')[1] ?? ''
-  // Accepts space or comma separated hex bytes
-  const bytes = new Uint8Array(
-    hexStr
-      .trim()
-      .split(/\s+|,/)
-      .filter(Boolean)
-      .map(b => parseInt(b, 16)),
-  )
-  const str = bytesToGbaString(bytes)
-  console.log(`String for bytes [${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`)
-  console.log(str)
-  process.exit(0)
+
+/**
+ * Clear screen and move cursor to top
+ */
+function clearScreen () {
+  process.stdout.write('\x1b[2J\x1b[H')
 }
-const savePath = argv.find(arg => arg.match(/\.sav$/i) && fs.existsSync(path.resolve(arg)))
-if (!savePath) {
-  console.error(`\nUsage: tsx cli.ts <savefile.sav> [options]
+
+/**
+ * Watch mode - continuously monitor and update display
+ */
+async function watchMode (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
+  console.log(`🔄 Starting watch mode (updating every ${options.interval}ms)...`)
+  console.log('Press Ctrl+C to exit')
+
+  // Create parser once and reuse it
+  const parser = new PokemonSaveParser()
+  let lastDataHash = ''
+  let isFirstRun = true
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  while (true) {
+    try {
+      // Parse save data without re-initializing parser or reconnecting
+      let result: SaveData
+      if (typeof input === 'string') {
+        const absPath = path.resolve(input)
+        const buffer = fs.readFileSync(absPath)
+        result = await parser.parseSaveFile(buffer)
+      } else {
+        result = await parser.parseSaveFile(input)
+      }
+
+      // Create a simple hash of the party data to detect changes
+      const dataHash = JSON.stringify(
+        result.party_pokemon.map(p => ({
+          species: p.speciesId,
+          level: p.level,
+          hp: p.currentHp,
+          nickname: p.nickname,
+        })),
+      )
+
+      // Only update display if party data changed or first run
+      if (dataHash !== lastDataHash || isFirstRun) {
+        clearScreen()
+        // Only show party summary - no other logs
+        displayPartyPokemon(result.party_pokemon, typeof input === 'string' ? 'FILE' : 'MEMORY')
+
+        lastDataHash = dataHash
+        isFirstRun = false
+      }
+    } catch (error) {
+      // Silent error handling - don't clear screen or show errors unless critical
+      console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
+    }
+
+    await new Promise(resolve => setTimeout(resolve, options.interval))
+  }
+}
+
+// CLI entry point
+async function main () {
+  const argv = process.argv
+
+  // Parse command line options
+  const debug = argv.includes('--debug')
+  const graph = argv.includes('--graph')
+  const watch = argv.includes('--watch')
+  const websocket = argv.includes('--websocket')
+
+  // Watch interval option
+  const intervalArg = argv.find(arg => arg.startsWith('--interval='))
+  const interval = intervalArg ? parseInt(intervalArg.split('=')[1] ?? '1000') : 1000
+
+  // WebSocket URL option
+  const wsUrlArg = argv.find(arg => arg.startsWith('--ws-url='))
+  const wsUrl = wsUrlArg ? wsUrlArg.split('=')[1] : 'ws://localhost:7102/ws'
+
+  // Utility string conversion functions
+  const toBytesArg = argv.find(arg => arg.startsWith('--toBytes='))
+  if (toBytesArg) {
+    const str = toBytesArg.split('=')[1] ?? ''
+    const bytes = gbaStringToBytes(str, str.length + 1) // +1 for null terminator
+    console.log(`GBA bytes for "${str}":`)
+    console.log(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '))
+    process.exit(0)
+  }
+
+  const toStringArg = argv.find(arg => arg.startsWith('--toString='))
+  if (toStringArg) {
+    const hexStr = toStringArg.split('=')[1] ?? ''
+    // Accepts space or comma separated hex bytes
+    const bytes = new Uint8Array(
+      hexStr
+        .trim()
+        .split(/\s+|,/)
+        .filter(Boolean)
+        .map(b => parseInt(b, 16)),
+    )
+    const str = bytesToGbaString(bytes)
+    console.log(`String for bytes [${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`)
+    console.log(str)
+    process.exit(0)
+  }
+
+  // Determine input source
+  let input: string | MgbaWebSocketClient
+
+  if (websocket) {
+    // WebSocket mode
+    console.log(`🔌 Connecting to mGBA WebSocket at ${wsUrl}...`)
+    const client = new MgbaWebSocketClient(wsUrl)
+
+    try {
+      await client.connect()
+      console.log('✅ Connected successfully!')
+      input = client
+
+      // Setup cleanup on exit
+      process.on('SIGINT', () => {
+        console.log('\n🔌 Disconnecting from mGBA...')
+        client.disconnect()
+        process.exit(0)
+      })
+    } catch (error) {
+      console.error('❌ Failed to connect to mGBA WebSocket:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('💡 Make sure mGBA Docker container is running: npm run mgba:start')
+      process.exit(1)
+    }
+  } else {
+    // File mode
+    const savePath = argv.find(arg => arg.match(/\.sav$/i) && fs.existsSync(path.resolve(arg)))
+    if (!savePath) {
+      console.error(`\nUsage: tsx cli.ts [savefile.sav] [options]
 
 Options:
-  --debug           Show raw bytes for each party Pokémon after the summary table
-  --graph           Show colored hex/field graph for each party Pokémon (instead of summary table)
-  --toBytes=STRING  Convert a string to GBA byte encoding and print the result
-  --toString=HEX    Convert a space/comma-separated hex byte string to a decoded GBA string
+  --websocket           Connect to mGBA via WebSocket instead of reading a file
+  --ws-url=URL          WebSocket URL (default: ws://localhost:7102/ws)
+  --watch               Continuously monitor for changes and update display
+  --interval=MS         Update interval in milliseconds for watch mode (default: 1000)
+  --debug               Show raw bytes for each party Pokémon after the summary table
+  --graph               Show colored hex/field graph for each party Pokémon (instead of summary table)
+  --toBytes=STRING      Convert a string to GBA byte encoding and print the result
+  --toString=HEX        Convert a space/comma-separated hex byte string to a decoded GBA string
 
 Examples:
   tsx cli.ts mysave.sav --debug
-  tsx cli.ts mysave.sav --graph
+  tsx cli.ts mysave.sav --graph --watch
+  tsx cli.ts --websocket --watch --interval=2000
+  tsx cli.ts --websocket --debug
   tsx cli.ts --toBytes=PIKACHU
   tsx cli.ts --toString="50 49 4b 41 43 48 55 00"
+
+WebSocket Mode:
+  Requires mGBA Docker container to be running with WebSocket API enabled.
+  Start with: npm run mgba:start
 `)
-  process.exit(1)
-}
-const absPath = path.resolve(savePath)
-const buffer = fs.readFileSync(absPath)
-const parser = new PokemonSaveParser()
-try {
-  const result = await parser.parseSaveFile(buffer)
-  console.log(`Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
-  console.log(`Active save slot: ${result.active_slot}`)
-  console.log(`Valid sectors found: ${result.sector_map.size}`)
-  if (graph) displayPartyPokemonGraph(result.party_pokemon)
-  else {
-    displayPartyPokemon(result.party_pokemon)
-    if (debug) displayPartyPokemonRaw(result.party_pokemon)
-    displaySaveblock2Info(result)
+      process.exit(1)
+    }
+    input = savePath
   }
-} catch (err) {
-  console.error('Failed to parse save file:', err)
-  process.exit(1)
+
+  // Parse options
+  const options = { debug, graph, interval }
+
+  try {
+    if (watch) {
+      // Watch mode - continuous monitoring
+      await watchMode(input, options)
+    } else {
+      // Single run mode
+      await parseAndDisplay(input, options)
+
+      // Cleanup WebSocket if used
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (input instanceof MgbaWebSocketClient) {
+        input.disconnect()
+      }
+    }
+  } catch (err) {
+    console.error('❌ Failed to parse save data:', err instanceof Error ? err.message : 'Unknown error')
+
+    // Cleanup WebSocket if used
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (input instanceof MgbaWebSocketClient) {
+      input.disconnect()
+    }
+
+    process.exit(1)
+  }
 }
+
+// Run the CLI
+main().catch(error => {
+  console.error('❌ Unexpected error:', error)
+  process.exit(1)
+})

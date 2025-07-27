@@ -23,17 +23,27 @@ export class GameConfigRegistry {
   }
 
   /**
-   * Auto-detect the appropriate game configuration for save data
-   * @param saveData The save file data to analyze
-   * @returns The best matching game config, or null if none match
+   * Auto-detect the appropriate game configuration for save data or memory
    */
-  detectGameConfig (saveData: Uint8Array): GameConfig | null {
+  detectGameConfig (saveData: Uint8Array): GameConfig | null
+  detectGameConfig (gameTitle: string): GameConfig | null
+  detectGameConfig (input: Uint8Array | string): GameConfig | null {
     // Try each registered config in order
     for (const ConfigClass of this.configs) {
       try {
         const config = new ConfigClass()
-        if (config.canHandle(saveData)) {
-          return config
+
+        // Check if input is save data (Uint8Array) or game title (string)
+        if (typeof input === 'string') {
+          // Memory mode: check if config can handle this game title
+          if (config.canHandleMemory?.(input)) {
+            return config
+          }
+        } else {
+          // File mode: check if config can handle this save data
+          if (config.canHandle(input)) {
+            return config
+          }
         }
       } catch {
         // If config creation or detection fails, continue to next

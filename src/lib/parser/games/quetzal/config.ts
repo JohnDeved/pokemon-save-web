@@ -50,6 +50,14 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
+  // Memory addresses for Quetzal ROM hack (if different from vanilla)
+  // TODO: Update these if Quetzal has different memory layout
+  readonly memoryAddresses = {
+    partyData: 0x20244ec, // Same as vanilla for now
+    partyCount: 0x20244e9, // Same as vanilla for now
+    // TODO: Add player name and play time addresses when implemented
+  } as const
+
   // Quetzal-specific offsets for unencrypted data
   private readonly quetzalOffsets = {
     species: 0x28,
@@ -216,5 +224,14 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     } catch {
       return false
     }
+  }
+
+  /**
+   * Check if this config can handle memory parsing for the given game title
+   * Currently not supported for Quetzal
+   */
+  canHandleMemory (_gameTitle: string): boolean {
+    // Return false for now until we implement Quetzal memory support
+    return false
   }
 }

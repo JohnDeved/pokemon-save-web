@@ -4,5 +4,13 @@
   ],
   "parserOptions": {
     "project": "./tsconfig.app.json"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/__tests__/**/*", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+      "parserOptions": {
+        "project": "./tsconfig.test.json"
+      }
+    }
+  ]
 }
