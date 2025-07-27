@@ -7,8 +7,8 @@ import type { Page } from '@playwright/test'
 import { test, expect } from '@playwright/test'
 import path from 'path'
 
-// Path to test save file
-const testSaveFile = path.join(__dirname, '../lib/parser/__tests__/test_data/emerald.sav')
+// Path to test save file (declared but not used in basic tests)
+// const testSaveFile = path.join(__dirname, '../lib/parser/__tests__/test_data/emerald.sav')
 
 test.describe('Pokemon Save Web - E2E Tests', () => {
   test.beforeEach(async ({ page }) => {

@@ -44,7 +44,7 @@ describe('Parser CLI Tests', () => {
       } catch (error: unknown) {
         const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
         const output = execError.stderr ?? execError.stdout
-        expect(output).toContain('Usage: tsx cli.ts <savefile.sav> [options]')
+        expect(output).toContain('Usage: tsx cli.ts [savefile.sav] [options]')
         expect(output).toContain('--debug')
         expect(output).toContain('--graph')
         expect(output).toContain('--toBytes')
@@ -63,7 +63,7 @@ describe('Parser CLI Tests', () => {
       } catch (error: unknown) {
         const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
         const output = execError.stderr ?? execError.stdout
-        expect(output).toContain('Usage: tsx cli.ts <savefile.sav> [options]')
+        expect(output).toContain('Usage: tsx cli.ts [savefile.sav] [options]')
         expect(execError.status).toBe(1)
       }
     })
@@ -88,13 +88,13 @@ describe('Parser CLI Tests', () => {
       const result = execSync(`tsx "${cliPath}" "${testSavePath}"`, { encoding: 'utf8' })
       expect(result).toContain('Active save slot:')
       expect(result).toContain('Valid sectors found:')
-      expect(result).toContain('--- Party Pokémon Summary ---')
+      expect(result).toContain('--- Party Pokémon Summary (FILE MODE) ---')
       expect(result).toContain('Player Name: John')
     })
 
     it('should show debug output with --debug flag', () => {
       const result = execSync(`tsx "${cliPath}" "${testSavePath}" --debug`, { encoding: 'utf8' })
-      expect(result).toContain('--- Party Pokémon Summary ---')
+      expect(result).toContain('--- Party Pokémon Summary (FILE MODE) ---')
       expect(result).toContain('--- Party Pokémon Raw Bytes ---')
       expect(result).toMatch(/^[0-9a-f\s]+$/m) // Should contain hex bytes
     })
@@ -121,7 +121,7 @@ describe('Parser CLI Tests', () => {
         execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: unknown) {
         const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
-        expect(execError.stderr ?? execError.stdout).toContain('Failed to parse save file:')
+        expect(execError.stderr ?? execError.stdout).toContain('❌ Failed to parse save data:')
         expect(execError.status).toBe(1)
       }
     })

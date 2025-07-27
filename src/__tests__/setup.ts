@@ -4,7 +4,11 @@
  */
 
 import '@testing-library/jest-dom'
+import React from 'react'
 import { vi } from 'vitest'
+
+// Make React available globally for JSX transform
+global.React = React
 
 // Mock ResizeObserver which might be used by components
 global.ResizeObserver = vi.fn().mockImplementation(() => ({

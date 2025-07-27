@@ -21,7 +21,8 @@ describe('Pokemon Save Web - Core Functionality', () => {
     it('should detect WebSocket client input correctly', async () => {
       const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
 
-      const parser = new PokemonSaveParser()
+      // Test that PokemonSaveParser can be instantiated
+      expect(() => new PokemonSaveParser()).not.toThrow()
 
       // Mock WebSocket client
       const mockWebSocketClient = {
