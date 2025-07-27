@@ -209,6 +209,17 @@ export class MgbaWebSocketClient {
   }
 
   /**
+   * Get the current game title to check compatibility
+   */
+  async getGameTitle(): Promise<string> {
+    const response = await this.eval(`emu:getGameTitle()`)
+    if (response.error) {
+      throw new Error(`Failed to get game title: ${response.error}`)
+    }
+    return response.result as string
+  }
+
+  /**
    * Attempt to reconnect to the WebSocket server
    */
   private async attemptReconnect(): Promise<void> {

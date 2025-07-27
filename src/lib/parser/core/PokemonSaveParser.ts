@@ -13,7 +13,9 @@ import type {
 import { VANILLA_EMERALD_SIGNATURE, VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from './types'
 import { PokemonBase } from './PokemonBase'
 import { GameConfigRegistry } from '../games'
-import { WebSocketClient } from './WebSocketClient'
+
+// Use the existing working WebSocket client from mgba module
+import type { MgbaWebSocketClient } from '../../mgba/websocket-client'
 
 // Import character map for decoding text
 import charMap from '../data/pokemon_charmap.json'
@@ -82,7 +84,7 @@ export class PokemonSaveParser {
   public fileHandle: FileSystemFileHandle | null = null
 
   // Memory mode properties
-  private webSocketClient: WebSocketClient | null = null
+  private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
@@ -94,14 +96,14 @@ export class PokemonSaveParser {
    * Load save file data from a File, ArrayBuffer, or WebSocket connection
    * When WebSocket is provided, switches to memory mode
    */
-  async loadSaveFile (input: File | ArrayBuffer | FileSystemFileHandle | WebSocketClient): Promise<void> {
+  async loadSaveFile (input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<void> {
     try {
       // Always clear sectorMap before loading new data to avoid stale state
       this.sectorMap.clear()
 
       // Check if input is a WebSocket client for memory mode
-      if (input instanceof WebSocketClient) {
-        await this.initializeMemoryMode(input)
+      if (input && typeof input === 'object' && 'isConnected' in input && typeof input.isConnected === 'function') {
+        await this.initializeMemoryMode(input as MgbaWebSocketClient)
         return
       }
 
@@ -154,7 +156,7 @@ export class PokemonSaveParser {
   /**
    * Initialize memory mode with WebSocket client
    */
-  private async initializeMemoryMode(client: WebSocketClient): Promise<void> {
+  private async initializeMemoryMode(client: MgbaWebSocketClient): Promise<void> {
     this.webSocketClient = client
     this.isMemoryMode = true
 
@@ -169,8 +171,21 @@ export class PokemonSaveParser {
 
     // Auto-detect config based on game title if not provided
     if (!this.config) {
-      if (gameTitle.includes('EMERALD') || gameTitle.includes('Emerald')) {
-        this.config = GameConfigRegistry.getConfig('emerald')
+      if (gameTitle.includes('EMERALD') || gameTitle.includes('Emerald') || gameTitle.includes('EMER')) {
+        // Use the singleton registry instance
+        const configs = GameConfigRegistry.getRegisteredConfigs()
+        for (const ConfigClass of configs) {
+          try {
+            const config = new ConfigClass()
+            if (config.name.toLowerCase().includes('emerald') || config.name.toLowerCase().includes('vanilla')) {
+              this.config = config
+              break
+            }
+          } catch {
+            continue
+          }
+        }
+        
         if (!this.config) {
           throw new Error('Emerald config not found in registry')
         }
@@ -520,7 +535,7 @@ export class PokemonSaveParser {
    * Parse the complete save file and return structured data
    * Now supports both file and memory input via WebSocket
    */
-  async parseSaveFile (input: File | ArrayBuffer | FileSystemFileHandle | WebSocketClient): Promise<SaveData> {
+  async parseSaveFile (input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<SaveData> {
     await this.loadSaveFile(input)
 
     // Memory mode: read directly from emulator memory
@@ -670,7 +685,7 @@ export class PokemonSaveParser {
   /**
    * Get the WebSocket client (for memory mode)
    */
-  getWebSocketClient(): WebSocketClient | null {
+  getWebSocketClient(): MgbaWebSocketClient | null {
     return this.webSocketClient
   }
 }

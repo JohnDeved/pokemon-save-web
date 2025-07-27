@@ -1,23 +1,43 @@
-# mGBA Memory Integration Documentation
+# mGBA Memory Integration
 
-This document describes the integration between the Pokémon save parser and mGBA's WebSocket eval API for real-time memory reading and writing.
+This module provides WebSocket-based memory access to mGBA emulator for Pokémon Emerald save data. The core `PokemonSaveParser` automatically switches to memory mode when passed an `MgbaWebSocketClient`.
 
-## Overview
+## Quick Start
 
-The mGBA integration allows reading and writing Pokémon Emerald save data directly from emulator memory, mirroring the functionality of the existing file-based parser. This enables real-time monitoring and modification of game state while playing.
+```typescript
+import { MgbaWebSocketClient } from '@/lib/mgba'
+import { PokemonSaveParser } from '@/lib/parser/core/PokemonSaveParser'
 
-## Architecture
+// Connect to mGBA Docker environment
+const client = new MgbaWebSocketClient()
+await client.connect()
 
-### Components
+// Use the core parser with memory mode
+const parser = new PokemonSaveParser()
+await parser.loadSaveFile(client)  // Automatically switches to memory mode
+const saveData = await parser.parseSaveFile(client)  // Same interface as file parsing
 
-1. **MgbaWebSocketClient** (`src/lib/mgba/websocket-client.ts`)
-   - WebSocket client for connecting to mGBA's Lua HTTP server
-   - Provides basic memory read/write operations
-   - Handles connection management and error recovery
+console.log(`Party size: ${saveData.party_pokemon.length}`)
+console.log(`First Pokemon: Species ${saveData.party_pokemon[0].speciesId}`)
+```
 
-2. **Memory Mapping** (`src/lib/mgba/memory-mapping.ts`)
-   - Maps save file offsets to memory addresses in mGBA
-   - Based on pokeemerald repository structure
+## Features
+
+- **Seamless Integration**: Same `PokemonSaveParser` interface for both file and memory operations
+- **Automatic Mode Detection**: Parser detects WebSocket input and switches to memory mode
+- **Game Compatibility Check**: Uses `emu:getGameTitle()` to verify supported games
+- **Real-time Access**: Read and write Pokemon data directly from emulator memory
+- **Fixed Memory Addresses**: Based on official mGBA pokemon.lua script for 100% accuracy
+
+## Components
+
+### MgbaWebSocketClient
+WebSocket client for connecting to mGBA's eval API with basic memory operations:
+- `readByte(address)` / `writeByte(address, value)`
+- `readWord(address)` / `writeWord(address, value)`  
+- `readDWord(address)` / `writeDWord(address, value)`
+- `readBytes(address, length)` / `writeBytes(address, data)`
+- `getGameTitle()` - Game compatibility detection
    - Provides utilities for address calculation and data layout
 
 3. **EmeraldMemoryParser** (`src/lib/mgba/memory-parser.ts`)
