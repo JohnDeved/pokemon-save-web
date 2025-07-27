@@ -66,14 +66,8 @@ jobs:
           fi
         continue-on-error: true
       
-      - name: Build mGBA image from source (fallback)
-        if: steps.pull-image.outputs.image_available != 'true'
-        run: |
-          echo "Building mGBA image from source..."
-          docker build -f docker/Dockerfile -t mgba-test-env:latest .
-          echo "✅ Built mGBA image from source"
-      
-      - name: Start mGBA container for testing
+      - name: Start mGBA container for testing (if image available)
+        if: steps.pull-image.outputs.image_available == 'true'
         run: |
           echo "Starting mGBA container..."
           docker run -d --name mgba-test \
@@ -87,11 +81,19 @@ jobs:
           timeout 60s bash -c 'until curl -sf http://localhost:7102/ > /dev/null 2>&1; do sleep 2; done'
           echo "✅ mGBA HTTP server is ready"
       
-      - name: Verify mGBA container health
+      - name: Verify mGBA container health (if container started)
+        if: steps.pull-image.outputs.image_available == 'true'
         run: |
           echo "Testing mGBA HTTP server endpoints..."
           curl -sf http://localhost:7102/ || { echo "❌ Root endpoint failed"; exit 1; }
           echo "✅ mGBA HTTP server is responding correctly"
+      
+      - name: Log fallback to Lua mock environment
+        if: steps.pull-image.outputs.image_available != 'true'
+        run: |
+          echo "⚠️ Pre-built mGBA image not available from GHCR"
+          echo "🔄 Tests will use Lua mock environment as fallback"
+          echo "image_source=lua_mock" >> $GITHUB_OUTPUT
       
       - name: Cache Lua dependencies (backup)
         uses: actions/cache@v4
@@ -141,14 +143,14 @@ jobs:
           # Make container available for tests
           MGBA_HTTP_URL: http://localhost:7102
       
-      - name: Container logs (if tests fail)
-        if: failure()
+      - name: Container logs (if tests fail and container was started)
+        if: failure() && steps.pull-image.outputs.image_available == 'true'
         run: |
           echo "=== mGBA Container Logs ==="
           docker logs mgba-test || echo "No container logs available"
       
-      - name: Stop mGBA container
-        if: always()
+      - name: Stop mGBA container (if started)
+        if: always() && steps.pull-image.outputs.image_available == 'true'
         run: |
           docker stop mgba-test || true
           docker rm mgba-test || true

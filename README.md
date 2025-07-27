@@ -36,18 +36,17 @@ npx github:JohnDeved/pokemon-save-web save.sav --debug
 
 ## mGBA Docker Environment
 
-For Lua HTTP server testing and emulation support, this project includes a pre-built Docker image with mGBA:
+For Lua HTTP server testing and emulation support, this project uses a pre-built Docker image with mGBA from GitHub Container Registry (GHCR):
 
 ```bash
-# Quick start with pre-built image (recommended)
-npm run mgba:pull
-npm run mgba:start:prebuilt
-
-# Or build from source (slower)
+# Start with pre-built image (default, recommended)
 npm run mgba:start
+
+# Or build from source if needed
+npm run mgba:start:build
 ```
 
-The HTTP server will be available at `http://localhost:7102`. For detailed information about the container registry, image usage, and CI/CD integration, see [CONTAINER_REGISTRY.md](./CONTAINER_REGISTRY.md).
+The HTTP server will be available at `http://localhost:7102`. The setup automatically tries to use pre-built images from GHCR and falls back to building locally if unavailable.
 
 ### As a Library
 ```typescript

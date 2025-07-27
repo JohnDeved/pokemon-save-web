@@ -26,10 +26,10 @@
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
 
-    "mgba:start": "docker compose -f docker/docker-compose.yml up -d --build",
-    "mgba:start:prebuilt": "MGBA_IMAGE=ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest docker compose -f docker/docker-compose.yml up -d",
-    "mgba:run": "docker compose -f docker/docker-compose.yml up --build",
-    "mgba:run:prebuilt": "MGBA_IMAGE=ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest docker compose -f docker/docker-compose.yml up",
+    "mgba:start": "docker compose -f docker/docker-compose.yml up -d",
+    "mgba:start:build": "docker compose -f docker/docker-compose.yml up -d --build",
+    "mgba:run": "docker compose -f docker/docker-compose.yml up",
+    "mgba:run:build": "docker compose -f docker/docker-compose.yml up --build",
     "mgba:stop": "docker compose -f docker/docker-compose.yml down",
     "mgba:build": "docker build -f docker/Dockerfile -t mgba-test-env:latest .",
     "mgba:pull": "docker pull ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest"
