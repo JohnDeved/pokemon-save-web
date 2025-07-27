@@ -8,8 +8,8 @@ import type { GameConfig } from '../parser/core/types'
 import type { MgbaWebSocketClient } from './websocket-client'
 import {
   getPartyPokemonAddress,
-  getPokemonFieldAddress,
-  POKEMON_STRUCT
+  POKEMON_STRUCT,
+  SAVEBLOCK1_LAYOUT
 } from './memory-mapping'
 
 export class MemoryPokemon extends PokemonBase {
@@ -21,6 +21,7 @@ export class MemoryPokemon extends PokemonBase {
     pokemonIndex: number,
     client: MgbaWebSocketClient,
     config: GameConfig,
+    saveBlock1Address: number,
     initialData?: Uint8Array
   ) {
     // Create initial data buffer if not provided
@@ -29,7 +30,7 @@ export class MemoryPokemon extends PokemonBase {
 
     this.pokemonIndex = pokemonIndex
     this.client = client
-    this.baseAddress = getPartyPokemonAddress(pokemonIndex)
+    this.baseAddress = getPartyPokemonAddress(saveBlock1Address, pokemonIndex)
   }
 
   /**
@@ -139,7 +140,7 @@ export class MemoryPokemon extends PokemonBase {
   private async writeSingleField (field: keyof typeof POKEMON_STRUCT, value: number, bytes: number): Promise<void> {
     if (!this.client.isConnected()) return
 
-    const address = getPokemonFieldAddress(this.baseAddress, field)
+    const address = this.baseAddress + POKEMON_STRUCT[field]
 
     switch (bytes) {
       case 1:
@@ -149,7 +150,7 @@ export class MemoryPokemon extends PokemonBase {
         await this.client.writeWord(address, value & 0xFFFF)
         break
       case 4:
-        await this.client.writeDWord(address, value >>> 0)
+        await this.client.writeDWord(address, value)
         break
       default:
         throw new Error(`Unsupported field size: ${bytes} bytes`)

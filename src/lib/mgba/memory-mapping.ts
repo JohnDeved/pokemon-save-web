@@ -2,8 +2,11 @@
  * Pokémon Emerald memory layout mapping
  * Based on pokeemerald repository: https://github.com/pret/pokeemerald
  * 
- * This maps save file offsets to their corresponding in-memory addresses
- * for Pokémon Emerald running in mGBA.
+ * Key findings from pokeemerald source analysis:
+ * - Save data is loaded into EWRAM with dynamic offsets (ASLR)
+ * - gSaveBlock1Ptr and gSaveBlock2Ptr point to actual structures
+ * - Addresses change each time the game loads for security
+ * - Must scan memory to find actual locations at runtime
  */
 
 // Memory regions in GBA
@@ -19,32 +22,66 @@ export const MEMORY_REGIONS = {
 } as const
 
 /**
- * Pokémon Emerald save game structure in memory
- * Based on pokeemerald/include/global.h and save.h
- * 
- * The save data is typically loaded into EWRAM during gameplay
- * These addresses are based on the pokeemerald source code analysis
+ * SaveBlock1 structure layout from pokeemerald/include/global.h
+ * This contains the main gameplay data including party Pokemon
  */
-export const EMERALD_SAVE_LAYOUT = {
-  // Main save data structure starts at a specific offset in EWRAM
-  SAVE_DATA_BASE: 0x02025734, // gSaveBlock1Ptr location
+export const SAVEBLOCK1_LAYOUT = {
+  // Position and warp data (0x00-0x2B)
+  POS: 0x00,                    // struct Coords16 pos
+  LOCATION: 0x04,               // struct WarpData location
+  CONTINUE_GAME_WARP: 0x0C,     // struct WarpData continueGameWarp
+  DYNAMIC_WARP: 0x14,           // struct WarpData dynamicWarp
+  LAST_HEAL_LOCATION: 0x1C,     // struct WarpData lastHealLocation
+  ESCAPE_WARP: 0x24,            // struct WarpData escapeWarp
   
-  // SaveBlock1 - Player and game state data
-  PLAYER_NAME: 0x00,          // Offset from save base
-  PLAYER_GENDER: 0x08,        // u8
-  PLAYER_ID: 0x0A,           // u16 - Trainer ID
-  PLAYER_SECRET_ID: 0x0C,    // u16 - Secret ID
-  PLAY_TIME_HOURS: 0x0E,     // u16
-  PLAY_TIME_MINUTES: 0x10,   // u8
-  PLAY_TIME_SECONDS: 0x11,   // u8
-  PLAY_TIME_FRAMES: 0x12,    // u8
+  // Game state (0x2C-0x233)
+  SAVED_MUSIC: 0x2C,            // u16
+  WEATHER: 0x2E,                // u8
+  WEATHER_CYCLE_STAGE: 0x2F,    // u8
+  FLASH_LEVEL: 0x30,            // u8
+  MAP_LAYOUT_ID: 0x32,          // u16
+  MAP_VIEW: 0x34,               // u16[0x100] - 256 entries
   
-  // Party Pokemon data
-  PARTY_COUNT: 0x234,        // u32 - Number of Pokemon in party
-  PARTY_POKEMON: 0x238,      // Array of Pokemon structs (100 bytes each)
+  // Party Pokemon data (0x234-0x48F)
+  PARTY_COUNT: 0x234,           // u8 playerPartyCount
+  PARTY_POKEMON: 0x238,         // struct Pokemon[PARTY_SIZE] - 6 Pokemon, 100 bytes each
   
-  // Box Pokemon (PC Storage)
-  BOX_POKEMON: 0x83B4,       // Array of box Pokemon
+  // Money and items (0x490+)
+  MONEY: 0x490,                 // u32
+  COINS: 0x494,                 // u16
+  REGISTERED_ITEM: 0x496,       // u16
+  PC_ITEMS: 0x498,              // struct ItemSlot[PC_ITEMS_COUNT]
+  BAG_ITEMS: 0x560,             // struct ItemSlot[BAG_ITEMS_COUNT]
+  BAG_KEY_ITEMS: 0x5D8,         // struct ItemSlot[BAG_KEYITEMS_COUNT]
+  BAG_POKEBALLS: 0x650,         // struct ItemSlot[BAG_POKEBALLS_COUNT]
+  BAG_TMHM: 0x690,              // struct ItemSlot[BAG_TMHM_COUNT]
+  BAG_BERRIES: 0x790,           // struct ItemSlot[BAG_BERRIES_COUNT]
+  
+} as const
+
+/**
+ * SaveBlock2 structure layout from pokeemerald/include/global.h
+ * This contains player profile and options data
+ */
+export const SAVEBLOCK2_LAYOUT = {
+  // Player info (0x00-0x17)
+  PLAYER_NAME: 0x00,            // u8[PLAYER_NAME_LENGTH + 1] - 8 bytes
+  PLAYER_GENDER: 0x08,          // u8 - MALE/FEMALE
+  SPECIAL_SAVE_WARP_FLAGS: 0x09, // u8
+  PLAYER_TRAINER_ID: 0x0A,      // u8[TRAINER_ID_LENGTH] - 4 bytes
+  PLAY_TIME_HOURS: 0x0E,        // u16
+  PLAY_TIME_MINUTES: 0x10,      // u8
+  PLAY_TIME_SECONDS: 0x11,      // u8
+  PLAY_TIME_VBLANKS: 0x12,      // u8
+  OPTIONS_BUTTON_MODE: 0x13,    // u8
+  OPTIONS_FLAGS: 0x14,          // u16 - packed options
+  
+  // Game data (0x18+)
+  POKEDEX: 0x18,                // struct Pokedex
+  LOCAL_TIME_OFFSET: 0x98,      // struct Time
+  LAST_BERRY_TREE_UPDATE: 0xA0, // struct Time
+  GCN_LINK_FLAGS: 0xA8,         // u32
+  ENCRYPTION_KEY: 0xAC,         // u32
   
 } as const
 
@@ -187,43 +224,37 @@ export function getGender(personality: number, species: number): 'Male' | 'Femal
 
 /**
  * Map save file offset to memory address
- * This function translates offsets used in the save file parser
- * to their corresponding memory addresses in mGBA
+ * NOTE: This function is deprecated. In Emerald, save data is loaded into
+ * EWRAM at dynamic addresses that change each time the game loads.
+ * Use the memory scanner to find actual addresses at runtime.
  */
 export function mapSaveOffsetToMemory(saveOffset: number): number {
-  // The save data is loaded into EWRAM at a specific address
-  // Based on analysis, the actual save data appears to be at a different location
-  // Let's try a different base address that might contain the loaded save data
+  console.warn('mapSaveOffsetToMemory is deprecated - use dynamic memory scanning instead')
   
-  // Try multiple potential base addresses where save data might be loaded
-  const potentialBases = [
-    0x02000000,  // EWRAM base
-    0x02001000,  // EWRAM + 4KB
-    0x02002000,  // EWRAM + 8KB
-    0x02003000,  // EWRAM + 12KB
-    0x02004000,  // EWRAM + 16KB
-    0x02005000,  // EWRAM + 20KB
-    0x02020000,  // Higher in EWRAM
-    0x02025000,  // Even higher
-    0x02030000,  // Higher still
-    0x03000000,  // IWRAM base
-  ]
-  
-  // For now, use the first potential base
-  // In a more sophisticated implementation, we would search for the data
-  return potentialBases[0] + saveOffset
+  // Return a placeholder address - this will not work for actual memory access
+  return MEMORY_REGIONS.EWRAM_BASE + saveOffset
+}
+
+/**
+ * Dynamic memory scanning interface
+ * These functions should be used to find actual save data locations
+ */
+export interface SaveBlockAddresses {
+  saveBlock1: number
+  saveBlock2: number
+  pokemonStorage?: number
 }
 
 /**
  * Get the memory address for a specific Pokemon in the party
+ * Requires the actual SaveBlock1 address from memory scanning
  */
-export function getPartyPokemonAddress(index: number): number {
+export function getPartyPokemonAddress(saveBlock1Addr: number, index: number): number {
   if (index < 0 || index >= 6) {
     throw new Error(`Invalid party Pokemon index: ${index}`)
   }
   
-  const baseAddress = mapSaveOffsetToMemory(EMERALD_SAVE_LAYOUT.PARTY_POKEMON)
-  return baseAddress + (index * POKEMON_STRUCT.SIZE)
+  return saveBlock1Addr + SAVEBLOCK1_LAYOUT.PARTY_POKEMON + (index * POKEMON_STRUCT.SIZE)
 }
 
 /**

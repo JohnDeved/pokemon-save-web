@@ -27,6 +27,7 @@
     "mgba:stop": "docker compose -f docker/docker-compose.yml down",
     "mgba:build": "docker build -f docker/Dockerfile -t mgba-test-env:latest .",
     "mgba:test": "tsx src/lib/mgba/test-cli.ts",
+    "mgba:research": "tsx src/lib/mgba/emerald-memory-research.ts",
     "mgba:example": "node src/lib/mgba/example.js"
   },
   "dependencies": {

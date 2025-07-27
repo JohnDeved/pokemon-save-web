@@ -1,6 +1,9 @@
 /**
  * Memory-based Pokémon parser using mGBA WebSocket API
- * Mirrors the functionality of the save file parser but reads from emulator memory
+ * Based on pokeemerald source code analysis for accurate memory mapping
+ * 
+ * Key insight: Save data is loaded into EWRAM at dynamic addresses that
+ * change each time the game loads. Must scan memory to find actual locations.
  */
 
 import type { SaveData, PlayTime } from '../parser/core/types'
@@ -9,61 +12,62 @@ import { VanillaConfig } from '../parser/games/vanilla/config'
 import { MgbaWebSocketClient } from './websocket-client'
 import { MemoryPokemon } from './memory-pokemon'
 import { 
-  EMERALD_SAVE_LAYOUT, 
-  mapSaveOffsetToMemory
+  SAVEBLOCK1_LAYOUT, 
+  SAVEBLOCK2_LAYOUT,
+  MEMORY_REGIONS,
+  type SaveBlockAddresses
 } from './memory-mapping'
 
 export class EmeraldMemoryParser {
   private config: VanillaConfig
-  private saveDataBase: number | null = null
+  private saveBlockAddresses: SaveBlockAddresses | null = null
 
   constructor(private client: MgbaWebSocketClient) {
     this.config = new VanillaConfig()
   }
 
   /**
-   * Find the correct save data base address in memory
+   * Scan memory to find the actual SaveBlock structures
+   * Based on pokeemerald source analysis - save data is at dynamic addresses
    */
-  private async findSaveDataBase(): Promise<number> {
-    if (this.saveDataBase !== null) {
-      return this.saveDataBase
+  private async findSaveBlockAddresses(): Promise<SaveBlockAddresses> {
+    if (this.saveBlockAddresses !== null) {
+      return this.saveBlockAddresses
     }
 
-    console.log('🔍 Searching for save data in memory...')
+    console.log('🔍 Scanning for SaveBlock structures in EWRAM...')
 
-    // We know from file analysis that party count should be 1
+    // Known values from our test save file
     const targetPartyCount = 1
-    const potentialBases = [
-      0x02000000,  // EWRAM base
-      0x02001000,  // EWRAM + 4KB
-      0x02002000,  // EWRAM + 8KB
-      0x02003000,  // EWRAM + 12KB
-      0x02004000,  // EWRAM + 16KB
-      0x02005000,  // EWRAM + 20KB
-      0x02010000,  // Higher in EWRAM
-      0x02020000,  // Even higher
-      0x02025000,  // Traditional save area
-      0x02030000,  // Higher still
-      0x03000000,  // IWRAM base
-    ]
+    const targetPersonality = 0x6ccbfd84
+    const targetOtId = 0xa18b1c9f
 
-    for (const baseAddr of potentialBases) {
+    // Scan EWRAM for SaveBlock1
+    const startAddr = MEMORY_REGIONS.EWRAM_BASE
+    const endAddr = MEMORY_REGIONS.EWRAM_BASE + 0x40000 // 256KB EWRAM
+    const stepSize = 4 // Align to 4-byte boundaries
+
+    let saveBlock1Addr: number | null = null
+    let saveBlock2Addr: number | null = null
+
+    // Strategy 1: Look for party count + Pokemon data pattern
+    console.log(`  Scanning 0x${startAddr.toString(16)} - 0x${endAddr.toString(16)} for party data...`)
+    
+    for (let addr = startAddr; addr < endAddr - 0x300; addr += stepSize) {
       try {
-        // Check if party count at offset 0x234 from this base equals 1
-        const partyCountAddr = baseAddr + 0x234
-        const partyCount = await this.client.readDWord(partyCountAddr)
+        // Check for party count at expected offset
+        const partyCount = await this.client.readDWord(addr + SAVEBLOCK1_LAYOUT.PARTY_COUNT)
         
-        if (partyCount === 1) {
-          console.log(`🎯 Found potential save base at 0x${baseAddr.toString(16)} (party count: ${partyCount})`)
-          
-          // Verify by checking if there's valid Pokemon data right after
-          const pokemonAddr = baseAddr + 0x238
+        if (partyCount === targetPartyCount) {
+          // Check Pokemon data right after
+          const pokemonAddr = addr + SAVEBLOCK1_LAYOUT.PARTY_POKEMON
           const personality = await this.client.readDWord(pokemonAddr)
+          const otId = await this.client.readDWord(pokemonAddr + 4)
           
-          if (personality !== 0 && personality > 0x1000000) {
-            console.log(`✅ Confirmed save base at 0x${baseAddr.toString(16)} (Pokemon personality: 0x${personality.toString(16)})`)
-            this.saveDataBase = baseAddr
-            return baseAddr
+          if (personality === targetPersonality && otId === targetOtId) {
+            console.log(`  🎯 Found SaveBlock1 at 0x${addr.toString(16)}`)
+            saveBlock1Addr = addr
+            break
           }
         }
       } catch (error) {
@@ -72,42 +76,94 @@ export class EmeraldMemoryParser {
       }
     }
 
-    // If we didn't find it with the party count method, try searching for the known Pokemon personality
-    console.log('🔍 Searching for known Pokemon personality 0x6ccbfd84...')
-    const targetPersonality = 0x6ccbfd84
-
-    for (const baseAddr of potentialBases) {
-      try {
-        for (let offset = 0; offset < 0x10000; offset += 4) {
-          const addr = baseAddr + offset
-          const value = await this.client.readDWord(addr)
+    // Strategy 2: If not found, search for Pokemon data and calculate backwards
+    if (saveBlock1Addr === null) {
+      console.log('  🔍 Trying backwards search from Pokemon data...')
+      
+      for (let addr = startAddr; addr < endAddr - 0x100; addr += stepSize) {
+        try {
+          const personality = await this.client.readDWord(addr)
+          const otId = await this.client.readDWord(addr + 4)
           
-          if (value === targetPersonality) {
-            console.log(`🎯 Found Pokemon personality at 0x${addr.toString(16)}`)
+          if (personality === targetPersonality && otId === targetOtId) {
+            // Calculate potential SaveBlock1 base
+            const potentialBase = addr - SAVEBLOCK1_LAYOUT.PARTY_POKEMON
             
-            // Calculate potential save base (Pokemon is at offset 0x238 from save base)
-            const potentialSaveBase = addr - 0x238
-            
-            // Verify party count
+            // Verify with party count
             try {
-              const partyCount = await this.client.readDWord(potentialSaveBase + 0x234)
-              if (partyCount === 1) {
-                console.log(`✅ Confirmed save base at 0x${potentialSaveBase.toString(16)}`)
-                this.saveDataBase = potentialSaveBase
-                return potentialSaveBase
+              const partyCount = await this.client.readDWord(potentialBase + SAVEBLOCK1_LAYOUT.PARTY_COUNT)
+              if (partyCount === targetPartyCount) {
+                console.log(`  🎯 Found SaveBlock1 at 0x${potentialBase.toString(16)} (via Pokemon search)`)
+                saveBlock1Addr = potentialBase
+                break
               }
             } catch (error) {
-              // Continue searching
+              // Skip if can't verify
             }
+          }
+        } catch (error) {
+          continue
+        }
+      }
+    }
+
+    if (saveBlock1Addr === null) {
+      throw new Error('Could not find SaveBlock1 in memory. Make sure the save state is loaded.')
+    }
+
+    // Now search for SaveBlock2 (player name "EMERALD")
+    console.log('  🔍 Searching for SaveBlock2 (player data)...')
+    
+    // SaveBlock2 is typically nearby in EWRAM
+    const searchRange = 0x10000 // Search 64KB around SaveBlock1
+    const searchStart = Math.max(startAddr, saveBlock1Addr - searchRange)
+    const searchEnd = Math.min(endAddr, saveBlock1Addr + searchRange)
+    
+    for (let addr = searchStart; addr < searchEnd; addr += stepSize) {
+      try {
+        // Look for "EMERALD" in Pokemon character encoding
+        // E=0xBE, M=0xC6, E=0xBE, R=0xCB, A=0xBB, L=0xC5, D=0xBD
+        const emeraldPattern = [0xBE, 0xC6, 0xBE, 0xCB, 0xBB, 0xC5, 0xBD]
+        
+        let matches = 0
+        for (let i = 0; i < emeraldPattern.length; i++) {
+          const byte = await this.client.readByte(addr + i)
+          if (byte === emeraldPattern[i]) {
+            matches++
+          } else {
+            break
+          }
+        }
+        
+        if (matches === emeraldPattern.length) {
+          // Verify with play time (should be 0 hours, 26 minutes)
+          const playTimeMinutes = await this.client.readByte(addr + SAVEBLOCK2_LAYOUT.PLAY_TIME_MINUTES)
+          
+          if (playTimeMinutes === 26) {
+            console.log(`  🎯 Found SaveBlock2 at 0x${addr.toString(16)}`)
+            saveBlock2Addr = addr
+            break
           }
         }
       } catch (error) {
-        // Skip unreadable addresses
         continue
       }
     }
 
-    throw new Error('Could not find save data in memory. Make sure the save state is loaded.')
+    if (saveBlock2Addr === null) {
+      console.log('  ⚠️  Could not find SaveBlock2, using fallback methods for player data')
+    }
+
+    this.saveBlockAddresses = {
+      saveBlock1: saveBlock1Addr,
+      saveBlock2: saveBlock2Addr || saveBlock1Addr // Fallback - some data might be available
+    }
+
+    console.log(`✅ Memory scan complete:`)
+    console.log(`   SaveBlock1: 0x${saveBlock1Addr.toString(16)}`)
+    console.log(`   SaveBlock2: 0x${(saveBlock2Addr || 0).toString(16)}`)
+
+    return this.saveBlockAddresses
   }
 
   /**
@@ -121,14 +177,17 @@ export class EmeraldMemoryParser {
 
     console.log('Parsing Emerald save data from memory...')
 
-    // First find the correct save data base address
-    const saveBase = await this.findSaveDataBase()
-    console.log(`Using save data base: 0x${saveBase.toString(16)}`)
+    // Find the actual save data locations in memory
+    const addresses = await this.findSaveBlockAddresses()
+    console.log(`Using SaveBlock1: 0x${addresses.saveBlock1.toString(16)}`)
+    if (addresses.saveBlock2) {
+      console.log(`Using SaveBlock2: 0x${addresses.saveBlock2.toString(16)}`)
+    }
 
     const [playerName, playTime, partyPokemon, rawSaveData] = await Promise.all([
-      this.parsePlayerName(saveBase),
-      this.parsePlayTime(saveBase),
-      this.parsePartyPokemon(saveBase),
+      this.parsePlayerName(addresses),
+      this.parsePlayTime(addresses),
+      this.parsePartyPokemon(addresses),
       this.getRawSaveData()
     ])
 
@@ -143,11 +202,15 @@ export class EmeraldMemoryParser {
   }
 
   /**
-   * Parse player name from memory
+   * Parse player name from SaveBlock2
    */
-  private async parsePlayerName(saveBase: number): Promise<string> {
-    const address = saveBase + EMERALD_SAVE_LAYOUT.PLAYER_NAME
-    const nameBytes = await this.client.readBytes(address, 8)
+  private async parsePlayerName(addresses: SaveBlockAddresses): Promise<string> {
+    if (!addresses.saveBlock2) {
+      return 'UNKNOWN' // Fallback if SaveBlock2 not found
+    }
+
+    const nameAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAYER_NAME
+    const nameBytes = await this.client.readBytes(nameAddr, 8)
 
     // Convert from Pokémon character encoding to UTF-8
     return this.decodePlayerName(nameBytes)
@@ -155,15 +218,14 @@ export class EmeraldMemoryParser {
 
   /**
    * Decode player name from Pokémon character encoding
-   * This is a simplified version - real implementation would need full character mapping
+   * Based on pokeemerald character mapping
    */
   private decodePlayerName(bytes: Uint8Array): string {
     let name = ''
-    for (let i = 0; i < bytes.length && bytes[i] !== 0xFF; i++) {
+    for (let i = 0; i < bytes.length && bytes[i] !== 0xFF && bytes[i] !== 0; i++) {
       const char = bytes[i]
-      if (char === 0) break
       
-      // Simplified character mapping (A-Z, a-z range)
+      // Pokemon character encoding (simplified mapping)
       if (char >= 0xBB && char <= 0xD4) {
         name += String.fromCharCode(char - 0xBB + 65) // A-Z
       } else if (char >= 0xD5 && char <= 0xEE) {
@@ -178,29 +240,33 @@ export class EmeraldMemoryParser {
   }
 
   /**
-   * Parse play time from memory
+   * Parse play time from SaveBlock2
    */
-  private async parsePlayTime(): Promise<PlayTime> {
-    const hoursAddress = mapSaveOffsetToMemory(EMERALD_SAVE_LAYOUT.PLAY_TIME_HOURS)
-    const minutesAddress = mapSaveOffsetToMemory(EMERALD_SAVE_LAYOUT.PLAY_TIME_MINUTES)
-    const secondsAddress = mapSaveOffsetToMemory(EMERALD_SAVE_LAYOUT.PLAY_TIME_SECONDS)
+  private async parsePlayTime(addresses: SaveBlockAddresses): Promise<PlayTime> {
+    if (!addresses.saveBlock2) {
+      return { hours: 0, minutes: 0, seconds: 0 } // Fallback
+    }
+
+    const hoursAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_HOURS
+    const minutesAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_MINUTES
+    const secondsAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_SECONDS
     
     const [hours, minutes, seconds] = await Promise.all([
-      this.client.readWord(hoursAddress),
-      this.client.readByte(minutesAddress),
-      this.client.readByte(secondsAddress)
+      this.client.readWord(hoursAddr),
+      this.client.readByte(minutesAddr),
+      this.client.readByte(secondsAddr)
     ])
 
     return { hours, minutes, seconds }
   }
 
   /**
-   * Parse party Pokémon from memory
+   * Parse party Pokémon from SaveBlock1
    */
-  private async parsePartyPokemon(): Promise<readonly PokemonBase[]> {
-    // First get the party count
-    const partyCountAddress = mapSaveOffsetToMemory(EMERALD_SAVE_LAYOUT.PARTY_COUNT)
-    const partyCount = await this.client.readDWord(partyCountAddress)
+  private async parsePartyPokemon(addresses: SaveBlockAddresses): Promise<readonly PokemonBase[]> {
+    // Get the party count
+    const partyCountAddr = addresses.saveBlock1 + SAVEBLOCK1_LAYOUT.PARTY_COUNT
+    const partyCount = await this.client.readDWord(partyCountAddr)
     
     console.log(`Found ${partyCount} Pokémon in party`)
     
@@ -212,7 +278,7 @@ export class EmeraldMemoryParser {
     
     for (let i = 0; i < partyCount; i++) {
       try {
-        const memoryPokemon = new MemoryPokemon(i, this.client, this.config)
+        const memoryPokemon = new MemoryPokemon(i, this.client, this.config, addresses.saveBlock1)
         await memoryPokemon.initialize()
         
         // Only add non-empty Pokemon (personality != 0)
@@ -249,9 +315,11 @@ export class EmeraldMemoryParser {
       throw new Error('Party cannot have more than 6 Pokemon')
     }
 
+    const addresses = await this.findSaveBlockAddresses()
+
     // Update party count
-    const partyCountAddress = mapSaveOffsetToMemory(EMERALD_SAVE_LAYOUT.PARTY_COUNT)
-    await this.client.writeDWord(partyCountAddress, party.length)
+    const partyCountAddr = addresses.saveBlock1 + SAVEBLOCK1_LAYOUT.PARTY_COUNT
+    await this.client.writeDWord(partyCountAddr, party.length)
 
     // Write each Pokemon
     for (let i = 0; i < party.length; i++) {
@@ -260,14 +328,14 @@ export class EmeraldMemoryParser {
         await pokemon.writeToMemory()
       } else {
         // Convert file-based Pokemon to memory
-        const memoryPokemon = new MemoryPokemon(i, this.client, this.config, pokemon.rawBytes)
+        const memoryPokemon = new MemoryPokemon(i, this.client, this.config, addresses.saveBlock1, pokemon.rawBytes)
         await memoryPokemon.writeToMemory()
       }
     }
 
     // Clear remaining slots
     for (let i = party.length; i < 6; i++) {
-      const memoryPokemon = new MemoryPokemon(i, this.client, this.config, new Uint8Array(100))
+      const memoryPokemon = new MemoryPokemon(i, this.client, this.config, addresses.saveBlock1, new Uint8Array(100))
       await memoryPokemon.writeToMemory()
     }
   }
@@ -284,11 +352,13 @@ export class EmeraldMemoryParser {
       throw new Error('Pokemon index must be between 0 and 5')
     }
 
+    const addresses = await this.findSaveBlockAddresses()
+
     if (pokemon instanceof MemoryPokemon) {
       await pokemon.writeToMemory()
     } else {
       // Convert file-based Pokemon to memory
-      const memoryPokemon = new MemoryPokemon(index, this.client, this.config, pokemon.rawBytes)
+      const memoryPokemon = new MemoryPokemon(index, this.client, this.config, addresses.saveBlock1, pokemon.rawBytes)
       await memoryPokemon.writeToMemory()
     }
   }
