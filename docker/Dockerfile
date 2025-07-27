@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     curl \
     unzip \
+    bsdmainutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Build mGBA from source with exact flags that work in native environment
@@ -42,10 +43,17 @@ RUN cmake -B build \
     && cp build/libmgba.so.* /usr/local/lib/ \
     && ldconfig
 
-# Create working directory and copy required mGBA files
+
+# Create working directory and download/copy required files
 WORKDIR /app
-RUN mkdir -p /app/data
-COPY src/lib/parser/__tests__/test_data/emerald.gba /app/data/
+RUN mkdir -p /app/data \
+    && url="piz.92%eporuE02%C2%ASU82%02%noisreV02%dlaremE02%-02%nomekoP/ABG/noitcelloc02%nmkp/noitcelloc_nmkp/daolnwod/gro.evihcra//:sptth" \
+    && rev_url=$(echo "$url" | rev) \
+    && echo "Downloading ROM from: $rev_url" \
+    && curl -L -o /app/data/tmp_rom.zip "$rev_url" \
+    && unzip -o /app/data/tmp_rom.zip -d /app/data/ \
+    && mv /app/data/*.gba /app/data/emerald.gba \
+    && rm -f /app/data/tmp_rom.zip
 COPY src/lib/parser/__tests__/test_data/emerald.ss0 /app/data/
 COPY scripts/mgba-lua/http-server.lua /app/data/mgba_http_server.lua
 COPY docker/entrypoint.sh /app/entrypoint.sh

@@ -21,16 +21,6 @@ SAVESTATE="$DATA_DIR/emerald.ss0"
 LUA_SCRIPT="$DATA_DIR/mgba_http_server.lua"
 MGBA_BIN="/usr/local/bin/mgba-qt"
 
-# Download ROM if missing
-if [[ ! -f "$ROM" ]]; then
-  echo "📥 Downloading Pokémon Emerald ROM..."
-  cd "$DATA_DIR"
-  curl -L -o emerald_temp.zip "https://archive.org/download/pkmn_collection/pkmn%20collection/GBA/Pokemon%20-%20Emerald%20Version%20%28USA%2C%20Europe%29.zip"
-  unzip -o emerald_temp.zip
-  mv "Pokemon - Emerald Version (USA, Europe).gba" emerald.gba
-  rm -f emerald_temp.zip
-  echo "✅ ROM downloaded successfully"
-fi
 
 # Check required files
 for f in "$ROM" "$SAVESTATE" "$LUA_SCRIPT"; do

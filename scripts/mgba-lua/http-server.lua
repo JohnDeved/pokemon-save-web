@@ -587,7 +587,7 @@ end)
 
 -- Routes
 app:get("/", function(req, res)
-    res:send("200 OK", "Welcome to mGBA HTTP Server!")
+    res:send("200 OK", "Welcome to mGBA HTTP Server! Playing " .. emu:getGameTitle())
 end)
 
 app:get("/json", HttpServer.cors(), function(req, res)
