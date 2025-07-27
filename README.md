@@ -43,6 +43,40 @@ const saveData = await parser.parseSaveFile(file)
 console.log(`Player: ${saveData.player_name}`)
 ```
 
+### mGBA Integration
+Real-time memory access for Pokémon Emerald running in mGBA emulator:
+
+```bash
+# Start mGBA Docker environment
+npm run mgba:start
+
+# Test memory parsing vs file parsing
+npm run mgba:test
+
+# Basic WebSocket connection test
+npm run mgba:example
+
+# Stop mGBA environment
+npm run mgba:stop
+```
+
+```typescript
+import { MgbaWebSocketClient, EmeraldMemoryParser } from './lib/mgba'
+
+// Connect to mGBA emulator
+const client = new MgbaWebSocketClient()
+await client.connect()
+
+// Parse save data from memory
+const parser = new EmeraldMemoryParser(client)
+const saveData = await parser.parseFromMemory()
+
+console.log(`Player: ${saveData.player_name}`)
+console.log(`Party: ${saveData.party_pokemon.length} Pokémon`)
+```
+
+For detailed documentation, see [src/lib/mgba/README.md](./src/lib/mgba/README.md).
+
 ## Usage
 
 ### 1. Web Application

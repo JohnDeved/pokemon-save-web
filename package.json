@@ -29,7 +29,9 @@
     "mgba:start": "docker compose -f docker/docker-compose.yml up -d --build",
     "mgba:run": "docker compose -f docker/docker-compose.yml up --build",
     "mgba:stop": "docker compose -f docker/docker-compose.yml down",
-    "mgba:build": "docker build -f docker/Dockerfile -t mgba-test-env:latest ."
+    "mgba:build": "docker build -f docker/Dockerfile -t mgba-test-env:latest .",
+    "mgba:test": "tsx src/lib/mgba/test-cli.ts",
+    "mgba:example": "node src/lib/mgba/example.js"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",
