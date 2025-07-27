@@ -192,10 +192,26 @@ export function getGender(personality: number, species: number): 'Male' | 'Femal
  */
 export function mapSaveOffsetToMemory(saveOffset: number): number {
   // The save data is loaded into EWRAM at a specific address
-  // This address can be found by analyzing the pokeemerald source code
-  // or by runtime inspection in mGBA
+  // Based on analysis, the actual save data appears to be at a different location
+  // Let's try a different base address that might contain the loaded save data
   
-  return EMERALD_SAVE_LAYOUT.SAVE_DATA_BASE + saveOffset
+  // Try multiple potential base addresses where save data might be loaded
+  const potentialBases = [
+    0x02000000,  // EWRAM base
+    0x02001000,  // EWRAM + 4KB
+    0x02002000,  // EWRAM + 8KB
+    0x02003000,  // EWRAM + 12KB
+    0x02004000,  // EWRAM + 16KB
+    0x02005000,  // EWRAM + 20KB
+    0x02020000,  // Higher in EWRAM
+    0x02025000,  // Even higher
+    0x02030000,  // Higher still
+    0x03000000,  // IWRAM base
+  ]
+  
+  // For now, use the first potential base
+  // In a more sophisticated implementation, we would search for the data
+  return potentialBases[0] + saveOffset
 }
 
 /**

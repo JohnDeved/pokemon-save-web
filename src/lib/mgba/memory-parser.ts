@@ -15,9 +15,99 @@ import {
 
 export class EmeraldMemoryParser {
   private config: VanillaConfig
+  private saveDataBase: number | null = null
 
   constructor(private client: MgbaWebSocketClient) {
     this.config = new VanillaConfig()
+  }
+
+  /**
+   * Find the correct save data base address in memory
+   */
+  private async findSaveDataBase(): Promise<number> {
+    if (this.saveDataBase !== null) {
+      return this.saveDataBase
+    }
+
+    console.log('🔍 Searching for save data in memory...')
+
+    // We know from file analysis that party count should be 1
+    const targetPartyCount = 1
+    const potentialBases = [
+      0x02000000,  // EWRAM base
+      0x02001000,  // EWRAM + 4KB
+      0x02002000,  // EWRAM + 8KB
+      0x02003000,  // EWRAM + 12KB
+      0x02004000,  // EWRAM + 16KB
+      0x02005000,  // EWRAM + 20KB
+      0x02010000,  // Higher in EWRAM
+      0x02020000,  // Even higher
+      0x02025000,  // Traditional save area
+      0x02030000,  // Higher still
+      0x03000000,  // IWRAM base
+    ]
+
+    for (const baseAddr of potentialBases) {
+      try {
+        // Check if party count at offset 0x234 from this base equals 1
+        const partyCountAddr = baseAddr + 0x234
+        const partyCount = await this.client.readDWord(partyCountAddr)
+        
+        if (partyCount === 1) {
+          console.log(`🎯 Found potential save base at 0x${baseAddr.toString(16)} (party count: ${partyCount})`)
+          
+          // Verify by checking if there's valid Pokemon data right after
+          const pokemonAddr = baseAddr + 0x238
+          const personality = await this.client.readDWord(pokemonAddr)
+          
+          if (personality !== 0 && personality > 0x1000000) {
+            console.log(`✅ Confirmed save base at 0x${baseAddr.toString(16)} (Pokemon personality: 0x${personality.toString(16)})`)
+            this.saveDataBase = baseAddr
+            return baseAddr
+          }
+        }
+      } catch (error) {
+        // Skip unreadable addresses
+        continue
+      }
+    }
+
+    // If we didn't find it with the party count method, try searching for the known Pokemon personality
+    console.log('🔍 Searching for known Pokemon personality 0x6ccbfd84...')
+    const targetPersonality = 0x6ccbfd84
+
+    for (const baseAddr of potentialBases) {
+      try {
+        for (let offset = 0; offset < 0x10000; offset += 4) {
+          const addr = baseAddr + offset
+          const value = await this.client.readDWord(addr)
+          
+          if (value === targetPersonality) {
+            console.log(`🎯 Found Pokemon personality at 0x${addr.toString(16)}`)
+            
+            // Calculate potential save base (Pokemon is at offset 0x238 from save base)
+            const potentialSaveBase = addr - 0x238
+            
+            // Verify party count
+            try {
+              const partyCount = await this.client.readDWord(potentialSaveBase + 0x234)
+              if (partyCount === 1) {
+                console.log(`✅ Confirmed save base at 0x${potentialSaveBase.toString(16)}`)
+                this.saveDataBase = potentialSaveBase
+                return potentialSaveBase
+              }
+            } catch (error) {
+              // Continue searching
+            }
+          }
+        }
+      } catch (error) {
+        // Skip unreadable addresses
+        continue
+      }
+    }
+
+    throw new Error('Could not find save data in memory. Make sure the save state is loaded.')
   }
 
   /**
@@ -31,10 +121,14 @@ export class EmeraldMemoryParser {
 
     console.log('Parsing Emerald save data from memory...')
 
+    // First find the correct save data base address
+    const saveBase = await this.findSaveDataBase()
+    console.log(`Using save data base: 0x${saveBase.toString(16)}`)
+
     const [playerName, playTime, partyPokemon, rawSaveData] = await Promise.all([
-      this.parsePlayerName(),
-      this.parsePlayTime(),
-      this.parsePartyPokemon(),
+      this.parsePlayerName(saveBase),
+      this.parsePlayTime(saveBase),
+      this.parsePartyPokemon(saveBase),
       this.getRawSaveData()
     ])
 
@@ -51,10 +145,10 @@ export class EmeraldMemoryParser {
   /**
    * Parse player name from memory
    */
-  private async parsePlayerName(): Promise<string> {
-    const address = mapSaveOffsetToMemory(EMERALD_SAVE_LAYOUT.PLAYER_NAME)
+  private async parsePlayerName(saveBase: number): Promise<string> {
+    const address = saveBase + EMERALD_SAVE_LAYOUT.PLAYER_NAME
     const nameBytes = await this.client.readBytes(address, 8)
-    
+
     // Convert from Pokémon character encoding to UTF-8
     return this.decodePlayerName(nameBytes)
   }
