@@ -37,7 +37,7 @@ RUN cmake -B build \
     -DUSE_MINIZIP=OFF \
     -DUSE_LIBZIP=OFF \
     -DUSE_DISCORD_RPC=OFF \
-    && cmake --build build --parallel \
+    && cmake --build build --parallel 2 \
     && cp build/qt/mgba-qt /usr/local/bin/mgba-qt \
     && cp build/libmgba.so.* /usr/local/lib/ \
     && ldconfig
