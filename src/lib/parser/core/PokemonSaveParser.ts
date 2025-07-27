@@ -406,14 +406,10 @@ export class PokemonSaveParser {
       throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-${maxPartySize}.`)
     }
 
-    console.log(`📋 Reading ${partyCount} Pokemon from party memory`)
-
     const pokemon: PokemonBase[] = []
 
     for (let i = 0; i < partyCount; i++) {
       const pokemonAddress = memoryAddresses.partyData + (i * pokemonSize)
-
-      console.log(`  Reading Pokemon ${i + 1} at address 0x${pokemonAddress.toString(16)}`)
 
       // Read the full Pokemon structure from memory
       const pokemonBytes = await this.webSocketClient.getSharedBuffer(pokemonAddress, pokemonSize)
@@ -427,7 +423,6 @@ export class PokemonSaveParser {
       pokemon.push(pokemonInstance)
     }
 
-    console.log(`✅ Successfully read ${pokemon.length} Pokemon from memory`)
     return pokemon
   }
 
