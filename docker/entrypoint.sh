@@ -2,7 +2,6 @@
 
 # Set up environment for headless operation
 export QT_QPA_PLATFORM=xcb
-export SDL_VIDEODRIVER=dummy
 export XDG_RUNTIME_DIR=/tmp
 
 # Function to clean up processes
@@ -29,15 +28,14 @@ if [ ! -f "$ROM_PATH" ]; then
     echo "✅ ROM downloaded successfully"
 fi
 
-# Verify ROM exists
+# Verify required files
+SAVESTATE_PATH="/app/data/emerald.ss0"
+LUA_SCRIPT_PATH="/app/data/http-server.lua"
+
 if [ ! -f "$ROM_PATH" ]; then
     echo "❌ ROM file not found at $ROM_PATH"
     exit 1
 fi
-
-# Verify required files
-SAVESTATE_PATH="/app/data/emerald.ss0"
-LUA_SCRIPT_PATH="/app/data/http-server.lua"
 
 if [ ! -f "$SAVESTATE_PATH" ]; then
     echo "❌ Savestate file not found at $SAVESTATE_PATH"
@@ -54,35 +52,38 @@ echo "   ROM: $ROM_PATH"
 echo "   Savestate: $SAVESTATE_PATH" 
 echo "   Lua Script: $LUA_SCRIPT_PATH"
 
-# Start mGBA with the --script argument to load HTTP server within mGBA Lua API
-echo "🎮 Starting mGBA with --script HTTP server..."
-echo "📄 Using MINIMAL test script: /app/data/minimal-test.lua"
-echo "🚀 Launching mGBA with xvfb-run for headless operation..."
-echo "🐛 Capturing ALL output to see Lua execution..."
-xvfb-run -a --server-args="-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
-    /usr/local/bin/mgba-qt \
-    --script "/app/data/minimal-test.lua" \
-    --log-level 15 \
-    -t "$SAVESTATE_PATH" \
-    "$ROM_PATH" > /tmp/mgba_full.log 2>&1 &
-MGBA_PID=$!
-
-echo "🕐 Waiting for mGBA to start and load ROM..."
-sleep 15
-echo "📜 Full mGBA output with Lua test:"
-cat /tmp/mgba_full.log
-
-echo ""
-echo "📜 Checking if mGBA is still running..."
-if kill -0 $MGBA_PID 2>/dev/null; then
-    echo "✅ mGBA is still running (PID: $MGBA_PID)"
-else
-    echo "❌ mGBA process has exited"
+# Verify mgba-qt supports --script
+if ! /usr/local/bin/mgba-qt --help | grep -q script; then
+    echo "❌ mGBA does not support --script argument"
+    exit 1
 fi
 
+echo "✅ mGBA supports --script argument"
+
+# Start mGBA with the same approach that works in native environment
+echo "🎮 Starting mGBA with --script HTTP server..."
+cd /app/data
+xvfb-run -a /usr/local/bin/mgba-qt \
+    --script http-server.lua \
+    --savestate emerald.ss0 \
+    emerald.gba &
+MGBA_PID=$!
+
+echo "🕐 Waiting for mGBA to start and HTTP server to be ready..."
+# Wait longer for startup
+sleep 10
+
 echo "✅ mGBA started with HTTP server script loaded (PID: $MGBA_PID)"
-echo "🌐 HTTP server should be available on port 7102 within mGBA"
+echo "🌐 HTTP server should be available on port 7102"
 echo "   Test with: curl http://localhost:7102/"
+
+# Check if mGBA is still running
+if kill -0 $MGBA_PID 2>/dev/null; then
+    echo "✅ mGBA process is still running"
+else
+    echo "❌ mGBA process has exited"
+    exit 1
+fi
 
 # Wait for mGBA process
 wait $MGBA_PID

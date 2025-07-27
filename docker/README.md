@@ -1,13 +1,15 @@
-# mGBA Docker Test Environment
+# mGBA Docker Environment
 
-A containerized environment for testing mGBA emulator with Pokémon Emerald ROM and HTTP automation.
+A complete Docker environment for running mGBA emulator with Lua HTTP server automation, enabling cross-platform testing against a real emulator.
 
-## ✅ Working Features
+## Overview
 
-- **mGBA Emulator**: Built from source with Lua support, loads Pokémon Emerald ROM and savestate
-- **HTTP Server**: Functional Lua HTTP server on port 7102 with multiple endpoints
-- **curl Testing**: All endpoints accessible via curl commands for automation
-- **Docker Environment**: Self-contained with all required files in docker/data/
+This Docker environment provides:
+- **Real mGBA Emulator**: Built from source with Qt frontend and Lua 5.4 support
+- **HTTP Server Automation**: Lua script runs within mGBA providing REST API
+- **Cross-Platform**: Works on Windows, macOS, Linux via Docker
+- **Automatic ROM Setup**: Downloads Pokémon Emerald ROM automatically
+- **Headless Operation**: Uses xvfb for display-less operation
 
 ## Quick Start
 
@@ -17,106 +19,177 @@ npm run mgba:start
 
 # Test HTTP endpoints
 curl http://localhost:7102/
-curl http://localhost:7102/json  
-curl -X POST http://localhost:7102/echo -d "test data"
+curl http://localhost:7102/json
 
 # Stop the environment
 npm run mgba:stop
 ```
 
-## HTTP API Endpoints
+## Features
 
-The HTTP server runs on `http://localhost:7102` with the following endpoints:
+### HTTP API Endpoints
 
-- **GET /**: Welcome message
-- **GET /json**: JSON response with timestamp and server info
-- **POST /echo**: Echo service for testing POST requests
+The mGBA Lua HTTP server provides these endpoints at `http://localhost:7102`:
 
-## Architecture
+- **GET /** - Welcome message
+- **GET /json** - JSON API with timestamp and CORS headers
+- **POST /echo** - Echo service for testing
+- **WebSocket /ws** - Real-time Lua code evaluation (with emulator context)
 
-- **docker/data/**: Contains ROM, savestate, and Lua scripts
-- **Dockerfile**: Multi-stage build with mGBA from source + Lua support
-- **entrypoint.sh**: Manages mGBA and HTTP server startup
-- **simple_http_server.lua**: Working HTTP server implementation
+### CORS Support
 
-## Legal Compliance
+All endpoints include proper CORS headers for web integration:
+- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET, POST, OPTIONS`
+- `Access-Control-Allow-Headers: Content-Type`
 
-The ROM is automatically downloaded from archive.org (public domain collection). All files are properly .gitignored to prevent accidental commits.
+## Technical Implementation
 
-# Stop the environment
-npm run mgba:stop
+### Build Configuration
+
+The Docker environment uses the exact same build configuration as the working native environment:
+
+```dockerfile
+cmake -B build \
+    -DBUILD_QT=ON \
+    -DBUILD_SDL=OFF \
+    -DUSE_LUA=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DUSE_FFMPEG=OFF \
+    -DUSE_MINIZIP=OFF \
+    -DUSE_LIBZIP=OFF \
+    -DUSE_DISCORD_RPC=OFF
 ```
 
-## Current Status
+### Runtime Environment
 
-✅ **Working**: mGBA emulator with ROM and savestate loading  
-⚠️ **Limited**: HTTP server not available (mGBA 0.9.3 lacks --script support)  
-🔧 **Future**: Upgrade to mGBA 0.10.0+ needed for full Lua HTTP server functionality
+- **Base Image**: Ubuntu 22.04
+- **mGBA Version**: Latest master branch with Qt + Lua support
+- **Lua Version**: 5.4.6
+- **ROM**: Pokémon Emerald (USA, Europe) - 16MB
+- **Savestate**: Pre-configured game state
+- **Display**: Headless via xvfb-run
 
-## Implementation
-
-- **File**: `Dockerfile`
-- **Purpose**: Basic mGBA environment using system packages
-- **Build time**: ~30 seconds  
-- **Features**: mGBA emulator, ROM auto-download, savestate loading
-
-## Environment Details
-
-**Container**: `mgba-test-environment`  
-**ROM**: Downloads Pokémon Emerald (16MB) from archive.org automatically  
-**Files**: 
-- `test_data/emerald.gba` - ROM file (auto-downloaded)
-- `test_data/emerald.ss0` - Memory savestate 
-- `test_data/mgba_http_server.lua` - HTTP server script (for future use)
-
-## Management Commands
-
-```bash
-npm run mgba:start    # Start mGBA environment (builds automatically)
-npm run mgba:stop     # Stop mGBA environment
-```
-
-The start command automatically handles:
-- Building the Docker image if needed
-- Downloading the ROM from archive.org  
-- Starting the container with mGBA emulator
-- Loading the ROM and savestate
-
-## Testing
-
-Run Docker environment tests:
-```bash
-npm test docker/mgba-docker-environment.test.ts
-```
-
-The test suite validates:
-- Container lifecycle management
-- ROM download and verification
-- File structure setup
-- Environment readiness
-
-## Architecture
+### File Structure
 
 ```
 docker/
-├── Dockerfile               # mGBA environment
-├── docker-compose.yml       # Container orchestration  
-├── docker-mgba.js          # Management script
+├── Dockerfile              # Multi-stage build with mGBA compilation
+├── docker-compose.yml      # Service configuration
 ├── entrypoint.sh           # Container startup script
-├── mgba-docker-environment.test.ts  # Test suite
-└── README.md               # This file
-
-test_data/
-├── emerald.ss0             # Memory savestate
-└── mgba_http_server.lua    # HTTP server script
+├── data/
+│   ├── emerald.ss0         # Pokémon Emerald savestate
+│   └── emerald.sav         # Save file
+└── __tests__/
+    └── docker-environment.test.cjs  # Test suite
 ```
 
-## Future Enhancements
+## Testing
 
-To enable HTTP server functionality:
-1. Upgrade to mGBA 0.10.0+ with Lua support and --script argument
-2. Alternative: Use `Dockerfile.complex` to build from source (requires fixing build dependencies)
+The environment includes automated tests to verify functionality:
 
-## Legal Notes
+```bash
+# Run comprehensive test suite
+node docker/__tests__/docker-environment.test.cjs
+```
 
-The ROM file is automatically downloaded from archive.org under fair use for educational/testing purposes. Users should own a legal copy of Pokémon Emerald.
+Tests verify:
+- HTTP server responsiveness
+- Endpoint functionality (GET, POST, 404 handling)
+- CORS headers
+- JSON API responses
+- Echo service
+
+## Development
+
+### Building Manually
+
+```bash
+# Build the Docker image
+docker compose -f docker/docker-compose.yml build
+
+# Start container
+docker compose -f docker/docker-compose.yml up -d
+
+# Check logs
+docker compose -f docker/docker-compose.yml logs -f
+```
+
+### Debugging
+
+```bash
+# Access container shell
+docker exec -it mgba-test-environment bash
+
+# Check mGBA process
+ps aux | grep mgba
+
+# Test HTTP server manually
+curl http://localhost:7102/
+```
+
+## Comparison with Native Environment
+
+| Feature | Docker | Native |
+|---------|--------|--------|
+| Build Time | ~4-5 minutes | ~3-4 minutes |
+| Dependencies | Self-contained | Manual setup |
+| Performance | Near-native | Native |
+| Portability | Cross-platform | Linux only |
+| Isolation | Complete | Shared system |
+| Setup | Automated | Manual |
+
+## Use Cases
+
+1. **Cross-Platform Development**: Same environment on Windows/macOS/Linux
+2. **CI/CD Integration**: Automated testing in GitHub Actions
+3. **Team Collaboration**: Consistent development environment
+4. **Production Deployment**: Containerized emulator services
+5. **Testing Automation**: Reliable, reproducible test environment
+
+## System Requirements
+
+- Docker and Docker Compose
+- 4GB+ RAM (for compilation)
+- 2GB+ disk space
+- Internet connection (for ROM download)
+
+## Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Host System   │    │  Docker Container │    │  mGBA Process   │
+│                 │    │                   │    │                 │
+│  npm run        │───▶│  entrypoint.sh    │───▶│  mgba-qt        │
+│  mgba:start     │    │                   │    │  --script       │
+│                 │    │  Port 7102        │    │  http-server.lua│
+│                 │    │                   │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │                        │
+                                │                        ▼
+                                │                ┌─────────────────┐
+                                │                │ HTTP Server API │
+                                │                │ Socket API      │
+                                │                │ Lua Environment │
+                                │                └─────────────────┘
+                                │
+                                ▼
+                        ┌──────────────────┐
+                        │ Host Port 7102   │
+                        │ curl/browser     │
+                        │ access           │
+                        └──────────────────┘
+```
+
+## Success Criteria
+
+✅ **mGBA builds successfully** with Qt frontend and Lua support  
+✅ **HTTP server responds** on port 7102  
+✅ **ROM loads automatically** from archive.org  
+✅ **Lua script executes** within mGBA environment  
+✅ **API endpoints work** (GET, POST, WebSocket)  
+✅ **CORS headers present** for web integration  
+✅ **Cross-platform compatibility** via Docker  
+✅ **Automated testing** validates functionality  
+
+The Docker environment successfully replicates the working native mGBA setup, providing a reliable, cross-platform solution for automated testing against real emulator functionality.

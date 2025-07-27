@@ -4,7 +4,7 @@ FROM ubuntu:22.04
 # Set environment to avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build and runtime dependencies
+# Install build and runtime dependencies (matching native working environment)
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -14,31 +14,38 @@ RUN apt-get update && apt-get install -y \
     qtmultimedia5-dev \
     liblua5.4-dev \
     lua5.4 \
-    zlib1g-dev \
     libpng-dev \
-    libsdl2-dev \
+    zlib1g-dev \
+    libzip-dev \
     libedit-dev \
-    libsqlite3-dev \
+    libepoxy-dev \
     xvfb \
     curl \
     unzip \
-    netcat \
     && rm -rf /var/lib/apt/lists/*
 
-# Build mGBA from source with Lua support
+# Build mGBA from source with exact flags that work in native environment
 WORKDIR /build
 RUN git clone https://github.com/mgba-emu/mgba.git --depth 1 --branch master
 WORKDIR /build/mgba
-RUN mkdir build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DUSE_LUA=ON -DBUILD_QT=ON -DUSE_DISCORD_RPC=OFF -DUSE_FFMPEG=OFF -DUSE_MINIZIP=OFF -DUSE_LIBZIP=OFF \
-    && make -j$(nproc) && make install
+RUN cmake -B build \
+    -DBUILD_QT=ON \
+    -DBUILD_SDL=OFF \
+    -DUSE_LUA=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DUSE_FFMPEG=OFF \
+    -DUSE_MINIZIP=OFF \
+    -DUSE_LIBZIP=OFF \
+    -DUSE_DISCORD_RPC=OFF \
+    && cmake --build build --parallel \
+    && cp build/qt/mgba-qt /usr/local/bin/mgba-qt \
+    && cp build/libmgba.so.* /usr/local/lib/ \
+    && ldconfig
 
-# Configure library path
-RUN ldconfig
-
-# Create working directory and copy data
+# Create working directory and copy required files
 WORKDIR /app
 COPY docker/data/ /app/data/
+COPY scripts/mgba-lua/http-server.lua /app/data/http-server.lua
 COPY docker/entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable
