@@ -15,17 +15,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
-
     "test": "vitest run",
     "test:run": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-
     "parse": "tsx src/lib/parser/cli.ts",
-
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
-
     "mgba:start": "docker compose -f docker/docker-compose.yml up -d --build",
     "mgba:run": "docker compose -f docker/docker-compose.yml up --build",
     "mgba:stop": "docker compose -f docker/docker-compose.yml down",
@@ -56,7 +52,6 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.11",
     "three": "^0.178.0",
-    "tsx": "^4.20.3",
     "zod": "^3.25.67"
   },
   "devDependencies": {
