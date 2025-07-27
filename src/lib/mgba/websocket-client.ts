@@ -43,7 +43,8 @@ export class MgbaWebSocketClient {
         this.ws.on('close', () => {
           console.log('WebSocket connection closed')
           this.connected = false
-          this.attemptReconnect()
+          // Disable auto-reconnect for testing
+          // this.attemptReconnect()
         })
 
         this.ws.on('message', (data) => {

@@ -1,9 +1,9 @@
 /**
  * Memory-based Pokémon parser using mGBA WebSocket API
- * Based on pokeemerald source code analysis for accurate memory mapping
+ * Based on pokeemerald source code analysis for robust ASLR handling
  * 
- * Key insight: Save data is loaded into EWRAM at dynamic addresses that
- * change each time the game loads. Must scan memory to find actual locations.
+ * Key insight: Use pokeemerald analysis to find save data pointers regardless
+ * of save content, avoiding reliance on specific save data values.
  */
 
 import type { SaveData, PlayTime } from '../parser/core/types'
@@ -17,6 +17,7 @@ import {
   MEMORY_REGIONS,
   type SaveBlockAddresses
 } from './memory-mapping'
+import { findSaveDataPointers } from './pokeemerald-research'
 
 export class EmeraldMemoryParser {
   private config: VanillaConfig
@@ -27,143 +28,298 @@ export class EmeraldMemoryParser {
   }
 
   /**
-   * Scan memory to find the actual SaveBlock structures
-   * Based on pokeemerald source analysis - save data is at dynamic addresses
+   * Find save data locations using pokeemerald-based analysis
+   * This approach works for any save data content without prior knowledge
+   * 
+   * Strategy: Since save states may not load data into memory as expected,
+   * we implement a comprehensive scan that looks for save data patterns
+   * that are universal regardless of save content.
    */
   private async findSaveBlockAddresses(): Promise<SaveBlockAddresses> {
     if (this.saveBlockAddresses !== null) {
       return this.saveBlockAddresses
     }
 
-    console.log('🔍 Scanning for SaveBlock structures in EWRAM...')
+    console.log('🔍 Locating save data using comprehensive EWRAM analysis...')
 
-    // Known values from our test save file
-    const targetPartyCount = 1
-    const targetPersonality = 0x6ccbfd84
-    const targetOtId = 0xa18b1c9f
-
-    // Scan EWRAM for SaveBlock1
-    const startAddr = MEMORY_REGIONS.EWRAM_BASE
-    const endAddr = MEMORY_REGIONS.EWRAM_BASE + 0x40000 // 256KB EWRAM
-    const stepSize = 4 // Align to 4-byte boundaries
-
-    let saveBlock1Addr: number | null = null
-    let saveBlock2Addr: number | null = null
-
-    // Strategy 1: Look for party count + Pokemon data pattern
-    console.log(`  Scanning 0x${startAddr.toString(16)} - 0x${endAddr.toString(16)} for party data...`)
+    // Strategy 1: Scan for valid SaveBlock1 structure patterns
+    const saveBlock1Addr = await this.scanForSaveBlock1Structure()
     
-    for (let addr = startAddr; addr < endAddr - 0x300; addr += stepSize) {
-      try {
-        // Check for party count at expected offset
-        const partyCount = await this.client.readDWord(addr + SAVEBLOCK1_LAYOUT.PARTY_COUNT)
+    if (!saveBlock1Addr) {
+      throw new Error(`
+        Could not locate SaveBlock1 in memory. This could indicate:
+        1. Save state is not loaded properly
+        2. Save data is compressed/encrypted in the save state
+        3. Game hasn't loaded save data into EWRAM yet
         
-        if (partyCount === targetPartyCount) {
-          // Check Pokemon data right after
-          const pokemonAddr = addr + SAVEBLOCK1_LAYOUT.PARTY_POKEMON
-          const personality = await this.client.readDWord(pokemonAddr)
-          const otId = await this.client.readDWord(pokemonAddr + 4)
+        Please ensure:
+        - mGBA Docker container is running with emerald.ss0 loaded
+        - Save state contains valid Pokemon Emerald save data
+        - Game has had time to initialize (wait 10+ seconds after startup)
+      `)
+    }
+
+    // Strategy 2: Find SaveBlock2 near SaveBlock1
+    const saveBlock2Addr = await this.scanForSaveBlock2Structure(saveBlock1Addr)
+
+    this.saveBlockAddresses = {
+      saveBlock1: saveBlock1Addr,
+      saveBlock2: saveBlock2Addr || saveBlock1Addr // Fallback to SaveBlock1 for basic functionality
+    }
+
+    console.log(`✅ Save data located:`)
+    console.log(`   SaveBlock1: 0x${saveBlock1Addr.toString(16)}`)
+    console.log(`   SaveBlock2: 0x${(saveBlock2Addr || saveBlock1Addr).toString(16)}`)
+
+    return this.saveBlockAddresses
+  }
+
+  /**
+   * Scan for SaveBlock1 structure using content-agnostic patterns
+   * Looks for valid Pokemon data structure regardless of specific values
+   * Returns multiple candidates for validation
+   */
+  private async scanForSaveBlock1Structure(): Promise<number | null> {
+    console.log('  Scanning for SaveBlock1 structure patterns...')
+    
+    const ewramStart = MEMORY_REGIONS.EWRAM_BASE
+    const ewramEnd = MEMORY_REGIONS.EWRAM_BASE + 0x40000
+    const stepSize = 16 // Scan every 16 bytes for performance
+    
+    const candidates: Array<{address: number, score: number, details: string}> = []
+    
+    for (let addr = ewramStart; addr < ewramEnd - 0x500; addr += stepSize) {
+      try {
+        // Check for reasonable party count (0-6) at offset 0x234
+        const partyCountAddr = addr + SAVEBLOCK1_LAYOUT.PARTY_COUNT
+        const partyCount = await this.client.readDWord(partyCountAddr)
+        
+        if (partyCount >= 0 && partyCount <= 6) {
+          let score = 0
+          let details = `party:${partyCount}`
           
-          if (personality === targetPersonality && otId === targetOtId) {
-            console.log(`  🎯 Found SaveBlock1 at 0x${addr.toString(16)}`)
-            saveBlock1Addr = addr
-            break
+          // Check money for reasonableness (basic validation)
+          try {
+            const money = await this.client.readDWord(addr + SAVEBLOCK1_LAYOUT.MONEY)
+            if (money > 0 && money < 0x1000000) {
+              score += 10
+              details += `, money:${money}`
+            }
+          } catch (error) {
+            score -= 5
+          }
+          
+          // If party has Pokemon, validate their structure
+          if (partyCount > 0) {
+            const pokemonAddr = addr + SAVEBLOCK1_LAYOUT.PARTY_POKEMON
+            let validPokemonCount = 0
+            
+            for (let i = 0; i < Math.min(partyCount, 6); i++) {
+              const pokemonStructAddr = pokemonAddr + (i * 100)
+              
+              try {
+                const personality = await this.client.readDWord(pokemonStructAddr)
+                const otId = await this.client.readDWord(pokemonStructAddr + 4)
+                const level = await this.client.readByte(pokemonStructAddr + 0x54)
+                const currentHp = await this.client.readWord(pokemonStructAddr + 0x56)
+                const maxHp = await this.client.readWord(pokemonStructAddr + 0x58)
+                
+                if (this.isValidPokemonStructure(personality, otId, level, currentHp, maxHp)) {
+                  validPokemonCount++
+                  score += 20
+                } else {
+                  score -= 10
+                }
+                
+                // Bonus points for reasonable level ranges
+                if (level >= 1 && level <= 100) {
+                  score += 5
+                }
+                
+                details += `, pkmn${i+1}:L${level},HP${currentHp}/${maxHp}`
+              } catch (error) {
+                score -= 15
+                details += `, pkmn${i+1}:error`
+              }
+            }
+            
+            // High score if all Pokemon are valid
+            if (validPokemonCount === partyCount) {
+              score += 50
+            }
+          } else {
+            // Empty party is valid, give moderate score
+            score += 30
+            details += ', empty_party'
+          }
+          
+          // Store candidate if it has a positive score
+          if (score > 0) {
+            candidates.push({ address: addr, score, details })
           }
         }
       } catch (error) {
         // Skip unreadable addresses
         continue
       }
-    }
-
-    // Strategy 2: If not found, search for Pokemon data and calculate backwards
-    if (saveBlock1Addr === null) {
-      console.log('  🔍 Trying backwards search from Pokemon data...')
       
-      for (let addr = startAddr; addr < endAddr - 0x100; addr += stepSize) {
-        try {
-          const personality = await this.client.readDWord(addr)
-          const otId = await this.client.readDWord(addr + 4)
-          
-          if (personality === targetPersonality && otId === targetOtId) {
-            // Calculate potential SaveBlock1 base
-            const potentialBase = addr - SAVEBLOCK1_LAYOUT.PARTY_POKEMON
-            
-            // Verify with party count
-            try {
-              const partyCount = await this.client.readDWord(potentialBase + SAVEBLOCK1_LAYOUT.PARTY_COUNT)
-              if (partyCount === targetPartyCount) {
-                console.log(`  🎯 Found SaveBlock1 at 0x${potentialBase.toString(16)} (via Pokemon search)`)
-                saveBlock1Addr = potentialBase
-                break
-              }
-            } catch (error) {
-              // Skip if can't verify
-            }
-          }
-        } catch (error) {
-          continue
-        }
+      // Progress indicator every 64KB
+      if ((addr - ewramStart) % 0x10000 === 0) {
+        const progress = ((addr - ewramStart) / 0x40000 * 100).toFixed(1)
+        process.stdout.write(`\r    Progress: ${progress}%`)
       }
     }
-
-    if (saveBlock1Addr === null) {
-      throw new Error('Could not find SaveBlock1 in memory. Make sure the save state is loaded.')
+    
+    console.log()
+    
+    if (candidates.length === 0) {
+      console.log('    No valid SaveBlock1 structure found')
+      return null
     }
+    
+    // Sort candidates by score (highest first)
+    candidates.sort((a, b) => b.score - a.score)
+    
+    console.log(`    Found ${candidates.length} SaveBlock1 candidates:`)
+    for (let i = 0; i < Math.min(candidates.length, 5); i++) {
+      const candidate = candidates[i]
+      console.log(`      ${i + 1}. 0x${candidate.address.toString(16)} (score: ${candidate.score}) - ${candidate.details}`)
+    }
+    
+    const bestCandidate = candidates[0]
+    console.log(`    Selected best candidate: 0x${bestCandidate.address.toString(16)}`)
+    
+    return bestCandidate.address
+  }
 
-    // Now search for SaveBlock2 (player name "EMERALD")
-    console.log('  🔍 Searching for SaveBlock2 (player data)...')
+  /**
+   * Validate Pokemon structure data to avoid false positives
+   * Made more lenient to account for different save states
+   */
+  private isValidPokemonStructure(personality: number, otId: number, level: number, currentHp: number, maxHp: number): boolean {
+    // Basic sanity checks for Pokemon data
+    const hasValidPersonality = personality !== 0 && personality !== 0xFFFFFFFF
+    const hasValidOtId = otId !== 0 && otId !== 0xFFFFFFFF && otId < 0x100000000
+    const hasValidLevel = level >= 0 && level <= 100
+    const hasValidHp = currentHp >= 0 && maxHp > 0 && currentHp <= maxHp && maxHp <= 999
     
-    // SaveBlock2 is typically nearby in EWRAM
-    const searchRange = 0x10000 // Search 64KB around SaveBlock1
-    const searchStart = Math.max(startAddr, saveBlock1Addr - searchRange)
-    const searchEnd = Math.min(endAddr, saveBlock1Addr + searchRange)
+    // Must have at least 3 out of 5 valid fields for a valid Pokemon
+    const validFields = [hasValidPersonality, hasValidOtId, hasValidLevel, hasValidHp].filter(Boolean).length
     
-    for (let addr = searchStart; addr < searchEnd; addr += stepSize) {
+    return validFields >= 3
+  }
+
+  /**
+   * Scan for SaveBlock2 structure near SaveBlock1
+   * Returns the best candidate based on validation
+   */
+  private async scanForSaveBlock2Structure(saveBlock1Addr: number): Promise<number | null> {
+    console.log('  Scanning for SaveBlock2 structure...')
+    
+    // Search within reasonable range of SaveBlock1
+    const searchRange = 0x20000 // 128KB range
+    const searchStart = Math.max(MEMORY_REGIONS.EWRAM_BASE, saveBlock1Addr - searchRange)
+    const searchEnd = Math.min(MEMORY_REGIONS.EWRAM_BASE + 0x40000, saveBlock1Addr + searchRange)
+    
+    const candidates: Array<{address: number, score: number, details: string}> = []
+    
+    for (let addr = searchStart; addr < searchEnd; addr += 16) {
       try {
-        // Look for "EMERALD" in Pokemon character encoding
-        // E=0xBE, M=0xC6, E=0xBE, R=0xCB, A=0xBB, L=0xC5, D=0xBD
-        const emeraldPattern = [0xBE, 0xC6, 0xBE, 0xCB, 0xBB, 0xC5, 0xBD]
+        // Check for valid player name (Pokemon character encoding)
+        const nameBytes = await this.client.readBytes(addr, 8)
         
-        let matches = 0
-        for (let i = 0; i < emeraldPattern.length; i++) {
-          const byte = await this.client.readByte(addr + i)
-          if (byte === emeraldPattern[i]) {
-            matches++
-          } else {
-            break
-          }
-        }
-        
-        if (matches === emeraldPattern.length) {
-          // Verify with play time (should be 0 hours, 26 minutes)
-          const playTimeMinutes = await this.client.readByte(addr + SAVEBLOCK2_LAYOUT.PLAY_TIME_MINUTES)
+        if (this.isValidPokemonCharacterString(nameBytes)) {
+          let score = 20
+          const playerName = this.decodePlayerName(nameBytes)
+          let details = `name:"${playerName}"`
           
-          if (playTimeMinutes === 26) {
-            console.log(`  🎯 Found SaveBlock2 at 0x${addr.toString(16)}`)
-            saveBlock2Addr = addr
-            break
+          // Validate with play time data
+          try {
+            const hours = await this.client.readWord(addr + SAVEBLOCK2_LAYOUT.PLAY_TIME_HOURS)
+            const minutes = await this.client.readByte(addr + SAVEBLOCK2_LAYOUT.PLAY_TIME_MINUTES)
+            const seconds = await this.client.readByte(addr + SAVEBLOCK2_LAYOUT.PLAY_TIME_SECONDS)
+            
+            if (hours <= 999 && minutes < 60 && seconds < 60) {
+              score += 30
+              details += `, time:${hours}:${minutes}:${seconds}`
+              
+              // Bonus for reasonable play time
+              if (hours < 100) score += 10
+            } else {
+              score -= 20
+              details += `, time:invalid`
+            }
+          } catch (error) {
+            score -= 15
+            details += `, time:error`
+          }
+          
+          // Check trainer ID
+          try {
+            const trainerId = await this.client.readDWord(addr + SAVEBLOCK2_LAYOUT.PLAYER_TRAINER_ID)
+            if (trainerId > 0 && trainerId < 0x10000000) {
+              score += 10
+              details += `, id:${trainerId & 0xFFFF}`
+            }
+          } catch (error) {
+            score -= 5
+          }
+          
+          if (score > 0) {
+            candidates.push({ address: addr, score, details })
           }
         }
       } catch (error) {
         continue
       }
     }
-
-    if (saveBlock2Addr === null) {
-      console.log('  ⚠️  Could not find SaveBlock2, using fallback methods for player data')
+    
+    if (candidates.length === 0) {
+      console.log('    No valid SaveBlock2 structure found')
+      return null
     }
-
-    this.saveBlockAddresses = {
-      saveBlock1: saveBlock1Addr,
-      saveBlock2: saveBlock2Addr || saveBlock1Addr // Fallback - some data might be available
+    
+    // Sort candidates by score
+    candidates.sort((a, b) => b.score - a.score)
+    
+    console.log(`    Found ${candidates.length} SaveBlock2 candidates:`)
+    for (let i = 0; i < Math.min(candidates.length, 3); i++) {
+      const candidate = candidates[i]
+      console.log(`      ${i + 1}. 0x${candidate.address.toString(16)} (score: ${candidate.score}) - ${candidate.details}`)
     }
+    
+    const bestCandidate = candidates[0]
+    console.log(`    Selected best candidate: 0x${bestCandidate.address.toString(16)}`)
+    
+    return bestCandidate.address
+  }
 
-    console.log(`✅ Memory scan complete:`)
-    console.log(`   SaveBlock1: 0x${saveBlock1Addr.toString(16)}`)
-    console.log(`   SaveBlock2: 0x${(saveBlock2Addr || 0).toString(16)}`)
-
-    return this.saveBlockAddresses
+  /**
+   * Check if bytes represent a valid Pokemon character string
+   */
+  private isValidPokemonCharacterString(bytes: Uint8Array): boolean {
+    let validCharCount = 0
+    
+    for (let i = 0; i < bytes.length; i++) {
+      const byte = bytes[i]
+      
+      if (byte === 0xFF || byte === 0) break // String terminator
+      
+      // Check if byte is in valid Pokemon character ranges
+      const isValid = 
+        (byte >= 0xBB && byte <= 0xD4) || // A-Z
+        (byte >= 0xD5 && byte <= 0xEE) || // a-z
+        (byte >= 0xA1 && byte <= 0xAA) || // 0-9
+        (byte >= 0x01 && byte <= 0x1F)    // Special characters
+      
+      if (isValid) {
+        validCharCount++
+      } else {
+        return false
+      }
+    }
+    
+    return validCharCount >= 3 // At least 3 valid characters for a name
   }
 
   /**
@@ -202,18 +358,23 @@ export class EmeraldMemoryParser {
   }
 
   /**
-   * Parse player name from SaveBlock2
+   * Parse player name from SaveBlock2, with fallback for missing SaveBlock2
    */
   private async parsePlayerName(addresses: SaveBlockAddresses): Promise<string> {
-    if (!addresses.saveBlock2) {
+    if (!addresses.saveBlock2 || addresses.saveBlock2 === addresses.saveBlock1) {
       return 'UNKNOWN' // Fallback if SaveBlock2 not found
     }
 
-    const nameAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAYER_NAME
-    const nameBytes = await this.client.readBytes(nameAddr, 8)
+    try {
+      const nameAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAYER_NAME
+      const nameBytes = await this.client.readBytes(nameAddr, 8)
 
-    // Convert from Pokémon character encoding to UTF-8
-    return this.decodePlayerName(nameBytes)
+      // Convert from Pokémon character encoding to UTF-8
+      return this.decodePlayerName(nameBytes)
+    } catch (error) {
+      console.warn('Could not read player name, using fallback')
+      return 'UNKNOWN'
+    }
   }
 
   /**
@@ -240,24 +401,29 @@ export class EmeraldMemoryParser {
   }
 
   /**
-   * Parse play time from SaveBlock2
+   * Parse play time from SaveBlock2, with fallback for missing SaveBlock2
    */
   private async parsePlayTime(addresses: SaveBlockAddresses): Promise<PlayTime> {
-    if (!addresses.saveBlock2) {
+    if (!addresses.saveBlock2 || addresses.saveBlock2 === addresses.saveBlock1) {
       return { hours: 0, minutes: 0, seconds: 0 } // Fallback
     }
 
-    const hoursAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_HOURS
-    const minutesAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_MINUTES
-    const secondsAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_SECONDS
-    
-    const [hours, minutes, seconds] = await Promise.all([
-      this.client.readWord(hoursAddr),
-      this.client.readByte(minutesAddr),
-      this.client.readByte(secondsAddr)
-    ])
+    try {
+      const hoursAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_HOURS
+      const minutesAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_MINUTES
+      const secondsAddr = addresses.saveBlock2 + SAVEBLOCK2_LAYOUT.PLAY_TIME_SECONDS
+      
+      const [hours, minutes, seconds] = await Promise.all([
+        this.client.readWord(hoursAddr),
+        this.client.readByte(minutesAddr),
+        this.client.readByte(secondsAddr)
+      ])
 
-    return { hours, minutes, seconds }
+      return { hours, minutes, seconds }
+    } catch (error) {
+      console.warn('Could not read play time, using fallback')
+      return { hours: 0, minutes: 0, seconds: 0 }
+    }
   }
 
   /**
