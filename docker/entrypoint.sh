@@ -56,19 +56,23 @@ echo "   Lua Script: $LUA_SCRIPT_PATH"
 
 # Start mGBA with the --script argument to load HTTP server within mGBA Lua API
 echo "🎮 Starting mGBA with --script HTTP server..."
-echo "📄 Using the FULL HTTP server script: $LUA_SCRIPT_PATH"
+echo "📄 Using MINIMAL test script: /app/data/minimal-test.lua"
 echo "🚀 Launching mGBA with xvfb-run for headless operation..."
-echo "🐛 Enabling verbose logging to see what's happening..."
+echo "🐛 Capturing ALL output to see Lua execution..."
 xvfb-run -a --server-args="-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
     /usr/local/bin/mgba-qt \
-    --script "$LUA_SCRIPT_PATH" \
+    --script "/app/data/minimal-test.lua" \
     --log-level 15 \
     -t "$SAVESTATE_PATH" \
-    "$ROM_PATH" &
+    "$ROM_PATH" > /tmp/mgba_full.log 2>&1 &
 MGBA_PID=$!
 
 echo "🕐 Waiting for mGBA to start and load ROM..."
-sleep 10
+sleep 15
+echo "📜 Full mGBA output with Lua test:"
+cat /tmp/mgba_full.log
+
+echo ""
 echo "📜 Checking if mGBA is still running..."
 if kill -0 $MGBA_PID 2>/dev/null; then
     echo "✅ mGBA is still running (PID: $MGBA_PID)"
