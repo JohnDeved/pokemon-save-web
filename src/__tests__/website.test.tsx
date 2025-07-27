@@ -22,7 +22,7 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
       // Test that core components can be imported
       const appModule = await import('../App')
       expect(appModule.App).toBeDefined()
-      
+
       // Test that parser modules are available
       const parserModule = await import('../lib/parser/core/PokemonSaveParser')
       expect(parserModule.PokemonSaveParser).toBeDefined()
@@ -33,7 +33,7 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
     it('should create mock files for testing', () => {
       const mockContent = new Uint8Array([0x00, 0x01, 0x02, 0x03])
       const mockFile = new File([mockContent], 'test.sav', { type: 'application/octet-stream' })
-      
+
       expect(mockFile).toBeInstanceOf(File)
       expect(mockFile.name).toBe('test.sav')
       expect(mockFile.size).toBe(4)

@@ -4,8 +4,7 @@
  */
 
 import type { Page } from '@playwright/test'
-import { test, expect } from '@playwright/test'
-import path from 'path'
+import { expect, test } from '@playwright/test'
 
 // Path to test save file (declared but not used in basic tests)
 // const testSaveFile = path.join(__dirname, '../lib/parser/__tests__/test_data/emerald.sav')

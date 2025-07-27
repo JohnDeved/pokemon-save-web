@@ -21,10 +21,10 @@ describe('SaveFileDropzone Component', () => {
   describe('Component Definition', () => {
     it('should be a React component', async () => {
       const { SaveFileDropzone } = await import('../components/pokemon/SaveFileDropzone')
-      
+
       // Check that it's a function (React functional component)
       expect(typeof SaveFileDropzone).toBe('function')
-      
+
       // Check that the function has the expected name
       expect(SaveFileDropzone.name).toBe('SaveFileDropzone')
     })
