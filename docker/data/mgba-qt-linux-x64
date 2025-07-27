@@ -1,0 +1,12 @@
+#!/bin/bash
+# mGBA prebuilt binary wrapper script
+# Ensures the binary can find its required shared library
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Set library path to include the current directory
+export LD_LIBRARY_PATH="$SCRIPT_DIR:$LD_LIBRARY_PATH"
+
+# Execute mgba-qt with all passed arguments
+exec "$SCRIPT_DIR/mgba-qt" "$@"

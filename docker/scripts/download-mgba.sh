@@ -10,23 +10,63 @@ MGBA_BUILD_DIR="/tmp/mgba"
 
 # Function to download prebuilt binary
 download_prebuilt() {
-    echo "📥 Attempting to download prebuilt mGBA binary..."
+    echo "📥 Attempting to use prebuilt mGBA binary..."
     
-    if curl -L -f -o "$MGBA_INSTALL_PATH" "$MGBA_RELEASE_URL"; then
+    # First check if we have local prebuilt files in the Docker data directory
+    if [ -f "/app/prebuilt_data/mgba-qt" ] && [ -f "/app/prebuilt_data/libmgba.so.0.11" ]; then
+        echo "📦 Using local prebuilt files from Docker data..."
+        cp /app/prebuilt_data/mgba-qt "$MGBA_INSTALL_PATH"
+        cp /app/prebuilt_data/libmgba.so.0.11 /usr/local/lib/
         chmod +x "$MGBA_INSTALL_PATH"
-        echo "✅ Successfully downloaded prebuilt mGBA binary"
-        
-        # Verify the binary has required features (basic check)
-        if "$MGBA_INSTALL_PATH" --help >/dev/null 2>&1; then
-            echo "✅ Verified: mGBA binary is functional"
-            return 0
+        ldconfig
+        echo "✅ Successfully installed local prebuilt mGBA binary with library"
+    elif [ -f "/app/prebuilt_data/mgba-qt-linux-x64.tar.gz" ]; then
+        echo "📦 Using local prebuilt tarball..."
+        cd /tmp
+        tar -xzf /app/prebuilt_data/mgba-qt-linux-x64.tar.gz
+        if [ -f "/tmp/mgba-qt" ] && [ -f "/tmp/libmgba.so.0.11" ]; then
+            cp /tmp/mgba-qt "$MGBA_INSTALL_PATH"
+            cp /tmp/libmgba.so.0.11 /usr/local/lib/
+            chmod +x "$MGBA_INSTALL_PATH"
+            ldconfig
+            echo "✅ Successfully installed prebuilt mGBA binary from local tarball"
         else
-            echo "❌ Prebuilt binary failed basic functionality test"
-            rm -f "$MGBA_INSTALL_PATH"
+            echo "❌ Local tarball missing required files"
             return 1
         fi
+    # Try to download the tarball version
+    elif curl -L -f -o "/tmp/mgba-prebuilt.tar.gz" "${MGBA_RELEASE_URL}.tar.gz"; then
+        echo "📦 Downloaded prebuilt tarball, extracting..."
+        cd /tmp
+        tar -xzf mgba-prebuilt.tar.gz
+        
+        # Install the binary and library
+        if [ -f "/tmp/mgba-qt" ] && [ -f "/tmp/libmgba.so.0.11" ]; then
+            cp /tmp/mgba-qt "$MGBA_INSTALL_PATH"
+            cp /tmp/libmgba.so.0.11 /usr/local/lib/
+            chmod +x "$MGBA_INSTALL_PATH"
+            ldconfig
+            echo "✅ Successfully installed prebuilt mGBA binary with library"
+        else
+            echo "❌ Prebuilt tarball missing required files"
+            return 1
+        fi
+    elif curl -L -f -o "$MGBA_INSTALL_PATH" "$MGBA_RELEASE_URL"; then
+        # Fallback to direct binary download (wrapper script)
+        chmod +x "$MGBA_INSTALL_PATH"
+        echo "✅ Successfully downloaded prebuilt mGBA wrapper"
     else
         echo "❌ Failed to download prebuilt binary from $MGBA_RELEASE_URL"
+        return 1
+    fi
+    
+    # Verify the binary has required features
+    if "$MGBA_INSTALL_PATH" --help >/dev/null 2>&1; then
+        echo "✅ Verified: mGBA binary is functional"
+        return 0
+    else
+        echo "❌ Prebuilt binary failed basic functionality test"
+        rm -f "$MGBA_INSTALL_PATH"
         return 1
     fi
 }

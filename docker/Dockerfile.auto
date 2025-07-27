@@ -33,6 +33,9 @@ WORKDIR /app
 COPY docker/scripts/download-mgba.sh /app/download-mgba.sh
 RUN chmod +x /app/download-mgba.sh
 
+# Copy prebuilt files if available (will be used as fallback if download fails)
+COPY docker/data/ /app/prebuilt_data/
+
 # Download or build mGBA
 RUN /app/download-mgba.sh
 
