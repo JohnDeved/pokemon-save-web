@@ -8,7 +8,10 @@ _G.console = {
     log = function(self, msg) print("[CONSOLE] " .. tostring(msg)); io.flush() end,
     error = function(self, msg) print("[ERROR] " .. tostring(msg)); io.flush() end
 }
-_G.emu = { romSize = function() return 1024 * 1024 end }
+_G.emu = {
+    romSize = function() return 1024 * 1024 end,
+    getGameTitle = function() return "Pokémon Mock" end
+}
 _G.callbacks = {
     add = function(self, event, cb) if event == "start" then cb() end; return 1 end,
     remove = function(self, id) end

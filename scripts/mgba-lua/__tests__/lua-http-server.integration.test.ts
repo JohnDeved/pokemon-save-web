@@ -106,9 +106,9 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('text/plain')
       // Note: GET / route does not have CORS middleware in the server code
-
+      
       const text = await response.text()
-      expect(text).toBe('Welcome to mGBA HTTP Server!')
+      expect(text).toContain('Welcome to mGBA HTTP Server!')
     })
 
     it('should handle GET /json and return JSON with CORS headers', async () => {

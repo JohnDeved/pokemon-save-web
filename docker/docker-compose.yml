@@ -1,0 +1,18 @@
+services:
+  mgba-test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: mgba-test-environment
+    ports:
+      - "7102:7102"
+    environment:
+      - DISPLAY=:99
+      - QT_QPA_PLATFORM=xcb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7102/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
