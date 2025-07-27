@@ -28,11 +28,28 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
     items: createMapping<ItemMapping>(itemMapData as Record<string, unknown>),
   } as const
 
+  // Memory addresses for Pokémon Emerald (USA) in mGBA (from official pokemon.lua script)
+  readonly memoryAddresses = {
+    partyData: 0x20244ec, // _party address from pokemon.lua
+    partyCount: 0x20244e9, // _partyCount address from pokemon.lua
+    pokemonSize: 100, // Size of each Pokemon struct (0x64 bytes)
+    maxPartySize: 6, // Maximum party size
+    // TODO: Add player name and play time addresses when implemented
+  } as const
+
   /**
    * Check if this config can handle the given save file
    * Vanilla is the fallback, so it's permissive and can handle most Emerald-based saves
    */
   canHandle (saveData: Uint8Array): boolean {
     return this.hasValidEmeraldSignature(saveData)
+  }
+
+  /**
+   * Check if this config can handle memory parsing for the given game title
+   * Supports Pokémon Emerald variants
+   */
+  canHandleMemory (gameTitle: string): boolean {
+    return gameTitle.includes('EMERALD') || gameTitle.includes('Emerald') || gameTitle.includes('EMER')
   }
 }

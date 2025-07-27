@@ -52,22 +52,14 @@ export class GameConfigRegistry {
   }
 
   /**
-   * Get a specific config by name
+   * Get a config that can handle memory parsing for the given game title
    */
-  static getConfig (name: string): GameConfig | null {
-    const registry = gameConfigRegistry
-
-    // Try to find and instantiate config by name
-    for (const ConfigClass of registry.configs) {
+  getConfigForMemory (gameTitle: string): GameConfig | null {
+    // Try to find a config that can handle this game title in memory mode
+    for (const ConfigClass of this.configs) {
       try {
         const config = new ConfigClass()
-        if (name === 'emerald' && config.name.toLowerCase().includes('emerald')) {
-          return config
-        }
-        if (name === 'vanilla' && config.name.toLowerCase().includes('vanilla')) {
-          return config
-        }
-        if (name === 'quetzal' && config.name.toLowerCase().includes('quetzal')) {
+        if (config.canHandleMemory?.(gameTitle)) {
           return config
         }
       } catch {

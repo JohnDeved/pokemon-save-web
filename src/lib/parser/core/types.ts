@@ -65,8 +65,8 @@ export interface SaveData {
   readonly player_name: string
   readonly play_time: PlayTimeData
   readonly active_slot: number
-  readonly sector_map: ReadonlyMap<number, number>
-  readonly rawSaveData: Uint8Array // Add raw save data for rehydration
+  readonly sector_map: ReadonlyMap<number, number> | undefined // Undefined for memory mode
+  readonly rawSaveData: Uint8Array | undefined // Undefined for memory mode
 }
 
 // Mapping interfaces for ID translation
@@ -173,6 +173,19 @@ export interface GameConfig {
 
   /** Check if this config can handle the given save data */
   canHandle(saveData: Uint8Array): boolean
+
+  /** Check if this config can handle memory parsing for the given game title */
+  canHandleMemory?(gameTitle: string): boolean
+
+  /** Memory addresses for emulator integration (optional) */
+  readonly memoryAddresses?: {
+    readonly partyData: number
+    readonly partyCount: number
+    readonly pokemonSize: number
+    readonly maxPartySize: number
+    readonly playerName?: number
+    readonly playTime?: number
+  }
 
   // Optional behavioral overrides for game-specific mechanics
   calculateNature?(personality: number): string

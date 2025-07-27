@@ -50,6 +50,16 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
+  // Memory addresses for Quetzal ROM hack (if different from vanilla)
+  // TODO: Update these if Quetzal has different memory layout
+  readonly memoryAddresses = {
+    partyData: 0x20244ec, // Same as vanilla for now
+    partyCount: 0x20244e9, // Same as vanilla for now
+    pokemonSize: 104, // Quetzal uses 104-byte Pokemon structure
+    maxPartySize: 6,
+    // TODO: Add player name and play time addresses when implemented
+  } as const
+
   // Quetzal-specific offsets for unencrypted data
   private readonly quetzalOffsets = {
     species: 0x28,
@@ -216,5 +226,14 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     } catch {
       return false
     }
+  }
+
+  /**
+   * Check if this config can handle memory parsing for the given game title
+   * Supports Quetzal ROM hack variants
+   */
+  canHandleMemory (gameTitle: string): boolean {
+    return gameTitle.toLowerCase().includes('quetzal') ||
+           (gameTitle.includes('EMERALD') || gameTitle.includes('Emerald') || gameTitle.includes('EMER'))
   }
 }

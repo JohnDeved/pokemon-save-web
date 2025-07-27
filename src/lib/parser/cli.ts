@@ -168,7 +168,11 @@ async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { 
 
   if (!options.skipDisplay) {
     console.log(`Active save slot: ${result.active_slot}`)
-    console.log(`Valid sectors found: ${result.sector_map.size}`)
+    
+    // Only show sector info for file mode (memory mode doesn't have sectors)
+    if (result.sector_map) {
+      console.log(`Valid sectors found: ${result.sector_map.size}`)
+    }
 
     if (options.graph) {
       displayPartyPokemonGraph(result.party_pokemon)
