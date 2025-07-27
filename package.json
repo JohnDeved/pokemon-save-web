@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "bin": {
-    "pokemon-save-parser": "bin/pokemon-save-parser"
+    "pokemon-save-parser": "bin/pokemon-save-parser",
+    "mgba-docker": "node bin/mgba-docker"
   },
   "files": [
     "bin/",
@@ -27,13 +28,7 @@
     "parse": "tsx src/lib/parser/cli.ts",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
-    "mgba:start": "docker compose -f docker/docker-compose.yml up -d",
-    "mgba:start:build": "docker compose -f docker/docker-compose.yml up -d --build",
-    "mgba:run": "docker compose -f docker/docker-compose.yml up",
-    "mgba:run:build": "docker compose -f docker/docker-compose.yml up --build",
-    "mgba:stop": "docker compose -f docker/docker-compose.yml down",
-    "mgba:build": "docker build -f docker/Dockerfile -t mgba-test-env:latest .",
-    "mgba:pull": "docker pull ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest"
+    "mgba": "tsx docker/mgba-docker.ts"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",

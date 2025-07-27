@@ -34,20 +34,6 @@ npx github:JohnDeved/pokemon-save-web save.sav
 npx github:JohnDeved/pokemon-save-web save.sav --debug
 ```
 
-## mGBA Docker Environment
-
-For Lua HTTP server testing and emulation support, this project uses a pre-built Docker image with mGBA from GitHub Container Registry (GHCR):
-
-```bash
-# Start with pre-built image (default, recommended)
-npm run mgba:start
-
-# Or build from source if needed
-npm run mgba:start:build
-```
-
-The HTTP server will be available at `http://localhost:7102`. The setup automatically tries to use pre-built images from GHCR and falls back to building locally if unavailable.
-
 ### As a Library
 ```typescript
 import { PokemonSaveParser } from './lib/parser'
@@ -55,23 +41,6 @@ import { PokemonSaveParser } from './lib/parser'
 const parser = new PokemonSaveParser()
 const saveData = await parser.parseSaveFile(file)
 console.log(`Player: ${saveData.player_name}`)
-```
-
-### mGBA Integration
-Real-time memory access for Pokémon Emerald running in mGBA emulator:
-
-```bash
-# Start mGBA Docker environment
-npm run mgba:start
-
-# Test memory parsing vs file parsing
-npm run mgba:test
-
-# Basic WebSocket connection test
-npm run mgba:example
-
-# Stop mGBA environment
-npm run mgba:stop
 ```
 
 ```typescript

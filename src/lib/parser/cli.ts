@@ -312,7 +312,6 @@ async function main () {
       })
     } catch (error) {
       console.error('❌ Failed to connect to mGBA WebSocket:', error instanceof Error ? error.message : 'Unknown error')
-      console.error('💡 Make sure mGBA Docker container is running: npm run mgba:start')
       process.exit(1)
     }
   } else {
@@ -341,7 +340,6 @@ Examples:
 
 WebSocket Mode:
   Requires mGBA Docker container to be running with WebSocket API enabled.
-  Start with: npm run mgba:start
 `)
       process.exit(1)
     }

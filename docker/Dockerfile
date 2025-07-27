@@ -46,16 +46,20 @@ RUN cmake -B build \
 
 # Create working directory and download/copy required files
 WORKDIR /app
-RUN mkdir -p /app/data \
+RUN mkdir -p /app/roms \
+    # Download Emerald ROM
     && url="piz.92%eporuE02%C2%ASU82%02%noisreV02%dlaremE02%-02%nomekoP/ABG/noitcelloc02%nmkp/noitcelloc_nmkp/daolnwod/gro.evihcra//:sptth" \
     && rev_url=$(echo "$url" | rev) \
-    && echo "Downloading ROM from: $rev_url" \
-    && curl -L -o /app/data/tmp_rom.zip "$rev_url" \
-    && unzip -o /app/data/tmp_rom.zip -d /app/data/ \
-    && mv /app/data/*.gba /app/data/emerald.gba \
-    && rm -f /app/data/tmp_rom.zip
-COPY src/lib/parser/__tests__/test_data/emerald.ss0 /app/data/
-COPY scripts/mgba-lua/http-server.lua /app/data/mgba_http_server.lua
+    && echo "Downloading Emerald ROM from: $rev_url" \
+    && curl -L -o /app/roms/tmp_emerald.zip "$rev_url" \
+    && unzip -o /app/roms/tmp_emerald.zip -d /app/roms/ \
+    && mv /app/roms/*.gba /app/roms/emerald.gba \
+    && rm -f /app/roms/tmp_emerald.zip \
+    # Download Quetzal ROM
+    && curl -L -o /app/roms/tmp_quetzal.zip "https://ia601003.us.archive.org/27/items/pokemon-quetzal-english-alpha-8v-2/PokemonQuetzalEnglishAlpha8v2.zip" \
+    && unzip -o /app/roms/tmp_quetzal.zip -d /app/roms/ \
+    && find /app/roms -iname "*quetzal*.gba" -exec mv {} /app/roms/quetzal.gba \; \
+    && rm -f /app/roms/tmp_quetzal.zip
 COPY docker/entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable
