@@ -28,7 +28,9 @@
     "mgba:run:build": "docker compose -f docker/docker-compose.yml up --build",
     "mgba:stop": "docker compose -f docker/docker-compose.yml down",
     "mgba:build": "docker build -f docker/Dockerfile -t mgba-test-env:latest .",
-    "mgba:pull": "docker pull ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest"
+    "mgba:pull": "docker pull ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest",
+    "mgba:test": "tsx src/lib/mgba/simple-memory-test.ts",
+    "mgba:test:full": "tsx src/lib/mgba/test-memory-accuracy.ts"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",

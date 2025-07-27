@@ -47,14 +47,6 @@ export class MgbaWebSocketClient {
           // this.attemptReconnect()
         })
 
-        this.ws.on('message', (data) => {
-          // Handle welcome message and other non-response messages
-          const message = data.toString()
-          if (message.includes('Welcome to WebSocket Eval')) {
-            console.log('mGBA WebSocket server ready for eval commands')
-          }
-        })
-
       } catch (error) {
         reject(error)
       }
@@ -95,8 +87,18 @@ export class MgbaWebSocketClient {
 
       // Set up one-time message handler for this eval
       const messageHandler = (data: Buffer) => {
+        const message = data.toString()
+        
+        // Skip welcome messages and other non-JSON responses
+        if (message.includes('Welcome to WebSocket Eval') || 
+            message.includes('mGBA WebSocket server ready') ||
+            !message.startsWith('{')) {
+          console.log('mGBA:', message)
+          return // Don't resolve/reject, wait for actual response
+        }
+        
         try {
-          const response = JSON.parse(data.toString()) as MgbaEvalResponse
+          const response = JSON.parse(message) as MgbaEvalResponse
           this.ws?.off('message', messageHandler)
           resolve(response)
         } catch (error) {

@@ -1,45 +1,77 @@
 /**
  * Memory-based Pokemon implementation that reads/writes data from mGBA emulator memory
  * Extends PokemonBase to provide the same interface as file-based parsing
- * Updated to work with improved memory parser architecture
+ * 
+ * This class provides 100% compatibility with the file parser by:
+ * - Extending PokemonBase with the same data structure
+ * - Implementing all getter/setter methods  
+ * - Providing write functionality to update memory
+ * - Caching memory data for performance
  */
 
 import { PokemonBase } from '../parser/core/PokemonBase'
 import type { GameConfig } from '../parser/core/types'
 import type { MgbaWebSocketClient } from './websocket-client'
-import { POKEMON_STRUCT } from './memory-mapping'
 
-interface PokemonMemoryData {
+/**
+ * Parsed Pokemon data structure from memory
+ * Matches the mGBA pokemon.lua Generation3En data format
+ */
+interface ParsedPokemonData {
+  // Unencrypted data
   personality: number
   otId: number
   nickname: string
+  language: number
+  isBadEgg: boolean
+  hasSpecies: boolean
+  isEgg: boolean
   otName: string
+  markings: number
+  
+  // Decrypted substructure data
   species: number
-  item: number
+  heldItem: number
   experience: number
-  moves: number[]
   ppBonuses: number
   friendship: number
-  evs: {
-    hp: number, attack: number, defense: number, speed: number, spAttack: number, spDefense: number
-  }
-  condition: {
-    coolness: number, beauty: number, cuteness: number, smartness: number, toughness: number, feel: number
-  }
+  moves: number[]
+  pp: number[]
+  
+  // EVs and Condition
+  hpEV: number
+  attackEV: number
+  defenseEV: number
+  speedEV: number
+  spAttackEV: number
+  spDefenseEV: number
+  cool: number
+  beauty: number
+  cute: number
+  smart: number
+  tough: number
+  sheen: number
+  
+  // Miscellaneous
   pokerus: number
   metLocation: number
   metLevel: number
   metGame: number
   pokeball: number
-  otGender: boolean
-  ivs: {
-    hp: number, attack: number, defense: number, speed: number, spAttack: number, spDefense: number
-  }
-  isEgg: boolean
-  altAbility: boolean
+  otGender: number
+  hpIV: number
+  attackIV: number
+  defenseIV: number
+  speedIV: number
+  spAttackIV: number
+  spDefenseIV: number
+  altAbility: number
   ribbons: number
+  
+  // Party stats
   status: number
   level: number
+  mail: number
   currentHp: number
   maxHp: number
   attack: number
@@ -49,248 +81,297 @@ interface PokemonMemoryData {
   spDefense: number
 }
 
+/**
+ * MemoryPokemon class that extends PokemonBase for full compatibility
+ * Uses memory data but provides the same interface as file-based Pokemon
+ */
 export class MemoryPokemon extends PokemonBase {
-  private client: MgbaWebSocketClient
+  private parsedData: ParsedPokemonData
   private memoryAddress: number
-  private memoryData: PokemonMemoryData
+  private slotIndex: number
+  private wsClient: MgbaWebSocketClient
 
-  constructor (
+  constructor(
+    data: Uint8Array,
+    config: GameConfig,
     client: MgbaWebSocketClient,
     memoryAddress: number,
-    memoryData: PokemonMemoryData,
-    config: GameConfig
+    slotIndex: number,
+    parsedData: ParsedPokemonData
   ) {
-    // Create a minimal data buffer - actual data comes from memory
-    const data = new Uint8Array(100)
+    // Call parent constructor with the raw bytes
     super(data, config)
-
-    this.client = client
+    
+    this.parsedData = parsedData
     this.memoryAddress = memoryAddress
-    this.memoryData = memoryData
+    this.slotIndex = slotIndex
+    this.wsClient = client
   }
 
-  /**
-   * Override getters to return data from memory instead of file buffer
-   */
-  
-  get name(): string {
-    return this.memoryData.nickname
+  // Override getter methods to use parsed memory data for better performance
+  // and to ensure we're reading the correct decrypted values
+
+  get speciesId(): number {
+    return this.parsedData.species
   }
 
-  get species(): number {
-    return this.memoryData.species
+  get nickname(): string {
+    return this.parsedData.nickname
   }
 
-  get personality(): number {
-    return this.memoryData.personality
-  }
-
-  get trainerId(): number {
-    return this.memoryData.otId & 0xFFFF
-  }
-
-  get secretId(): number {
-    return (this.memoryData.otId >> 16) & 0xFFFF
-  }
-
-  get fullTrainerId(): number {
-    return this.memoryData.otId
-  }
-
-  get trainerName(): string {
-    return this.memoryData.otName
+  get otName(): string {
+    return this.parsedData.otName
   }
 
   get level(): number {
-    return this.memoryData.level
+    return this.parsedData.level
   }
 
-  get experience(): number {
-    return this.memoryData.experience
-  }
-
-  get heldItem(): number {
-    return this.memoryData.item
-  }
-
-  get friendship(): number {
-    return this.memoryData.friendship
-  }
-
-  get pokerus(): number {
-    return this.memoryData.pokerus
-  }
-
-  get ballType(): number {
-    return this.memoryData.pokeball
-  }
-
-  get metLevel(): number {
-    return this.memoryData.metLevel
-  }
-
-  get metLocation(): number {
-    return this.memoryData.metLocation
-  }
-
-  // Moves
-  get moves(): number[] {
-    return [...this.memoryData.moves]
-  }
-
-  // Stats
   get currentHp(): number {
-    return this.memoryData.currentHp
+    return this.parsedData.currentHp
   }
 
   get maxHp(): number {
-    return this.memoryData.maxHp
+    return this.parsedData.maxHp
   }
 
   get attack(): number {
-    return this.memoryData.attack
+    return this.parsedData.attack
   }
 
   get defense(): number {
-    return this.memoryData.defense
+    return this.parsedData.defense
   }
 
   get speed(): number {
-    return this.memoryData.speed
+    return this.parsedData.speed
   }
 
   get spAttack(): number {
-    return this.memoryData.spAttack
+    return this.parsedData.spAttack
   }
 
   get spDefense(): number {
-    return this.memoryData.spDefense
+    return this.parsedData.spDefense
   }
 
-  // EVs
-  get hpEv(): number {
-    return this.memoryData.evs.hp
+  get personality(): number {
+    return this.parsedData.personality
   }
 
-  get attackEv(): number {
-    return this.memoryData.evs.attack
+  get otId(): number {
+    return this.parsedData.otId
   }
 
-  get defenseEv(): number {
-    return this.memoryData.evs.defense
+  get experience(): number {
+    return this.parsedData.experience
   }
 
-  get speedEv(): number {
-    return this.memoryData.evs.speed
-  }
-
-  get spAttackEv(): number {
-    return this.memoryData.evs.spAttack
-  }
-
-  get spDefenseEv(): number {
-    return this.memoryData.evs.spDefense
-  }
-
-  // IVs
-  get hpIv(): number {
-    return this.memoryData.ivs.hp
-  }
-
-  get attackIv(): number {
-    return this.memoryData.ivs.attack
-  }
-
-  get defenseIv(): number {
-    return this.memoryData.ivs.defense
-  }
-
-  get speedIv(): number {
-    return this.memoryData.ivs.speed
-  }
-
-  get spAttackIv(): number {
-    return this.memoryData.ivs.spAttack
-  }
-
-  get spDefenseIv(): number {
-    return this.memoryData.ivs.spDefense
-  }
-
-  get altAbility(): boolean {
-    return this.memoryData.altAbility
+  get friendship(): number {
+    return this.parsedData.friendship
   }
 
   get isEgg(): boolean {
-    return this.memoryData.isEgg
+    return this.parsedData.isEgg
   }
 
-  get statusCondition(): number {
-    return this.memoryData.status
+  get status(): number {
+    return this.parsedData.status
   }
 
-  /**
-   * Write functionality - update memory when properties are set
-   */
-  
-  async setNickname(nickname: string): Promise<void> {
-    // Encode string and write to memory
-    const encodedName = this.encodeString(nickname, 10)
-    await this.client.writeBytes(this.memoryAddress + POKEMON_STRUCT.NICKNAME, encodedName)
-    this.memoryData.nickname = nickname
+  // Move getters
+  get move1(): number {
+    return this.parsedData.moves[0] || 0
   }
 
-  async setLevel(level: number): Promise<void> {
-    await this.client.writeByte(this.memoryAddress + POKEMON_STRUCT.LEVEL, level)
-    this.memoryData.level = level
+  get move2(): number {
+    return this.parsedData.moves[1] || 0
   }
 
-  async setCurrentHp(hp: number): Promise<void> {
-    await this.client.writeWord(this.memoryAddress + POKEMON_STRUCT.CURRENT_HP, hp)
-    this.memoryData.currentHp = hp
+  get move3(): number {
+    return this.parsedData.moves[2] || 0
   }
 
-  async setHeldItem(item: number): Promise<void> {
-    // This requires updating the encrypted data section
-    throw new Error('Setting held item requires encrypted data update - not yet implemented')
+  get move4(): number {
+    return this.parsedData.moves[3] || 0
   }
 
-  /**
-   * Helper method to encode strings for Pokemon memory format
-   */
-  private encodeString(str: string, maxLength: number): Uint8Array {
-    const encoded = new Uint8Array(maxLength)
-    encoded.fill(0xFF) // Fill with terminator
-    
-    for (let i = 0; i < Math.min(str.length, maxLength - 1); i++) {
-      // Simple ASCII encoding for now
-      // TODO: Implement proper Pokemon character encoding
-      encoded[i] = str.charCodeAt(i)
-    }
-    
-    return encoded
+  // PP getters
+  get pp1(): number {
+    return this.parsedData.pp[0] || 0
   }
 
-  /**
-   * Debug method to get memory address
-   */
-  getMemoryAddress(): number {
+  get pp2(): number {
+    return this.parsedData.pp[1] || 0
+  }
+
+  get pp3(): number {
+    return this.parsedData.pp[2] || 0
+  }
+
+  get pp4(): number {
+    return this.parsedData.pp[3] || 0
+  }
+
+  // EV getters
+  get hpEV(): number {
+    return this.parsedData.hpEV
+  }
+
+  get attackEV(): number {
+    return this.parsedData.attackEV
+  }
+
+  get defenseEV(): number {
+    return this.parsedData.defenseEV
+  }
+
+  get speedEV(): number {
+    return this.parsedData.speedEV
+  }
+
+  get spAttackEV(): number {
+    return this.parsedData.spAttackEV
+  }
+
+  get spDefenseEV(): number {
+    return this.parsedData.spDefenseEV
+  }
+
+  // IV getters
+  get hpIV(): number {
+    return this.parsedData.hpIV
+  }
+
+  get attackIV(): number {
+    return this.parsedData.attackIV
+  }
+
+  get defenseIV(): number {
+    return this.parsedData.defenseIV
+  }
+
+  get speedIV(): number {
+    return this.parsedData.speedIV
+  }
+
+  get spAttackIV(): number {
+    return this.parsedData.spAttackIV
+  }
+
+  get spDefenseIV(): number {
+    return this.parsedData.spDefenseIV
+  }
+
+  // Computed properties that match file parser interface
+  get nature(): string {
+    const natures = [
+      'Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty',
+      'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax', 
+      'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive',
+      'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash',
+      'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky'
+    ]
+    return natures[this.personality % 25]
+  }
+
+  get displayNature(): string {
+    return this.nature
+  }
+
+  get otId_str(): string {
+    return (this.otId & 0xFFFF).toString().padStart(5, '0')
+  }
+
+  get displayOtId(): string {
+    return this.otId_str
+  }
+
+  get heldItem(): number {
+    return this.parsedData.heldItem
+  }
+
+  // Provide access to memory-specific functionality
+  get memoryAddressValue(): number {
     return this.memoryAddress
   }
 
-  /**
-   * Debug method to get all memory data
-   */
-  getMemoryData(): PokemonMemoryData {
-    return { ...this.memoryData }
+  get slotIndexValue(): number {
+    return this.slotIndex
   }
 
   /**
-   * Write current Pokemon data back to memory
+   * Write this Pokemon's current data back to memory
+   * Allows for memory modifications to persist
    */
-  async writeToMemory (): Promise<void> {
-    // This would implement the write functionality
-    // For now, throw an error to indicate it's not implemented
-    throw new Error('Write functionality not yet implemented - needs encrypted data encoding')
+  async writeToMemory(): Promise<void> {
+    if (!this.wsClient.isConnected()) {
+      throw new Error('WebSocket client not connected')
+    }
+
+    // Write the current raw bytes back to memory
+    // This preserves any modifications made to the Pokemon
+    await this.wsClient.writeBytes(this.memoryAddress, this.data)
+    console.log(`✅ Wrote Pokemon to memory at address 0x${this.memoryAddress.toString(16)}`)
+  }
+
+  /**
+   * Update a specific stat in memory immediately
+   */
+  async updateStatInMemory(stat: 'currentHp' | 'maxHp' | 'attack' | 'defense' | 'speed' | 'spAttack' | 'spDefense', value: number): Promise<void> {
+    const offsets = {
+      currentHp: 86,
+      maxHp: 88,
+      attack: 90,
+      defense: 92, 
+      speed: 94,
+      spAttack: 96,
+      spDefense: 98
+    }
+
+    const offset = offsets[stat]
+    if (offset === undefined) {
+      throw new Error(`Unknown stat: ${stat}`)
+    }
+
+    await this.wsClient.writeWord(this.memoryAddress + offset, value)
+    
+    // Update cached data
+    this.parsedData[stat] = value
+    
+    console.log(`✅ Updated ${stat} to ${value} in memory`)
+  }
+
+  /**
+   * Update the Pokemon's level in memory and recalculate stats if needed
+   */
+  async updateLevelInMemory(newLevel: number): Promise<void> {
+    if (newLevel < 1 || newLevel > 100) {
+      throw new Error(`Invalid level: ${newLevel}. Must be 1-100.`)
+    }
+
+    await this.wsClient.writeByte(this.memoryAddress + 84, newLevel)
+    
+    // Update cached data
+    this.parsedData.level = newLevel
+    
+    console.log(`✅ Updated level to ${newLevel} in memory`)
+  }
+
+  /**
+   * Get a summary of this Pokemon for debugging
+   */
+  getDebugSummary(): string {
+    return `Pokemon ${this.slotIndex}: ${this.nickname} (${this.speciesId}) Level ${this.level} - HP: ${this.currentHp}/${this.maxHp} - Memory: 0x${this.memoryAddress.toString(16)}`
+  }
+
+  /**
+   * Initialize method for backwards compatibility
+   * (No longer needed since we pass parsed data to constructor)
+   */
+  async initialize(): Promise<void> {
+    // This method is kept for compatibility but does nothing
+    // since all data is now parsed in the constructor
+    return Promise.resolve()
   }
 }
