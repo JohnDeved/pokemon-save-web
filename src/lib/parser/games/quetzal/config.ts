@@ -55,8 +55,6 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   readonly memoryAddresses = {
     partyData: 0x20244ec, // Same as vanilla for now
     partyCount: 0x20244e9, // Same as vanilla for now
-    pokemonSize: this.pokemonSize, // Quetzal uses 104-byte Pokemon structure
-    maxPartySize: this.saveLayout.maxPartySize,
     // TODO: Add player name and play time addresses when implemented
   } as const
 

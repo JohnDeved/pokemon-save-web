@@ -7,20 +7,20 @@ import { WebSocket } from 'ws'
 
 // Simple EventEmitter implementation for browser compatibility
 class EventEmitter {
-  private events: Record<string, Array<(...args: any[]) => void>> = {}
+  private events: Record<string, Array<(data: Buffer) => void>> = {}
 
   setMaxListeners (_n: number): void {
     // No-op for browser compatibility
   }
 
-  on (event: string, listener: (...args: any[]) => void): void {
+  on (event: string, listener: (data: Buffer) => void): void {
     if (!this.events[event]) {
       this.events[event] = []
     }
     this.events[event].push(listener)
   }
 
-  off (event: string, listener: (...args: any[]) => void): void {
+  off (event: string, listener: (data: Buffer) => void): void {
     const listeners = this.events[event]
     if (listeners) {
       const index = listeners.indexOf(listener)
@@ -30,12 +30,11 @@ class EventEmitter {
     }
   }
 
-  emit (event: string, ...args: any[]): void {
+  emit (event: string, data: Buffer): void {
     const listeners = this.events[event]
     if (listeners) {
       for (const listener of listeners) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        listener(...args)
+        listener(data)
       }
     }
   }
@@ -60,25 +59,38 @@ export interface SharedBufferConfig {
   preloadRegions: Array<{ address: number, size: number }>
 }
 
+// Constants for memory operations
+const MEMORY_CONSTANTS = {
+  DEFAULT_CHUNK_SIZE: 100,
+  SMALL_READ_THRESHOLD: 10,
+  EVAL_TIMEOUT_MS: 5000,
+  MAX_LISTENERS: 100,
+  CACHE_TIMEOUT_MS: 100, // Near real-time for game state sync
+  MAX_CACHE_SIZE: 50,
+} as const
+
+// Default memory regions for Pokemon Emerald
+const DEFAULT_PRELOAD_REGIONS = [
+  { address: 0x20244e9, size: 7 }, // Party count + context
+  { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
+] as const
+
 export class MgbaWebSocketClient extends EventEmitter {
   private ws: WebSocket | null = null
   private connected = false
 
   // Real-time shared buffer system for memory caching
   private readonly memoryCache = new Map<string, MemoryRegion>()
+  private cacheAccessCount = 0
   private sharedBufferConfig: SharedBufferConfig = {
-    maxCacheSize: 50, // Max number of cached regions
-    cacheTimeout: 100, // 100ms for near real-time updates
-    preloadRegions: [
-      { address: 0x20244e9, size: 7 }, // Party count + some context
-      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
-    ],
+    maxCacheSize: MEMORY_CONSTANTS.MAX_CACHE_SIZE,
+    cacheTimeout: MEMORY_CONSTANTS.CACHE_TIMEOUT_MS,
+    preloadRegions: [...DEFAULT_PRELOAD_REGIONS],
   }
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
     super()
-    // Increase max listeners to avoid warnings during parallel operations
-    this.setMaxListeners(100)
+    this.setMaxListeners(MEMORY_CONSTANTS.MAX_LISTENERS)
   }
 
   /**
@@ -171,11 +183,11 @@ export class MgbaWebSocketClient extends EventEmitter {
       // Send the code to evaluate
       this.ws.send(code)
 
-      // Timeout after 5 seconds
+      // Timeout after configured time
       setTimeout(() => {
         this.ws?.off('message', messageHandler)
         reject(new Error('Eval request timed out'))
-      }, 5000)
+      }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
     })
   }
 
@@ -213,26 +225,17 @@ export class MgbaWebSocketClient extends EventEmitter {
   }
 
   /**
-   * Read multiple bytes from memory (OPTIMIZED VERSION)
-   * Uses the fastest available method: readRange API when possible, falls back to bulk Lua
+   * Read multiple bytes from memory using the most appropriate method
+   * Automatically chooses between readRange API and bulk Lua operations
    */
   async readBytes (address: number, length: number): Promise<Uint8Array> {
-    // Use native readRange API for maximum performance
-    return this.readBytesNative(address, length)
-  }
-
-  /**
-   * Read multiple bytes using mGBA's native readRange API (FASTEST)
-   * This is the fastest possible method using mGBA's built-in memory reading
-   */
-  async readBytesNative (address: number, length: number): Promise<Uint8Array> {
     // For very small reads, use bulk Lua which is more reliable
-    if (length <= 10) {
+    if (length <= MEMORY_CONSTANTS.SMALL_READ_THRESHOLD) {
       return this.readBytesBulk(address, length)
     }
 
     try {
-      // Try using readRange API - it returns binary data as a string
+      // Try using readRange API - fastest for larger reads
       const luaCode = `(function()
         local data = emu:readRange(${address}, ${length})
         local bytes = {}
@@ -244,7 +247,7 @@ export class MgbaWebSocketClient extends EventEmitter {
 
       const response = await this.eval(luaCode)
       if (response.error) {
-        throw new Error(`Failed to native read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
+        throw new Error(`Failed to read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
       }
 
       return new Uint8Array(response.result as number[])
@@ -274,47 +277,6 @@ export class MgbaWebSocketClient extends EventEmitter {
     }
 
     return new Uint8Array(response.result as number[])
-  }
-
-  /**
-   * Read multiple bytes using chunked approach for very large reads
-   * Breaks large reads into smaller chunks to avoid Lua memory issues
-   */
-  async readBytesChunked (address: number, length: number, chunkSize = 100): Promise<Uint8Array> {
-    const result: number[] = []
-
-    for (let offset = 0; offset < length; offset += chunkSize) {
-      const currentChunkSize = Math.min(chunkSize, length - offset)
-      const chunkData = await this.readBytesBulk(address + offset, currentChunkSize)
-      result.push(...Array.from(chunkData))
-    }
-
-    return new Uint8Array(result)
-  }
-
-  /**
-   * Read multiple bytes with parallel chunked approach for maximum speed
-   * Uses Promise.all to read multiple chunks simultaneously
-   */
-  async readBytesParallel (address: number, length: number, chunkSize = 50): Promise<Uint8Array> {
-    const chunks: Array<Promise<Uint8Array>> = []
-
-    for (let offset = 0; offset < length; offset += chunkSize) {
-      const currentChunkSize = Math.min(chunkSize, length - offset)
-      chunks.push(this.readBytesBulk(address + offset, currentChunkSize))
-    }
-
-    const chunkResults = await Promise.all(chunks)
-    const totalLength = chunkResults.reduce((sum, chunk) => sum + chunk.length, 0)
-
-    const result = new Uint8Array(totalLength)
-    let offset = 0
-    for (const chunk of chunkResults) {
-      result.set(chunk, offset)
-      offset += chunk.length
-    }
-
-    return result
   }
 
   /**
@@ -348,24 +310,16 @@ export class MgbaWebSocketClient extends EventEmitter {
   }
 
   /**
-   * Write multiple bytes to memory (OPTIMIZED VERSION)
-   * Uses bulk Lua operations and updates shared buffer cache
+   * Write multiple bytes to memory using the most appropriate method
    */
   async writeBytes (address: number, data: Uint8Array): Promise<void> {
-    return this.writeBytesBulkNative(address, data)
-  }
-
-  /**
-   * Write multiple bytes using mGBA's native capabilities (FASTEST)
-   */
-  async writeBytesBulkNative (address: number, data: Uint8Array): Promise<void> {
     // For small writes, use individual byte writes for reliability
-    if (data.length <= 10) {
+    if (data.length <= MEMORY_CONSTANTS.SMALL_READ_THRESHOLD) {
       return this.writeBytesBulk(address, data)
     }
 
     // For larger writes, use chunked approach
-    return this.writeBytesChunked(address, data, 100)
+    return this.writeBytesChunked(address, data, MEMORY_CONSTANTS.DEFAULT_CHUNK_SIZE)
   }
 
   /**
@@ -384,7 +338,7 @@ export class MgbaWebSocketClient extends EventEmitter {
   /**
    * Write multiple bytes using chunked approach for very large writes
    */
-  async writeBytesChunked (address: number, data: Uint8Array, chunkSize = 100): Promise<void> {
+  async writeBytesChunked (address: number, data: Uint8Array, chunkSize = MEMORY_CONSTANTS.DEFAULT_CHUNK_SIZE): Promise<void> {
     for (let offset = 0; offset < data.length; offset += chunkSize) {
       const chunkEnd = Math.min(offset + chunkSize, data.length)
       const chunk = data.slice(offset, chunkEnd)
@@ -442,8 +396,8 @@ export class MgbaWebSocketClient extends EventEmitter {
       }
     }
 
-    // Read from memory using fastest method
-    const data = await this.readBytesNative(address, size)
+    // Read from memory using optimized method
+    const data = await this.readBytes(address, size)
 
     // Cache the result
     if (useCache) {
@@ -455,8 +409,11 @@ export class MgbaWebSocketClient extends EventEmitter {
         dirty: false,
       })
 
-      // Cleanup old cache entries if needed
-      this.cleanupCache()
+      // Cleanup cache periodically (every 10 accesses) to avoid overhead
+      this.cacheAccessCount++
+      if (this.cacheAccessCount % 10 === 0) {
+        this.cleanupCache()
+      }
     }
 
     return data

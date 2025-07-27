@@ -181,8 +181,6 @@ export interface GameConfig {
   readonly memoryAddresses?: {
     readonly partyData: number
     readonly partyCount: number
-    readonly pokemonSize: number
-    readonly maxPartySize: number
     readonly playerName?: number
     readonly playTime?: number
   }

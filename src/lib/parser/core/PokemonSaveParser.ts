@@ -392,18 +392,20 @@ export class PokemonSaveParser {
       throw new Error('Memory mode not properly initialized')
     }
 
-    // Get memory addresses from config
-    const memoryAddresses = this.config.memoryAddresses
+    const { memoryAddresses } = this.config
     if (!memoryAddresses) {
       throw new Error(`Config "${this.config.name}" does not define memory addresses for memory parsing`)
     }
 
-    // Get party count from memory using shared buffer for faster access
+    // Get party count from memory
     const partyCountBuffer = await this.webSocketClient.getSharedBuffer(memoryAddresses.partyCount, 1)
     const partyCount = partyCountBuffer[0] ?? 0
 
-    if (partyCount < 0 || partyCount > memoryAddresses.maxPartySize) {
-      throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-${memoryAddresses.maxPartySize}.`)
+    const maxPartySize = this.config.saveLayout.maxPartySize as number
+    const pokemonSize = this.config.saveLayout.pokemonSize as number
+    
+    if (partyCount < 0 || partyCount > maxPartySize) {
+      throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-${maxPartySize}.`)
     }
 
     if (!this.silent) console.log(`📋 Reading ${partyCount} Pokemon from party memory`)
@@ -411,26 +413,20 @@ export class PokemonSaveParser {
     const pokemon: PokemonBase[] = []
 
     for (let i = 0; i < partyCount; i++) {
-      const pokemonAddress = memoryAddresses.partyData + (i * memoryAddresses.pokemonSize)
+      const pokemonAddress = memoryAddresses.partyData + (i * pokemonSize)
+
       if (!this.silent) console.log(`  Reading Pokemon ${i + 1} at address 0x${pokemonAddress.toString(16)}`)
 
-      try {
-        // Read the full Pokemon structure from memory using shared buffer for maximum performance
-        const pokemonBytes = await this.webSocketClient.getSharedBuffer(pokemonAddress, memoryAddresses.pokemonSize)
+      // Read the full Pokemon structure from memory
+      const pokemonBytes = await this.webSocketClient.getSharedBuffer(pokemonAddress, pokemonSize)
+      const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
 
-        // Create PokemonBase instance from memory data
-        const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
-
-        // Check if Pokemon slot is empty (species ID = 0)
-        if (pokemonInstance.speciesId === 0) {
-          break
-        }
-
-        pokemon.push(pokemonInstance)
-      } catch (error) {
-        console.error(`Failed to read Pokemon ${i + 1}:`, error)
-        throw new Error(`Failed to read Pokemon ${i + 1} from memory: ${String(error)}`)
+      // Stop at empty slots (species ID = 0)
+      if (pokemonInstance.speciesId === 0) {
+        break
       }
+
+      pokemon.push(pokemonInstance)
     }
 
     if (!this.silent) console.log(`✅ Successfully read ${pokemon.length} Pokemon from memory`)
