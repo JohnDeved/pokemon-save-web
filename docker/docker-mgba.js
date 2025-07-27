@@ -18,7 +18,7 @@ const SERVER_PORT = 7102
 
 function showHelp() {
   console.log(`
-🐳 mGBA Docker Environment
+🐳 mGBA Docker Environment (Prebuilt)
 
 Usage: npm run mgba:start | npm run mgba:stop
 
@@ -31,10 +31,15 @@ Environment:
   Port: ${SERVER_PORT} (HTTP server)
   
 Features:
+  - Uses prebuilt mGBA binary for fast deployment
   - Automatic ROM download from archive.org
-  - Built-from-source mGBA with Lua support
+  - mGBA with Lua support and --script argument
   - HTTP API endpoints for automation
   - WebSocket interface for real-time control
+
+Setup:
+  Place prebuilt mgba-qt binary in docker/data/mgba-qt
+  Binary should be built with Lua support enabled
 `)
 }
 
@@ -66,7 +71,7 @@ async function handleCommand(command) {
     switch (command) {
       case 'start':
         console.log('🚀 Starting mGBA environment...')
-        console.log('🔨 Building mGBA from source with Lua support...')
+        console.log('🔨 Using prebuilt mGBA binary for fast deployment...')
         await runCommand('docker', ['compose', '-f', composeFile, 'up', '-d', '--build'])
         console.log('✅ mGBA environment started successfully')
         console.log(`🌐 HTTP server available at http://localhost:${SERVER_PORT}`)

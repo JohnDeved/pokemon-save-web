@@ -30,3 +30,7 @@ docker/data/*.gba
 docker/data/*.zip
 docker/data/*.7z
 docker/data/*.rar
+
+# Prebuilt mGBA binaries
+docker/data/mgba-qt
+docker/data/libmgba.*

@@ -14,6 +14,11 @@ This Docker environment provides:
 
 ## Quick Start
 
+**Prerequisites:**
+- Place a prebuilt `mgba-qt` binary in `docker/data/mgba-qt`
+- The binary should be built with `--script` support and Lua enabled
+- See `docker/BUILD_MGBA.md` for build instructions
+
 ```bash
 # Start the mGBA environment (builds automatically)
 npm run mgba:start
@@ -67,6 +72,8 @@ cmake -B build \
 2. Ensure the binary has `--script` argument support for Lua automation
 3. Include any required shared libraries in `docker/data/` if needed
 
+> **⚠️ Important**: The Docker environment now uses prebuilt binaries for speed and reliability. You must provide a compatible `mgba-qt` binary built with the configuration flags shown above.
+
 ### Runtime Environment
 
 - **Base Image**: Ubuntu 22.04
@@ -81,9 +88,9 @@ cmake -B build \
 
 ```
 docker/
-├── Dockerfile               # Fast deployment using prebuilt mGBA binary
-├── Dockerfile.prebuilt      # Alternative prebuilt binary approach  
-├── docker-compose.yml       # Service configuration
+├── Dockerfile               # Source build approach (for reference)
+├── Dockerfile.prebuilt      # Fast deployment using prebuilt mGBA binary (ACTIVE)
+├── docker-compose.yml       # Service configuration (uses prebuilt)
 ├── entrypoint.sh            # Container startup script
 ├── data/
 │   ├── mgba-qt              # Prebuilt mGBA binary (user provided)
@@ -141,7 +148,7 @@ curl http://localhost:7102/
 
 | Feature | Docker (Prebuilt) | Docker (Source Build) | Native |
 |---------|-------|------------|--------|
-| Build Time | ~30 seconds | ~4-5 minutes | ~3-4 minutes |
+| Build Time | ~10 seconds | ~4-5 minutes | ~3-4 minutes |
 | Dependencies | Runtime only | Full build chain | Manual setup |
 | Performance | Near-native | Near-native | Native |
 | Portability | Cross-platform | Cross-platform | Linux only |
@@ -149,6 +156,7 @@ curl http://localhost:7102/
 | Setup | Automated | Automated | Manual |
 | Memory Usage | Low | High (build) | Medium |
 | Binary Maintenance | Manual | Automated | Manual |
+| **Current Default** | **✅ YES** | No | No |
 
 ## Use Cases
 
