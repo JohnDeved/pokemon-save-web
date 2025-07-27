@@ -67,7 +67,7 @@ export class MgbaWebSocketClient {
         const onError = (error: ErrorEvent | Event | unknown) => {
           console.error('WebSocket error:', error)
           this.connected = false
-          reject(error as Error)
+          reject(error instanceof Error ? error : new Error(String(error)))
         }
 
         const onClose = () => {
@@ -75,21 +75,9 @@ export class MgbaWebSocketClient {
           this.connected = false
         }
 
-        // Use compatible event handling for both browser and Node.js
-        if (typeof this.ws.addEventListener === 'function') {
-          // Browser WebSocket API
-          this.ws.addEventListener('open', onOpen)
-          this.ws.addEventListener('error', onError)
-          this.ws.addEventListener('close', onClose)
-        } else {
-          // Node.js ws library API
-          const nodeWs = this.ws as unknown as {
-            on: (event: string, handler: (...args: unknown[]) => void) => void
-          }
-          nodeWs.on('open', onOpen)
-          nodeWs.on('error', onError)
-          nodeWs.on('close', onClose)
-        }
+        this.ws.addEventListener('open', onOpen)
+        this.ws.addEventListener('error', onError)
+        this.ws.addEventListener('close', onClose)
       } catch (error) {
         reject(error)
       }
@@ -139,39 +127,22 @@ export class MgbaWebSocketClient {
 
         try {
           const response = JSON.parse(message) as MgbaEvalResponse
-          removeMessageHandler()
+          this.ws?.removeEventListener('message', messageHandler)
           resolve(response)
         } catch (error) {
-          removeMessageHandler()
+          this.ws?.removeEventListener('message', messageHandler)
           reject(new Error(`Failed to parse eval response: ${String(error)}`))
         }
       }
 
-      const removeMessageHandler = () => {
-        if (!this.ws) return
-
-        if (typeof this.ws.removeEventListener === 'function') {
-          this.ws.removeEventListener('message', messageHandler)
-        } else {
-          const nodeWs = this.ws as unknown as { off: (event: string, handler: unknown) => void }
-          nodeWs.off('message', messageHandler)
-        }
-      }
-
-      // Add event listener using appropriate method
-      if (typeof this.ws.addEventListener === 'function') {
-        this.ws.addEventListener('message', messageHandler)
-      } else {
-        const nodeWs = this.ws as unknown as { on: (event: string, handler: unknown) => void }
-        nodeWs.on('message', messageHandler)
-      }
+      this.ws.addEventListener('message', messageHandler)
 
       // Send the code to evaluate
       this.ws.send(code)
 
       // Timeout after configured time
       setTimeout(() => {
-        removeMessageHandler()
+        this.ws?.removeEventListener('message', messageHandler)
         reject(new Error('Eval request timed out'))
       }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
     })
@@ -354,12 +325,9 @@ export class MgbaWebSocketClient {
    * Preload commonly used memory regions into cache
    */
   async preloadSharedBuffers (): Promise<void> {
-    console.log('🔄 Preloading shared memory buffers...')
-
     for (const region of this.sharedBufferConfig.preloadRegions) {
       try {
         await this.getSharedBuffer(region.address, region.size)
-        console.log(`✅ Preloaded region 0x${region.address.toString(16)} (${region.size} bytes)`)
       } catch (error) {
         console.warn(`⚠️  Failed to preload region 0x${region.address.toString(16)}: ${String(error)}`)
       }
