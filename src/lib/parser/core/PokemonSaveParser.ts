@@ -82,14 +82,23 @@ export class PokemonSaveParser {
   private config: GameConfig | null = null
   public saveFileName: string | null = null
   public fileHandle: FileSystemFileHandle | null = null
+  private silent: boolean = false
 
   // Memory mode properties
   private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
 
-  constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
+  constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig, silent?: boolean) {
     this.forcedSlot = forcedSlot
     this.config = gameConfig ?? null
+    this.silent = silent ?? false
+  }
+
+  /**
+   * Set silent mode to suppress console output
+   */
+  setSilent (silent: boolean): void {
+    this.silent = silent
   }
 
   /**
@@ -167,7 +176,9 @@ export class PokemonSaveParser {
 
     // Get game title to check compatibility
     const gameTitle = await client.getGameTitle()
-    console.log(`Memory mode: Connected to game "${gameTitle}"`)
+    if (!this.silent) {
+      console.log(`Memory mode: Connected to game "${gameTitle}"`)
+    }
 
     // Auto-detect config based on game title if not provided
     if (!this.config) {
@@ -194,7 +205,9 @@ export class PokemonSaveParser {
       }
     }
 
-    console.log(`Memory mode initialized for ${gameTitle}`)
+    if (!this.silent) {
+      console.log(`Memory mode initialized for ${gameTitle}`)
+    }
   }
 
   /**
@@ -414,13 +427,17 @@ export class PokemonSaveParser {
       throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-6.`)
     }
 
-    console.log(`📋 Reading ${partyCount} Pokemon from party memory`)
+    if (!this.silent) {
+      console.log(`📋 Reading ${partyCount} Pokemon from party memory`)
+    }
 
     const pokemon: PokemonBase[] = []
 
     for (let i = 0; i < partyCount; i++) {
       const pokemonAddress = EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (i * EMERALD_MEMORY_ADDRESSES.POKEMON_SIZE)
-      console.log(`  Reading Pokemon ${i + 1} at address 0x${pokemonAddress.toString(16)}`)
+      if (!this.silent) {
+        console.log(`  Reading Pokemon ${i + 1} at address 0x${pokemonAddress.toString(16)}`)
+      }
 
       try {
         // Read the full 100-byte Pokemon structure from memory
@@ -441,7 +458,9 @@ export class PokemonSaveParser {
       }
     }
 
-    console.log(`✅ Successfully read ${pokemon.length} Pokemon from memory`)
+    if (!this.silent) {
+      console.log(`✅ Successfully read ${pokemon.length} Pokemon from memory`)
+    }
     return pokemon
   }
 

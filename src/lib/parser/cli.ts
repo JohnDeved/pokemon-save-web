@@ -143,7 +143,7 @@ const displayPartyPokemonGraph = (party: readonly PokemonBase[]) => {
 /**
  * Parse and display save data from either file or WebSocket
  */
-async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean }): Promise<SaveData> {
+async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, skipDisplay?: boolean }): Promise<SaveData> {
   const parser = new PokemonSaveParser()
   let result: SaveData
   let mode: string
@@ -154,23 +154,29 @@ async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { 
     const absPath = path.resolve(input)
     const buffer = fs.readFileSync(absPath)
     result = await parser.parseSaveFile(buffer)
-    console.log(`📁 Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
+    if (!options.skipDisplay) {
+      console.log(`📁 Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
+    }
   } else {
     // WebSocket mode
     mode = 'MEMORY'
     result = await parser.parseSaveFile(input)
-    console.log(`🎮 Connected to: ${parser.gameConfig?.name ?? 'unknown'} (via mGBA WebSocket)`)
+    if (!options.skipDisplay) {
+      console.log(`🎮 Connected to: ${parser.gameConfig?.name ?? 'unknown'} (via mGBA WebSocket)`)
+    }
   }
 
-  console.log(`Active save slot: ${result.active_slot}`)
-  console.log(`Valid sectors found: ${result.sector_map.size}`)
+  if (!options.skipDisplay) {
+    console.log(`Active save slot: ${result.active_slot}`)
+    console.log(`Valid sectors found: ${result.sector_map.size}`)
 
-  if (options.graph) {
-    displayPartyPokemonGraph(result.party_pokemon)
-  } else {
-    displayPartyPokemon(result.party_pokemon, mode)
-    if (options.debug) displayPartyPokemonRaw(result.party_pokemon)
-    displaySaveblock2Info(result, mode)
+    if (options.graph) {
+      displayPartyPokemonGraph(result.party_pokemon)
+    } else {
+      displayPartyPokemon(result.party_pokemon, mode)
+      if (options.debug) displayPartyPokemonRaw(result.party_pokemon)
+      displaySaveblock2Info(result, mode)
+    }
   }
 
   return result
@@ -190,38 +196,47 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
   console.log(`🔄 Starting watch mode (updating every ${options.interval}ms)...`)
   console.log('Press Ctrl+C to exit')
 
+  // Create parser once and reuse it with silent mode enabled
+  const parser = new PokemonSaveParser(undefined, undefined, true)
   let lastDataHash = ''
+  let isFirstRun = true
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     try {
-      clearScreen()
-      console.log(`⏰ ${new Date().toLocaleTimeString()} - Refreshing...`)
+      // Parse save data without re-initializing parser or reconnecting
+      let result: SaveData
+      if (typeof input === 'string') {
+        const absPath = path.resolve(input)
+        const buffer = fs.readFileSync(absPath)
+        result = await parser.parseSaveFile(buffer)
+      } else {
+        result = await parser.parseSaveFile(input)
+      }
 
-      const result = await parseAndDisplay(input, options)
-
-      // Create a simple hash of the data to detect changes
-      const dataHash = JSON.stringify({
-        party: result.party_pokemon.map(p => ({
+      // Create a simple hash of the party data to detect changes
+      const dataHash = JSON.stringify(
+        result.party_pokemon.map(p => ({
           species: p.speciesId,
           level: p.level,
           hp: p.currentHp,
           nickname: p.nickname,
         })),
-        player: result.player_name,
-        time: result.play_time,
-      })
+      )
 
-      if (dataHash !== lastDataHash) {
-        console.log('🔔 Data changed!')
+      // Only update display if party data changed or first run
+      if (dataHash !== lastDataHash || isFirstRun) {
+        clearScreen()
+        
+        // Only show party summary - no other logs
+        displayPartyPokemon(result.party_pokemon, typeof input === 'string' ? 'FILE' : 'MEMORY')
+
         lastDataHash = dataHash
-      } else {
-        console.log('📊 No changes detected')
+        isFirstRun = false
       }
-
-      console.log(`\n⏳ Next update in ${options.interval / 1000}s...`)
     } catch (error) {
-      console.error('❌ Error during refresh:', error instanceof Error ? error.message : 'Unknown error')
-      console.log(`\n⏳ Retrying in ${options.interval / 1000}s...`)
+      // Silent error handling - don't clear screen or show errors unless critical
+      console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
     }
 
     await new Promise(resolve => setTimeout(resolve, options.interval))
