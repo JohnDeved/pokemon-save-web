@@ -4,7 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    include: ['src/**/*.{test,spec}.{js,ts,tsx}', 'scripts/**/*.{test,spec}.{js,ts,tsx}', 'docker/**/*.{test,spec}.{js,ts,tsx}'],
+    include: ['src/**/*.{test,spec}.{js,ts,tsx}', 'scripts/**/*.{test,spec}.{js,ts,tsx}'],
     exclude: ['node_modules', 'dist'],
   },
   resolve: {
@@ -25,7 +25,7 @@ export default defineConfig({
       name: 'node',
       test: {
         environment: 'node',
-        include: ['scripts/**/*.{test,spec}.{js,ts}', 'docker/**/*.{test,spec}.{js,ts}'],
+        include: ['scripts/**/*.{test,spec}.{js,ts}'],
       },
     },
   ],

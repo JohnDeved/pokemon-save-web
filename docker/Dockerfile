@@ -47,7 +47,7 @@ WORKDIR /app
 RUN mkdir -p /app/data
 COPY src/lib/parser/__tests__/test_data/emerald.gba /app/data/
 COPY src/lib/parser/__tests__/test_data/emerald.ss0 /app/data/
-COPY src/lib/parser/__tests__/test_data/mgba_http_server.lua /app/data/
+COPY scripts/mgba-lua/http-server.lua /app/data/mgba_http_server.lua
 COPY docker/entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable

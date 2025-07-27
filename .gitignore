@@ -22,8 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Save files and archives
+*.sav
 *.zip
 __MACOSX/
 
-# Docker environment ROM files  
-test_data/*.gba
+
