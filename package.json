@@ -17,9 +17,10 @@
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
 
     "test": "vitest run",
+    "test:run": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    
+
     "parse": "tsx src/lib/parser/cli.ts",
 
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
