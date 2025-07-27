@@ -1,29 +1,15 @@
 #!/bin/bash
 
-# Set up environment
-export DISPLAY=:99
+# Set up environment for headless operation
 export QT_QPA_PLATFORM=xcb
 export SDL_VIDEODRIVER=dummy
 export XDG_RUNTIME_DIR=/tmp
-
-# Clean up any existing X server locks
-rm -f /tmp/.X99-lock
-
-# Start Xvfb for headless operation
-Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset &
-XVFB_PID=$!
-
-# Wait for X server to start
-sleep 3
 
 # Function to clean up processes
 cleanup() {
     echo "Cleaning up..."
     if [ ! -z "$MGBA_PID" ]; then
         kill $MGBA_PID 2>/dev/null
-    fi
-    if [ ! -z "$XVFB_PID" ]; then
-        kill $XVFB_PID 2>/dev/null
     fi
     exit 0
 }
@@ -70,16 +56,25 @@ echo "   Lua Script: $LUA_SCRIPT_PATH"
 
 # Start mGBA with the --script argument to load HTTP server within mGBA Lua API
 echo "🎮 Starting mGBA with --script HTTP server..."
-echo "📄 Testing with ultra simple HTTP server script:"
-cat "/app/data/ultra-simple-server.lua"
-echo ""
-echo "🚀 Launching mGBA with the ultra simple HTTP server..."
-/usr/local/bin/mgba-qt \
-    --script "/app/data/ultra-simple-server.lua" \
-    --log-level 31 \
+echo "📄 Using the FULL HTTP server script: $LUA_SCRIPT_PATH"
+echo "🚀 Launching mGBA with xvfb-run for headless operation..."
+echo "🐛 Enabling verbose logging to see what's happening..."
+xvfb-run -a --server-args="-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
+    /usr/local/bin/mgba-qt \
+    --script "$LUA_SCRIPT_PATH" \
+    --log-level 15 \
     -t "$SAVESTATE_PATH" \
-    "$ROM_PATH" 2>&1 &
+    "$ROM_PATH" &
 MGBA_PID=$!
+
+echo "🕐 Waiting for mGBA to start and load ROM..."
+sleep 10
+echo "📜 Checking if mGBA is still running..."
+if kill -0 $MGBA_PID 2>/dev/null; then
+    echo "✅ mGBA is still running (PID: $MGBA_PID)"
+else
+    echo "❌ mGBA process has exited"
+fi
 
 echo "✅ mGBA started with HTTP server script loaded (PID: $MGBA_PID)"
 echo "🌐 HTTP server should be available on port 7102 within mGBA"
