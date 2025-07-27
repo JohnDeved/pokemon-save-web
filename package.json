@@ -30,7 +30,9 @@
     "mgba:build": "docker build -f docker/Dockerfile -t mgba-test-env:latest .",
     "mgba:pull": "docker pull ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest",
     "mgba:test": "tsx src/lib/mgba/simple-memory-test.ts",
-    "mgba:test:full": "tsx src/lib/mgba/test-memory-accuracy.ts"
+    "mgba:test:full": "tsx src/lib/mgba/test-memory-accuracy.ts",
+    "mgba:benchmark": "tsx src/lib/mgba/benchmark.ts",
+    "mgba:performance": "tsx src/lib/mgba/performance-test.ts"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",
