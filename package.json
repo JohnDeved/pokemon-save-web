@@ -22,7 +22,6 @@
     "parse": "tsx src/lib/parser/cli.ts",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
-
     "mgba:start": "docker compose -f docker/docker-compose.yml up -d",
     "mgba:start:build": "docker compose -f docker/docker-compose.yml up -d --build",
     "mgba:run": "docker compose -f docker/docker-compose.yml up",

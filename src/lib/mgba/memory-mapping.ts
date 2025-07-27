@@ -1,12 +1,12 @@
 /**
  * Pokémon Emerald memory layout mapping
- * Based on pokeemerald repository: https://github.com/pret/pokeemerald
+ * Based on mGBA's official pokemon.lua demo script and pokeemerald repository
  * 
- * Key findings from pokeemerald source analysis:
- * - Save data is loaded into EWRAM with dynamic offsets (ASLR)
- * - gSaveBlock1Ptr and gSaveBlock2Ptr point to actual structures
- * - Addresses change each time the game loads for security
- * - Must scan memory to find actual locations at runtime
+ * Key insight: mGBA provides FIXED memory addresses for Emerald data structures.
+ * No ASLR scanning needed - addresses are consistent in mGBA environment.
+ * 
+ * Reference: https://raw.githubusercontent.com/mgba-emu/mgba/refs/heads/master/res/scripts/demos/pokemon.lua
+ * Emerald addresses from gameEmeraldEn configuration
  */
 
 // Memory regions in GBA
@@ -22,79 +22,30 @@ export const MEMORY_REGIONS = {
 } as const
 
 /**
- * SaveBlock1 structure layout from pokeemerald/include/global.h
- * This contains the main gameplay data including party Pokemon
+ * Fixed memory addresses for Pokémon Emerald (USA) in mGBA
+ * Based on official mGBA pokemon.lua script configuration
  */
-export const SAVEBLOCK1_LAYOUT = {
-  // Position and warp data (0x00-0x2B)
-  POS: 0x00,                    // struct Coords16 pos
-  LOCATION: 0x04,               // struct WarpData location
-  CONTINUE_GAME_WARP: 0x0C,     // struct WarpData continueGameWarp
-  DYNAMIC_WARP: 0x14,           // struct WarpData dynamicWarp
-  LAST_HEAL_LOCATION: 0x1C,     // struct WarpData lastHealLocation
-  ESCAPE_WARP: 0x24,            // struct WarpData escapeWarp
+export const EMERALD_MEMORY_ADDRESSES = {
+  // Party data - from gameEmeraldEn in pokemon.lua
+  PARTY_DATA: 0x20244ec,        // _party address
+  PARTY_COUNT: 0x20244e9,       // _partyCount address
+  SPECIES_NAME_TABLE: 0x3185c8, // _speciesNameTable address
   
-  // Game state (0x2C-0x233)
-  SAVED_MUSIC: 0x2C,            // u16
-  WEATHER: 0x2E,                // u8
-  WEATHER_CYCLE_STAGE: 0x2F,    // u8
-  FLASH_LEVEL: 0x30,            // u8
-  MAP_LAYOUT_ID: 0x32,          // u16
-  MAP_VIEW: 0x34,               // u16[0x100] - 256 entries
-  
-  // Party Pokemon data (0x234-0x48F)
-  PARTY_COUNT: 0x234,           // u8 playerPartyCount
-  PARTY_POKEMON: 0x238,         // struct Pokemon[PARTY_SIZE] - 6 Pokemon, 100 bytes each
-  
-  // Money and items (0x490+)
-  MONEY: 0x490,                 // u32
-  COINS: 0x494,                 // u16
-  REGISTERED_ITEM: 0x496,       // u16
-  PC_ITEMS: 0x498,              // struct ItemSlot[PC_ITEMS_COUNT]
-  BAG_ITEMS: 0x560,             // struct ItemSlot[BAG_ITEMS_COUNT]
-  BAG_KEY_ITEMS: 0x5D8,         // struct ItemSlot[BAG_KEYITEMS_COUNT]
-  BAG_POKEBALLS: 0x650,         // struct ItemSlot[BAG_POKEBALLS_COUNT]
-  BAG_TMHM: 0x690,              // struct ItemSlot[BAG_TMHM_COUNT]
-  BAG_BERRIES: 0x790,           // struct ItemSlot[BAG_BERRIES_COUNT]
-  
+  // Calculated addresses based on party structure
+  PARTY_SIZE: 6,                // Maximum party size
+  POKEMON_SIZE: 100,            // Size of each Pokemon struct (0x64 bytes)
 } as const
 
 /**
- * SaveBlock2 structure layout from pokeemerald/include/global.h
- * This contains player profile and options data
- */
-export const SAVEBLOCK2_LAYOUT = {
-  // Player info (0x00-0x17)
-  PLAYER_NAME: 0x00,            // u8[PLAYER_NAME_LENGTH + 1] - 8 bytes
-  PLAYER_GENDER: 0x08,          // u8 - MALE/FEMALE
-  SPECIAL_SAVE_WARP_FLAGS: 0x09, // u8
-  PLAYER_TRAINER_ID: 0x0A,      // u8[TRAINER_ID_LENGTH] - 4 bytes
-  PLAY_TIME_HOURS: 0x0E,        // u16
-  PLAY_TIME_MINUTES: 0x10,      // u8
-  PLAY_TIME_SECONDS: 0x11,      // u8
-  PLAY_TIME_VBLANKS: 0x12,      // u8
-  OPTIONS_BUTTON_MODE: 0x13,    // u8
-  OPTIONS_FLAGS: 0x14,          // u16 - packed options
-  
-  // Game data (0x18+)
-  POKEDEX: 0x18,                // struct Pokedex
-  LOCAL_TIME_OFFSET: 0x98,      // struct Time
-  LAST_BERRY_TREE_UPDATE: 0xA0, // struct Time
-  GCN_LINK_FLAGS: 0xA8,         // u32
-  ENCRYPTION_KEY: 0xAC,         // u32
-  
-} as const
-
-/**
- * Pokemon data structure in memory
- * Based on pokeemerald/include/pokemon.h - struct Pokemon
+ * Pokemon data structure in memory for Generation 3 (Emerald)
+ * Based on mGBA pokemon.lua Generation3En implementation
  * Each Pokemon is 100 bytes (0x64)
  */
 export const POKEMON_STRUCT = {
   SIZE: 100, // 0x64 bytes per Pokemon
   
-  // Personality value and encryption
-  PERSONALITY: 0x00,         // u32
+  // Personality value and encryption (first 32 bytes)
+  PERSONALITY: 0x00,         // u32 - used for encryption key
   OT_ID: 0x04,              // u32 (Trainer ID + Secret ID)
   NICKNAME: 0x08,           // 10 bytes
   LANGUAGE: 0x12,           // u8
@@ -103,26 +54,27 @@ export const POKEMON_STRUCT = {
   CHECKSUM: 0x1C,           // u16
   UNUSED: 0x1E,             // u16
   
-  // Encrypted data block starts at 0x20 (32 bytes)
+  // Encrypted data block (32 bytes total, 4 substructures of 12 bytes each)
+  // The order of substructures depends on personality % 24
   DATA: 0x20,               // 48 bytes of encrypted data
   
-  // Status condition and other data
-  STATUS: 0x50,             // u32
-  LEVEL: 0x54,              // u8
-  POKERUS: 0x55,            // u8
-  CURRENT_HP: 0x56,         // u16
-  MAX_HP: 0x58,             // u16
-  ATTACK: 0x5A,             // u16
-  DEFENSE: 0x5C,            // u16
-  SPEED: 0x5E,              // u16
-  SP_ATTACK: 0x60,          // u16
-  SP_DEFENSE: 0x62,         // u16
+  // Party-specific data (for party Pokemon only, not in PC boxes)
+  STATUS: 0x50,             // u32 - status condition
+  LEVEL: 0x54,              // u8 - current level
+  MAIL: 0x55,               // u32 - mail data (3 bytes used)
+  CURRENT_HP: 0x56,         // u16 - current HP
+  MAX_HP: 0x58,             // u16 - maximum HP
+  ATTACK: 0x5A,             // u16 - attack stat
+  DEFENSE: 0x5C,            // u16 - defense stat
+  SPEED: 0x5E,              // u16 - speed stat
+  SP_ATTACK: 0x60,          // u16 - special attack stat
+  SP_DEFENSE: 0x62,         // u16 - special defense stat
 } as const
 
 /**
- * Encrypted Pokemon data substructures
- * The DATA section is encrypted and contains 4 substructures of 12 bytes each
- * The order depends on the personality value
+ * Encrypted Pokemon data substructures for Generation 3
+ * Based on mGBA pokemon.lua Generation3En._readBoxMon implementation
+ * The DATA section contains 4 substructures of 12 bytes each, encrypted and reordered
  */
 export const POKEMON_SUBSTRUCT = {
   SIZE: 12, // Each substructure is 12 bytes
@@ -162,24 +114,25 @@ export const POKEMON_SUBSTRUCT = {
     CUTENESS: 0x08,         // u8
     SMARTNESS: 0x09,        // u8
     TOUGHNESS: 0x0A,        // u8
-    RIB_COUNT: 0x0B,        // u8
+    FEEL: 0x0B,             // u8 (sheen/feel)
   },
   
-  // Miscellaneous substructure
+  // Miscellaneous substructure (IVs, ribbons, etc.)
   MISC: {
     POKERUS: 0x00,          // u8
     MET_LOCATION: 0x01,     // u8
-    MET_LEVEL: 0x02,        // u8 (bits 0-6), met game (bit 7)
-    MET_GAME: 0x03,         // u8
-    POKEBALL: 0x04,         // u8 (bits 0-3), OT gender (bit 7)
-    IVS: 0x05,              // u32 (bits 0-29 are IVs, bit 30 is egg, bit 31 is ability)
-    RIBBONS: 0x09,          // u32
+    // Origins info packed in u16 at 0x02-0x03
+    MET_LEVEL_AND_GAME: 0x02, // u16 (level bits 0-6, game bits 7-10, pokeball bits 11-14, OT gender bit 15)
+    // IVs and flags packed in u32 at 0x04-0x07
+    IVS_AND_FLAGS: 0x04,    // u32 (HP IV bits 0-4, ATK IV bits 5-9, DEF IV bits 10-14, SPE IV bits 15-19, SPA IV bits 20-24, SPD IV bits 25-29, isEgg bit 30, altAbility bit 31)
+    // Ribbons packed in u32 at 0x08-0x0B
+    RIBBONS: 0x08,          // u32
   }
 } as const
 
 /**
  * Calculate the order of substructures based on personality value
- * Based on pokeemerald/src/pokemon.c - GetMonData function
+ * Based on mGBA pokemon.lua and pokeemerald/src/pokemon.c
  */
 export function getSubstructOrder(personality: number): number[] {
   const orders = [
@@ -190,6 +143,32 @@ export function getSubstructOrder(personality: number): number[] {
   ]
   
   return orders[personality % 24]
+}
+
+/**
+ * Create encryption key from personality and OT ID
+ * Based on mGBA pokemon.lua Generation3En implementation
+ */
+export function createEncryptionKey(personality: number, otId: number): number {
+  return personality ^ otId
+}
+
+/**
+ * Get the memory address for a specific Pokemon in the party
+ */
+export function getPartyPokemonAddress(index: number): number {
+  if (index < 0 || index >= EMERALD_MEMORY_ADDRESSES.PARTY_SIZE) {
+    throw new Error(`Invalid party Pokemon index: ${index}`)
+  }
+  
+  return EMERALD_MEMORY_ADDRESSES.PARTY_DATA + (index * POKEMON_STRUCT.SIZE)
+}
+
+/**
+ * Get the memory address for party count
+ */
+export function getPartyCountAddress(): number {
+  return EMERALD_MEMORY_ADDRESSES.PARTY_COUNT
 }
 
 /**
@@ -223,47 +202,59 @@ export function getGender(personality: number, species: number): 'Male' | 'Femal
 }
 
 /**
- * Map save file offset to memory address
- * NOTE: This function is deprecated. In Emerald, save data is loaded into
- * EWRAM at dynamic addresses that change each time the game loads.
- * Use the memory scanner to find actual addresses at runtime.
+ * Extract Individual Values from packed IVs data
+ * Based on mGBA pokemon.lua implementation
  */
-export function mapSaveOffsetToMemory(saveOffset: number): number {
-  console.warn('mapSaveOffsetToMemory is deprecated - use dynamic memory scanning instead')
-  
-  // Return a placeholder address - this will not work for actual memory access
-  return MEMORY_REGIONS.EWRAM_BASE + saveOffset
-}
-
-/**
- * Dynamic memory scanning interface
- * These functions should be used to find actual save data locations
- */
-export interface SaveBlockAddresses {
-  saveBlock1: number
-  saveBlock2: number
-  pokemonStorage?: number
-}
-
-/**
- * Get the memory address for a specific Pokemon in the party
- * Requires the actual SaveBlock1 address from memory scanning
- */
-export function getPartyPokemonAddress(saveBlock1Addr: number, index: number): number {
-  if (index < 0 || index >= 6) {
-    throw new Error(`Invalid party Pokemon index: ${index}`)
+export function extractIVs(ivsAndFlags: number) {
+  return {
+    hp: ivsAndFlags & 0x1F,              // bits 0-4
+    attack: (ivsAndFlags >> 5) & 0x1F,   // bits 5-9
+    defense: (ivsAndFlags >> 10) & 0x1F, // bits 10-14
+    speed: (ivsAndFlags >> 15) & 0x1F,   // bits 15-19
+    spAttack: (ivsAndFlags >> 20) & 0x1F, // bits 20-24
+    spDefense: (ivsAndFlags >> 25) & 0x1F, // bits 25-29
+    isEgg: Boolean(ivsAndFlags & (1 << 30)), // bit 30
+    altAbility: Boolean(ivsAndFlags & (1 << 31)) // bit 31
   }
-  
-  return saveBlock1Addr + SAVEBLOCK1_LAYOUT.PARTY_POKEMON + (index * POKEMON_STRUCT.SIZE)
 }
 
 /**
- * Get the memory address for a specific field within a Pokemon struct
+ * Pack Individual Values into u32 format
  */
-export function getPokemonFieldAddress(pokemonAddress: number, field: keyof typeof POKEMON_STRUCT): number {
-  if (field === 'SIZE') {
-    throw new Error('SIZE is not a valid field offset')
+export function packIVs(ivs: {
+  hp: number, attack: number, defense: number, speed: number,
+  spAttack: number, spDefense: number, isEgg?: boolean, altAbility?: boolean
+}): number {
+  return (ivs.hp & 0x1F) |
+         ((ivs.attack & 0x1F) << 5) |
+         ((ivs.defense & 0x1F) << 10) |
+         ((ivs.speed & 0x1F) << 15) |
+         ((ivs.spAttack & 0x1F) << 20) |
+         ((ivs.spDefense & 0x1F) << 25) |
+         ((ivs.isEgg ? 1 : 0) << 30) |
+         ((ivs.altAbility ? 1 : 0) << 31)
+}
+
+/**
+ * Extract origin info from packed met data
+ */
+export function extractOriginInfo(metLevelAndGame: number) {
+  return {
+    metLevel: metLevelAndGame & 0x7F,        // bits 0-6
+    metGame: (metLevelAndGame >> 7) & 0xF,   // bits 7-10
+    pokeball: (metLevelAndGame >> 11) & 0xF, // bits 11-14
+    otGender: Boolean(metLevelAndGame & 0x8000) // bit 15
   }
-  
-  return pokemonAddress + POKEMON_STRUCT[field]
+}
+
+/**
+ * Pack origin info into u16 format
+ */
+export function packOriginInfo(info: {
+  metLevel: number, metGame: number, pokeball: number, otGender: boolean
+}): number {
+  return (info.metLevel & 0x7F) |
+         ((info.metGame & 0xF) << 7) |
+         ((info.pokeball & 0xF) << 11) |
+         ((info.otGender ? 1 : 0) << 15)
 }
