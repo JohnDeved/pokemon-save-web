@@ -20,8 +20,13 @@ trap cleanup SIGTERM SIGINT
 
 echo "[entrypoint] GAME env: $GAME"
 
-# Set default GAME if not set
+
+# Set default GAME if not set, and fallback to emerald if unsupported
 GAME="${GAME:-emerald}"
+if [[ "$GAME" != "emerald" && "$GAME" != "quetzal" ]]; then
+  echo "[entrypoint] WARNING: Unsupported GAME value '$GAME', falling back to 'emerald'"
+  GAME="emerald"
+fi
 echo "[entrypoint] GAME env: $GAME"
 ROM="/app/data/${GAME}.gba"
 SAVESTATE="/app/data/${GAME}.ss0"

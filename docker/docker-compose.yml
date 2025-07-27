@@ -10,6 +10,7 @@ services:
     environment:
       - DISPLAY=:99
       - QT_QPA_PLATFORM=xcb
+      - GAME
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7102/"]
