@@ -7,20 +7,20 @@ import { WebSocket } from 'ws'
 
 // Simple EventEmitter implementation for browser compatibility
 class EventEmitter {
-  private events: Record<string, Function[]> = {}
+  private events: Record<string, Array<(...args: any[]) => void>> = {}
 
-  setMaxListeners(_n: number): void {
+  setMaxListeners (_n: number): void {
     // No-op for browser compatibility
   }
 
-  on(event: string, listener: Function): void {
+  on (event: string, listener: (...args: any[]) => void): void {
     if (!this.events[event]) {
       this.events[event] = []
     }
-    this.events[event]?.push(listener)
+    this.events[event].push(listener)
   }
 
-  off(event: string, listener: Function): void {
+  off (event: string, listener: (...args: any[]) => void): void {
     const listeners = this.events[event]
     if (listeners) {
       const index = listeners.indexOf(listener)
@@ -30,10 +30,13 @@ class EventEmitter {
     }
   }
 
-  emit(event: string, ...args: any[]): void {
+  emit (event: string, ...args: any[]): void {
     const listeners = this.events[event]
     if (listeners) {
-      listeners.forEach(listener => listener(...args))
+      for (const listener of listeners) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        listener(...args)
+      }
     }
   }
 }

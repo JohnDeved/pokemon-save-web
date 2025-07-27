@@ -563,7 +563,7 @@ export class PokemonSaveParser {
       play_time: playTime,
       active_slot: this.activeSlotStart,
       sector_map: this.sectorMap,
-      rawSaveData: this.saveData || undefined,
+      rawSaveData: this.saveData ?? undefined,
     }
   }
 
