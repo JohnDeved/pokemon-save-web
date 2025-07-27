@@ -42,9 +42,12 @@ RUN cmake -B build \
     && cp build/libmgba.so.* /usr/local/lib/ \
     && ldconfig
 
-# Create working directory and copy required files
+# Create working directory and copy required mGBA files
 WORKDIR /app
-COPY src/lib/parser/__tests__/test_data/ /app/data/
+RUN mkdir -p /app/data
+COPY src/lib/parser/__tests__/test_data/emerald.gba /app/data/
+COPY src/lib/parser/__tests__/test_data/emerald.ss0 /app/data/
+COPY src/lib/parser/__tests__/test_data/mgba_http_server.lua /app/data/
 COPY docker/entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable
