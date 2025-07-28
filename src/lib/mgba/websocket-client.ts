@@ -10,6 +10,28 @@ export interface MgbaEvalResponse {
   error?: string
 }
 
+export interface WatchMessage {
+  type: 'watch'
+  regions: Array<{ address: number, size: number }>
+}
+
+export interface MemoryUpdateMessage {
+  type: 'memoryUpdate'
+  regions: Array<{
+    address: number
+    size: number
+    data: number[]
+  }>
+  timestamp: number
+}
+
+export interface WatchConfirmMessage {
+  type: 'watchConfirm'
+  message: string
+}
+
+export type WebSocketMessage = WatchMessage | MemoryUpdateMessage | WatchConfirmMessage
+
 export interface MemoryRegion {
   address: number
   size: number
@@ -23,6 +45,8 @@ export interface SharedBufferConfig {
   cacheTimeout: number // in milliseconds
   preloadRegions: Array<{ address: number, size: number }>
 }
+
+export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void
 
 // Constants for memory operations
 const MEMORY_CONSTANTS = {
@@ -46,6 +70,11 @@ export class MgbaWebSocketClient {
     cacheTimeout: MEMORY_CONSTANTS.CACHE_TIMEOUT_MS,
     preloadRegions: [], // Will be set from config
   }
+
+  // Memory watching system
+  private watchedRegions: Array<{ address: number, size: number }> = []
+  private memoryChangeListeners: MemoryChangeListener[] = []
+  private isWatching = false
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
   }
@@ -73,11 +102,17 @@ export class MgbaWebSocketClient {
         const onClose = () => {
           console.log('WebSocket connection closed')
           this.connected = false
+          this.isWatching = false
+        }
+
+        const onMessage = (event: { data: unknown }) => {
+          this.handleWebSocketMessage(String(event.data))
         }
 
         this.ws.addEventListener('open', onOpen)
         this.ws.addEventListener('error', onError)
         this.ws.addEventListener('close', onClose)
+        this.ws.addEventListener('message', onMessage)
       } catch (error) {
         reject(error)
       }
@@ -93,11 +128,137 @@ export class MgbaWebSocketClient {
       this.ws = null
     }
     this.connected = false
+    this.isWatching = false
   }
 
   /**
-   * Check if currently connected
+   * Handle incoming WebSocket messages
    */
+  private handleWebSocketMessage (data: string): void {
+    // Skip non-JSON messages (like welcome messages)
+    if (!data.startsWith('{')) {
+      return
+    }
+
+    try {
+      const message = JSON.parse(data) as WebSocketMessage | MgbaEvalResponse
+
+      // Handle structured messages
+      if ('type' in message) {
+        switch (message.type) {
+          case 'memoryUpdate':
+            this.handleMemoryUpdate(message)
+            break
+          case 'watchConfirm':
+            console.log('Memory watching confirmed:', message.message)
+            this.isWatching = true
+            break
+          default:
+            console.warn('Unknown WebSocket message type:', message.type)
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to parse WebSocket message:', error)
+    }
+  }
+
+  /**
+   * Handle memory update messages from the server
+   */
+  private handleMemoryUpdate (message: MemoryUpdateMessage): void {
+    for (const region of message.regions) {
+      const data = new Uint8Array(region.data)
+      
+      // Update cache
+      const cacheKey = `${region.address}-${region.size}`
+      this.memoryCache.set(cacheKey, {
+        address: region.address,
+        size: region.size,
+        data: new Uint8Array(data), // Make a copy
+        lastUpdated: Date.now(),
+        dirty: false,
+      })
+
+      // Notify listeners
+      for (const listener of this.memoryChangeListeners) {
+        try {
+          listener(region.address, region.size, data)
+        } catch (error) {
+          console.error('Error in memory change listener:', error)
+        }
+      }
+    }
+  }
+
+  /**
+   * Start watching memory regions for changes
+   */
+  async startWatching (regions?: Array<{ address: number, size: number }>): Promise<void> {
+    if (!this.isConnected()) {
+      throw new Error('Not connected to mGBA WebSocket server')
+    }
+
+    // Use provided regions or fall back to preload regions
+    const regionsToWatch = regions || this.sharedBufferConfig.preloadRegions
+    
+    if (regionsToWatch.length === 0) {
+      throw new Error('No regions to watch. Configure preloadRegions or provide regions parameter.')
+    }
+
+    this.watchedRegions = [...regionsToWatch]
+
+    const watchMessage: WatchMessage = {
+      type: 'watch',
+      regions: regionsToWatch
+    }
+
+    this.ws!.send(JSON.stringify(watchMessage))
+    console.log(`🔍 Started watching ${regionsToWatch.length} memory regions`)
+  }
+
+  /**
+   * Stop watching memory regions
+   */
+  async stopWatching (): Promise<void> {
+    this.watchedRegions = []
+    this.isWatching = false
+    // Note: We could send a stopWatch message to the server, but it's not necessary
+    // as the server will clean up on disconnect
+  }
+
+  /**
+   * Add a listener for memory changes
+   */
+  addMemoryChangeListener (listener: MemoryChangeListener): void {
+    if (this.memoryChangeListeners.length >= MEMORY_CONSTANTS.MAX_LISTENERS) {
+      throw new Error(`Maximum number of listeners (${MEMORY_CONSTANTS.MAX_LISTENERS}) exceeded`)
+    }
+    this.memoryChangeListeners.push(listener)
+  }
+
+  /**
+   * Remove a memory change listener
+   */
+  removeMemoryChangeListener (listener: MemoryChangeListener): void {
+    const index = this.memoryChangeListeners.indexOf(listener)
+    if (index !== -1) {
+      this.memoryChangeListeners.splice(index, 1)
+    }
+  }
+
+  /**
+   * Check if currently watching memory regions
+   */
+  isWatchingMemory (): boolean {
+    return this.isWatching && this.watchedRegions.length > 0
+  }
+
+  /**
+   * Get currently watched regions
+   */
+  getWatchedRegions (): Array<{ address: number, size: number }> {
+    return [...this.watchedRegions]
+  }
   isConnected (): boolean {
     return this.connected && this.ws?.readyState === WebSocket.OPEN
   }
@@ -335,17 +496,50 @@ export class MgbaWebSocketClient {
   }
 
   /**
+   * Start watching the preload regions for memory changes
+   */
+  async startWatchingPreloadRegions (): Promise<void> {
+    if (this.sharedBufferConfig.preloadRegions.length === 0) {
+      throw new Error('No preload regions configured. Set preloadRegions in sharedBufferConfig.')
+    }
+    
+    await this.startWatching(this.sharedBufferConfig.preloadRegions)
+  }
+
+  /**
    * Get data from shared buffer (with caching)
    * This method provides ultra-fast access to frequently used memory regions
+   * When memory watching is active, it prefers cached data to reduce polling
    */
   async getSharedBuffer (address: number, size: number, useCache = true): Promise<Uint8Array> {
     const cacheKey = `${address}-${size}`
     const now = Date.now()
 
+    // If this region is being watched, prefer cached data (much longer timeout)
+    const isWatchedRegion = this.isWatching && this.watchedRegions.some(
+      region => region.address === address && region.size === size
+    )
+
     // Check cache first
     if (useCache) {
       const cached = this.memoryCache.get(cacheKey)
-      if (cached && !cached.dirty && (now - cached.lastUpdated) < this.sharedBufferConfig.cacheTimeout) {
+      if (cached && !cached.dirty) {
+        const timeout = isWatchedRegion 
+          ? this.sharedBufferConfig.cacheTimeout * 1000 // Much longer timeout for watched regions
+          : this.sharedBufferConfig.cacheTimeout
+        
+        if ((now - cached.lastUpdated) < timeout) {
+          return cached.data
+        }
+      }
+    }
+
+    // For watched regions, if we have any cached data (even if expired), return it
+    // The push updates will keep it fresh
+    if (isWatchedRegion && useCache) {
+      const cached = this.memoryCache.get(cacheKey)
+      if (cached && !cached.dirty) {
+        console.log(`🔍 Using cached data for watched region 0x${address.toString(16)} (age: ${now - cached.lastUpdated}ms)`)
         return cached.data
       }
     }

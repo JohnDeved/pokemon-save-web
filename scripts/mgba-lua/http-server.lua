@@ -598,19 +598,72 @@ app:post("/echo", function(req, res)
     res:send("200 OK", req.body, req.headers['content-type'])
 end)
 
+-- Memory watching state for WebSocket connections
+local memoryWatchers = {}
+
+-- Simple JSON parser for WebSocket messages
+local function parseJSON(str)
+    local chunk, err = load("return " .. str)
+    if not chunk then return nil, err end
+    local ok, result = pcall(chunk)
+    if not ok then return nil, result end
+    return result
+end
+
 -- WebSocket route
 app:websocket("/ws", function(ws)
     console:log("WebSocket connected: " .. ws.path)
 
-    ws.onMessage = function(code)
-        local function safe_eval()
-            console:log("WebSocket eval request: " .. tostring(code))
-            local chunk = code
+    -- Initialize memory watcher for this connection
+    memoryWatchers[ws.id] = {
+        regions = {},
+        lastData = {}
+    }
+
+    ws.onMessage = function(message)
+        local function safe_handler()
+            console:log("WebSocket message: " .. tostring(message))
+            
+            -- Try to parse as JSON first for structured messages
+            local parsed, parseErr = parseJSON(message)
+            if parsed and type(parsed) == "table" and parsed.type then
+                if parsed.type == "watch" then
+                    -- Handle memory region watching request
+                    if parsed.regions and type(parsed.regions) == "table" then
+                        console:log("Setting up memory watch for " .. #parsed.regions .. " regions")
+                        local watcher = memoryWatchers[ws.id]
+                        watcher.regions = parsed.regions
+                        watcher.lastData = {}
+                        
+                        -- Initialize baseline data for each region
+                        for i, region in ipairs(parsed.regions) do
+                            if region.address and region.size then
+                                local data = emu:readRange(region.address, region.size)
+                                watcher.lastData[i] = data
+                            end
+                        end
+                        
+                        ws:send(HttpServer.jsonStringify({
+                            type = "watchConfirm",
+                            message = "Watching " .. #parsed.regions .. " memory regions"
+                        }))
+                    else
+                        ws:send(HttpServer.jsonStringify({
+                            type = "error",
+                            error = "Invalid watch request - regions array required"
+                        }))
+                    end
+                    return
+                end
+            end
+            
+            -- Fallback to legacy eval mode for backward compatibility
+            local chunk = message
             
             -- Enhanced support for non-self-executing function inputs
             -- Check if it's already a complete statement or needs a return prefix
-            if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
-                chunk = "return " .. code
+            if not message:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+                chunk = "return " .. message
             end
             
             local fn, err = load(chunk, "websocket-eval")
@@ -626,7 +679,7 @@ app:websocket("/ws", function(ws)
                 console:error("[WebSocket Eval Error] " .. tostring(result))
             end
         end
-        local ok, err = pcall(safe_eval)
+        local ok, err = pcall(safe_handler)
         if not ok then
             ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
             console:error("[WebSocket Handler Error] " .. tostring(err))
@@ -635,10 +688,75 @@ app:websocket("/ws", function(ws)
 
     ws.onClose = function()
         console:log("WebSocket disconnected: " .. ws.path)
+        -- Cleanup memory watcher
+        memoryWatchers[ws.id] = nil
     end
 
-    ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
+    ws:send("Welcome to WebSocket Eval! Send Lua code to execute or JSON messages for memory watching.")
 end)
+
+-- Frame callback for memory change detection
+local frameCallbackId = nil
+
+local function checkMemoryChanges()
+    for wsId, watcher in pairs(memoryWatchers) do
+        local ws = app.websockets[wsId]
+        if ws and #watcher.regions > 0 then
+            local changedRegions = {}
+            
+            for i, region in ipairs(watcher.regions) do
+                if region.address and region.size then
+                    local currentData = emu:readRange(region.address, region.size)
+                    if currentData ~= watcher.lastData[i] then
+                        -- Memory changed, prepare update
+                        local bytes = {}
+                        for j = 1, #currentData do
+                            bytes[j] = string.byte(currentData, j)
+                        end
+                        
+                        table.insert(changedRegions, {
+                            address = region.address,
+                            size = region.size,
+                            data = bytes
+                        })
+                        
+                        -- Update stored data
+                        watcher.lastData[i] = currentData
+                    end
+                end
+            end
+            
+            -- Send memory update if any regions changed
+            if #changedRegions > 0 then
+                ws:send(HttpServer.jsonStringify({
+                    type = "memoryUpdate",
+                    regions = changedRegions,
+                    timestamp = os.time()
+                }))
+            end
+        end
+    end
+end
+
+-- Register frame callback to monitor memory changes
+local function setupMemoryMonitoring()
+    if frameCallbackId then
+        callbacks:remove(frameCallbackId)
+    end
+    frameCallbackId = callbacks:add("frame", checkMemoryChanges)
+    console:log("🔍 Memory monitoring callback registered")
+end
+
+-- Setup monitoring when ROM is loaded
+if emu and emu.romSize and emu:romSize() > 0 then
+    setupMemoryMonitoring()
+else
+    local cbid
+    cbid = callbacks:add("start", function()
+        setupMemoryMonitoring()
+        callbacks:remove(cbid)
+    end)
+end
 
 -- Start server
 app:listen(7102, function(port)

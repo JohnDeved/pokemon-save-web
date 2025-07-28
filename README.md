@@ -50,6 +50,22 @@ import { MgbaWebSocketClient, EmeraldMemoryParser } from './lib/mgba'
 const client = new MgbaWebSocketClient()
 await client.connect()
 
+// Configure memory regions to watch for real-time updates
+client.configureSharedBuffer({
+  preloadRegions: [
+    { address: 0x20244e9, size: 7 },   // Party count + context
+    { address: 0x20244ec, size: 600 }  // Full party data
+  ]
+})
+
+// Start watching for memory changes (push-based updates)
+await client.startWatchingPreloadRegions()
+
+// Add listener for real-time memory changes
+client.addMemoryChangeListener((address, size, data) => {
+  console.log(`Memory changed at 0x${address.toString(16)}: ${data.length} bytes`)
+})
+
 // Parse save data from memory
 const parser = new EmeraldMemoryParser(client)
 const saveData = await parser.parseFromMemory()
@@ -57,6 +73,15 @@ const saveData = await parser.parseFromMemory()
 console.log(`Player: ${saveData.player_name}`)
 console.log(`Party: ${saveData.party_pokemon.length} Pokémon`)
 ```
+
+### Real-time Memory Synchronization
+
+The WebSocket client now supports **push-based memory updates** instead of constant polling:
+
+- **Memory Watching**: Configure regions to watch and receive updates only when they change
+- **Intelligent Caching**: Watched regions use cached data, dramatically reducing network calls
+- **Real-time Notifications**: React to memory changes as they happen in the emulator
+- **Backward Compatibility**: All existing eval-based functionality remains unchanged
 
 For detailed documentation, see [src/lib/mgba/README.md](./src/lib/mgba/README.md).
 
