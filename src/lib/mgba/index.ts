@@ -4,7 +4,7 @@
  * Provides WebSocket-based memory access to mGBA emulator with push-based updates.
  * The core parser (PokemonSaveParser) automatically uses memory mode when
  * passed an MgbaWebSocketClient instance.
- * 
+ *
  * New Features:
  * - Push-based memory updates: Instead of constant polling, the server watches
  *   memory regions and sends updates only when they change
@@ -13,7 +13,7 @@
  */
 
 export { MgbaWebSocketClient } from './websocket-client'
-export type { 
+export type {
   MgbaEvalResponse,
   MemoryRegion,
   SharedBufferConfig,
@@ -21,5 +21,5 @@ export type {
   WatchMessage,
   MemoryUpdateMessage,
   WatchConfirmMessage,
-  WebSocketMessage
+  WebSocketMessage,
 } from './websocket-client'

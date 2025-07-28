@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /**
  * Basic WebSocket connection test
  * Tests just the WebSocket connection fix without complex integration
@@ -15,45 +16,45 @@ describe('WebSocket Client Connection Fix', () => {
 
   it('should handle connection failure gracefully', async () => {
     const client = new MgbaWebSocketClient('ws://localhost:9999') // Non-existent server
-    
+
     // Should reject with connection error, not constructor error
     await expect(client.connect()).rejects.toThrow()
-    
+
     // Should be able to check connection status
     expect(client.isConnected()).toBe(false)
-    expect(client.isEvalConnected()).toBe(false) 
+    expect(client.isEvalConnected()).toBe(false)
     expect(client.isWatchConnected()).toBe(false)
-    
+
     console.log('✅ Connection error handling working correctly')
   })
 
   it('should set up memory change listeners without errors', () => {
     const client = new MgbaWebSocketClient('ws://localhost:7102')
-    
+
     const listener = (address: number, _size: number, _data: Uint8Array) => {
       console.log(`Memory change: 0x${address.toString(16)}`)
     }
-    
+
     expect(() => client.addMemoryChangeListener(listener)).not.toThrow()
     expect(() => client.removeMemoryChangeListener(listener)).not.toThrow()
-    
+
     console.log('✅ Memory listener system working correctly')
   })
 
   it('should configure shared buffer without errors', () => {
     const client = new MgbaWebSocketClient('ws://localhost:7102')
-    
+
     expect(() => {
       client.configureSharedBuffer({
         maxCacheSize: 50,
         cacheTimeout: 100,
         preloadRegions: [
           { address: 0x20244e9, size: 7 },
-          { address: 0x20244ec, size: 600 }
-        ]
+          { address: 0x20244ec, size: 600 },
+        ],
       })
     }).not.toThrow()
-    
+
     console.log('✅ Shared buffer configuration working correctly')
   })
 })

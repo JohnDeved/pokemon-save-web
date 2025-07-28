@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /**
  * Reliability tests for mGBA WebSocket connection stability and memory watching
  * Focus on realistic usage scenarios and error recovery
@@ -18,7 +19,7 @@ describe('WebSocket Reliability Tests', () => {
 
   afterEach(async () => {
     try {
-      await client.disconnect()
+      client.disconnect()
     } catch (error) {
       console.log('Cleanup error (expected):', error)
     }
@@ -35,7 +36,7 @@ describe('WebSocket Reliability Tests', () => {
     // Test memory operations
     const testAddress = 0x02000100
     await client.eval(`emu:write8(${testAddress}, 123)`)
-    
+
     const readResult = await client.eval(`emu:read8(${testAddress})`)
     expect(readResult.result).toBe(123)
 
@@ -52,7 +53,7 @@ describe('WebSocket Reliability Tests', () => {
     // Set up memory watching
     const testAddress = 0x02000200
     client.configureSharedBuffer({
-      preloadRegions: [{ address: testAddress, size: 4 }]
+      preloadRegions: [{ address: testAddress, size: 4 }],
     })
 
     let memoryChanges = 0
@@ -81,7 +82,7 @@ describe('WebSocket Reliability Tests', () => {
     // Verify changes were detected
     expect(memoryChanges).toBeGreaterThan(0)
     expect(lastChangeData).not.toBeNull()
-    
+
     // Verify final value is correct
     const finalValue = lastChangeData![0]
     expect(testValues).toContain(finalValue)
@@ -97,7 +98,7 @@ describe('WebSocket Reliability Tests', () => {
 
     // Set up memory watching
     client.configureSharedBuffer({
-      preloadRegions: [{ address: testAddress, size: 1 }]
+      preloadRegions: [{ address: testAddress, size: 1 }],
     })
 
     let detectedChanges = 0
@@ -194,8 +195,8 @@ describe('WebSocket Reliability Tests', () => {
     client.configureSharedBuffer({
       preloadRegions: [
         { address: partyCountAddr, size: 1 },
-        { address: partyDataAddr, size: 200 } // Simplified Pokemon data
-      ]
+        { address: partyDataAddr, size: 200 }, // Simplified Pokemon data
+      ],
     })
 
     let partyChanges = 0
@@ -212,8 +213,8 @@ describe('WebSocket Reliability Tests', () => {
     await client.eval(`emu:write8(${partyCountAddr}, 1)`) // Set party size to 1
 
     // Simulate Pokemon data (species, level, HP)
-    await client.eval(`emu:write16(${partyDataAddr}, 252)`)     // Treecko species
-    await client.eval(`emu:write8(${partyDataAddr + 10}, 5)`)   // Level 5
+    await client.eval(`emu:write16(${partyDataAddr}, 252)`) // Treecko species
+    await client.eval(`emu:write8(${partyDataAddr + 10}, 5)`) // Level 5
     await client.eval(`emu:write16(${partyDataAddr + 20}, 20)`) // 20 HP
 
     // Wait for changes
@@ -224,16 +225,16 @@ describe('WebSocket Reliability Tests', () => {
     expect(partyCount[0]).toBe(1)
 
     const pokemonData = await client.getSharedBuffer(partyDataAddr, 25)
-    
+
     // Check species (little-endian)
-    const species = (pokemonData[0] || 0) + ((pokemonData[1] || 0) << 8)
+    const species = (pokemonData[0] ?? 0) + ((pokemonData[1] ?? 0) << 8)
     expect(species).toBe(252)
 
     // Check level
     expect(pokemonData[10]).toBe(5)
 
     // Check HP (little-endian)
-    const hp = (pokemonData[20] || 0) + ((pokemonData[21] || 0) << 8)
+    const hp = (pokemonData[20] ?? 0) + ((pokemonData[21] ?? 0) << 8)
     expect(hp).toBe(20)
 
     // Should have detected changes

@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /**
  * Unit tests for WebSocket client message handling robustness
  * Tests the improved empty message handling and frame parsing logic
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MgbaWebSocketClient } from '../websocket-client'
 
 describe('WebSocket Client Message Handling Robustness', () => {
@@ -18,7 +19,7 @@ describe('WebSocket Client Message Handling Robustness', () => {
       // Test the private method using a workaround
       // @ts-expect-error - accessing private method for testing
       expect(() => client.handleWatchMessage('')).not.toThrow()
-      // @ts-expect-error - accessing private method for testing  
+      // @ts-expect-error - accessing private method for testing
       expect(() => client.handleWatchMessage('   ')).not.toThrow()
       // @ts-expect-error - accessing private method for testing
       expect(() => client.handleWatchMessage('\t\n\r  ')).not.toThrow()
@@ -45,23 +46,23 @@ describe('WebSocket Client Message Handling Robustness', () => {
 
     it('should process valid messages correctly', () => {
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
+
       // @ts-expect-error - accessing private method for testing
       client.handleWatchMessage('{"type": "welcome", "message": "Hello"}')
-      
+
       expect(consoleLogSpy).toHaveBeenCalledWith('WebSocket watch endpoint ready')
-      
+
       consoleLogSpy.mockRestore()
     })
 
     it('should handle error messages correctly', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-      
+
       // @ts-expect-error - accessing private method for testing
       client.handleWatchMessage('{"type": "error", "error": "Test error"}')
-      
+
       expect(consoleErrorSpy).toHaveBeenCalledWith('WebSocket watch error:', 'Test error')
-      
+
       consoleErrorSpy.mockRestore()
     })
   })
@@ -85,8 +86,8 @@ describe('WebSocket Client Message Handling Robustness', () => {
     })
 
     it('should enforce maximum listener limit', () => {
-      const listeners = Array.from({length: 100}, () => vi.fn())
-      
+      const listeners = Array.from({ length: 100 }, () => vi.fn())
+
       // Add maximum allowed listeners
       listeners.forEach(listener => {
         client.addMemoryChangeListener(listener)
@@ -108,10 +109,10 @@ describe('WebSocket Client Message Handling Robustness', () => {
           {
             address: 0x20244e9,
             size: 7,
-            data: [6, 0, 0, 0, 0, 0, 0]
-          }
+            data: [6, 0, 0, 0, 0, 0, 0],
+          },
         ],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
 
       // @ts-expect-error - accessing private method for testing
@@ -120,7 +121,7 @@ describe('WebSocket Client Message Handling Robustness', () => {
       expect(listener).toHaveBeenCalledWith(
         0x20244e9,
         7,
-        new Uint8Array([6, 0, 0, 0, 0, 0, 0])
+        new Uint8Array([6, 0, 0, 0, 0, 0, 0]),
       )
     })
 
@@ -140,10 +141,10 @@ describe('WebSocket Client Message Handling Robustness', () => {
           {
             address: 0x20244e9,
             size: 7,
-            data: [6, 0, 0, 0, 0, 0, 0]
-          }
+            data: [6, 0, 0, 0, 0, 0, 0],
+          },
         ],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
 
       // Should not throw even if one listener errors
@@ -183,7 +184,7 @@ describe('WebSocket Client Message Handling Robustness', () => {
       client.disconnect()
 
       // Verify state is reset
-      expect(client.isWatching).toBe(false)
+      expect(client.isWatchingMemory()).toBe(false)
     })
   })
 
@@ -194,8 +195,8 @@ describe('WebSocket Client Message Handling Robustness', () => {
         cacheTimeout: 5000,
         preloadRegions: [
           { address: 0x20244e9, size: 7 },
-          { address: 0x20244ec, size: 600 }
-        ]
+          { address: 0x20244ec, size: 600 },
+        ],
       }
 
       client.configureSharedBuffer(config)

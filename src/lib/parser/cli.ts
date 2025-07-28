@@ -265,51 +265,6 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
   let lastDataHash = ''
   let isFirstRun = true
 
-  // Configure preload regions for party data
-  client.configureSharedBuffer({
-    preloadRegions: [
-      { address: 0x20244e9, size: 7 },   // Party count + context
-      { address: 0x20244ec, size: 600 }  // Full party data (6 * 100 bytes)
-    ]
-  })
-
-  // Start watching the preload regions
-  try {
-    await client.startWatchingPreloadRegions()
-    console.log('✅ Memory watching started - will update display when party data changes')
-  } catch (error) {
-    console.warn('⚠️ Memory watching failed, falling back to polling mode')
-    console.warn('Error:', error instanceof Error ? error.message : 'Unknown error')
-    
-    // Fallback to polling for compatibility
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    while (true) {
-      try {
-        const result = await parser.parseSaveFile(client)
-        const dataHash = JSON.stringify(
-          result.party_pokemon.map(p => ({
-            species: p.speciesId,
-            level: p.level,
-            hp: p.currentHp,
-            nickname: p.nickname,
-          })),
-        )
-
-        if (dataHash !== lastDataHash || isFirstRun) {
-          clearScreen()
-          displayPartyPokemon(result.party_pokemon, 'MEMORY')
-          lastDataHash = dataHash
-          isFirstRun = false
-        }
-      } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
-      }
-
-      await new Promise(resolve => setTimeout(resolve, options.interval))
-    }
-    return
-  }
-
   // Set up memory change listener for real-time updates
   const memoryChangeListener = async (address: number, _size: number, _data: Uint8Array) => {
     try {
@@ -343,38 +298,82 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
     }
   }
 
-  // Add the memory change listener
-  client.addMemoryChangeListener(memoryChangeListener)
+  // Configure preload regions for party data
+  client.configureSharedBuffer({
+    preloadRegions: [
+      { address: 0x20244e9, size: 7 }, // Party count + context
+      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
+    ],
+  })
 
-  // Initial display
+  // Start watching the preload regions
   try {
-    const result = await parser.parseSaveFile(client)
-    clearScreen()
-    displayPartyPokemon(result.party_pokemon, 'MEMORY')
-    lastDataHash = JSON.stringify(
-      result.party_pokemon.map(p => ({
-        species: p.speciesId,
-        level: p.level,
-        hp: p.currentHp,
-        nickname: p.nickname,
-      })),
-    )
-    isFirstRun = false
-  } catch (error) {
-    console.error('❌ Error loading initial data:', error instanceof Error ? error.message : 'Unknown error')
-  }
+    await client.startWatchingPreloadRegions()
+    console.log('✅ Memory watching started - will update display when party data changes')
 
-  // Keep the process alive and handle cleanup
-  return new Promise<void>((resolve) => {
-    const cleanup = () => {
-      console.log('\n🔌 Cleaning up memory listeners...')
-      client.removeMemoryChangeListener(memoryChangeListener)
-      resolve()
+    // Add the memory change listener
+    client.addMemoryChangeListener(memoryChangeListener)
+
+    // Initial display
+    try {
+      const result = await parser.parseSaveFile(client)
+      clearScreen()
+      displayPartyPokemon(result.party_pokemon, 'MEMORY')
+      lastDataHash = JSON.stringify(
+        result.party_pokemon.map(p => ({
+          species: p.speciesId,
+          level: p.level,
+          hp: p.currentHp,
+          nickname: p.nickname,
+        })),
+      )
+      isFirstRun = false
+    } catch (error) {
+      console.error('❌ Error loading initial data:', error instanceof Error ? error.message : 'Unknown error')
     }
 
-    process.on('SIGINT', cleanup)
-    process.on('SIGTERM', cleanup)
-  })
+    // Keep the process alive and handle cleanup
+    return new Promise<void>((resolve) => {
+      const cleanup = () => {
+        console.log('\n🔌 Cleaning up memory listeners...')
+        client.removeMemoryChangeListener(memoryChangeListener)
+        resolve()
+      }
+
+      process.on('SIGINT', cleanup)
+      process.on('SIGTERM', cleanup)
+    })
+  } catch (error) {
+    console.warn('⚠️ Memory watching failed, falling back to polling mode')
+    console.warn('Error:', error instanceof Error ? error.message : 'Unknown error')
+
+    // Fallback to polling for compatibility
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    while (true) {
+      try {
+        const result = await parser.parseSaveFile(client)
+        const dataHash = JSON.stringify(
+          result.party_pokemon.map(p => ({
+            species: p.speciesId,
+            level: p.level,
+            hp: p.currentHp,
+            nickname: p.nickname,
+          })),
+        )
+
+        if (dataHash !== lastDataHash || isFirstRun) {
+          clearScreen()
+          displayPartyPokemon(result.party_pokemon, 'MEMORY')
+          lastDataHash = dataHash
+          isFirstRun = false
+        }
+      } catch (error) {
+        console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
+      }
+
+      await new Promise(resolve => setTimeout(resolve, options.interval))
+    }
+  }
 }
 
 // CLI entry point

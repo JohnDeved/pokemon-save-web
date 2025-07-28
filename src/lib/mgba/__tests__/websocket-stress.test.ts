@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /**
  * Stress tests for mGBA WebSocket connection stability and performance
  * Tests connection resilience, rapid operations, and memory watching under load
@@ -20,7 +21,7 @@ describe('WebSocket Stress Tests', () => {
     // Clean up all clients
     await Promise.all(clients.map(async (client) => {
       try {
-        await client.disconnect()
+        client.disconnect()
       } catch (error) {
         console.log('Cleanup error (expected):', error)
       }
@@ -46,7 +47,7 @@ describe('WebSocket Stress Tests', () => {
         const result = await client.eval('1')
         expect(result.result).toBe(1)
 
-        await client.disconnect()
+        client.disconnect()
         successfulDisconnections++
         expect(client.isConnected()).toBe(false)
       } catch (error) {
@@ -59,14 +60,14 @@ describe('WebSocket Stress Tests', () => {
 
     expect(successfulConnections).toBeGreaterThanOrEqual(cycles * 0.9) // 90% success rate
     expect(successfulDisconnections).toBeGreaterThanOrEqual(cycles * 0.9)
-    
+
     console.log(`✅ Completed ${successfulConnections}/${cycles} successful connections`)
     console.log(`✅ Completed ${successfulDisconnections}/${cycles} successful disconnections`)
   }, STRESS_TEST_TIMEOUT)
 
   it('should handle multiple concurrent connections', async () => {
     const connectionCount = 5
-    const promises: Promise<void>[] = []
+    const promises: Array<Promise<void>> = []
 
     for (let i = 0; i < connectionCount; i++) {
       const client = new MgbaWebSocketClient(WEBSOCKET_URL)
@@ -77,7 +78,7 @@ describe('WebSocket Stress Tests', () => {
           // Test each connection independently
           const result = await client.eval(`${i + 1}`)
           expect(result.result).toBe(i + 1)
-        })
+        }),
       )
     }
 
@@ -97,16 +98,16 @@ describe('WebSocket Stress Tests', () => {
     await client.connect()
 
     const operationCount = 50
-    const operations: Promise<any>[] = []
+    const operations: Array<Promise<any>> = []
 
     for (let i = 0; i < operationCount; i++) {
       operations.push(
         client.eval(`${i}`).then(result => {
           expect(result.result).toBe(i)
           return i
-        })
+        }),
       )
-      
+
       // Small delay to avoid overwhelming the server
       if (i % 10 === 0) {
         await new Promise(resolve => setTimeout(resolve, 10))
@@ -129,10 +130,10 @@ describe('WebSocket Stress Tests', () => {
 
     for (let i = 0; i < memoryOperations; i++) {
       const testValue = i % 256
-      
+
       // Write to memory
       await client.eval(`emu:write8(${testAddress}, ${testValue})`)
-      
+
       // Read back and verify
       const readResult = await client.eval(`emu:read8(${testAddress})`)
       expect(readResult.result).toBe(testValue)
@@ -157,7 +158,7 @@ describe('WebSocket Stress Tests', () => {
     // Configure memory watching
     const testAddress = 0x02000100
     client.configureSharedBuffer({
-      preloadRegions: [{ address: testAddress, size: 4 }]
+      preloadRegions: [{ address: testAddress, size: 4 }],
     })
 
     let changeCount = 0
@@ -169,7 +170,7 @@ describe('WebSocket Stress Tests', () => {
         if (address === testAddress) {
           changeCount++
           console.log(`Memory change ${changeCount}: ${data[0]}`)
-          
+
           if (changeCount >= expectedChanges) {
             resolve()
           }
@@ -189,9 +190,9 @@ describe('WebSocket Stress Tests', () => {
     // Wait for all changes to be detected (with timeout)
     await Promise.race([
       changePromise,
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Memory watching timeout')), 10000)
-      )
+      new Promise((_resolve, reject) =>
+        setTimeout(() => reject(new Error('Memory watching timeout')), 10000),
+      ),
     ])
 
     expect(changeCount).toBeGreaterThanOrEqual(expectedChanges * 0.8) // Allow for some missed changes
@@ -201,7 +202,7 @@ describe('WebSocket Stress Tests', () => {
   it('should recover from connection failures', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     clients.push(client)
-    
+
     // Initial connection
     await client.connect()
     expect(client.isConnected()).toBe(true)
@@ -211,7 +212,7 @@ describe('WebSocket Stress Tests', () => {
     expect(result.result).toBe('before_disconnect')
 
     // Force disconnect and reconnect
-    await client.disconnect()
+    client.disconnect()
     expect(client.isConnected()).toBe(false)
 
     // Reconnect
@@ -232,10 +233,10 @@ describe('WebSocket Stress Tests', () => {
 
     // Test various edge cases
     const errorCases = [
-      'nil',  // Nil result
-      'error("test error")',  // Lua error
-      '{}',  // Empty table
-      '{complex = {nested = "data"}}'  // Complex data
+      'nil', // Nil result
+      'error("test error")', // Lua error
+      '{}', // Empty table
+      '{complex = {nested = "data"}}', // Complex data
     ]
 
     for (const testCase of errorCases) {

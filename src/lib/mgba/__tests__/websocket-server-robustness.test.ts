@@ -1,17 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /**
  * Comprehensive robustness tests for the Lua WebSocket server
  * Tests production readiness including frame parsing, message handling, and error recovery
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import WebSocket from 'ws'
 import { MgbaWebSocketClient } from '../websocket-client'
 
 const BASE_URL = 'ws://localhost:7102'
 const TEST_TIMEOUT = 10000
 
-// Test utilities for direct WebSocket communication 
-function createTestWebSocket(endpoint: string): Promise<WebSocket> {
+// Test utilities for direct WebSocket communication
+function createTestWebSocket (endpoint: string): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`${BASE_URL}${endpoint}`)
     const timeout = setTimeout(() => {
@@ -30,7 +31,7 @@ function createTestWebSocket(endpoint: string): Promise<WebSocket> {
   })
 }
 
-function waitForMessage(ws: WebSocket, timeoutMs = 5000): Promise<string> {
+function waitForMessage (ws: WebSocket, timeoutMs = 5000): Promise<string> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error('Message timeout'))
@@ -38,7 +39,7 @@ function waitForMessage(ws: WebSocket, timeoutMs = 5000): Promise<string> {
 
     ws.once('message', (data) => {
       clearTimeout(timeout)
-      resolve(data.toString())
+      resolve(data instanceof Buffer ? data.toString() : String(data))
     })
 
     ws.once('error', (error) => {
@@ -54,7 +55,7 @@ function waitForMessage(ws: WebSocket, timeoutMs = 5000): Promise<string> {
 }
 
 // Skip tests if server is not available
-function checkServerAvailable(): Promise<boolean> {
+function checkServerAvailable (): Promise<boolean> {
   return new Promise((resolve) => {
     const ws = new WebSocket(`${BASE_URL}/eval`)
     const timeout = setTimeout(() => {
@@ -87,7 +88,7 @@ describe('WebSocket Server Robustness', () => {
   beforeEach(() => {
     if (!serverAvailable) {
       // Skip individual tests if server is not available
-      return
+
     }
   })
 
@@ -97,10 +98,10 @@ describe('WebSocket Server Robustness', () => {
 
       const ws = await createTestWebSocket('/eval')
       const messages: string[] = []
-      
+
       // Collect all messages
       ws.on('message', (data) => {
-        messages.push(data.toString())
+        messages.push(data instanceof Buffer ? data.toString() : String(data))
       })
 
       // Wait for welcome message
@@ -124,7 +125,7 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/eval')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
@@ -148,7 +149,7 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/eval')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
@@ -168,7 +169,7 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/eval')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
@@ -192,13 +193,13 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/eval')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
       const responses: string[] = []
       ws.on('message', (data) => {
-        const msg = data.toString()
+        const msg = data instanceof Buffer ? data.toString() : String(data)
         if (msg.startsWith('{')) {
           responses.push(msg)
         }
@@ -229,14 +230,14 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/eval')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
       // Generate large but valid Lua code (under 10KB limit)
-      const largeCode = 'local result = 0\n' + 
-        Array.from({length: 100}, (_, i) => `result = result + ${i + 1}`).join('\n') +
-        '\nreturn result'
+      const largeCode = `local result = 0\n${
+        Array.from({ length: 100 }, (_, i) => `result = result + ${i + 1}`).join('\n')
+        }\nreturn result`
 
       ws.send(largeCode)
 
@@ -251,12 +252,12 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/eval')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
       // Generate code over 10KB limit
-      const oversizedCode = 'return "' + 'x'.repeat(11000) + '"'
+      const oversizedCode = `return "${'x'.repeat(11000)}"`
 
       ws.send(oversizedCode)
 
@@ -273,13 +274,13 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/watch')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
       const responses: string[] = []
       ws.on('message', (data) => {
-        const msg = data.toString()
+        const msg = data instanceof Buffer ? data.toString() : String(data)
         if (msg.startsWith('{')) {
           responses.push(msg)
         }
@@ -291,7 +292,7 @@ describe('WebSocket Server Robustness', () => {
         '{"type":"watch","regions":[{address:123}]}', // Missing quotes
         '{"type":"watch","regions":null}',
         '{"incomplete":"',
-        'not json at all'
+        'not json at all',
       ]
 
       for (const msg of malformedMessages) {
@@ -317,13 +318,13 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/watch')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
       const responses: string[] = []
       ws.on('message', (data) => {
-        const msg = data.toString()
+        const msg = data instanceof Buffer ? data.toString() : String(data)
         if (msg.startsWith('{')) {
           responses.push(msg)
         }
@@ -361,19 +362,19 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/watch')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
       // Create request with too many regions (over 50 limit)
-      const tooManyRegions = Array.from({length: 51}, (_, i) => ({
+      const tooManyRegions = Array.from({ length: 51 }, (_, i) => ({
         address: 0x20244e9 + i * 100,
-        size: 10
+        size: 10,
       }))
 
       ws.send(JSON.stringify({
         type: 'watch',
-        regions: tooManyRegions
+        regions: tooManyRegions,
       }))
 
       const response = await waitForMessage(ws, 2000)
@@ -390,7 +391,7 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const connections: WebSocket[] = []
-      
+
       try {
         // Create multiple connections
         for (let i = 0; i < 5; i++) {
@@ -413,7 +414,6 @@ describe('WebSocket Server Robustness', () => {
         connections.forEach(ws => {
           expect(ws.readyState).toBe(WebSocket.OPEN)
         })
-
       } finally {
         // Clean up all connections
         connections.forEach(ws => {
@@ -428,17 +428,17 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const ws = await createTestWebSocket('/eval')
-      
+
       // Wait for welcome message
       await waitForMessage(ws, 2000)
 
       // Send some invalid frame data (this might close the connection, which is acceptable)
       const invalidFrame = Buffer.from([0xFF, 0xFF, 0xFF, 0xFF])
-      
+
       try {
         ws.send(invalidFrame)
         await new Promise(resolve => setTimeout(resolve, 1000))
-        
+
         // If connection is still open, send a valid message
         if (ws.readyState === WebSocket.OPEN) {
           ws.send('1+1')
@@ -460,15 +460,15 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const client = new MgbaWebSocketClient(BASE_URL)
-      
+
       try {
         await client.connect()
 
         // Configure watching which might trigger various frame types
         client.configureSharedBuffer({
           preloadRegions: [
-            { address: 0x20244e9, size: 7 }
-          ]
+            { address: 0x20244e9, size: 7 },
+          ],
         })
 
         await client.startWatchingPreloadRegions()
@@ -478,7 +478,6 @@ describe('WebSocket Server Robustness', () => {
 
         // Client should still be connected
         expect(client.isConnected()).toBe(true)
-
       } finally {
         client.disconnect()
       }
@@ -488,7 +487,7 @@ describe('WebSocket Server Robustness', () => {
       if (!serverAvailable) return
 
       const client = new MgbaWebSocketClient(BASE_URL)
-      
+
       try {
         await client.connect()
 
@@ -499,7 +498,7 @@ describe('WebSocket Server Robustness', () => {
         }
 
         const results = await Promise.all(operations)
-        
+
         // All operations should succeed
         results.forEach((result, i) => {
           expect(result.result).toBe(i)
@@ -507,7 +506,6 @@ describe('WebSocket Server Robustness', () => {
 
         // Connection should still be healthy
         expect(client.isConnected()).toBe(true)
-
       } finally {
         client.disconnect()
       }

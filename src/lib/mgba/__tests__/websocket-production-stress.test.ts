@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /**
  * Production-ready stress tests for mGBA WebSocket system
  * These tests are designed to find real connection issues and edge cases
@@ -28,14 +29,14 @@ describe('Production WebSocket Stress Tests', () => {
     })
     await Promise.allSettled(cleanupPromises)
     clients = []
-    
+
     // Wait for cleanup to complete
     await new Promise(resolve => setTimeout(resolve, 1000))
   })
 
   it('should handle extreme connection load without failures', async () => {
     const connectionCount = 20
-    const connectPromises: Promise<void>[] = []
+    const connectPromises: Array<Promise<void>> = []
     let successfulConnections = 0
     let connectionErrors = 0
 
@@ -54,7 +55,7 @@ describe('Production WebSocket Stress Tests', () => {
             connectionErrors++
             console.error(`Connection ${i + 1}/${connectionCount} failed:`, error)
             throw error // Fail the test if connections fail
-          })
+          }),
       )
 
       // Small stagger to avoid overwhelming the server
@@ -93,16 +94,16 @@ describe('Production WebSocket Stress Tests', () => {
 
     // Process operations in batches to test sustained load
     for (let batch = 0; batch < operationCount; batch += batchSize) {
-      const batchPromises: Promise<any>[] = []
-      
+      const batchPromises: Array<Promise<any>> = []
+
       for (let i = 0; i < batchSize && (batch + i) < operationCount; i++) {
         const operationId = batch + i
-        
+
         batchPromises.push(
           client.eval(`${operationId}`)
             .then(result => {
               if (result.result !== operationId) {
-                throw new Error(`Expected ${operationId}, got ${result.result}`)
+                throw new Error(`Expected ${operationId}, got ${String(result.result)}`)
               }
               completedOperations++
               return result
@@ -111,7 +112,7 @@ describe('Production WebSocket Stress Tests', () => {
               operationErrors++
               console.error(`Operation ${operationId} failed:`, error)
               throw error // Fail test on any operation failure
-            })
+            }),
         )
       }
 
@@ -140,16 +141,16 @@ describe('Production WebSocket Stress Tests', () => {
 
     const testAddress = 0x02000000
     const largeSizes = [1024, 2048, 4096, 8192, 16384] // Test increasingly large reads
-    
+
     for (const size of largeSizes) {
       console.log(`Testing memory operation with size ${size} bytes`)
-      
+
       // Write test pattern
-      const writePromises: Promise<any>[] = []
+      const writePromises: Array<Promise<any>> = []
       for (let i = 0; i < size; i += 100) {
         const chunkSize = Math.min(100, size - i)
-        const testPattern = Array.from({length: chunkSize}, (_, j) => (i + j) % 256)
-        
+        const testPattern = Array.from({ length: chunkSize }, (_, j) => (i + j) % 256)
+
         writePromises.push(
           client.eval(`
             (function()
@@ -158,16 +159,16 @@ describe('Production WebSocket Stress Tests', () => {
                 emu:write8(${testAddress + i}, data[i])
               end
             end)()
-          `)
+          `),
         )
       }
-      
+
       await Promise.all(writePromises)
-      
+
       // Read back and verify
       const readData = await client.getSharedBuffer(testAddress, size)
       expect(readData.length).toBe(size)
-      
+
       // Verify pattern
       for (let i = 0; i < size; i++) {
         const expected = i % 256
@@ -175,7 +176,7 @@ describe('Production WebSocket Stress Tests', () => {
           throw new Error(`Data mismatch at offset ${i}: expected ${expected}, got ${readData[i]}`)
         }
       }
-      
+
       console.log(`✅ Large memory operation (${size} bytes) successful`)
     }
 
@@ -189,9 +190,9 @@ describe('Production WebSocket Stress Tests', () => {
 
     // Set up watching for multiple regions
     const baseAddress = 0x02001000
-    const regions = Array.from({length: 10}, (_, i) => ({
+    const regions = Array.from({ length: 10 }, (_, i) => ({
       address: baseAddress + (i * 100),
-      size: 50
+      size: 50,
     }))
 
     client.configureSharedBuffer({ preloadRegions: regions })
@@ -208,7 +209,7 @@ describe('Production WebSocket Stress Tests', () => {
       client.addMemoryChangeListener((address, size, _data) => {
         totalChanges++
         console.log(`Memory change ${totalChanges}: 0x${address.toString(16)} (${size} bytes)`)
-        
+
         if (totalChanges >= expectedChanges) {
           clearTimeout(timeout)
           resolve()
@@ -219,21 +220,21 @@ describe('Production WebSocket Stress Tests', () => {
     await client.startWatchingPreloadRegions()
 
     // Generate complex memory change patterns
-    const changePromises: Promise<any>[] = []
-    
+    const changePromises: Array<Promise<any>> = []
+
     for (let round = 0; round < 20; round++) {
       for (let regionIndex = 0; regionIndex < regions.length; regionIndex++) {
         const region = regions[regionIndex]
         if (!region) continue
-        
+
         const testValue = (round * 10 + regionIndex) % 256
-        
+
         changePromises.push(
           client.eval(`emu:write8(${region.address}, ${testValue})`)
-            .then(() => new Promise(resolve => setTimeout(resolve, 50))) // Small delay
+            .then(() => new Promise(resolve => setTimeout(resolve, 50))), // Small delay
         )
       }
-      
+
       // Process in waves
       if (round % 5 === 4) {
         await Promise.allSettled(changePromises.splice(0, changePromises.length))
@@ -270,7 +271,7 @@ describe('Production WebSocket Stress Tests', () => {
     for (let i = 0; i < errorTestCases.length; i++) {
       const errorCase = errorTestCases[i]
       if (!errorCase) continue
-      
+
       console.log(`Testing error case ${i + 1}/${errorTestCases.length}: ${errorCase.substring(0, 50)}...`)
 
       try {
@@ -287,7 +288,7 @@ describe('Production WebSocket Stress Tests', () => {
         successfulRecoveries++
         console.log(`✅ Recovery ${i + 1} successful`)
       } catch (error) {
-        throw new Error(`Connection lost after error case ${i + 1}: ${error}`)
+        throw new Error(`Connection lost after error case ${i + 1}: ${String(error)}`)
       }
 
       // Brief pause between error tests
@@ -311,7 +312,7 @@ describe('Production WebSocket Stress Tests', () => {
       partyData: 0x20244ec,
       playerName: 0x2000000,
       gameStats: 0x2001000,
-      bagData: 0x2002000
+      bagData: 0x2002000,
     }
 
     client.configureSharedBuffer({
@@ -320,8 +321,8 @@ describe('Production WebSocket Stress Tests', () => {
         { address: gameAddresses.partyData, size: 600 },
         { address: gameAddresses.playerName, size: 32 },
         { address: gameAddresses.gameStats, size: 100 },
-        { address: gameAddresses.bagData, size: 400 }
-      ]
+        { address: gameAddresses.bagData, size: 400 },
+      ],
     })
 
     let memoryUpdates = 0
@@ -340,43 +341,43 @@ describe('Production WebSocket Stress Tests', () => {
         await client.eval(`emu:write16(${gameAddresses.partyData}, 252)`) // Treecko
         await client.eval(`emu:write8(${gameAddresses.partyData + 10}, 5)`) // Level 5
       },
-      
+
       // Level up Pokemon
       async () => {
         console.log('Simulating level up...')
         await client.eval(`emu:write8(${gameAddresses.partyData + 10}, 6)`) // Level 6
         await client.eval(`emu:write16(${gameAddresses.partyData + 20}, 25)`) // New HP
       },
-      
+
       // Use item from bag
       async () => {
         console.log('Simulating item use...')
         await client.eval(`emu:write8(${gameAddresses.bagData + 5}, 10)`) // Item count change
       },
-      
+
       // Pokemon faints and heals
       async () => {
         console.log('Simulating Pokemon faint/heal...')
         await client.eval(`emu:write16(${gameAddresses.partyData + 22}, 0)`) // Current HP = 0
         await new Promise(resolve => setTimeout(resolve, 100))
         await client.eval(`emu:write16(${gameAddresses.partyData + 22}, 25)`) // Heal to full HP
-      }
+      },
     ]
 
     // Run multiple gameplay cycles
     const cycles = 20
     for (let cycle = 0; cycle < cycles; cycle++) {
       console.log(`Gameplay cycle ${cycle + 1}/${cycles}`)
-      
+
       for (const scenario of gameplayScenarios) {
         await scenario()
         await new Promise(resolve => setTimeout(resolve, 150)) // Realistic timing
-        
+
         // Verify we can still read data
         const partyData = await client.getSharedBuffer(gameAddresses.partyData, 50)
         expect(partyData.length).toBe(50)
       }
-      
+
       // Periodic connectivity check
       const connectivityCheck = await client.eval('"connectivity_ok"')
       expect(connectivityCheck.result).toBe('connectivity_ok')
@@ -401,21 +402,21 @@ describe('Production WebSocket Stress Tests', () => {
 
     for (let i = 0; i < stateChangeCount; i++) {
       console.log(`State change ${i + 1}/${stateChangeCount}`)
-      
+
       // Connect
       await client.connect()
       expect(client.isConnected()).toBe(true)
-      
+
       // Brief operation to verify connection
       const result = await client.eval(`${i}`)
       expect(result.result).toBe(i)
-      
+
       // Disconnect
       client.disconnect()
       expect(client.isConnected()).toBe(false)
-      
+
       successfulStateChanges++
-      
+
       // Small delay between state changes
       await new Promise(resolve => setTimeout(resolve, 50))
     }

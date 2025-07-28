@@ -228,7 +228,7 @@ export class MgbaWebSocketClient {
 
           ws.on('message', (data) => {
             try {
-              const messageText = data.toString()
+              const messageText = data instanceof Buffer ? data.toString() : String(data)
               this.handleWatchMessage(messageText)
             } catch (error) {
               console.error('Error handling watch message:', error)
@@ -292,12 +292,12 @@ export class MgbaWebSocketClient {
     this.heartbeatInterval = setInterval(() => {
       try {
         const now = Date.now()
-        
+
         // Send ping frames to both connections if they're open
         if (this.evalWs && this.evalConnected && this.evalWs.readyState === WebSocket.OPEN) {
           this.evalWs.ping('ping')
         }
-        
+
         if (this.watchWs && this.watchConnected && this.watchWs.readyState === WebSocket.OPEN) {
           this.watchWs.ping('ping')
         }
@@ -334,7 +334,7 @@ export class MgbaWebSocketClient {
     }
 
     const trimmedData = data.trim()
-    
+
     // Skip empty messages or whitespace-only messages
     if (trimmedData.length === 0) {
       // Silently ignore empty messages - these can come from ping/pong frames
@@ -351,7 +351,7 @@ export class MgbaWebSocketClient {
       const message = JSON.parse(trimmedData) as WebSocketMessage
 
       // Validate message structure
-      if (!message || typeof message !== 'object' || !('type' in message)) {
+      if (typeof message !== 'object' || !('type' in message)) {
         console.warn('Received message without type field:', trimmedData.substring(0, 100))
         return
       }
