@@ -588,14 +588,18 @@ describe('Pokemon Quetzal Tests', () => {
       const config = new QuetzalConfig()
 
       expect(config.memoryAddresses).toBeDefined()
-      // Verified addresses using real mgba emulator
+      // Fallback addresses (may be volatile but kept for compatibility)
       expect(config.memoryAddresses.partyData).toBe(0x2024a18)
       expect(config.memoryAddresses.partyCount).toBe(0x2024a14)
       expect(config.memoryAddresses.playTime).toBe(0x2023e08)
 
-      // Verify preload regions are defined
+      // Verify preload regions are empty (dynamic discovery mode)
       expect(config.memoryAddresses.preloadRegions).toBeDefined()
-      expect(config.memoryAddresses.preloadRegions.length).toBe(3)
+      expect(config.memoryAddresses.preloadRegions.length).toBe(0)
+      
+      // Verify dynamic methods are available
+      expect(typeof config.scanForPartyData).toBe('function')
+      expect(typeof config.getDynamicMemoryAddresses).toBe('function')
     })
 
     it('should have party count address four bytes before party data', () => {
