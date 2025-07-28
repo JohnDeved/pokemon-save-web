@@ -237,50 +237,83 @@ int main(int argc, char* argv[]) {
     find_party_candidates(memory2, size2, base_address, candidates2, &num2, MAX_CANDIDATES);
     printf("Found %d potential party locations in second dump\n", num2);
     
-    // Find consistent addresses (appear in both dumps)
-    printf("\n🎯 Looking for consistent party locations...\n");
-    printf("Address    | Confidence1 | Confidence2 | Pokemon1 | Pokemon2\n");
-    printf("-----------|-------------|-------------|----------|----------\n");
+    // List ALL candidates from dump 1
+    printf("\n📋 ALL potential party locations in DUMP 1 (%s):\n", file1);
+    printf("Address    | Confidence | Count | Pokemon Details\n");
+    printf("-----------|------------|-------|----------------\n");
     
-    int consistent_found = 0;
+    for (int i = 0; i < num1; i++) {
+        printf("0x%08X | %10d | %5d | ", 
+               candidates1[i].address, 
+               candidates1[i].total_confidence,
+               candidates1[i].count);
+               
+        for (int k = 0; k < candidates1[i].count && k < 6; k++) {
+            printf("ID%d(Lv%d) ", candidates1[i].pokemon[k].species_id, 
+                   candidates1[i].pokemon[k].level);
+        }
+        printf("\n");
+    }
+    
+    // List ALL candidates from dump 2
+    printf("\n📋 ALL potential party locations in DUMP 2 (%s):\n", file2);
+    printf("Address    | Confidence | Count | Pokemon Details\n");
+    printf("-----------|------------|-------|----------------\n");
+    
+    for (int i = 0; i < num2; i++) {
+        printf("0x%08X | %10d | %5d | ", 
+               candidates2[i].address, 
+               candidates2[i].total_confidence,
+               candidates2[i].count);
+               
+        for (int k = 0; k < candidates2[i].count && k < 6; k++) {
+            printf("ID%d(Lv%d) ", candidates2[i].pokemon[k].species_id, 
+                   candidates2[i].pokemon[k].level);
+        }
+        printf("\n");
+    }
+    
+    // Find EXACT address matches (not fuzzy matching)
+    printf("\n🎯 Addresses with valid Pokemon data in BOTH dumps:\n");
+    printf("Address    | Dump1 Confidence | Dump2 Confidence | Dump1 Pokemon | Dump2 Pokemon\n");
+    printf("-----------|------------------|------------------|---------------|---------------\n");
+    
+    int exact_matches = 0;
     for (int i = 0; i < num1; i++) {
         for (int j = 0; j < num2; j++) {
-            // Check if addresses are close (within 256 bytes for dynamic allocation tolerance)
-            uint32_t addr_diff = (candidates1[i].address > candidates2[j].address) ? 
-                                 candidates1[i].address - candidates2[j].address :
-                                 candidates2[j].address - candidates1[i].address;
-                                 
-            if (addr_diff <= 256) {
-                printf("0x%08X | %11d | %11d | %8d | %8d\n",
+            // Check for EXACT address match
+            if (candidates1[i].address == candidates2[j].address) {
+                printf("0x%08X | %16d | %16d | ",
                        candidates1[i].address, 
                        candidates1[i].total_confidence,
-                       candidates2[j].total_confidence,
-                       candidates1[i].count,
-                       candidates2[j].count);
+                       candidates2[j].total_confidence);
                        
-                // Print details of the Pokemon found
-                printf("  Dump 1 Pokemon: ");
+                // Print first 3 Pokemon from dump 1
                 for (int k = 0; k < candidates1[i].count && k < 3; k++) {
                     printf("ID%d(Lv%d) ", candidates1[i].pokemon[k].species_id, 
                            candidates1[i].pokemon[k].level);
                 }
-                printf("\n  Dump 2 Pokemon: ");
+                printf("| ");
+                
+                // Print first 3 Pokemon from dump 2
                 for (int k = 0; k < candidates2[j].count && k < 3; k++) {
                     printf("ID%d(Lv%d) ", candidates2[j].pokemon[k].species_id, 
                            candidates2[j].pokemon[k].level);
                 }
-                printf("\n\n");
+                printf("\n");
                 
-                consistent_found++;
+                exact_matches++;
             }
         }
     }
     
-    if (consistent_found == 0) {
-        printf("❌ No consistent party locations found between dumps\n");
-        printf("💡 This suggests Quetzal uses highly dynamic memory allocation\n");
+    if (exact_matches == 0) {
+        printf("❌ No exact address matches found between dumps\n");
+        printf("💡 This means Pokemon party data is at different addresses in each savestate\n");
+        printf("🔍 Check the individual dump listings above to see all potential party locations\n");
     } else {
-        printf("✅ Found %d potentially consistent party locations\n", consistent_found);
+        printf("✅ Found %d exact address matches with valid Pokemon data in both dumps\n", exact_matches);
+        printf("🎯 These addresses are stable and can be used for memory reading!\n");
     }
     
     // Cleanup
