@@ -565,57 +565,57 @@ describe('Pokemon Quetzal Tests', () => {
   })
 
   describe('Memory Support', () => {
-    it('should support memory parsing for Quetzal game titles', () => {
+    it('should disable memory parsing for Quetzal due to dynamic allocation', () => {
       const config = new QuetzalConfig()
 
-      // Test various Quetzal title formats
-      expect(config.canHandleMemory('POKEMON QUETZAL')).toBe(true)
-      expect(config.canHandleMemory('Pokemon Quetzal')).toBe(true)
-      expect(config.canHandleMemory('QUET_123')).toBe(true)
+      // Quetzal ROM hack uses dynamic memory allocation which makes addresses volatile
+      // Memory support is disabled to prevent unreliable behavior
+      expect(config.canHandleMemory('POKEMON QUETZAL')).toBe(false)
+      expect(config.canHandleMemory('Pokemon Quetzal')).toBe(false)
+      expect(config.canHandleMemory('QUET_123')).toBe(false)
 
-      // Test Emerald compatibility (since Quetzal is based on Emerald)
-      expect(config.canHandleMemory('POKEMON EMERALD')).toBe(true)
-      expect(config.canHandleMemory('Pokemon Emerald')).toBe(true)
-      expect(config.canHandleMemory('EMER_456')).toBe(true)
-
-      // Test non-matching titles
+      // All game titles should return false since memory support is disabled
+      expect(config.canHandleMemory('POKEMON EMERALD')).toBe(false)
+      expect(config.canHandleMemory('Pokemon Emerald')).toBe(false)
+      expect(config.canHandleMemory('EMER_456')).toBe(false)
       expect(config.canHandleMemory('POKEMON RUBY')).toBe(false)
       expect(config.canHandleMemory('POKEMON SAPPHIRE')).toBe(false)
       expect(config.canHandleMemory('FIRERED')).toBe(false)
     })
 
-    it('should have correct memory addresses defined', () => {
+    it('should have disabled memory addresses', () => {
       const config = new QuetzalConfig()
 
       expect(config.memoryAddresses).toBeDefined()
-      // Fallback addresses (may be volatile but kept for compatibility)
-      expect(config.memoryAddresses.partyData).toBe(0x2024a18)
-      expect(config.memoryAddresses.partyCount).toBe(0x2024a14)
-      expect(config.memoryAddresses.playTime).toBe(0x2023e08)
+      // All addresses should be disabled (set to 0)
+      expect(config.memoryAddresses.partyData).toBe(0)
+      expect(config.memoryAddresses.partyCount).toBe(0)
+      expect(config.memoryAddresses.playTime).toBe(0)
 
-      // Verify preload regions are empty (dynamic discovery mode)
+      // Verify preload regions are empty 
       expect(config.memoryAddresses.preloadRegions).toBeDefined()
       expect(config.memoryAddresses.preloadRegions.length).toBe(0)
+    })
+
+    it('should explain why memory support is disabled', () => {
+      const config = new QuetzalConfig()
       
-      // Verify dynamic methods are available
-      expect(typeof config.scanForPartyData).toBe('function')
-      expect(typeof config.getDynamicMemoryAddresses).toBe('function')
+      // Memory addresses are set to 0 to indicate they're disabled
+      expect(config.memoryAddresses.partyData).toBe(0)
+      expect(config.memoryAddresses.partyCount).toBe(0)
+
+      // The difference should be 0 since both are disabled
+      expect(config.memoryAddresses.partyData - config.memoryAddresses.partyCount).toBe(0)
     })
 
-    it('should have party count address four bytes before party data', () => {
+    it('should maintain disabled state for all memory operations', () => {
       const config = new QuetzalConfig()
       const { partyData, partyCount } = config.memoryAddresses
 
-      // Party count should be 4 bytes before party data (standard Emerald pattern)
-      expect(partyData - partyCount).toBe(4)
-    })
-
-    it('should maintain proper offset between party count and party data', () => {
-      const config = new QuetzalConfig()
-      const { partyData, partyCount } = config.memoryAddresses
-
-      // Party data should be 4 bytes after party count
-      expect(partyData - partyCount).toBe(4)
+      // All addresses disabled, difference should be 0
+      expect(partyData - partyCount).toBe(0)
+      expect(partyData).toBe(0)
+      expect(partyCount).toBe(0)
     })
   })
 })

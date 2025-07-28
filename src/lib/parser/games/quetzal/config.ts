@@ -49,29 +49,12 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     items: createMapping<ItemMapping>(itemMapData as Record<string, unknown>),
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
-
-  // Dynamic memory addresses for Quetzal ROM hack
-  // NOTE: Quetzal uses dynamic memory allocation, so addresses are discovered at runtime
-  private memoryCache: {
-    partyCountAddr: number | null
-    partyDataAddr: number | null
-    playTimeAddr: number | null
-    lastScanTime: number
-    isValid: boolean
-  } = {
-    partyCountAddr: null,
-    partyDataAddr: null,
-    playTimeAddr: null,
-    lastScanTime: 0,
-    isValid: false
-  }
-
-  // Static memory addresses (kept for compatibility, but not used for dynamic data)
+    // Memory addresses for Quetzal ROM hack - DISABLED
+  // Quetzal uses dynamic memory allocation which makes addresses volatile
   readonly memoryAddresses = {
-    partyData: 0x2024a18, // Fallback address (may be volatile)
-    partyCount: 0x2024a14, // Fallback address (may be volatile)
-    playTime: 0x2023e08, // May be stable
-    // Preload regions are now dynamic
+    partyData: 0x0, // Disabled - dynamic allocation
+    partyCount: 0x0, // Disabled - dynamic allocation
+    playTime: 0x0, // Disabled - dynamic allocation
     preloadRegions: [] as const,
   } as const
 
@@ -244,150 +227,13 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   }
 
   /**
-   * Dynamically scan for Pokemon party data in memory
-   * Addresses the volatile memory issue where party data moves between savestates
-   */
-  async scanForPartyData(readByte: (addr: number) => Promise<number>, readBytes: (addr: number, len: number) => Promise<Uint8Array>): Promise<{
-    partyCountAddr: number | null
-    partyDataAddr: number | null
-    partyCount: number
-    scanTime: number
-  }> {
-    const startTime = Date.now()
-    
-    // Try cache first if recent
-    const cacheAge = Date.now() - this.memoryCache.lastScanTime
-    if (this.memoryCache.isValid && cacheAge < 5000 && this.memoryCache.partyCountAddr) {
-      try {
-        const partyCount = await readByte(this.memoryCache.partyCountAddr)
-        if (partyCount >= 1 && partyCount <= 6) {
-          // Verify cache is still valid
-          const isValid = await this.validatePartyData(this.memoryCache.partyCountAddr, this.memoryCache.partyDataAddr!, partyCount, readBytes)
-          if (isValid) {
-            return {
-              partyCountAddr: this.memoryCache.partyCountAddr,
-              partyDataAddr: this.memoryCache.partyDataAddr,
-              partyCount,
-              scanTime: 0 // Cache hit
-            }
-          }
-        }
-      } catch (e) {
-        // Cache miss, continue to full scan
-      }
-    }
-
-    // Full scan - check known regions where Pokemon data appears
-    const scanRegions = [
-      { start: 0x2024000, end: 0x2025000 }, // Primary region
-      { start: 0x2025000, end: 0x2026000 }, // Secondary region
-      { start: 0x2026000, end: 0x2027000 }, // Tertiary region
-    ]
-
-    for (const region of scanRegions) {
-      for (let addr = region.start; addr < region.end; addr += 4) {
-        try {
-          const partyCount = await readByte(addr)
-          
-          if (partyCount >= 1 && partyCount <= 6) {
-            const partyDataAddr = addr + 4
-            const isValid = await this.validatePartyData(addr, partyDataAddr, partyCount, readBytes)
-            
-            if (isValid) {
-              // Update cache
-              this.memoryCache = {
-                partyCountAddr: addr,
-                partyDataAddr,
-                playTimeAddr: this.memoryCache.playTimeAddr,
-                lastScanTime: Date.now(),
-                isValid: true
-              }
-              
-              return {
-                partyCountAddr: addr,
-                partyDataAddr,
-                partyCount,
-                scanTime: Date.now() - startTime
-              }
-            }
-          }
-        } catch (e) {
-          // Skip invalid addresses
-        }
-      }
-    }
-
-    // No valid data found
-    this.memoryCache.isValid = false
-    return {
-      partyCountAddr: null,
-      partyDataAddr: null,
-      partyCount: 0,
-      scanTime: Date.now() - startTime
-    }
-  }
-
-  /**
-   * Validate if the given addresses contain valid Pokemon party data
-   */
-  private async validatePartyData(partyCountAddr: number, partyDataAddr: number, partyCount: number, readBytes: (addr: number, len: number) => Promise<Uint8Array>): Promise<boolean> {
-    try {
-      const pokemonData = await readBytes(partyDataAddr, partyCount * 104)
-      let validCount = 0
-
-      for (let i = 0; i < partyCount; i++) {
-        const offset = i * 104
-        const pokeData = pokemonData.slice(offset, offset + 104)
-        const view = new DataView(pokeData.buffer)
-
-        const species = this.getPokemonName(pokeData, view)
-        const level = view.getUint8(0x58)
-        const currentHp = view.getUint16(0x23, true)
-        const maxHp = view.getUint16(0x5A, true)
-
-        // Validate Pokemon data looks reasonable
-        if (level >= 1 && level <= 100 && 
-            currentHp >= 0 && maxHp > 0 && 
-            species && species !== 'Unknown') {
-          validCount++
-        }
-      }
-
-      // Consider valid if at least 80% of Pokemon look reasonable
-      return validCount >= Math.ceil(partyCount * 0.8)
-    } catch (e) {
-      return false
-    }
-  }
-
-  /**
-   * Get dynamic memory addresses (replaces static memoryAddresses for volatile data)
-   */
-  async getDynamicMemoryAddresses(readByte: (addr: number) => Promise<number>, readBytes: (addr: number, len: number) => Promise<Uint8Array>): Promise<{
-    partyCount: number | null
-    partyData: number | null
-    playTime: number | null
-  }> {
-    const partyResult = await this.scanForPartyData(readByte, readBytes)
-    
-    return {
-      partyCount: partyResult.partyCountAddr,
-      partyData: partyResult.partyDataAddr,
-      playTime: this.memoryAddresses.playTime // Play time might be stable
-    }
-  }
-  /**
    * Check if this config can handle memory parsing for the given game title
-   * Supports Pokemon Quetzal ROM hack
+   * Quetzal ROM hack uses dynamic memory allocation which prevents reliable memory support
    */
   canHandleMemory (gameTitle: string): boolean {
-    // Check for Quetzal-specific identifiers in the game title
-    return gameTitle.includes('QUETZAL') ||
-           gameTitle.includes('Quetzal') ||
-           gameTitle.includes('QUET') ||
-           // Also support generic Emerald titles as Quetzal is based on Emerald
-           gameTitle.includes('EMERALD') ||
-           gameTitle.includes('Emerald') ||
-           gameTitle.includes('EMER')
+    // Quetzal ROM hack uses dynamic memory allocation for party data,
+    // causing addresses to change between savestates. No consistent 
+    // pointers or base addresses exist. Memory support is disabled.
+    return false
   }
 }
