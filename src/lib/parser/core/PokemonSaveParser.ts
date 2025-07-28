@@ -175,6 +175,11 @@ export class PokemonSaveParser {
 
     console.log(`Memory mode initialized for ${gameTitle} using config: ${this.config.name}`)
 
+    // Handle dynamic memory initialization for configs that support it
+    if ('prepareForMemoryMode' in this.config && typeof this.config.prepareForMemoryMode === 'function') {
+      await (this.config as any).prepareForMemoryMode(client)
+    }
+
     // Configure and preload memory regions if defined in config
     if (this.config.memoryAddresses?.preloadRegions) {
       client.configureSharedBuffer({

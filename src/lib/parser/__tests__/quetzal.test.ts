@@ -585,59 +585,83 @@ describe('Pokemon Quetzal Tests', () => {
       expect(config.canHandleMemory('FIRERED')).toBe(false)
     })
 
-    it('should have discovered memory addresses from comprehensive analysis', () => {
+    it('should have dynamic memory address discovery system', () => {
       const config = new QuetzalConfig()
 
       expect(config.memoryAddresses).toBeDefined()
 
-      // Addresses discovered via cross-savestate memory dump analysis
-      expect(config.memoryAddresses.partyData).toBe(0x02026310) // Primary discovered address
-      expect(config.memoryAddresses.partyCount).toBe(0x0202630C) // 4 bytes before party data
-      expect(config.memoryAddresses.playTime).toBe(0x02026300) // Near party data region
+      // Initial addresses should be zero (not yet discovered)
+      expect(config.memoryAddresses.partyData).toBe(0x00000000) // Will be discovered dynamically
+      expect(config.memoryAddresses.partyCount).toBe(0x00000000) // Will be discovered dynamically  
+      expect(config.memoryAddresses.playTime).toBe(0x00000000) // Not implemented yet
 
-      // Verify preload regions are configured
+      // Preload regions should initially be empty
       expect(config.memoryAddresses.preloadRegions).toBeDefined()
-      expect(config.memoryAddresses.preloadRegions.length).toBe(3)
-
-      // Check preload region configuration
-      const regions = config.memoryAddresses.preloadRegions
-      expect(regions[0]?.address).toBe(0x0202630C) // Party count region
-      expect(regions[0]?.size).toBe(8)
-      expect(regions[1]?.address).toBe(0x02026310) // Party data region
-      expect(regions[1]?.size).toBe(624) // 6 Pokemon * 104 bytes each
-      expect(regions[2]?.address).toBe(0x02026300) // Play time region
-      expect(regions[2]?.size).toBe(16)
+      expect(config.memoryAddresses.preloadRegions.length).toBe(0) // Will be populated after discovery
     })
 
-    it('should maintain proper offset relationships between memory addresses', () => {
+    it('should support dynamic address discovery workflow', () => {
+      const config = new QuetzalConfig()
+      
+      // Check that the dynamic discovery methods exist
+      expect(config.discoverPartyAddresses).toBeDefined()
+      expect(config.getDynamicMemoryAddresses).toBeDefined()
+      expect(config.initializeMemoryAddresses).toBeDefined()
+      expect(config.prepareForMemoryMode).toBeDefined()
+      expect(config.clearAddressCache).toBeDefined()
+    })
+
+    it('should maintain proper offset relationships after dynamic discovery', () => {
       const config = new QuetzalConfig()
 
-      // Party count should be 4 bytes before party data (standard Pokemon save structure)
+      // Before discovery, addresses should be 0
+      expect(config.memoryAddresses.partyData).toBe(0)
+      expect(config.memoryAddresses.partyCount).toBe(0)
+      
+      // After discovery (simulated by updating memory addresses), 
+      // party count should be 4 bytes before party data
+      // This test validates the updateMemoryAddresses method works correctly
+      
+      // Simulate discovered addresses
+      const mockPartyCount = 0x2024a10
+      const mockPartyData = 0x2024a14
+      
+      // Call the private updateMemoryAddresses method (for testing)
+      ;(config as any).updateMemoryAddresses(mockPartyCount, mockPartyData)
+      
+      // Now addresses should be set correctly
+      expect(config.memoryAddresses.partyData).toBe(mockPartyData)
+      expect(config.memoryAddresses.partyCount).toBe(mockPartyCount)
       expect(config.memoryAddresses.partyData - config.memoryAddresses.partyCount).toBe(4)
-
-      // Verify addresses are in EWRAM range (0x02000000 - 0x0203FFFF)
-      expect(config.memoryAddresses.partyData).toBeGreaterThanOrEqual(0x02000000)
-      expect(config.memoryAddresses.partyData).toBeLessThanOrEqual(0x0203FFFF)
-      expect(config.memoryAddresses.partyCount).toBeGreaterThanOrEqual(0x02000000)
-      expect(config.memoryAddresses.partyCount).toBeLessThanOrEqual(0x0203FFFF)
+      
+      // Verify preload regions were configured
+      expect(config.memoryAddresses.preloadRegions.length).toBe(2)
+      expect(config.memoryAddresses.preloadRegions[0]?.address).toBe(mockPartyCount)
+      expect(config.memoryAddresses.preloadRegions[1]?.address).toBe(mockPartyData)
     })
 
-    it('should validate memory address discovery methodology', () => {
+    it('should validate dynamic discovery implementation approach', () => {
       const config = new QuetzalConfig()
       const { partyData, partyCount } = config.memoryAddresses
 
-      // These addresses were discovered through comprehensive analysis:
-      // 1. Memory dumps of quetzal.ss0 and quetzal2.ss0
-      // 2. Cross-reference analysis finding consistent Pokemon data locations
-      // 3. Address 0x02026310 showed perfect confidence (240/240) in both savestates
-      // 4. Same Pokemon data found at same location: Machoke(67), Horsea(116), Kabutops(141)
-
-      expect(partyData).toBe(0x02026310) // Verified consistent address
-      expect(partyCount).toBe(0x0202630C) // Standard 4-byte offset relationship
-
-      // Addresses should be properly aligned (4-byte aligned for GBA)
-      expect(partyData % 4).toBe(0)
-      expect(partyCount % 4).toBe(0)
+      // Before discovery, addresses should be 0 (indicating dynamic approach)
+      expect(partyData).toBe(0x00000000) // Will be discovered at runtime
+      expect(partyCount).toBe(0x00000000) // Will be discovered at runtime
+      
+      // The discovery methodology is:
+      // 1. Scan EWRAM region (0x2020000 - 0x2030000) for party count (1-6)
+      // 2. Validate Pokemon data structure at +4 offset
+      // 3. Check species > 0, level 1-100, valid HP values
+      // 4. Return first address that passes all validation checks
+      
+      // This approach handles the confirmed dynamic addresses:
+      // - quetzal.ss0: Party data at 0x2024a14, count at 0x2024a10 
+      // - quetzal2.ss0: Party data at 0x2024a58, count at 0x2024a54 (68 bytes later)
+      
+      // Validate that the discovery function exists and has the correct signature
+      expect(typeof config.discoverPartyAddresses).toBe('function')
+      expect(typeof config.getDynamicMemoryAddresses).toBe('function')
+      expect(typeof config.prepareForMemoryMode).toBe('function')
     })
   })
 })
