@@ -50,47 +50,13 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
-  // Cache for discovered memory addresses (to avoid re-scanning)
-  private _discoveredAddresses: { partyCount: number; partyData: number } | null = null
-  private _memoryAddressesObject: any = null
-
-  // Dynamic memory addresses for Quetzal ROM hack - DYNAMIC ALLOCATION SUPPORT
-  // User confirmed working addresses (but they change between savestates):
-  // - quetzal.ss0: Party data at 0x2024a14, count at 0x2024a10
-  // - quetzal2.ss0: Party data at 0x2024a58, count at 0x2024a54 (68 bytes later)
-  // Solution: Dynamic memory scanning to locate party data without knowing contents
-  get memoryAddresses() {
-    if (!this._memoryAddressesObject) {
-      this._memoryAddressesObject = {
-        partyData: 0x00000000, // Will be discovered dynamically
-        partyCount: 0x00000000, // Will be discovered dynamically  
-        playTime: 0x00000000, // Not implemented yet
-        preloadRegions: [], // Will be set after discovery
-      }
-    }
-    return this._memoryAddressesObject
-  }
-
-  /**
-   * Update memory addresses after dynamic discovery
-   */
-  private updateMemoryAddresses(partyCount: number, partyData: number): void {
-    console.log(`🔧 Updating memory addresses: count=0x${partyCount.toString(16)}, data=0x${partyData.toString(16)}`)
-    console.log(`🔧 _memoryAddressesObject exists: ${!!this._memoryAddressesObject}`)
-    
-    if (this._memoryAddressesObject) {
-      this._memoryAddressesObject.partyCount = partyCount
-      this._memoryAddressesObject.partyData = partyData
-      this._memoryAddressesObject.preloadRegions = [
-        { address: partyCount, size: 8 },    // Party count + context
-        { address: partyData, size: 624 },   // Full party data (6 * 104 bytes)
-      ]
-      console.log(`✅ Memory addresses updated successfully`)
-      console.log(`🔧 Updated object: count=0x${this._memoryAddressesObject.partyCount.toString(16)}, data=0x${this._memoryAddressesObject.partyData.toString(16)}`)
-    } else {
-      console.log(`❌ _memoryAddressesObject is null, addresses not updated`)
-    }
-  }
+  // Memory addresses for Quetzal ROM hack (if different from vanilla)
+  // TODO: Update these if Quetzal has different memory layout
+  readonly memoryAddresses = {
+    partyData: 0x20244ec, // Same as vanilla for now
+    partyCount: 0x20244e9, // Same as vanilla for now
+    // TODO: Add player name and play time addresses when implemented
+  } as const
 
   // Quetzal-specific offsets for unencrypted data
   private readonly quetzalOffsets = {
@@ -261,151 +227,11 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   }
 
   /**
-   * Dynamically discover party data location in Quetzal's memory
-   * Scans EWRAM for valid Pokemon data, then checks for party count at -4 offset
-   * Optimized to read larger chunks to reduce network calls
-   */
-  async discoverPartyAddresses(client: any): Promise<{ partyCount: number; partyData: number }> {
-    console.log('🔍 Discovering Quetzal party data location...')
-    
-    // Define scan region for EWRAM - extended to cover both savestates
-    const scanStart = 0x2024a00  // Very close to user confirmed address
-    const scanEnd = 0x2027000    // Extended to cover 0x02026354 for quetzal2
-    const chunkSize = 256        // Smaller chunks for more precise debugging
-    
-    console.log(`   Scanning 0x${scanStart.toString(16)} - 0x${scanEnd.toString(16)} in ${chunkSize}-byte chunks`)
-    
-    for (let chunkAddr = scanStart; chunkAddr < scanEnd; chunkAddr += chunkSize) {
-      try {
-        // Read a chunk of memory
-        const chunkData = await client.readBytes(chunkAddr, Math.min(chunkSize, scanEnd - chunkAddr))
-        
-        // Scan within the chunk for Pokemon data signatures, then check for count
-        for (let offset = 4; offset < chunkData.length - 104; offset += 1) { // Check every byte for debugging
-          const pokemonDataAddr = chunkAddr + offset
-          
-          // Only check addresses that look promising (every 4 bytes for alignment)
-          if (offset % 4 !== 0) continue
-          
-          console.log(`   🔍 Checking Pokemon data at 0x${pokemonDataAddr.toString(16)}`)
-          
-          // Check if this looks like valid Pokemon data
-          const pokemonData = chunkData.slice(offset, offset + 104)
-          const view = new DataView(pokemonData.buffer, pokemonData.byteOffset, 104)
-          
-          // Validate Quetzal Pokemon structure
-          const species = view.getUint16(0x28, true)  // Species at offset 0x28
-          const level = view.getUint8(0x58)           // Level at offset 0x58
-          const currentHp = view.getUint16(0x23, true) // Current HP at offset 0x23
-          const maxHp = view.getUint16(0x5A, true)     // Max HP at offset 0x5A
-          
-          console.log(`      Species: ${species}, Level: ${level}, HP: ${currentHp}/${maxHp}`)
-          
-          // Basic Pokemon validation first
-          if (level >= 1 && level <= 100 && species > 0 && species <= 900 && maxHp > 0 && maxHp < 1000) {
-            console.log(`      ✅ Valid Pokemon found at 0x${pokemonDataAddr.toString(16)}`)
-            
-            // Try different count address strategies
-            // Strategy 1: Count 4 bytes before data
-            const countAddr1 = pokemonDataAddr - 4
-            const count1 = await client.readByte(countAddr1)
-            
-            // Strategy 2: Count embedded at start of data
-            const count2 = pokemonData[0]
-            
-            console.log(`      Count strategy 1 (${countAddr1.toString(16)}): ${count1}`)
-            console.log(`      Count strategy 2 (embedded): ${count2}`)
-            
-            if (count1 >= 1 && count1 <= 6) {
-              console.log(`      ✅ Using count from 4 bytes before data`)
-              
-              // Double-check the address we're about to return
-              const finalCheck = await client.readByte(countAddr1)
-              console.log(`      🔍 Final validation - count at 0x${countAddr1.toString(16)}: ${finalCheck}`)
-              
-              return {
-                partyCount: countAddr1,
-                partyData: pokemonDataAddr
-              }
-            } else if (count2 >= 1 && count2 <= 6) {
-              console.log(`      ✅ Using embedded count`)
-              return {
-                partyCount: pokemonDataAddr, // Count is embedded in the data
-                partyData: pokemonDataAddr + 4 // Data starts 4 bytes after count
-              }
-            } else {
-              console.log(`      ⚠️ Valid Pokemon but invalid counts, continuing search...`)
-            }
-            console.log(`      ❌ Invalid Pokemon data`)
-          }
-        }
-      } catch (e) {
-        console.log(`   Error reading chunk at 0x${chunkAddr.toString(16)}: ${e}`)
-        continue
-      }
-    }
-    
-    throw new Error('Party data not found in Quetzal memory - no valid signatures detected')
-  }
-
-  /**
-   * Get dynamic memory addresses for party data
-   * Discovers and caches addresses on first call
-   */
-  async getDynamicMemoryAddresses(client: any): Promise<{ partyCount: number; partyData: number }> {
-    if (!this._discoveredAddresses) {
-      this._discoveredAddresses = await this.discoverPartyAddresses(client)
-      // Update the memoryAddresses object with discovered values
-      this.updateMemoryAddresses(this._discoveredAddresses.partyCount, this._discoveredAddresses.partyData)
-    }
-    return this._discoveredAddresses
-  }
-
-  /**
-   * Initialize memory addresses for this config
-   * Should be called before using memory parsing
-   */
-  async initializeMemoryAddresses(client: any): Promise<void> {
-    console.log('🚀 Initializing Quetzal dynamic memory addresses...')
-    await this.getDynamicMemoryAddresses(client)
-    console.log('✅ Quetzal memory addresses initialized successfully')
-  }
-
-  /**
    * Check if this config can handle memory parsing for the given game title
-   * MEMORY SUPPORT ENABLED: Dynamic discovery system handles Quetzal's dynamic allocation
+   * Currently not supported for Quetzal
    */
-  canHandleMemory (gameTitle: string): boolean {
-    // Enable memory support for Quetzal ROM hack using dynamic discovery
-    // Also support standard Emerald titles since Quetzal is based on Emerald
-    return gameTitle.includes('QUETZAL') || 
-           gameTitle.includes('Quetzal') || 
-           gameTitle.includes('QUET') ||
-           gameTitle.includes('EMERALD') || 
-           gameTitle.includes('Emerald') || 
-           gameTitle.includes('EMER')
-  }
-
-  /**
-   * Custom method to handle memory initialization for Quetzal
-   * This should be called by the parser after memory mode is initialized
-   */
-  async prepareForMemoryMode(client: any): Promise<void> {
-    if (!this._discoveredAddresses) {
-      console.log('🔍 Quetzal: Discovering dynamic party data addresses...')
-      await this.initializeMemoryAddresses(client)
-    }
-    
-    // Debug: show final addresses
-    console.log(`🔍 Final memory addresses after prepare:`)
-    console.log(`  partyCount: 0x${this.memoryAddresses.partyCount.toString(16)}`)
-    console.log(`  partyData: 0x${this.memoryAddresses.partyData.toString(16)}`)
-  }
-
-  /**
-   * Clear the discovered address cache (call when loading a new savestate)
-   */
-  clearAddressCache(): void {
-    this._discoveredAddresses = null
+  canHandleMemory (_gameTitle: string): boolean {
+    // Return false for now until we implement Quetzal memory support
+    return false
   }
 }

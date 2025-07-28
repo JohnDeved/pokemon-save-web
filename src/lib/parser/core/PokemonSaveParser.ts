@@ -90,10 +90,7 @@ export class PokemonSaveParser {
 
       // Check if input is a WebSocket client for memory mode using proper instanceof check
       if (input instanceof MgbaWebSocketClient) {
-        // Only initialize if not already initialized with the same client
-        if (!this.isMemoryMode || this.webSocketClient !== input) {
-          await this.initializeMemoryMode(input)
-        }
+        await this.initializeMemoryMode(input)
         return
       }
 
@@ -174,11 +171,6 @@ export class PokemonSaveParser {
     }
 
     console.log(`Memory mode initialized for ${gameTitle} using config: ${this.config.name}`)
-
-    // Handle dynamic memory initialization for configs that support it
-    if ('prepareForMemoryMode' in this.config && typeof this.config.prepareForMemoryMode === 'function') {
-      await (this.config as any).prepareForMemoryMode(client)
-    }
 
     // Configure and preload memory regions if defined in config
     if (this.config.memoryAddresses?.preloadRegions) {
@@ -405,10 +397,8 @@ export class PokemonSaveParser {
     }
 
     // Get party count from memory
-    console.log(`🔍 Reading party count from address 0x${memoryAddresses.partyCount.toString(16)}`)
     const partyCountBuffer = await this.webSocketClient.getSharedBuffer(memoryAddresses.partyCount, 1)
     const partyCount = partyCountBuffer[0] ?? 0
-    console.log(`📊 Party count read: ${partyCount}`)
 
     const maxPartySize = this.config.saveLayout.maxPartySize!
     const pokemonSize = this.config.saveLayout.pokemonSize!
