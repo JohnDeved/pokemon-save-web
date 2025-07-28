@@ -197,7 +197,20 @@ function clearScreen () {
  * Watch mode - continuously monitor and update display
  */
 async function watchMode (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
-  console.log(`🔄 Starting watch mode (updating every ${options.interval}ms)...`)
+  if (typeof input === 'string') {
+    // File-based watch mode - use polling since files don't support push notifications
+    return watchModeFile(input, options)
+  } else {
+    // WebSocket-based watch mode - use event-driven updates
+    return watchModeWebSocket(input, options)
+  }
+}
+
+/**
+ * File-based watch mode - polling approach for file changes
+ */
+async function watchModeFile (filePath: string, options: { debug: boolean, graph: boolean, interval: number }) {
+  console.log(`🔄 Starting file watch mode (updating every ${options.interval}ms)...`)
   console.log('Press Ctrl+C to exit')
 
   // Create parser once and reuse it
@@ -208,15 +221,10 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     try {
-      // Parse save data without re-initializing parser or reconnecting
-      let result: SaveData
-      if (typeof input === 'string') {
-        const absPath = path.resolve(input)
-        const buffer = fs.readFileSync(absPath)
-        result = await parser.parseSaveFile(buffer)
-      } else {
-        result = await parser.parseSaveFile(input)
-      }
+      // Parse save data without re-initializing parser
+      const absPath = path.resolve(filePath)
+      const buffer = fs.readFileSync(absPath)
+      const result = await parser.parseSaveFile(buffer)
 
       // Create a simple hash of the party data to detect changes
       const dataHash = JSON.stringify(
@@ -231,19 +239,142 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
       // Only update display if party data changed or first run
       if (dataHash !== lastDataHash || isFirstRun) {
         clearScreen()
-        // Only show party summary - no other logs
-        displayPartyPokemon(result.party_pokemon, typeof input === 'string' ? 'FILE' : 'MEMORY')
+        displayPartyPokemon(result.party_pokemon, 'FILE')
 
         lastDataHash = dataHash
         isFirstRun = false
       }
     } catch (error) {
-      // Silent error handling - don't clear screen or show errors unless critical
       console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
     }
 
     await new Promise(resolve => setTimeout(resolve, options.interval))
   }
+}
+
+/**
+ * WebSocket-based watch mode - event-driven approach using memory change listeners
+ */
+async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
+  console.log('🔄 Starting event-driven watch mode...')
+  console.log('Setting up memory region watching for real-time updates')
+  console.log('Press Ctrl+C to exit')
+
+  // Create parser once and reuse it
+  const parser = new PokemonSaveParser()
+  let lastDataHash = ''
+  let isFirstRun = true
+
+  // Configure preload regions for party data
+  client.configureSharedBuffer({
+    preloadRegions: [
+      { address: 0x20244e9, size: 7 },   // Party count + context
+      { address: 0x20244ec, size: 600 }  // Full party data (6 * 100 bytes)
+    ]
+  })
+
+  // Start watching the preload regions
+  try {
+    await client.startWatchingPreloadRegions()
+    console.log('✅ Memory watching started - will update display when party data changes')
+  } catch (error) {
+    console.warn('⚠️ Memory watching failed, falling back to polling mode')
+    console.warn('Error:', error instanceof Error ? error.message : 'Unknown error')
+    
+    // Fallback to polling for compatibility
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    while (true) {
+      try {
+        const result = await parser.parseSaveFile(client)
+        const dataHash = JSON.stringify(
+          result.party_pokemon.map(p => ({
+            species: p.speciesId,
+            level: p.level,
+            hp: p.currentHp,
+            nickname: p.nickname,
+          })),
+        )
+
+        if (dataHash !== lastDataHash || isFirstRun) {
+          clearScreen()
+          displayPartyPokemon(result.party_pokemon, 'MEMORY')
+          lastDataHash = dataHash
+          isFirstRun = false
+        }
+      } catch (error) {
+        console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
+      }
+
+      await new Promise(resolve => setTimeout(resolve, options.interval))
+    }
+    return
+  }
+
+  // Set up memory change listener for real-time updates
+  const memoryChangeListener = async (address: number, _size: number, _data: Uint8Array) => {
+    try {
+      // Only process changes to party-related memory regions
+      if (address === 0x20244e9 || address === 0x20244ec) {
+        // Parse the updated save data
+        const result = await parser.parseSaveFile(client)
+
+        // Create a simple hash of the party data to detect changes
+        const dataHash = JSON.stringify(
+          result.party_pokemon.map(p => ({
+            species: p.speciesId,
+            level: p.level,
+            hp: p.currentHp,
+            nickname: p.nickname,
+          })),
+        )
+
+        // Only update display if party data actually changed
+        if (dataHash !== lastDataHash || isFirstRun) {
+          clearScreen()
+          console.log(`🔄 Party data updated at 0x${address.toString(16)} (${new Date().toLocaleTimeString()})`)
+          displayPartyPokemon(result.party_pokemon, 'MEMORY')
+
+          lastDataHash = dataHash
+          isFirstRun = false
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error processing memory change:', error instanceof Error ? error.message : 'Unknown error')
+    }
+  }
+
+  // Add the memory change listener
+  client.addMemoryChangeListener(memoryChangeListener)
+
+  // Initial display
+  try {
+    const result = await parser.parseSaveFile(client)
+    clearScreen()
+    displayPartyPokemon(result.party_pokemon, 'MEMORY')
+    lastDataHash = JSON.stringify(
+      result.party_pokemon.map(p => ({
+        species: p.speciesId,
+        level: p.level,
+        hp: p.currentHp,
+        nickname: p.nickname,
+      })),
+    )
+    isFirstRun = false
+  } catch (error) {
+    console.error('❌ Error loading initial data:', error instanceof Error ? error.message : 'Unknown error')
+  }
+
+  // Keep the process alive and handle cleanup
+  return new Promise<void>((resolve) => {
+    const cleanup = () => {
+      console.log('\n🔌 Cleaning up memory listeners...')
+      client.removeMemoryChangeListener(memoryChangeListener)
+      resolve()
+    }
+
+    process.on('SIGINT', cleanup)
+    process.on('SIGTERM', cleanup)
+  })
 }
 
 // CLI entry point
