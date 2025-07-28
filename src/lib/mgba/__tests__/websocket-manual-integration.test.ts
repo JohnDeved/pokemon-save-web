@@ -111,7 +111,7 @@ describe('mGBA Memory Watching Integration (Manual)', () => {
 
     // Track memory changes
     const changes: Array<{ address: number, size: number }> = []
-    const listener = (address: number, size: number, data: Uint8Array) => {
+    const listener = (address: number, size: number, _data: Uint8Array) => {
       changes.push({ address, size })
       console.log(`🔔 Memory change detected: 0x${address.toString(16)}, size: ${size}`)
     }
@@ -131,8 +131,8 @@ describe('mGBA Memory Watching Integration (Manual)', () => {
     
     // Verify we got a notification
     expect(changes.length).toBeGreaterThan(0)
-    expect(changes[0].address).toBe(0x20244e9)
-    expect(changes[0].size).toBe(7)
+    expect(changes[0]?.address).toBe(0x20244e9)
+    expect(changes[0]?.size).toBe(7)
     
     // Read new state to verify change
     const newData = await client.getSharedBuffer(0x20244e9, 7)

@@ -58,7 +58,7 @@ describe('WebSocket Reliability Tests', () => {
     let memoryChanges = 0
     let lastChangeData: Uint8Array | null = null
 
-    client.addMemoryChangeListener((address, size, data) => {
+    client.addMemoryChangeListener((address, _size, data) => {
       if (address === testAddress) {
         memoryChanges++
         lastChangeData = new Uint8Array(data)
@@ -226,14 +226,14 @@ describe('WebSocket Reliability Tests', () => {
     const pokemonData = await client.getSharedBuffer(partyDataAddr, 25)
     
     // Check species (little-endian)
-    const species = pokemonData[0] + (pokemonData[1] << 8)
+    const species = (pokemonData[0] || 0) + ((pokemonData[1] || 0) << 8)
     expect(species).toBe(252)
 
     // Check level
     expect(pokemonData[10]).toBe(5)
 
     // Check HP (little-endian)
-    const hp = pokemonData[20] + (pokemonData[21] << 8)
+    const hp = (pokemonData[20] || 0) + ((pokemonData[21] || 0) << 8)
     expect(hp).toBe(20)
 
     // Should have detected changes

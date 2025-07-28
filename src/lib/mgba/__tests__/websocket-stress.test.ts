@@ -3,7 +3,7 @@
  * Tests connection resilience, rapid operations, and memory watching under load
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { MgbaWebSocketClient } from '../websocket-client.js'
 
 const WEBSOCKET_URL = 'ws://localhost:7102'
@@ -85,7 +85,7 @@ describe('WebSocket Stress Tests', () => {
 
     // Verify all connections are working
     for (let i = 0; i < connectionCount; i++) {
-      expect(clients[i].isConnected()).toBe(true)
+      expect(clients[i]?.isConnected()).toBe(true)
     }
 
     console.log(`✅ Successfully established ${connectionCount} concurrent connections`)
@@ -165,7 +165,7 @@ describe('WebSocket Stress Tests', () => {
 
     // Set up memory change listener
     const changePromise = new Promise<void>((resolve) => {
-      client.addMemoryChangeListener((address, size, data) => {
+      client.addMemoryChangeListener((address, _size, data) => {
         if (address === testAddress) {
           changeCount++
           console.log(`Memory change ${changeCount}: ${data[0]}`)

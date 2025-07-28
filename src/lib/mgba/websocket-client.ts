@@ -71,10 +71,9 @@ const MEMORY_CONSTANTS = {
 } as const
 
 const CONNECTION_CONSTANTS = {
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY_MS: 1000,
-  CONNECTION_TIMEOUT_MS: 10000,
-  RECONNECTION_DELAY_MS: 2000,
+  CONNECTION_TIMEOUT_MS: 30000, // Increased for stability
+  HEARTBEAT_INTERVAL_MS: 10000, // Ping every 10 seconds
+  MESSAGE_TIMEOUT_MS: 15000, // Wait longer for messages
 } as const
 
 export class MgbaWebSocketClient {
@@ -98,9 +97,10 @@ export class MgbaWebSocketClient {
   private memoryChangeListeners: MemoryChangeListener[] = []
   private isWatching = false
 
-  // Connection management
-  private connectionRetries = 0
-  private reconnectTimeouts: NodeJS.Timeout[] = []
+  // Connection health monitoring
+  private lastPingTime: number = 0
+  private heartbeatInterval: NodeJS.Timeout | null = null
+  private messageSequence = 0
 
   constructor (baseUrlOrFullUrl = 'ws://localhost:7102') {
     // Handle backward compatibility: if URL contains /ws, /eval, or /watch, extract base URL
@@ -112,43 +112,38 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Connect to the mGBA WebSocket server with retry logic
-   * Establishes connections to both eval and watch endpoints
+   * Connect to the mGBA WebSocket server
+   * Establishes connections to both eval and watch endpoints with robust error handling
    */
   async connect (): Promise<void> {
-    this.connectionRetries = 0
-    const maxRetries = CONNECTION_CONSTANTS.RETRY_ATTEMPTS
-
-    while (this.connectionRetries < maxRetries) {
-      try {
-        await Promise.all([
-          this.connectEval(),
-          this.connectWatch()
-        ])
-        this.connectionRetries = 0 // Reset on successful connection
-        return
-      } catch (error) {
-        this.connectionRetries++
-        console.warn(`Connection attempt ${this.connectionRetries}/${maxRetries} failed:`, error)
-        
-        if (this.connectionRetries >= maxRetries) {
-          throw new Error(`Failed to connect after ${maxRetries} attempts: ${error}`)
-        }
-        
-        // Wait before retrying with exponential backoff
-        const delay = CONNECTION_CONSTANTS.RETRY_DELAY_MS * Math.pow(2, this.connectionRetries - 1)
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
+    try {
+      // Clean up any existing connections
+      this.disconnect()
+      
+      // Connect to both endpoints concurrently
+      await Promise.all([
+        this.connectEval(),
+        this.connectWatch()
+      ])
+      
+      // Start connection health monitoring
+      this.startHeartbeat()
+      
+      console.log('✅ Successfully connected to both mGBA WebSocket endpoints')
+    } catch (error) {
+      // Clean up partial connections on failure
+      this.disconnect()
+      throw new Error(`Failed to connect to mGBA WebSocket server: ${error}`)
     }
   }
 
   /**
-   * Connect to the eval endpoint for Lua code execution with timeout
+   * Connect to the eval endpoint for Lua code execution with enhanced error handling
    */
   private async connectEval (): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Eval connection timeout'))
+        reject(new Error('Eval connection timeout - ensure mGBA Docker container is running'))
       }, CONNECTION_CONSTANTS.CONNECTION_TIMEOUT_MS)
 
       try {
@@ -156,9 +151,8 @@ export class MgbaWebSocketClient {
 
         wsClient.on('connectFailed', (error) => {
           clearTimeout(timeout)
-          console.error('WebSocket eval connection failed:', error)
           this.evalConnected = false
-          reject(error)
+          reject(new Error(`Eval WebSocket connection failed: ${error.toString()}`))
         })
 
         wsClient.on('connect', (connection) => {
@@ -167,16 +161,22 @@ export class MgbaWebSocketClient {
           this.evalWs = connection
           this.evalConnected = true
 
-          connection.on('close', () => {
-            console.log('WebSocket eval connection closed')
+          connection.on('close', (reasonCode, description) => {
+            console.error(`WebSocket eval connection closed: ${reasonCode} - ${description}`)
             this.evalConnected = false
             this.evalWs = null
-            this.scheduleReconnection('eval')
+            // No automatic reconnection - let the application handle it
           })
 
           connection.on('error', (error) => {
             console.error('WebSocket eval error:', error)
             this.evalConnected = false
+            // Don't set evalWs to null here to avoid race conditions
+          })
+
+          // Add ping/pong handling for connection health
+          connection.on('pong', () => {
+            this.lastPingTime = Date.now()
           })
 
           resolve()
@@ -185,18 +185,18 @@ export class MgbaWebSocketClient {
         wsClient.connect(`${this.baseUrl}/eval`)
       } catch (error) {
         clearTimeout(timeout)
-        reject(error)
+        reject(new Error(`Failed to create eval WebSocket: ${error}`))
       }
     })
   }
 
   /**
-   * Connect to the watch endpoint for memory monitoring with timeout
+   * Connect to the watch endpoint for memory monitoring with enhanced error handling
    */
   private async connectWatch (): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Watch connection timeout'))
+        reject(new Error('Watch connection timeout - ensure mGBA Docker container is running'))
       }, CONNECTION_CONSTANTS.CONNECTION_TIMEOUT_MS)
 
       try {
@@ -204,9 +204,8 @@ export class MgbaWebSocketClient {
 
         wsClient.on('connectFailed', (error) => {
           clearTimeout(timeout)
-          console.error('WebSocket watch connection failed:', error)
           this.watchConnected = false
-          reject(error)
+          reject(new Error(`Watch WebSocket connection failed: ${error.toString()}`))
         })
 
         wsClient.on('connect', (connection) => {
@@ -215,22 +214,32 @@ export class MgbaWebSocketClient {
           this.watchWs = connection
           this.watchConnected = true
 
-          connection.on('close', () => {
-            console.log('WebSocket watch connection closed')
+          connection.on('close', (reasonCode, description) => {
+            console.error(`WebSocket watch connection closed: ${reasonCode} - ${description}`)
             this.watchConnected = false
             this.isWatching = false
             this.watchWs = null
-            this.scheduleReconnection('watch')
+            // No automatic reconnection - let the application handle it
           })
 
           connection.on('error', (error) => {
             console.error('WebSocket watch error:', error)
             this.watchConnected = false
+            // Don't set watchWs to null here to avoid race conditions
           })
 
           connection.on('message', (message) => {
-            const messageText = message.type === 'utf8' ? message.utf8Data : ''
-            this.handleWatchMessage(messageText || '')
+            try {
+              const messageText = message.type === 'utf8' ? message.utf8Data : ''
+              this.handleWatchMessage(messageText || '')
+            } catch (error) {
+              console.error('Error handling watch message:', error)
+            }
+          })
+
+          // Add ping/pong handling for connection health
+          connection.on('pong', () => {
+            this.lastPingTime = Date.now()
           })
 
           resolve()
@@ -239,58 +248,82 @@ export class MgbaWebSocketClient {
         wsClient.connect(`${this.baseUrl}/watch`)
       } catch (error) {
         clearTimeout(timeout)
-        reject(error)
+        reject(new Error(`Failed to create watch WebSocket: ${error}`))
       }
     })
   }
 
   /**
-   * Disconnect from the WebSocket server
+   * Disconnect from the WebSocket server and clean up resources
    */
   disconnect (): void {
-    // Clear any pending reconnection timeouts
-    this.reconnectTimeouts.forEach(timeout => clearTimeout(timeout))
-    this.reconnectTimeouts = []
+    // Stop heartbeat
+    this.stopHeartbeat()
 
-    if (this.evalWs) {
-      this.evalWs.close()
-      this.evalWs = null
+    // Close connections gracefully
+    if (this.evalWs && this.evalConnected) {
+      try {
+        this.evalWs.close()
+      } catch (error) {
+        console.warn('Error closing eval WebSocket:', error)
+      }
     }
-    if (this.watchWs) {
-      this.watchWs.close()
-      this.watchWs = null
+    
+    if (this.watchWs && this.watchConnected) {
+      try {
+        this.watchWs.close()
+      } catch (error) {
+        console.warn('Error closing watch WebSocket:', error)
+      }
     }
+    
+    // Reset state
+    this.evalWs = null
+    this.watchWs = null
     this.evalConnected = false
     this.watchConnected = false
     this.isWatching = false
+    this.messageSequence = 0
   }
 
   /**
-   * Schedule automatic reconnection for a specific endpoint
+   * Start heartbeat monitoring to detect connection issues early
    */
-  private scheduleReconnection(endpoint: 'eval' | 'watch'): void {
-    const timeout = setTimeout(async () => {
+  private startHeartbeat (): void {
+    this.stopHeartbeat() // Clean up any existing interval
+    
+    this.heartbeatInterval = setInterval(() => {
       try {
-        console.log(`Attempting to reconnect ${endpoint} endpoint...`)
-        if (endpoint === 'eval' && !this.isEvalConnected()) {
-          await this.connectEval()
-        } else if (endpoint === 'watch' && !this.isWatchConnected()) {
-          await this.connectWatch()
-          // Restart watching if it was active
-          if (this.watchedRegions.length > 0) {
-            await this.startWatching(this.watchedRegions)
-          }
+        if (this.evalWs && this.evalConnected) {
+          this.evalWs.ping(Buffer.from('ping'))
         }
-        console.log(`✅ Successfully reconnected ${endpoint} endpoint`)
+        if (this.watchWs && this.watchConnected) {
+          this.watchWs.ping(Buffer.from('ping'))
+        }
+        
+        // Check if we've received recent pongs
+        const now = Date.now()
+        if (this.lastPingTime > 0 && (now - this.lastPingTime) > CONNECTION_CONSTANTS.HEARTBEAT_INTERVAL_MS * 2) {
+          console.warn('WebSocket heartbeat timeout detected')
+          // Don't auto-reconnect, just log the issue
+        }
       } catch (error) {
-        console.error(`Failed to reconnect ${endpoint} endpoint:`, error)
-        // Schedule another attempt if connection failed
-        this.scheduleReconnection(endpoint)
+        console.error('Heartbeat error:', error)
       }
-    }, CONNECTION_CONSTANTS.RECONNECTION_DELAY_MS)
-
-    this.reconnectTimeouts.push(timeout)
+    }, CONNECTION_CONSTANTS.HEARTBEAT_INTERVAL_MS)
   }
+
+  /**
+   * Stop heartbeat monitoring
+   */
+  private stopHeartbeat (): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval)
+      this.heartbeatInterval = null
+    }
+  }
+
+
 
   /**
    * Handle incoming WebSocket messages from watch endpoint
@@ -448,71 +481,47 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Execute Lua code on the mGBA emulator with retry logic
+   * Execute Lua code on the mGBA emulator with robust error handling
    */
-  async eval (code: string, retryCount = 0): Promise<MgbaEvalResponse> {
+  async eval (code: string): Promise<MgbaEvalResponse> {
     if (!this.isEvalConnected()) {
-      // Try to reconnect if not connected
-      if (retryCount < CONNECTION_CONSTANTS.RETRY_ATTEMPTS) {
-        try {
-          await this.connectEval()
-        } catch (error) {
-          throw new Error('Not connected to mGBA WebSocket eval endpoint and failed to reconnect')
-        }
-      } else {
-        throw new Error('Not connected to mGBA WebSocket eval endpoint')
-      }
+      throw new Error('Not connected to mGBA WebSocket eval endpoint. Call connect() first.')
+    }
+
+    if (!this.evalWs) {
+      throw new Error('Eval WebSocket connection is null')
     }
 
     return new Promise((resolve, reject) => {
-      if (!this.evalWs) {
-        reject(new Error('Eval WebSocket is null'))
-        return
-      }
-
+      ++this.messageSequence
       let responseReceived = false
 
       // Set up one-time message handler for this eval
       const messageHandler = (message: any) => {
+        if (responseReceived) return // Ignore duplicate messages
+
         const messageText = message.type === 'utf8' ? message.utf8Data : (message.binaryData?.toString() || '')
 
-        // Skip welcome messages and other non-JSON responses
+        // Skip non-JSON responses (like welcome messages)
         if (!messageText.startsWith('{')) {
-          return // Don't resolve/reject, wait for actual response
+          return
         }
 
         try {
           const response = JSON.parse(messageText) as MgbaEvalResponse
           responseReceived = true
           this.evalWs?.removeListener('message', messageHandler)
+          this.evalWs?.removeListener('error', errorHandler)
           clearTimeout(timeout)
           resolve(response)
         } catch (error) {
           responseReceived = true
           this.evalWs?.removeListener('message', messageHandler)
+          this.evalWs?.removeListener('error', errorHandler)
           clearTimeout(timeout)
           reject(new Error(`Failed to parse eval response: ${String(error)}`))
         }
       }
-
-      // Set up timeout
-      const timeout = setTimeout(async () => {
-        if (!responseReceived) {
-          this.evalWs?.removeListener('message', messageHandler)
-          
-          // Try to retry if this was a timeout and we haven't exceeded retry limit
-          if (retryCount < CONNECTION_CONSTANTS.RETRY_ATTEMPTS) {
-            try {
-              const result = await this.eval(code, retryCount + 1)
-              resolve(result)
-            } catch (error) {
-              reject(new Error(`Eval request timed out after ${retryCount + 1} attempts: ${error}`))
-            }
-          } else {
-            reject(new Error(`Eval request timed out after ${retryCount + 1} attempts`))
-          }
-        }
-      }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
 
       // Set up error handler for connection issues
       const errorHandler = (error: any) => {
@@ -523,6 +532,24 @@ export class MgbaWebSocketClient {
           clearTimeout(timeout)
           reject(new Error(`WebSocket error during eval: ${error}`))
         }
+      }
+
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        if (!responseReceived) {
+          responseReceived = true
+          this.evalWs?.removeListener('message', messageHandler)
+          this.evalWs?.removeListener('error', errorHandler)
+          reject(new Error(`Eval request timed out after ${CONNECTION_CONSTANTS.MESSAGE_TIMEOUT_MS}ms`))
+        }
+      }, CONNECTION_CONSTANTS.MESSAGE_TIMEOUT_MS)
+
+      // Attach event handlers - null check for safety
+      if (!this.evalWs) {
+        responseReceived = true
+        clearTimeout(timeout)
+        reject(new Error('Eval WebSocket connection lost'))
+        return
       }
 
       this.evalWs.on('message', messageHandler)

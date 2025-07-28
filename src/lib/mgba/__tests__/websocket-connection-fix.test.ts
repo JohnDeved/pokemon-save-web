@@ -30,7 +30,7 @@ describe('WebSocket Client Connection Fix', () => {
   it('should set up memory change listeners without errors', () => {
     const client = new MgbaWebSocketClient('ws://localhost:7102')
     
-    const listener = (address: number, size: number, data: Uint8Array) => {
+    const listener = (address: number, _size: number, _data: Uint8Array) => {
       console.log(`Memory change: 0x${address.toString(16)}`)
     }
     

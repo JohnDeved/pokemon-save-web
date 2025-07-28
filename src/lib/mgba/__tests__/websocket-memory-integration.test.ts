@@ -3,7 +3,7 @@
  * Tests end-to-end memory watching: write data -> verify watch fires -> validate data
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { MgbaWebSocketClient } from '../websocket-client.js'
 
 const WEBSOCKET_URL = 'ws://localhost:7102'
@@ -79,7 +79,7 @@ describe('Memory Watching Integration Tests', () => {
     // Verify data integrity
     const latestChange = relevantChanges[relevantChanges.length - 1]
     for (let i = 0; i < testValues.length; i++) {
-      expect(latestChange.data[i]).toBe(testValues[i])
+      expect(latestChange?.data[i]).toBe(testValues[i])
     }
     
     console.log(`✅ Detected ${relevantChanges.length} changes for single region`)
@@ -113,6 +113,8 @@ describe('Memory Watching Integration Tests', () => {
       const region = regions[regionIndex]
       const data = testData[regionIndex]
       
+      if (!region || !data) continue
+      
       for (let i = 0; i < data.length; i++) {
         await client.eval(`emu:write8(${region.address + i}, ${data[i]})`)
       }
@@ -124,13 +126,18 @@ describe('Memory Watching Integration Tests', () => {
     // Verify changes were detected for all regions
     for (let regionIndex = 0; regionIndex < regions.length; regionIndex++) {
       const region = regions[regionIndex]
+      const expectedData = testData[regionIndex]
+      
+      if (!region || !expectedData) continue
+      
       const regionChanges = memoryChanges.filter(change => change.address === region.address)
       
       expect(regionChanges.length).toBeGreaterThan(0)
       
       // Verify latest data matches what we wrote
       const latestChange = regionChanges[regionChanges.length - 1]
-      const expectedData = testData[regionIndex]
+      
+      if (!latestChange) continue
       
       for (let i = 0; i < expectedData.length; i++) {
         expect(latestChange.data[i]).toBe(expectedData[i])
@@ -267,14 +274,14 @@ describe('Memory Watching Integration Tests', () => {
       const pokemonData = await client.getSharedBuffer(pokemonBaseAddress, 25) // Read first 25 bytes
       
       // Check species (little-endian 16-bit)
-      const species = pokemonData[0] + (pokemonData[1] << 8)
+      const species = (pokemonData[0] || 0) + ((pokemonData[1] || 0) << 8)
       expect(species).toBe(252 + pokemonIndex)
       
       // Check level
       expect(pokemonData[10]).toBe(5 + pokemonIndex * 10)
       
       // Check HP (little-endian 16-bit)
-      const hp = pokemonData[20] + (pokemonData[21] << 8)
+      const hp = (pokemonData[20] || 0) + ((pokemonData[21] || 0) << 8)
       expect(hp).toBe(20 + pokemonIndex * 5)
     }
     
@@ -380,7 +387,12 @@ describe('Memory Watching Integration Tests', () => {
     
     // Verify timestamps are in order (may have some variance due to async processing)
     for (let i = 1; i < addressChanges.length; i++) {
-      const timeDiff = addressChanges[i].timestamp - addressChanges[i-1].timestamp
+      const current = addressChanges[i]
+      const previous = addressChanges[i-1]
+      
+      if (!current || !previous) continue
+      
+      const timeDiff = current.timestamp - previous.timestamp
       expect(timeDiff).toBeGreaterThanOrEqual(-100) // Allow small negative variance
     }
     

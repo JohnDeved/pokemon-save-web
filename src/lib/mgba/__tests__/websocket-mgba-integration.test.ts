@@ -3,7 +3,7 @@
  * These tests start the actual mGBA Docker container and test real functionality
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { spawn, ChildProcess } from 'child_process'
 import { MgbaWebSocketClient } from '../websocket-client.js'
 
