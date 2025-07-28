@@ -89,14 +89,45 @@ export class MgbaWebSocketClient {
   }
 
   /**
+   * Extract meaningful error message from WebSocket connection errors
+   */
+  private extractConnectionError (error: unknown): string {
+    if (error && typeof error === 'object' && 'error' in error && error.error) {
+      const err = error.error as any
+      if (err.code === 'ECONNREFUSED') {
+        return 'Connection refused - make sure mGBA Docker container is running on the specified port'
+      }
+      if (err.code) {
+        return `${err.code} - ${err.message || 'Network error'}`
+      }
+    }
+    return 'Unknown connection error'
+  }
+
+  /**
    * Connect to the mGBA WebSocket server
    * Establishes connections to both eval and watch endpoints
    */
   async connect (): Promise<void> {
-    await Promise.all([
-      this.connectEval(),
-      this.connectWatch()
-    ])
+    try {
+      await Promise.all([
+        this.connectEval(),
+        this.connectWatch()
+      ])
+    } catch (error) {
+      // Provide helpful guidance when connection fails
+      if (error instanceof Error && error.message.includes('Connection refused')) {
+        throw new Error(
+          `Unable to connect to mGBA WebSocket server at ${this.baseUrl}.\n\n` +
+          'To use WebSocket mode, you need to start the mGBA Docker container:\n' +
+          '  npm run mgba -- run --game emerald\n\n' +
+          'Or use file mode instead:\n' +
+          '  npm run parse mysave.sav\n\n' +
+          'For more help: npm run mgba -- help'
+        )
+      }
+      throw error
+    }
   }
 
   /**
@@ -114,13 +145,12 @@ export class MgbaWebSocketClient {
         }
 
         const onError = (error: ErrorEvent | Event | unknown) => {
-          console.error('WebSocket eval error:', error)
           this.evalConnected = false
-          reject(error instanceof Error ? error : new Error(String(error)))
+          const errorMessage = this.extractConnectionError(error)
+          reject(new Error(`Failed to connect to mGBA eval endpoint: ${errorMessage}`))
         }
 
         const onClose = () => {
-          console.log('WebSocket eval connection closed')
           this.evalConnected = false
         }
 
@@ -148,13 +178,12 @@ export class MgbaWebSocketClient {
         }
 
         const onError = (error: ErrorEvent | Event | unknown) => {
-          console.error('WebSocket watch error:', error)
           this.watchConnected = false
-          reject(error instanceof Error ? error : new Error(String(error)))
+          const errorMessage = this.extractConnectionError(error)
+          reject(new Error(`Failed to connect to mGBA watch endpoint: ${errorMessage}`))
         }
 
         const onClose = () => {
-          console.log('WebSocket watch connection closed')
           this.watchConnected = false
           this.isWatching = false
         }
