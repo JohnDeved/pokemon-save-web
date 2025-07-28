@@ -442,7 +442,7 @@ async function main () {
         process.exit(0)
       })
     } catch (error) {
-      console.error('❌ Failed to connect to mGBA WebSocket:', error instanceof Error ? error.message : String(error))
+      console.error('❌ Failed to connect to mGBA WebSocket:', error instanceof Error ? error.message : 'Unknown error')
       process.exit(1)
     }
   } else {
