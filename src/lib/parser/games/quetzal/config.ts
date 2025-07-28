@@ -50,11 +50,11 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
-  // Memory addresses for Quetzal ROM hack (if different from vanilla)
-  // TODO: Update these if Quetzal has different memory layout
+  // Memory addresses for Quetzal ROM hack
+  // These are found through dynamic discovery due to Quetzal's dynamic memory allocation
   readonly memoryAddresses = {
-    partyData: 0x20244ec, // Same as vanilla for now
-    partyCount: 0x20244e9, // Same as vanilla for now
+    partyData: 0x2024000, // Base search address - will be dynamically discovered
+    partyCount: 0x2023ffc, // Base search address - will be dynamically discovered  
     // TODO: Add player name and play time addresses when implemented
   } as const
 
@@ -228,10 +228,162 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   /**
    * Check if this config can handle memory parsing for the given game title
-   * Currently not supported for Quetzal
+   * Enable memory support for Quetzal ROM hack
    */
-  canHandleMemory (_gameTitle: string): boolean {
-    // Return false for now until we implement Quetzal memory support
-    return false
+  canHandleMemory(gameTitle: string): boolean {
+    return gameTitle.toLowerCase().includes('quetzal') || 
+           gameTitle.includes('QUETZAL') || 
+           gameTitle.includes('QUET') ||
+           gameTitle.toLowerCase().includes('emerald') || 
+           gameTitle.includes('EMERALD') || 
+           gameTitle.includes('EMER')
+  }
+
+  /**
+   * Discover party data addresses dynamically for Quetzal ROM hack
+   * Quetzal uses dynamic memory allocation, so addresses need to be found at runtime
+   */
+  async discoverPartyAddresses(memoryReader: {
+    readBytes: (address: number, length: number) => Promise<Uint8Array>
+    readByte: (address: number) => Promise<number>
+    readWord: (address: number) => Promise<number>
+  }): Promise<{ partyData: number, partyCount?: number } | null> {
+    // Search in common memory regions for party data patterns
+    const searchRegions = [
+      { start: 0x02020000, size: 0x10000 }, // Common party data region
+      { start: 0x02024000, size: 0x8000 },  // Near vanilla addresses
+      { start: 0x02025000, size: 0x8000 },  // Extended search area
+    ]
+
+    console.log('🔍 Dynamically discovering Quetzal party addresses...')
+
+    for (const region of searchRegions) {
+      try {
+        const result = await this.scanRegionForParty(memoryReader, region.start, region.size)
+        if (result) {
+          console.log(`✅ Found party data at 0x${result.partyData.toString(16)}`)
+          return result
+        }
+      } catch (error) {
+        console.warn(`⚠️  Error scanning region 0x${region.start.toString(16)}: ${error}`)
+        continue
+      }
+    }
+
+    console.warn('❌ Could not discover party addresses dynamically')
+    return null
+  }
+
+  private async scanRegionForParty(
+    memoryReader: {
+      readBytes: (address: number, length: number) => Promise<Uint8Array>
+      readByte: (address: number) => Promise<number>
+      readWord: (address: number) => Promise<number>
+    },
+    startAddr: number,
+    size: number
+  ): Promise<{ partyData: number, partyCount?: number } | null> {
+    const chunkSize = 1024
+    
+    for (let offset = 0; offset < size; offset += chunkSize) {
+      const addr = startAddr + offset
+      const readSize = Math.min(chunkSize, size - offset)
+      
+      try {
+        // Check if this region contains valid Pokemon data patterns
+        const candidateAddr = await this.findPokemonDataPattern(memoryReader, addr, readSize)
+        if (candidateAddr) {
+          // Verify it's actually party data by checking structure
+          const isValid = await this.validatePartyStructure(memoryReader, candidateAddr)
+          if (isValid) {
+            const partyCount = await this.findPartyCountNear(memoryReader, candidateAddr)
+            return { partyData: candidateAddr, partyCount }
+          }
+        }
+      } catch {
+        continue // Skip unreadable regions
+      }
+    }
+
+    return null
+  }
+
+  private async findPokemonDataPattern(
+    memoryReader: {
+      readBytes: (address: number, length: number) => Promise<Uint8Array>
+      readWord: (address: number) => Promise<number>
+    },
+    startAddr: number,
+    size: number
+  ): Promise<number | null> {
+    // Look for patterns that suggest Pokemon data (non-zero species, reasonable levels)
+    for (let offset = 0; offset < size - this.pokemonSize; offset += 4) {
+      const addr = startAddr + offset
+      
+      try {
+        // Check if this looks like a Pokemon (species at offset 0x28, level at 0x58)
+        const species = await memoryReader.readWord(addr + 0x28)
+        if (species > 0 && species <= 1000) { // Valid species range
+          return addr
+        }
+      } catch {
+        continue
+      }
+    }
+
+    return null
+  }
+
+  private async validatePartyStructure(
+    memoryReader: {
+      readByte: (address: number) => Promise<number>
+      readWord: (address: number) => Promise<number>
+    },
+    partyAddr: number
+  ): Promise<boolean> {
+    try {
+      let validPokemon = 0
+
+      // Check up to 6 Pokemon slots
+      for (let slot = 0; slot < 6; slot++) {
+        const pokemonAddr = partyAddr + (slot * this.pokemonSize)
+        
+        const species = await memoryReader.readWord(pokemonAddr + 0x28)
+        const level = await memoryReader.readByte(pokemonAddr + 0x58)
+        
+        // Count valid Pokemon (non-zero species, reasonable level)
+        if (species > 0 && species <= 1000 && level > 0 && level <= 100) {
+          validPokemon++
+        }
+      }
+
+      // Consider valid if we have at least 1-6 valid Pokemon
+      return validPokemon >= 1 && validPokemon <= 6
+    } catch {
+      return false
+    }
+  }
+
+  private async findPartyCountNear(
+    memoryReader: {
+      readByte: (address: number) => Promise<number>
+    },
+    partyAddr: number
+  ): Promise<number | undefined> {
+    // Check common offsets for party count
+    const offsets = [-8, -4, -1, 0, 1, 4, 8]
+    
+    for (const offset of offsets) {
+      try {
+        const value = await memoryReader.readByte(partyAddr + offset)
+        if (value >= 1 && value <= 6) { // Valid party count range
+          return partyAddr + offset
+        }
+      } catch {
+        continue
+      }
+    }
+
+    return undefined
   }
 }
