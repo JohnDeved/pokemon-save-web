@@ -90,7 +90,10 @@ export class PokemonSaveParser {
 
       // Check if input is a WebSocket client for memory mode using proper instanceof check
       if (input instanceof MgbaWebSocketClient) {
-        await this.initializeMemoryMode(input)
+        // Only initialize if not already initialized with the same client
+        if (!this.isMemoryMode || this.webSocketClient !== input) {
+          await this.initializeMemoryMode(input)
+        }
         return
       }
 

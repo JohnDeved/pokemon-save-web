@@ -567,17 +567,17 @@ describe('Pokemon Quetzal Tests', () => {
   describe('Memory Support', () => {
     it('should support memory parsing for Quetzal game titles', () => {
       const config = new QuetzalConfig()
-      
+
       // Test various Quetzal title formats
       expect(config.canHandleMemory('POKEMON QUETZAL')).toBe(true)
       expect(config.canHandleMemory('Pokemon Quetzal')).toBe(true)
       expect(config.canHandleMemory('QUET_123')).toBe(true)
-      
+
       // Test Emerald compatibility (since Quetzal is based on Emerald)
       expect(config.canHandleMemory('POKEMON EMERALD')).toBe(true)
       expect(config.canHandleMemory('Pokemon Emerald')).toBe(true)
       expect(config.canHandleMemory('EMER_456')).toBe(true)
-      
+
       // Test non-matching titles
       expect(config.canHandleMemory('POKEMON RUBY')).toBe(false)
       expect(config.canHandleMemory('POKEMON SAPPHIRE')).toBe(false)
@@ -586,30 +586,30 @@ describe('Pokemon Quetzal Tests', () => {
 
     it('should have correct memory addresses defined', () => {
       const config = new QuetzalConfig()
-      
+
       expect(config.memoryAddresses).toBeDefined()
       // Verified addresses using real mgba emulator
-      expect(config.memoryAddresses!.partyData).toBe(0x2024a18)
-      expect(config.memoryAddresses!.partyCount).toBe(0x2024a14)
-      expect(config.memoryAddresses!.playTime).toBe(0x2023e08)
-      
+      expect(config.memoryAddresses.partyData).toBe(0x2024a18)
+      expect(config.memoryAddresses.partyCount).toBe(0x2024a14)
+      expect(config.memoryAddresses.playTime).toBe(0x2023e08)
+
       // Verify preload regions are defined
-      expect(config.memoryAddresses!.preloadRegions).toBeDefined()
-      expect(config.memoryAddresses!.preloadRegions!.length).toBe(3)
+      expect(config.memoryAddresses.preloadRegions).toBeDefined()
+      expect(config.memoryAddresses.preloadRegions.length).toBe(3)
     })
 
     it('should have party count address four bytes before party data', () => {
       const config = new QuetzalConfig()
-      const { partyData, partyCount } = config.memoryAddresses!
-      
+      const { partyData, partyCount } = config.memoryAddresses
+
       // Party count should be 4 bytes before party data (standard Emerald pattern)
       expect(partyData - partyCount).toBe(4)
     })
 
     it('should maintain proper offset between party count and party data', () => {
       const config = new QuetzalConfig()
-      const { partyData, partyCount } = config.memoryAddresses!
-      
+      const { partyData, partyCount } = config.memoryAddresses
+
       // Party data should be 4 bytes after party count
       expect(partyData - partyCount).toBe(4)
     })

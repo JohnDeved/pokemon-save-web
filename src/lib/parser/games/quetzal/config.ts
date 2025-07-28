@@ -52,14 +52,14 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   // Memory addresses for Quetzal ROM hack (verified with real mgba emulator)
   readonly memoryAddresses = {
-    partyData: 0x2024a18,   // Verified: Pokemon party data starts here
-    partyCount: 0x2024a14,  // Verified: Party count (4 bytes before party data)
-    playTime: 0x2023e08,    // Verified: Play time location 
+    partyData: 0x2024a18, // Verified: Pokemon party data starts here
+    partyCount: 0x2024a14, // Verified: Party count (4 bytes before party data)
+    playTime: 0x2023e08, // Verified: Play time location
     // Preload regions for optimal performance
     preloadRegions: [
-      { address: 0x2024a14, size: 8 },    // Party count + context
-      { address: 0x2024a18, size: 624 },  // Full party data (6 * 104 bytes)
-      { address: 0x2023e08, size: 8 },    // Play time data
+      { address: 0x2024a14, size: 8 }, // Party count + context
+      { address: 0x2024a18, size: 624 }, // Full party data (6 * 104 bytes)
+      { address: 0x2023e08, size: 8 }, // Play time data
     ] as const,
   } as const
 
@@ -237,12 +237,12 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
    */
   canHandleMemory (gameTitle: string): boolean {
     // Check for Quetzal-specific identifiers in the game title
-    return gameTitle.includes('QUETZAL') || 
-           gameTitle.includes('Quetzal') || 
+    return gameTitle.includes('QUETZAL') ||
+           gameTitle.includes('Quetzal') ||
            gameTitle.includes('QUET') ||
            // Also support generic Emerald titles as Quetzal is based on Emerald
-           gameTitle.includes('EMERALD') || 
-           gameTitle.includes('Emerald') || 
+           gameTitle.includes('EMERALD') ||
+           gameTitle.includes('Emerald') ||
            gameTitle.includes('EMER')
   }
 }
