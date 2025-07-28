@@ -7,8 +7,16 @@ A web-based Pokemon save file editor, CLI tool, and TypeScript parser core with 
 - **Progressive Web App (PWA)**: Install for offline use and app-like experience
 - **Multi-Game Support**: Works with various Pokemon games and ROM hacks
 - **Real-time Editing**: Interactive Pokemon data visualization and editing
+- **Memory Reading/Writing**: Connect to mGBA emulator for live memory access
+- **ROM Hack Analysis**: Tools to discover RAM offsets for new ROM hacks
 - **File System Integration**: Modern browser file API support
 - **Cross-Platform**: Web, CLI, and library usage
+
+### Supported Games
+
+- **Pokemon Emerald (Vanilla)**: Full save file and memory support
+- **Pokemon Quetzal**: Full save file and memory support with correct RAM offsets
+- **Other ROM Hacks**: Extensible config system with analysis tools
 
 ## Quick Start
 
@@ -120,6 +128,64 @@ npx github:JohnDeved/pokemon-save-web save.sav --graph
 ## Adding Game Support
 
 The parser uses a flexible GameConfig system that makes it easy to add support for new Pokemon games and ROM hacks.
+
+### For ROM Hacks
+
+When adding support for a new ROM hack, you can use the built-in analysis tools to discover the correct memory offsets:
+
+#### 1. Analyze RAM Offsets
+
+```bash
+# Generate a save file with known Pokemon data and create ground truth JSON
+# Then run the analysis tool:
+npx tsx scripts/analyze-rom-hack-offsets.ts your_romhack.sav your_romhack_truth.json YourRomHackConfig
+```
+
+This will:
+- Search for Pokemon data patterns in the save file
+- Identify party count and other data locations  
+- Calculate potential memory addresses for mGBA integration
+- Provide suggestions for updating your config
+
+#### 2. Create Config Class
+
+```typescript
+export class YourRomHackConfig extends GameConfigBase implements GameConfig {
+  readonly name = 'Your ROM Hack Name'
+  
+  // Override any different offsets or structures
+  readonly saveLayoutOverrides: SaveLayoutOverride = {
+    partyOffset: 0x6A8,  // From analysis
+    partyCountOffset: 0x6A4,
+    // ... other overrides
+  }
+  
+  // Memory addresses for emulator integration
+  readonly memoryAddresses = {
+    partyData: 0x20244ec,    // From analysis
+    partyCount: 0x20244e8,   // From analysis  
+    playTime: 0x2022e54,     // If supported
+    preloadRegions: [
+      { address: 0x20244e8, size: 8 },
+      { address: 0x20244ec, size: 624 },
+    ],
+  }
+  
+  canHandleMemory(gameTitle: string): boolean {
+    return gameTitle.includes('YOUR_ROMHACK_ID')
+  }
+}
+```
+
+#### 3. Example: Quetzal ROM Hack
+
+Pokemon Quetzal serves as a complete example of this process. See:
+- `src/lib/parser/games/quetzal/config.ts` - Complete config implementation
+- `docs/quetzal-ram-analysis.md` - Detailed analysis process
+- `scripts/analyze-quetzal-offsets.ts` - Analysis script used
+- `scripts/calculate-quetzal-memory.ts` - Memory calculation script
+
+The Quetzal analysis discovered that while the party data address remained the same as vanilla (0x20244ec), the party count was moved one byte earlier (0x20244e8 vs 0x20244e9).
 
 ```typescript
 export class MyGameConfig implements GameConfig {

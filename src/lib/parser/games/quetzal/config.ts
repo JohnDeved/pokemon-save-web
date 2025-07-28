@@ -50,12 +50,17 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
-  // Memory addresses for Quetzal ROM hack (if different from vanilla)
-  // TODO: Update these if Quetzal has different memory layout
+  // Memory addresses for Quetzal ROM hack
   readonly memoryAddresses = {
-    partyData: 0x20244ec, // Same as vanilla for now
-    partyCount: 0x20244e9, // Same as vanilla for now
-    // TODO: Add player name and play time addresses when implemented
+    partyData: 0x20244ec,   // Same as vanilla 
+    partyCount: 0x20244e8,  // One byte earlier than vanilla (0x20244e9)
+    playTime: 0x2022e54,    // Play time location based on save analysis
+    // Preload regions for optimal performance
+    preloadRegions: [
+      { address: 0x20244e8, size: 8 },    // Party count + context
+      { address: 0x20244ec, size: 624 },  // Full party data (6 * 104 bytes)
+      { address: 0x2022e54, size: 8 },    // Play time data
+    ] as const,
   } as const
 
   // Quetzal-specific offsets for unencrypted data
@@ -228,10 +233,16 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   /**
    * Check if this config can handle memory parsing for the given game title
-   * Currently not supported for Quetzal
+   * Supports Pokemon Quetzal ROM hack
    */
-  canHandleMemory (_gameTitle: string): boolean {
-    // Return false for now until we implement Quetzal memory support
-    return false
+  canHandleMemory (gameTitle: string): boolean {
+    // Check for Quetzal-specific identifiers in the game title
+    return gameTitle.includes('QUETZAL') || 
+           gameTitle.includes('Quetzal') || 
+           gameTitle.includes('QUET') ||
+           // Also support generic Emerald titles as Quetzal is based on Emerald
+           gameTitle.includes('EMERALD') || 
+           gameTitle.includes('Emerald') || 
+           gameTitle.includes('EMER')
   }
 }
