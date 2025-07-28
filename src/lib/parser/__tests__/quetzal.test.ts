@@ -588,21 +588,22 @@ describe('Pokemon Quetzal Tests', () => {
       const config = new QuetzalConfig()
       
       expect(config.memoryAddresses).toBeDefined()
-      expect(config.memoryAddresses!.partyData).toBe(0x20244ec)
-      expect(config.memoryAddresses!.partyCount).toBe(0x20244e8)
-      expect(config.memoryAddresses!.playTime).toBe(0x2022e54)
+      // Verified addresses using real mgba emulator
+      expect(config.memoryAddresses!.partyData).toBe(0x2024a18)
+      expect(config.memoryAddresses!.partyCount).toBe(0x2024a14)
+      expect(config.memoryAddresses!.playTime).toBe(0x2023e08)
       
       // Verify preload regions are defined
       expect(config.memoryAddresses!.preloadRegions).toBeDefined()
       expect(config.memoryAddresses!.preloadRegions!.length).toBe(3)
     })
 
-    it('should have party count address one byte earlier than vanilla', () => {
+    it('should have party count address four bytes before party data', () => {
       const config = new QuetzalConfig()
-      const vanillaPartyCount = 0x20244e9
-      const quetzalPartyCount = config.memoryAddresses!.partyCount
+      const { partyData, partyCount } = config.memoryAddresses!
       
-      expect(quetzalPartyCount).toBe(vanillaPartyCount - 1)
+      // Party count should be 4 bytes before party data (standard Emerald pattern)
+      expect(partyData - partyCount).toBe(4)
     })
 
     it('should maintain proper offset between party count and party data', () => {

@@ -1,160 +1,226 @@
 # Quetzal RAM Offset Analysis Process
 
-This document describes the process used to identify the correct RAM offsets for the Pokemon Quetzal ROM hack.
+This document describes the process used to identify the correct RAM offsets for the Pokemon Quetzal ROM hack using the real mgba emulator.
 
 ## Problem Statement
 
-The Quetzal ROM hack was using placeholder RAM offsets copied from vanilla Emerald. These were likely incorrect and prevented accurate real-time memory reading/editing via the mgba WebSocket API.
+The Quetzal ROM hack was using placeholder RAM offsets copied from vanilla Emerald. These were incorrect and prevented accurate real-time memory reading/editing via the mgba WebSocket API.
 
-## Analysis Process
+## Methodology
 
-### 1. Data Collection
-- **Save File**: `src/lib/parser/__tests__/test_data/quetzal.sav` (131,088 bytes)
-- **Ground Truth**: `src/lib/parser/__tests__/test_data/quetzal_ground_truth.json` (parsed data)
-- **Structure**: Quetzal uses 104-byte unencrypted Pokemon with specific field offsets
+### 1. Theoretical Analysis (Initial Approach)
+- Used save file analysis to calculate theoretical offsets
+- Identified patterns in save data structure
+- Calculated potential memory addresses based on vanilla relationships
 
-### 2. Pattern Recognition
-Using the analysis script `scripts/analyze-quetzal-offsets.ts`, we searched for:
+### 2. Real Emulator Verification (Final Approach)
+- Used mgba Docker container with actual Quetzal ROM
+- Connected via WebSocket API to read live memory
+- Systematically scanned EWRAM to find correct addresses
 
-#### Pokemon Data Patterns
-- **First Pokemon**: Species 208 (Steelix), Level 44, Personality 228
-- **Search Method**: Look for personality (4 bytes) followed by species at +0x28 offset
-- **Found Locations**: 
-  - Save offset 0xd6a8 (54,952) - Slot 1
-  - Save offset 0x1e6a8 (124,584) - Slot 14 (Active)
+## Verification Process
 
-#### Party Count
-- **Expected Value**: 6 Pokemon in party
-- **Verification**: Found at offsets 0xd6a4 and 0x1e6a4 (4 bytes before Pokemon data)
+### 1. Setup Real Environment
+```bash
+# Start mgba with Quetzal ROM and savestate
+npm run mgba -- start --game quetzal
 
-#### Structure Validation
-- Level at +0x58: ✅ Matched (44)
-- Current HP at +0x23: ✅ Matched (131)  
-- Max HP at +0x5A: ✅ Matched (131)
-- Attack at +0x5C: ✅ Matched (102)
-
-### 3. Save Structure Analysis
-From Quetzal config (`saveLayoutOverrides`):
-- `partyCountOffset`: 0x6A4
-- `partyOffset`: 0x6A8
-
-#### Slot Calculation
-- **Slot 1 Base**: 0xd6a8 - 0x6a8 = 0xd000
-- **Slot 14 Base**: 0x1e6a8 - 0x6a8 = 0x1e000
-- **Active Slot**: 14 (confirmed by ground truth)
-
-### 4. Memory Address Calculation
-Using vanilla Emerald as reference:
-- **Vanilla Party Count**: 0x20244e9
-- **Vanilla Party Data**: 0x20244ec
-
-#### Memory Base Calculation
-```
-Memory Base = Vanilla Address - Save Offset
-Base from party count = 0x20244e9 - 0x6A4 = 0x2023e45
-Base from party data = 0x20244ec - 0x6A8 = 0x2023e44
-Average base = 0x2023e44
+# Connect to WebSocket API at ws://localhost:7102/ws
 ```
 
-#### Final Quetzal Addresses
-```
-Party Count = 0x2023e44 + 0x6A4 = 0x20244e8
-Party Data = 0x2023e44 + 0x6A8 = 0x20244ec
-```
+### 2. Memory Scanning
+Used targeted scanning script (`scripts/targeted-memory-test.ts`) to:
+- Search EWRAM range (0x2000000 - 0x2040000) for party count value (6)
+- Validate Pokemon data structure at candidate addresses
+- Verify play time pattern matches ground truth
 
-### 5. Key Findings
+### 3. Address Discovery
+Found correct addresses by matching with ground truth data:
+- **Party Count**: 6 Pokemon ✅
+- **Play Time**: 45h 36m 40s ✅
+- **Pokemon Levels**: 44, 45, 47, 45, 41, 37 ✅
+- **Pokemon HP**: 131, 126, 248, 135, 132, 114 ✅
 
-1. **Party Data Address**: Same as vanilla (0x20244ec)
-2. **Party Count Address**: One byte earlier than vanilla (0x20244e8 vs 0x20244e9)
-3. **Offset Difference**: Maintains 4-byte separation
-4. **Play Time Address**: 0x2022e54 (calculated from save offset 0x1d010)
-
-## Implementation
-
-### Updated Config (`src/lib/parser/games/quetzal/config.ts`)
+## Final Verified Addresses
 
 ```typescript
 readonly memoryAddresses = {
-  partyData: 0x20244ec,   // Same as vanilla 
-  partyCount: 0x20244e8,  // One byte earlier than vanilla
-  playTime: 0x2022e54,    // Play time location
-  preloadRegions: [
-    { address: 0x20244e8, size: 8 },    // Party count + context
-    { address: 0x20244ec, size: 624 },  // Full party data (6 * 104 bytes)
-    { address: 0x2022e54, size: 8 },    // Play time data
-  ],
-}
-
-canHandleMemory(gameTitle: string): boolean {
-  return gameTitle.includes('QUETZAL') || 
-         gameTitle.includes('Quetzal') || 
-         gameTitle.includes('QUET') ||
-         gameTitle.includes('EMERALD') || 
-         gameTitle.includes('Emerald') || 
-         gameTitle.includes('EMER')
+  partyData: 0x2024a18,   // Verified: Pokemon party data starts here
+  partyCount: 0x2024a14,  // Verified: Party count (4 bytes before party data)  
+  playTime: 0x2023e08,    // Verified: Play time location
 }
 ```
 
-### Testing
+## Key Findings
 
-Added comprehensive tests for:
-- Memory address validation
-- Game title recognition
-- Offset calculations
-- Save file parsing compatibility
+- **Theoretical vs Reality**: Initial calculated addresses were wrong
+- **Party Data**: `0x2024a18` (not `0x20244ec`)
+- **Party Count**: `0x2024a14` (not `0x20244e8`)  
+- **Play Time**: `0x2023e08` (not `0x2022e54`)
+- **Address Relationship**: Maintains 4-byte separation (party count → party data)
 
-## Tools Created
+## Verification Results
 
-1. **`scripts/analyze-quetzal-offsets.ts`**: Pattern recognition and offset discovery
-2. **`scripts/calculate-quetzal-memory.ts`**: Memory address calculation
-3. **Enhanced test suite**: Memory support validation
+All memory reads matched expected ground truth:
+- ✅ Party count: 6
+- ✅ Play time: 45h 36m 40s  
+- ✅ First Pokemon: Level 44, HP 131
+- ✅ Full party structure validated
 
-## Future ROM Hack Analysis
+## Tools Used
 
-To analyze other ROM hacks, follow this process:
+1. **`scripts/verify-quetzal-memory.ts`**: Initial verification with theoretical addresses
+2. **`scripts/targeted-memory-test.ts`**: Systematic EWRAM scanning
+3. **`scripts/final-verification.ts`**: Final confirmation of corrected addresses
 
-1. **Collect Data**:
-   - Save file with known Pokemon data
-   - Ground truth JSON from parsing
-   - ROM hack's structure documentation
+## mgba WebSocket Integration
 
-2. **Run Analysis**:
-   ```bash
-   npx tsx scripts/analyze-quetzal-offsets.ts
-   ```
+With verified addresses, the mgba WebSocket API can now:
 
-3. **Calculate Addresses**:
-   ```bash
-   npx tsx scripts/calculate-quetzal-memory.ts
-   ```
+```typescript
+// Read party count
+const partyCount = await client.readByte(0x2024a14)
 
-4. **Update Config**:
-   - Modify memory addresses in game config
-   - Update `canHandleMemory()` method
-   - Add appropriate preload regions
+// Read full party data  
+const partyData = await client.readBytes(0x2024a18, 624)
 
-5. **Test**:
-   - Verify save parsing still works
-   - Test memory reading with mgba WebSocket
-   - Add specific test cases
+// Read play time
+const playTime = await client.readBytes(0x2023e08, 8)
 
-## Validation
+// Write Pokemon data
+await client.writeBytes(0x2024a18 + (pokemonIndex * 104), modifiedPokemonData)
+```
 
-The implementation was validated by:
-- ✅ All existing tests pass (26/26)
-- ✅ Memory addresses are in valid EWRAM range
+# Quetzal RAM Offset Analysis Process
+
+This document describes the process used to identify the correct RAM offsets for the Pokemon Quetzal ROM hack using the real mgba emulator.
+
+## Problem Statement
+
+The Quetzal ROM hack was using placeholder RAM offsets copied from vanilla Emerald. These were incorrect and prevented accurate real-time memory reading/editing via the mgba WebSocket API.
+
+## Methodology
+
+### 1. Theoretical Analysis (Initial Approach)
+- Used save file analysis to calculate theoretical offsets
+- Identified patterns in save data structure
+- Calculated potential memory addresses based on vanilla relationships
+
+### 2. Real Emulator Verification (Final Approach)
+- Used mgba Docker container with actual Quetzal ROM
+- Connected via WebSocket API to read live memory
+- Systematically scanned EWRAM to find correct addresses
+
+## Verification Process
+
+### 1. Setup Real Environment
+```bash
+# Start mgba with Quetzal ROM and savestate
+npm run mgba -- start --game quetzal
+
+# Connect to WebSocket API at ws://localhost:7102/ws
+```
+
+### 2. Memory Scanning
+Used targeted scanning script (`scripts/targeted-memory-test.ts`) to:
+- Search EWRAM range (0x2000000 - 0x2040000) for party count value (6)
+- Validate Pokemon data structure at candidate addresses
+- Verify play time pattern matches ground truth
+
+### 3. Address Discovery
+Found correct addresses by matching with ground truth data:
+- **Party Count**: 6 Pokemon ✅
+- **Play Time**: 45h 36m 40s ✅
+- **Pokemon Levels**: 44, 45, 47, 45, 41, 37 ✅
+- **Pokemon HP**: 131, 126, 248, 135, 132, 114 ✅
+
+## Final Verified Addresses
+
+```typescript
+readonly memoryAddresses = {
+  partyData: 0x2024a18,   // Verified: Pokemon party data starts here
+  partyCount: 0x2024a14,  // Verified: Party count (4 bytes before party data)  
+  playTime: 0x2023e08,    // Verified: Play time location
+}
+```
+
+## Key Findings
+
+- **Theoretical vs Reality**: Initial calculated addresses were wrong
+- **Party Data**: `0x2024a18` (not `0x20244ec`)
+- **Party Count**: `0x2024a14` (not `0x20244e8`)  
+- **Play Time**: `0x2023e08` (not `0x2022e54`)
+- **Address Relationship**: Maintains 4-byte separation (party count → party data)
+
+## Verification Results
+
+All memory reads matched expected ground truth:
+- ✅ Party count: 6
+- ✅ Play time: 45h 36m 40s  
+- ✅ First Pokemon: Level 44, HP 131
+- ✅ Full party structure validated
+
+## Tools Used
+
+1. **`scripts/verify-quetzal-memory.ts`**: Initial verification with theoretical addresses
+2. **`scripts/targeted-memory-test.ts`**: Systematic EWRAM scanning
+3. **`scripts/final-verification.ts`**: Final confirmation of corrected addresses
+
+## mgba WebSocket Integration
+
+With verified addresses, the mgba WebSocket API can now:
+
+```typescript
+// Read party count
+const partyCount = await client.readByte(0x2024a14)
+
+// Read full party data  
+const partyData = await client.readBytes(0x2024a18, 624)
+
+// Read play time
+const playTime = await client.readBytes(0x2023e08, 8)
+
+// Write Pokemon data
+await client.writeBytes(0x2024a18 + (pokemonIndex * 104), modifiedPokemonData)
+```
+
+## Testing and Validation
+
+### Test Suite Results
+- ✅ All existing tests pass (139/139)
+- ✅ Memory addresses validated with real emulator
 - ✅ Address offsets maintain expected relationships
 - ✅ Game title recognition works correctly
 - ✅ Save file parsing remains functional
 
-## mgba WebSocket Usage
+### Real-time Verification
+```bash
+# Run verification against live mgba instance
+npx tsx scripts/final-verification.ts
+```
 
-With these addresses, the mgba WebSocket API can now:
+## Future ROM Hack Analysis
 
-1. **Read Party Count**: `emu:read8(0x20244e8)`
-2. **Read Party Data**: `emu:readRange(0x20244ec, 624)` 
-3. **Read Play Time**: `emu:readRange(0x2022e54, 8)`
-4. **Write Pokemon Data**: Individual byte/word writes to party region
-5. **Real-time Monitoring**: Use preload regions for efficient caching
+For analyzing other ROM hacks:
 
-This enables full real-time memory editing capabilities for Pokemon Quetzal ROM hacks.
+1. **Setup Environment**:
+   - Ensure ROM and savestate are available in mgba Docker
+   - Load ground truth data from save file parsing
+
+2. **Run Memory Scanning**:
+   ```bash
+   npx tsx scripts/targeted-memory-test.ts
+   ```
+
+3. **Update Configuration**:
+   - Modify `memoryAddresses` in game config
+   - Update `canHandleMemory()` method
+   - Add appropriate preload regions
+
+4. **Validate Results**:
+   - Test with real emulator
+   - Verify all existing functionality remains intact
+
+## Conclusion
+
+This process successfully identified the correct RAM offsets for Pokemon Quetzal through systematic analysis using the real mgba emulator. The verified addresses enable full real-time memory editing capabilities and bring Quetzal to feature parity with vanilla Emerald for memory hacking workflows.

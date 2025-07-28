@@ -50,16 +50,16 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
-  // Memory addresses for Quetzal ROM hack
+  // Memory addresses for Quetzal ROM hack (verified with real mgba emulator)
   readonly memoryAddresses = {
-    partyData: 0x20244ec,   // Same as vanilla 
-    partyCount: 0x20244e8,  // One byte earlier than vanilla (0x20244e9)
-    playTime: 0x2022e54,    // Play time location based on save analysis
+    partyData: 0x2024a18,   // Verified: Pokemon party data starts here
+    partyCount: 0x2024a14,  // Verified: Party count (4 bytes before party data)
+    playTime: 0x2023e08,    // Verified: Play time location 
     // Preload regions for optimal performance
     preloadRegions: [
-      { address: 0x20244e8, size: 8 },    // Party count + context
-      { address: 0x20244ec, size: 624 },  // Full party data (6 * 104 bytes)
-      { address: 0x2022e54, size: 8 },    // Play time data
+      { address: 0x2024a14, size: 8 },    // Party count + context
+      { address: 0x2024a18, size: 624 },  // Full party data (6 * 104 bytes)
+      { address: 0x2023e08, size: 8 },    // Play time data
     ] as const,
   } as const
 
