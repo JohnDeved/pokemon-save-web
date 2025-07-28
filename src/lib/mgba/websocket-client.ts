@@ -3,9 +3,9 @@
  * Handles communication with the mGBA Lua HTTP server's WebSocket endpoint
  */
 
-import * as WebSocket from 'websocket'
+import websocket from 'websocket'
 
-type WebSocketConnection = WebSocket.connection
+type WebSocketConnection = websocket.connection
 
 export interface MgbaEvalResponse {
   result?: unknown
@@ -117,7 +117,7 @@ export class MgbaWebSocketClient {
   private async connectEval (): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        const wsClient = new WebSocket.client()
+        const wsClient = new websocket.client()
 
         wsClient.on('connectFailed', (error) => {
           console.error('WebSocket eval connection failed:', error)
@@ -157,7 +157,7 @@ export class MgbaWebSocketClient {
   private async connectWatch (): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        const wsClient = new WebSocket.client()
+        const wsClient = new websocket.client()
 
         wsClient.on('connectFailed', (error) => {
           console.error('WebSocket watch connection failed:', error)
