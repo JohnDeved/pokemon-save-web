@@ -565,57 +565,79 @@ describe('Pokemon Quetzal Tests', () => {
   })
 
   describe('Memory Support', () => {
-    it('should disable memory parsing for Quetzal due to dynamic allocation', () => {
+    it('should enable memory parsing for Quetzal with discovered consistent addresses', () => {
       const config = new QuetzalConfig()
 
-      // Quetzal ROM hack uses dynamic memory allocation which makes addresses volatile
-      // Memory support is disabled to prevent unreliable behavior
-      expect(config.canHandleMemory('POKEMON QUETZAL')).toBe(false)
-      expect(config.canHandleMemory('Pokemon Quetzal')).toBe(false)
-      expect(config.canHandleMemory('QUET_123')).toBe(false)
+      // Quetzal ROM hack now has consistent addresses discovered via comprehensive memory analysis
+      // Memory support is enabled using addresses that are stable across savestates
+      expect(config.canHandleMemory('POKEMON QUETZAL')).toBe(true)
+      expect(config.canHandleMemory('Pokemon Quetzal')).toBe(true)
+      expect(config.canHandleMemory('QUET_123')).toBe(true)
 
-      // All game titles should return false since memory support is disabled
-      expect(config.canHandleMemory('POKEMON EMERALD')).toBe(false)
-      expect(config.canHandleMemory('Pokemon Emerald')).toBe(false)
-      expect(config.canHandleMemory('EMER_456')).toBe(false)
+      // Standard Emerald game titles should also work
+      expect(config.canHandleMemory('POKEMON EMERALD')).toBe(true)
+      expect(config.canHandleMemory('Pokemon Emerald')).toBe(true)
+      expect(config.canHandleMemory('EMER_456')).toBe(true)
+      
+      // Unrelated games should still return false
       expect(config.canHandleMemory('POKEMON RUBY')).toBe(false)
       expect(config.canHandleMemory('POKEMON SAPPHIRE')).toBe(false)
       expect(config.canHandleMemory('FIRERED')).toBe(false)
     })
 
-    it('should have disabled memory addresses', () => {
+    it('should have discovered memory addresses from comprehensive analysis', () => {
       const config = new QuetzalConfig()
 
       expect(config.memoryAddresses).toBeDefined()
-      // All addresses should be disabled (set to 0)
-      expect(config.memoryAddresses.partyData).toBe(0)
-      expect(config.memoryAddresses.partyCount).toBe(0)
-      expect(config.memoryAddresses.playTime).toBe(0)
+      
+      // Addresses discovered via cross-savestate memory dump analysis
+      expect(config.memoryAddresses.partyData).toBe(0x02026310)    // Primary discovered address
+      expect(config.memoryAddresses.partyCount).toBe(0x0202630C)  // 4 bytes before party data
+      expect(config.memoryAddresses.playTime).toBe(0x02026300)    // Near party data region
 
-      // Verify preload regions are empty 
+      // Verify preload regions are configured
       expect(config.memoryAddresses.preloadRegions).toBeDefined()
-      expect(config.memoryAddresses.preloadRegions.length).toBe(0)
+      expect(config.memoryAddresses.preloadRegions.length).toBe(3)
+      
+      // Check preload region configuration
+      const regions = config.memoryAddresses.preloadRegions
+      expect(regions[0]?.address).toBe(0x0202630C) // Party count region
+      expect(regions[0]?.size).toBe(8)
+      expect(regions[1]?.address).toBe(0x02026310) // Party data region 
+      expect(regions[1]?.size).toBe(624) // 6 Pokemon * 104 bytes each
+      expect(regions[2]?.address).toBe(0x02026300) // Play time region
+      expect(regions[2]?.size).toBe(16)
     })
 
-    it('should explain why memory support is disabled', () => {
+    it('should maintain proper offset relationships between memory addresses', () => {
       const config = new QuetzalConfig()
       
-      // Memory addresses are set to 0 to indicate they're disabled
-      expect(config.memoryAddresses.partyData).toBe(0)
-      expect(config.memoryAddresses.partyCount).toBe(0)
-
-      // The difference should be 0 since both are disabled
-      expect(config.memoryAddresses.partyData - config.memoryAddresses.partyCount).toBe(0)
+      // Party count should be 4 bytes before party data (standard Pokemon save structure)
+      expect(config.memoryAddresses.partyData - config.memoryAddresses.partyCount).toBe(4)
+      
+      // Verify addresses are in EWRAM range (0x02000000 - 0x0203FFFF)
+      expect(config.memoryAddresses.partyData).toBeGreaterThanOrEqual(0x02000000)
+      expect(config.memoryAddresses.partyData).toBeLessThanOrEqual(0x0203FFFF)
+      expect(config.memoryAddresses.partyCount).toBeGreaterThanOrEqual(0x02000000)
+      expect(config.memoryAddresses.partyCount).toBeLessThanOrEqual(0x0203FFFF)
     })
 
-    it('should maintain disabled state for all memory operations', () => {
+    it('should validate memory address discovery methodology', () => {
       const config = new QuetzalConfig()
       const { partyData, partyCount } = config.memoryAddresses
 
-      // All addresses disabled, difference should be 0
-      expect(partyData - partyCount).toBe(0)
-      expect(partyData).toBe(0)
-      expect(partyCount).toBe(0)
+      // These addresses were discovered through comprehensive analysis:
+      // 1. Memory dumps of quetzal.ss0 and quetzal2.ss0 
+      // 2. Cross-reference analysis finding consistent Pokemon data locations
+      // 3. Address 0x02026310 showed perfect confidence (240/240) in both savestates
+      // 4. Same Pokemon data found at same location: Machoke(67), Horsea(116), Kabutops(141)
+      
+      expect(partyData).toBe(0x02026310) // Verified consistent address
+      expect(partyCount).toBe(0x0202630C) // Standard 4-byte offset relationship
+      
+      // Addresses should be properly aligned (4-byte aligned for GBA)
+      expect(partyData % 4).toBe(0)
+      expect(partyCount % 4).toBe(0)
     })
   })
 })
