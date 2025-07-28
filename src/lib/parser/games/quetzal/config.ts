@@ -49,17 +49,17 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     items: createMapping<ItemMapping>(itemMapData as Record<string, unknown>),
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
-  // Memory addresses for Quetzal ROM hack - DISCOVERED VIA COMPREHENSIVE ANALYSIS
-  // Using memory dump analysis of quetzal.ss0 and quetzal2.ss0 to find consistent addresses
+
+  // Memory addresses for Quetzal ROM hack - DISABLED DUE TO DYNAMIC ALLOCATION
+  // Analysis of quetzal.ss0 vs quetzal2.ss0 reveals NO consistent addresses:
+  // - quetzal.ss0: Party at 0x020235B8 (ground truth party: Steelix, Breloom, etc.)
+  // - quetzal2.ss0: Party at 0x02023AA4 (different party, 1260 bytes offset)
+  // Quetzal uses dynamic memory allocation making memory support unreliable
   readonly memoryAddresses = {
-    partyData: 0x02026310,   // Discovered via cross-savestate memory analysis (confidence: 480)
-    partyCount: 0x0202630C,  // 4 bytes before party data (standard offset relationship)
-    playTime: 0x02026300,    // Estimated location near party data
-    preloadRegions: [
-      { address: 0x0202630C, size: 8 },    // Party count + padding
-      { address: 0x02026310, size: 624 },  // Full party data (6 * 104 bytes)
-      { address: 0x02026300, size: 16 },   // Play time region
-    ],
+    partyData: 0x00000000, // DISABLED - No consistent address across savestates
+    partyCount: 0x00000000, // DISABLED - No consistent address across savestates
+    playTime: 0x00000000, // DISABLED - No consistent address across savestates
+    preloadRegions: [], // DISABLED - No stable regions for preloading
   } as const
 
   // Quetzal-specific offsets for unencrypted data
@@ -232,16 +232,14 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   /**
    * Check if this config can handle memory parsing for the given game title
-   * Quetzal ROM hack now has discovered consistent memory addresses via comprehensive analysis
+   * MEMORY SUPPORT DISABLED: Quetzal uses dynamic memory allocation
+   * Analysis shows party data appears at different addresses between savestates:
+   * - No consistent memory addresses exist across different game sessions
+   * - Save file parsing remains fully functional and reliable
    */
   canHandleMemory (gameTitle: string): boolean {
-    // Quetzal ROM hack has consistent memory addresses discovered via cross-savestate analysis
-    // Address 0x02026310 shows perfect consistency across multiple savestates
-    return gameTitle.includes('QUETZAL') || 
-           gameTitle.includes('Quetzal') || 
-           gameTitle.includes('QUET') ||
-           gameTitle.includes('EMERALD') || 
-           gameTitle.includes('Emerald') || 
-           gameTitle.includes('EMER')
+    // Memory support disabled due to dynamic allocation in Quetzal ROM hack
+    // Party data locations vary between savestates making memory reading unreliable
+    return false
   }
 }
