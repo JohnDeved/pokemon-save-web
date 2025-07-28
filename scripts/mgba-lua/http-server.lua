@@ -280,7 +280,6 @@ function HttpServer.parseWebSocketFrame(data)
         return nil, offset + len, "unknown"
     end
 end
-end
 
 --------------------------------------------------------------------------------
 -- "Private" Instance Methods for Connection Handling
