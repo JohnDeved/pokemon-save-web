@@ -23,10 +23,11 @@ All existing eval-based functionality remains unchanged for existing code.
 ```typescript
 import { MgbaWebSocketClient } from './websocket-client'
 
+// Client automatically connects to both /eval and /watch endpoints
 const client = new MgbaWebSocketClient()
 await client.connect()
 
-// Read memory the traditional way
+// Read memory the traditional way (uses /eval endpoint)
 const partyCount = await client.readByte(0x20244e9)
 const partyData = await client.readBytes(0x20244ec, 600)
 ```
@@ -42,7 +43,7 @@ client.configureSharedBuffer({
   ]
 })
 
-// Start watching for changes
+// Start watching for changes (uses /watch endpoint)
 await client.startWatchingPreloadRegions()
 
 // Add listener for real-time updates
@@ -95,12 +96,17 @@ await client.startWatching(customRegions)
 
 ## Server-side Setup
 
-The Lua HTTP server (`scripts/mgba-lua/http-server.lua`) automatically supports memory watching when you load it in mGBA. It will:
+The Lua HTTP server (`scripts/mgba-lua/http-server.lua`) automatically supports memory watching when you load it in mGBA. It provides two separate WebSocket endpoints:
 
-1. Accept WebSocket connections on the `/ws` endpoint
-2. Listen for `watch` messages with memory region lists
-3. Monitor those regions on each emulation frame
-4. Send `memoryUpdate` messages when regions change
+1. **`/eval`** - For Lua code execution and traditional memory operations
+2. **`/watch`** - For memory region watching and push-based updates
+
+The system will:
+1. Accept WebSocket connections on both endpoints
+2. Handle eval requests on `/eval` endpoint  
+3. Listen for `watch` messages on `/watch` endpoint with memory region lists
+4. Monitor those regions on each emulation frame
+5. Send `memoryUpdate` messages when regions change
 
 ### Server Message Types
 

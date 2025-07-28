@@ -59,8 +59,11 @@ const MEMORY_CONSTANTS = {
 } as const
 
 export class MgbaWebSocketClient {
-  private ws: WebSocket | null = null
-  private connected = false
+  private evalWs: WebSocket | null = null
+  private watchWs: WebSocket | null = null
+  private evalConnected = false
+  private watchConnected = false
+  private baseUrl: string
 
   // Real-time shared buffer system for memory caching
   private readonly memoryCache = new Map<string, MemoryRegion>()
@@ -76,43 +79,94 @@ export class MgbaWebSocketClient {
   private memoryChangeListeners: MemoryChangeListener[] = []
   private isWatching = false
 
-  constructor (private readonly url = 'ws://localhost:7102/ws') {
+  constructor (baseUrlOrFullUrl = 'ws://localhost:7102') {
+    // Handle backward compatibility: if URL contains /ws, /eval, or /watch, extract base URL
+    if (baseUrlOrFullUrl.includes('/ws') || baseUrlOrFullUrl.includes('/eval') || baseUrlOrFullUrl.includes('/watch')) {
+      this.baseUrl = baseUrlOrFullUrl.replace(/\/(ws|eval|watch)$/, '')
+    } else {
+      this.baseUrl = baseUrlOrFullUrl
+    }
   }
 
   /**
    * Connect to the mGBA WebSocket server
+   * Establishes connections to both eval and watch endpoints
    */
   async connect (): Promise<void> {
+    await Promise.all([
+      this.connectEval(),
+      this.connectWatch()
+    ])
+  }
+
+  /**
+   * Connect to the eval endpoint for Lua code execution
+   */
+  private async connectEval (): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(this.url)
+        this.evalWs = new WebSocket(`${this.baseUrl}/eval`)
 
         const onOpen = () => {
-          console.log('Connected to mGBA WebSocket server')
-          this.connected = true
+          console.log('Connected to mGBA WebSocket eval endpoint')
+          this.evalConnected = true
           resolve()
         }
 
         const onError = (error: ErrorEvent | Event | unknown) => {
-          console.error('WebSocket error:', error)
-          this.connected = false
+          console.error('WebSocket eval error:', error)
+          this.evalConnected = false
           reject(error instanceof Error ? error : new Error(String(error)))
         }
 
         const onClose = () => {
-          console.log('WebSocket connection closed')
-          this.connected = false
+          console.log('WebSocket eval connection closed')
+          this.evalConnected = false
+        }
+
+        this.evalWs.addEventListener('open', onOpen)
+        this.evalWs.addEventListener('error', onError)
+        this.evalWs.addEventListener('close', onClose)
+      } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
+  /**
+   * Connect to the watch endpoint for memory monitoring
+   */
+  private async connectWatch (): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        this.watchWs = new WebSocket(`${this.baseUrl}/watch`)
+
+        const onOpen = () => {
+          console.log('Connected to mGBA WebSocket watch endpoint')
+          this.watchConnected = true
+          resolve()
+        }
+
+        const onError = (error: ErrorEvent | Event | unknown) => {
+          console.error('WebSocket watch error:', error)
+          this.watchConnected = false
+          reject(error instanceof Error ? error : new Error(String(error)))
+        }
+
+        const onClose = () => {
+          console.log('WebSocket watch connection closed')
+          this.watchConnected = false
           this.isWatching = false
         }
 
         const onMessage = (event: { data: unknown }) => {
-          this.handleWebSocketMessage(String(event.data))
+          this.handleWatchMessage(String(event.data))
         }
 
-        this.ws.addEventListener('open', onOpen)
-        this.ws.addEventListener('error', onError)
-        this.ws.addEventListener('close', onClose)
-        this.ws.addEventListener('message', onMessage)
+        this.watchWs.addEventListener('open', onOpen)
+        this.watchWs.addEventListener('error', onError)
+        this.watchWs.addEventListener('close', onClose)
+        this.watchWs.addEventListener('message', onMessage)
       } catch (error) {
         reject(error)
       }
@@ -123,25 +177,30 @@ export class MgbaWebSocketClient {
    * Disconnect from the WebSocket server
    */
   disconnect (): void {
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
+    if (this.evalWs) {
+      this.evalWs.close()
+      this.evalWs = null
     }
-    this.connected = false
+    if (this.watchWs) {
+      this.watchWs.close()
+      this.watchWs = null
+    }
+    this.evalConnected = false
+    this.watchConnected = false
     this.isWatching = false
   }
 
   /**
-   * Handle incoming WebSocket messages
+   * Handle incoming WebSocket messages from watch endpoint
    */
-  private handleWebSocketMessage (data: string): void {
+  private handleWatchMessage (data: string): void {
     // Skip non-JSON messages (like welcome messages)
     if (!data.startsWith('{')) {
       return
     }
 
     try {
-      const message = JSON.parse(data) as WebSocketMessage | MgbaEvalResponse
+      const message = JSON.parse(data) as WebSocketMessage
 
       // Handle structured messages
       if ('type' in message) {
@@ -194,8 +253,8 @@ export class MgbaWebSocketClient {
    * Start watching memory regions for changes
    */
   async startWatching (regions?: Array<{ address: number, size: number }>): Promise<void> {
-    if (!this.isConnected()) {
-      throw new Error('Not connected to mGBA WebSocket server')
+    if (!this.isWatchConnected()) {
+      throw new Error('Not connected to mGBA WebSocket watch endpoint')
     }
 
     // Use provided regions or fall back to preload regions
@@ -212,7 +271,7 @@ export class MgbaWebSocketClient {
       regions: regionsToWatch
     }
 
-    this.ws!.send(JSON.stringify(watchMessage))
+    this.watchWs!.send(JSON.stringify(watchMessage))
     console.log(`🔍 Started watching ${regionsToWatch.length} memory regions`)
   }
 
@@ -259,21 +318,38 @@ export class MgbaWebSocketClient {
   getWatchedRegions (): Array<{ address: number, size: number }> {
     return [...this.watchedRegions]
   }
+  /**
+   * Check if connected to both eval and watch endpoints
+   */
   isConnected (): boolean {
-    return this.connected && this.ws?.readyState === WebSocket.OPEN
+    return this.isEvalConnected() && this.isWatchConnected()
+  }
+
+  /**
+   * Check if connected to eval endpoint
+   */
+  isEvalConnected (): boolean {
+    return this.evalConnected && this.evalWs?.readyState === WebSocket.OPEN
+  }
+
+  /**
+   * Check if connected to watch endpoint
+   */
+  isWatchConnected (): boolean {
+    return this.watchConnected && this.watchWs?.readyState === WebSocket.OPEN
   }
 
   /**
    * Execute Lua code on the mGBA emulator
    */
   async eval (code: string): Promise<MgbaEvalResponse> {
-    if (!this.isConnected()) {
-      throw new Error('Not connected to mGBA WebSocket server')
+    if (!this.isEvalConnected()) {
+      throw new Error('Not connected to mGBA WebSocket eval endpoint')
     }
 
     return new Promise((resolve, reject) => {
-      if (!this.ws) {
-        reject(new Error('WebSocket is null'))
+      if (!this.evalWs) {
+        reject(new Error('Eval WebSocket is null'))
         return
       }
 
@@ -288,22 +364,22 @@ export class MgbaWebSocketClient {
 
         try {
           const response = JSON.parse(message) as MgbaEvalResponse
-          this.ws?.removeEventListener('message', messageHandler)
+          this.evalWs?.removeEventListener('message', messageHandler)
           resolve(response)
         } catch (error) {
-          this.ws?.removeEventListener('message', messageHandler)
+          this.evalWs?.removeEventListener('message', messageHandler)
           reject(new Error(`Failed to parse eval response: ${String(error)}`))
         }
       }
 
-      this.ws.addEventListener('message', messageHandler)
+      this.evalWs.addEventListener('message', messageHandler)
 
       // Send the code to evaluate
-      this.ws.send(code)
+      this.evalWs.send(code)
 
       // Timeout after configured time
       setTimeout(() => {
-        this.ws?.removeEventListener('message', messageHandler)
+        this.evalWs?.removeEventListener('message', messageHandler)
         reject(new Error('Eval request timed out'))
       }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
     })

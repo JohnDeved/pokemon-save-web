@@ -393,7 +393,7 @@ async function main () {
 
   // WebSocket URL option
   const wsUrlArg = argv.find(arg => arg.startsWith('--ws-url='))
-  const wsUrl = wsUrlArg ? wsUrlArg.split('=')[1] : 'ws://localhost:7102/ws'
+  const wsUrl = wsUrlArg ? wsUrlArg.split('=')[1] : 'ws://localhost:7102'
 
   // Utility string conversion functions
   const toBytesArg = argv.find(arg => arg.startsWith('--toBytes='))
@@ -453,7 +453,7 @@ async function main () {
 
 Options:
   --websocket           Connect to mGBA via WebSocket instead of reading a file
-  --ws-url=URL          WebSocket URL (default: ws://localhost:7102/ws)
+  --ws-url=URL          WebSocket URL (default: ws://localhost:7102)
   --watch               Continuously monitor for changes and update display
   --interval=MS         Update interval in milliseconds for watch mode (default: 1000)
   --debug               Show raw bytes for each party Pokémon after the summary table

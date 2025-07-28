@@ -610,54 +610,14 @@ local function parseJSON(str)
     return result
 end
 
--- WebSocket route
-app:websocket("/ws", function(ws)
-    console:log("WebSocket connected: " .. ws.path)
-
-    -- Initialize memory watcher for this connection
-    memoryWatchers[ws.id] = {
-        regions = {},
-        lastData = {}
-    }
+-- WebSocket route for Lua code evaluation
+app:websocket("/eval", function(ws)
+    console:log("WebSocket connected to eval endpoint: " .. ws.path)
 
     ws.onMessage = function(message)
         local function safe_handler()
-            console:log("WebSocket message: " .. tostring(message))
+            console:log("WebSocket eval message: " .. tostring(message))
             
-            -- Try to parse as JSON first for structured messages
-            local parsed, parseErr = parseJSON(message)
-            if parsed and type(parsed) == "table" and parsed.type then
-                if parsed.type == "watch" then
-                    -- Handle memory region watching request
-                    if parsed.regions and type(parsed.regions) == "table" then
-                        console:log("Setting up memory watch for " .. #parsed.regions .. " regions")
-                        local watcher = memoryWatchers[ws.id]
-                        watcher.regions = parsed.regions
-                        watcher.lastData = {}
-                        
-                        -- Initialize baseline data for each region
-                        for i, region in ipairs(parsed.regions) do
-                            if region.address and region.size then
-                                local data = emu:readRange(region.address, region.size)
-                                watcher.lastData[i] = data
-                            end
-                        end
-                        
-                        ws:send(HttpServer.jsonStringify({
-                            type = "watchConfirm",
-                            message = "Watching " .. #parsed.regions .. " memory regions"
-                        }))
-                    else
-                        ws:send(HttpServer.jsonStringify({
-                            type = "error",
-                            error = "Invalid watch request - regions array required"
-                        }))
-                    end
-                    return
-                end
-            end
-            
-            -- Fallback to legacy eval mode for backward compatibility
             local chunk = message
             
             -- Enhanced support for non-self-executing function inputs
@@ -687,12 +647,86 @@ app:websocket("/ws", function(ws)
     end
 
     ws.onClose = function()
-        console:log("WebSocket disconnected: " .. ws.path)
+        console:log("WebSocket disconnected from eval endpoint: " .. ws.path)
+    end
+
+    ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
+end)
+
+-- WebSocket route for memory watching
+app:websocket("/watch", function(ws)
+    console:log("WebSocket connected to watch endpoint: " .. ws.path)
+
+    -- Initialize memory watcher for this connection
+    memoryWatchers[ws.id] = {
+        regions = {},
+        lastData = {}
+    }
+
+    ws.onMessage = function(message)
+        local function safe_handler()
+            console:log("WebSocket watch message: " .. tostring(message))
+            
+            -- Parse JSON message for memory watching
+            local parsed, parseErr = parseJSON(message)
+            if not parsed or type(parsed) ~= "table" or not parsed.type then
+                ws:send(HttpServer.jsonStringify({
+                    type = "error",
+                    error = "Invalid message format - JSON object with 'type' field required"
+                }))
+                return
+            end
+                
+            if parsed.type == "watch" then
+                -- Handle memory region watching request
+                if parsed.regions and type(parsed.regions) == "table" then
+                    console:log("Setting up memory watch for " .. #parsed.regions .. " regions")
+                    local watcher = memoryWatchers[ws.id]
+                    watcher.regions = parsed.regions
+                    watcher.lastData = {}
+                    
+                    -- Initialize baseline data for each region
+                    for i, region in ipairs(parsed.regions) do
+                        if region.address and region.size then
+                            local data = emu:readRange(region.address, region.size)
+                            watcher.lastData[i] = data
+                        end
+                    end
+                    
+                    ws:send(HttpServer.jsonStringify({
+                        type = "watchConfirm",
+                        message = "Watching " .. #parsed.regions .. " memory regions"
+                    }))
+                else
+                    ws:send(HttpServer.jsonStringify({
+                        type = "error",
+                        error = "Invalid watch request - regions array required"
+                    }))
+                end
+            else
+                ws:send(HttpServer.jsonStringify({
+                    type = "error",
+                    error = "Unknown message type: " .. tostring(parsed.type)
+                }))
+            end
+        end
+        local ok, err = pcall(safe_handler)
+        if not ok then
+            ws:send(HttpServer.jsonStringify({type = "error", error = "Internal server error: " .. tostring(err)}))
+            console:error("[WebSocket Watch Handler Error] " .. tostring(err))
+        end
+    end
+
+    ws.onClose = function()
+        console:log("WebSocket disconnected from watch endpoint: " .. ws.path)
         -- Cleanup memory watcher
         memoryWatchers[ws.id] = nil
     end
 
-    ws:send("Welcome to WebSocket Eval! Send Lua code to execute or JSON messages for memory watching.")
+    ws:send(HttpServer.jsonStringify({
+        type = "welcome",
+        message = "Welcome to WebSocket Memory Watching! Send JSON messages with 'type': 'watch' to monitor memory regions."
+    }))
 end)
 
 -- Frame callback for memory change detection
@@ -701,7 +735,8 @@ local frameCallbackId = nil
 local function checkMemoryChanges()
     for wsId, watcher in pairs(memoryWatchers) do
         local ws = app.websockets[wsId]
-        if ws and #watcher.regions > 0 then
+        -- Only process watchers for connections on the /watch endpoint
+        if ws and ws.path == "/watch" and #watcher.regions > 0 then
             local changedRegions = {}
             
             for i, region in ipairs(watcher.regions) do
