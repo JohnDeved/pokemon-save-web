@@ -75,6 +75,9 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
    * Update memory addresses after dynamic discovery
    */
   private updateMemoryAddresses(partyCount: number, partyData: number): void {
+    console.log(`🔧 Updating memory addresses: count=0x${partyCount.toString(16)}, data=0x${partyData.toString(16)}`)
+    console.log(`🔧 _memoryAddressesObject exists: ${!!this._memoryAddressesObject}`)
+    
     if (this._memoryAddressesObject) {
       this._memoryAddressesObject.partyCount = partyCount
       this._memoryAddressesObject.partyData = partyData
@@ -82,6 +85,10 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
         { address: partyCount, size: 8 },    // Party count + context
         { address: partyData, size: 624 },   // Full party data (6 * 104 bytes)
       ]
+      console.log(`✅ Memory addresses updated successfully`)
+      console.log(`🔧 Updated object: count=0x${this._memoryAddressesObject.partyCount.toString(16)}, data=0x${this._memoryAddressesObject.partyData.toString(16)}`)
+    } else {
+      console.log(`❌ _memoryAddressesObject is null, addresses not updated`)
     }
   }
 
@@ -261,9 +268,9 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   async discoverPartyAddresses(client: any): Promise<{ partyCount: number; partyData: number }> {
     console.log('🔍 Discovering Quetzal party data location...')
     
-    // Define scan region for EWRAM - focus on the exact region where user found data
+    // Define scan region for EWRAM - extended to cover both savestates
     const scanStart = 0x2024a00  // Very close to user confirmed address
-    const scanEnd = 0x2024b00    // Small range for debugging
+    const scanEnd = 0x2027000    // Extended to cover 0x02026354 for quetzal2
     const chunkSize = 256        // Smaller chunks for more precise debugging
     
     console.log(`   Scanning 0x${scanStart.toString(16)} - 0x${scanEnd.toString(16)} in ${chunkSize}-byte chunks`)
@@ -277,8 +284,8 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
         for (let offset = 4; offset < chunkData.length - 104; offset += 1) { // Check every byte for debugging
           const pokemonDataAddr = chunkAddr + offset
           
-          // Only check addresses that match the user's confirmed range
-          if (pokemonDataAddr !== 0x2024a14 && pokemonDataAddr !== 0x2024a18) continue
+          // Only check addresses that look promising (every 4 bytes for alignment)
+          if (offset % 4 !== 0) continue
           
           console.log(`   🔍 Checking Pokemon data at 0x${pokemonDataAddr.toString(16)}`)
           
@@ -294,99 +301,41 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
           
           console.log(`      Species: ${species}, Level: ${level}, HP: ${currentHp}/${maxHp}`)
           
-          // Check if this is the user's confirmed address (0x2024a14)
-          if (pokemonDataAddr === 0x2024a14) {
-            console.log(`      🎯 This is the user's confirmed party data address!`)
+          // Basic Pokemon validation first
+          if (level >= 1 && level <= 100 && species > 0 && species <= 900 && maxHp > 0 && maxHp < 1000) {
+            console.log(`      ✅ Valid Pokemon found at 0x${pokemonDataAddr.toString(16)}`)
             
-            // Use the user's confirmed address even if validation is weak
-            // The count would be at 0x2024a10 based on standard offset
-            const userCountAddr = 0x2024a10
-            const userCount = await client.readByte(userCountAddr)
-            console.log(`      Checking user's implied count address 0x${userCountAddr.toString(16)}: ${userCount}`)
+            // Try different count address strategies
+            // Strategy 1: Count 4 bytes before data
+            const countAddr1 = pokemonDataAddr - 4
+            const count1 = await client.readByte(countAddr1)
             
-            // If the count doesn't look right, maybe it's embedded differently
-            if (userCount < 1 || userCount > 6) {
-              // Maybe the count is at the start of the Pokemon data structure
-              const embeddedCount = pokemonData[0]
-              console.log(`      Checking embedded count at start of data: ${embeddedCount}`)
+            // Strategy 2: Count embedded at start of data
+            const count2 = pokemonData[0]
+            
+            console.log(`      Count strategy 1 (${countAddr1.toString(16)}): ${count1}`)
+            console.log(`      Count strategy 2 (embedded): ${count2}`)
+            
+            if (count1 >= 1 && count1 <= 6) {
+              console.log(`      ✅ Using count from 4 bytes before data`)
               
-              if (embeddedCount >= 1 && embeddedCount <= 6) {
-                console.log(`      ✅ Using user's confirmed address with embedded count`)
-                return {
-                  partyCount: pokemonDataAddr, // Count is embedded in the data
-                  partyData: pokemonDataAddr + 4 // Data starts 4 bytes after count
-                }
-              }
-            } else {
-              console.log(`      ✅ Using user's confirmed address with standard count offset`)
+              // Double-check the address we're about to return
+              const finalCheck = await client.readByte(countAddr1)
+              console.log(`      🔍 Final validation - count at 0x${countAddr1.toString(16)}: ${finalCheck}`)
+              
               return {
-                partyCount: userCountAddr,
+                partyCount: countAddr1,
                 partyData: pokemonDataAddr
               }
-            }
-          }
-          
-          // Basic Pokemon validation
-          if (level >= 1 && level <= 100 && species > 0 && 
-              currentHp <= maxHp && maxHp > 0) {
-            
-            console.log(`      ✅ Valid Pokemon found!`)
-            
-            // Now check if there's a valid party count 4 bytes before this Pokemon data
-            const partyCountAddr = pokemonDataAddr - 4
-            const countOffset = offset - 4
-            
-            if (countOffset >= 0) {
-              const partyCount = chunkData[countOffset]
-              console.log(`      Checking party count at 0x${partyCountAddr.toString(16)}: ${partyCount}`)
-              
-              // Check if this is a valid party count
-              if (partyCount >= 1 && partyCount <= 6) {
-                console.log(`✅ Found party data: count at 0x${partyCountAddr.toString(16)}, data at 0x${pokemonDataAddr.toString(16)}`)
-                console.log(`   Party count: ${partyCount}, First Pokemon: Lv${level} #${species} (${currentHp}/${maxHp} HP)`)
-                
-                // Double-check by reading the address again immediately
-                const doubleCheck = await client.readByte(partyCountAddr)
-                console.log(`   🔍 Double-checking count address: ${doubleCheck}`)
-                
-                // Also check if the count is actually at pokemonDataAddr - 4 (standard offset)
-                const standardCountAddr = pokemonDataAddr - 4
-                const standardCount = await client.readByte(standardCountAddr)
-                console.log(`   🔍 Checking standard count address 0x${standardCountAddr.toString(16)}: ${standardCount}`)
-                
-                // The Pokemon data is at 0x2024a18, so count should be at 0x2024a14
-                // But let's also check 0x2024a10 in case that's the real count
-                const alternativeCountAddr = 0x2024a10
-                const alternativeCount = await client.readByte(alternativeCountAddr)
-                console.log(`   🔍 Checking alternative count address 0x${alternativeCountAddr.toString(16)}: ${alternativeCount}`)
-                
-                // If the alternative address has a valid count, use that
-                if (alternativeCount >= 1 && alternativeCount <= 6) {
-                  console.log(`   ✅ Using alternative count address (matches user confirmation)`)
-                  return {
-                    partyCount: alternativeCountAddr,
-                    partyData: pokemonDataAddr
-                  }
-                }
-                
-                // If the standard offset has a valid count, use that instead
-                if (standardCount >= 1 && standardCount <= 6) {
-                  console.log(`   ✅ Using standard offset addresses`)
-                  return {
-                    partyCount: standardCountAddr,
-                    partyData: pokemonDataAddr
-                  }
-                }
-                
-                return {
-                  partyCount: partyCountAddr,
-                  partyData: pokemonDataAddr
-                }
-              } else {
-                console.log(`      ❌ Invalid party count: ${partyCount}`)
+            } else if (count2 >= 1 && count2 <= 6) {
+              console.log(`      ✅ Using embedded count`)
+              return {
+                partyCount: pokemonDataAddr, // Count is embedded in the data
+                partyData: pokemonDataAddr + 4 // Data starts 4 bytes after count
               }
+            } else {
+              console.log(`      ⚠️ Valid Pokemon but invalid counts, continuing search...`)
             }
-          } else {
             console.log(`      ❌ Invalid Pokemon data`)
           }
         }
@@ -446,6 +395,11 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
       console.log('🔍 Quetzal: Discovering dynamic party data addresses...')
       await this.initializeMemoryAddresses(client)
     }
+    
+    // Debug: show final addresses
+    console.log(`🔍 Final memory addresses after prepare:`)
+    console.log(`  partyCount: 0x${this.memoryAddresses.partyCount.toString(16)}`)
+    console.log(`  partyData: 0x${this.memoryAddresses.partyData.toString(16)}`)
   }
 
   /**

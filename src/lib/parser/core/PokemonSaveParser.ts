@@ -405,8 +405,10 @@ export class PokemonSaveParser {
     }
 
     // Get party count from memory
+    console.log(`🔍 Reading party count from address 0x${memoryAddresses.partyCount.toString(16)}`)
     const partyCountBuffer = await this.webSocketClient.getSharedBuffer(memoryAddresses.partyCount, 1)
     const partyCount = partyCountBuffer[0] ?? 0
+    console.log(`📊 Party count read: ${partyCount}`)
 
     const maxPartySize = this.config.saveLayout.maxPartySize!
     const pokemonSize = this.config.saveLayout.pokemonSize!

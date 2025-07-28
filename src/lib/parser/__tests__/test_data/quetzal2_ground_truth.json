@@ -1,0 +1,387 @@
+{
+  "player_name": "Unknown",
+  "play_time": {
+    "hours": 0,
+    "minutes": 0,
+    "seconds": 0
+  },
+  "active_slot": 14,
+  "sector_map": {},
+  "party_pokemon": [
+    {
+      "personality": 50528322,
+      "otId": 1835079,
+      "nickname": "f",
+      "unknown_12": [
+        65,
+        0
+      ],
+      "otName": "3",
+      "unknown_1B": [
+        0,
+        30,
+        0,
+        102,
+        0,
+        244,
+        1,
+        179
+      ],
+      "currentHp": 8,
+      "unknown_25": [
+        33,
+        0,
+        70
+      ],
+      "speciesId": 67,
+      "item": 15,
+      "unknown_2C": [
+        9,
+        0,
+        79,
+        0,
+        1,
+        0,
+        49,
+        0
+      ],
+      "move1": 114,
+      "move2": 65,
+      "move3": 486,
+      "move4": 2,
+      "pp1": 215,
+      "pp2": 0,
+      "pp3": 30,
+      "pp4": 0,
+      "hpEV": 115,
+      "atkEV": 0,
+      "defEV": 69,
+      "speEV": 0,
+      "spaEV": 51,
+      "spdEV": 0,
+      "unknown_46": [
+        214,
+        0,
+        102,
+        0,
+        30,
+        0,
+        30,
+        0,
+        51,
+        0
+      ],
+      "ivData": 3145863,
+      "unknown_54": [
+        30,
+        0,
+        8,
+        0
+      ],
+      "level": 33,
+      "unknown_59": 0,
+      "maxHp": 70,
+      "attack": 33,
+      "defense": 69,
+      "speed": 68,
+      "spAttack": 3,
+      "spDefense": 51,
+      "unknown_66": [
+        71,
+        0
+      ],
+      "displayOtId": "00071",
+      "displayNature": "Sassy",
+      "moves": {
+        "move1": {
+          "name": "Move 114",
+          "id": 114,
+          "pp": 215
+        },
+        "move2": {
+          "name": "Move 65",
+          "id": 65,
+          "pp": 0
+        },
+        "move3": {
+          "name": "Move 486",
+          "id": 486,
+          "pp": 30
+        },
+        "move4": {
+          "name": "Move 2",
+          "id": 2,
+          "pp": 0
+        }
+      },
+      "evs": [
+        115,
+        0,
+        69,
+        0,
+        51,
+        0
+      ],
+      "ivs": [
+        7,
+        4,
+        0,
+        0,
+        3,
+        0
+      ],
+      "totalEvs": 235,
+      "totalIvs": 14
+    },
+    {
+      "personality": 9699370,
+      "otId": 9830549,
+      "nickname": "",
+      "unknown_12": [
+        102,
+        0
+      ],
+      "otName": "B",
+      "unknown_1B": [
+        0,
+        70,
+        0,
+        144,
+        0,
+        34,
+        0,
+        28
+      ],
+      "currentHp": 475,
+      "unknown_25": [
+        44,
+        0,
+        201
+      ],
+      "speciesId": 116,
+      "item": 7,
+      "unknown_2C": [
+        0,
+        3,
+        193,
+        1,
+        76,
+        0,
+        33,
+        3
+      ],
+      "move1": 70,
+      "move2": 82,
+      "move3": 21,
+      "move4": 484,
+      "pp1": 114,
+      "pp2": 0,
+      "pp3": 102,
+      "pp4": 0,
+      "hpEV": 45,
+      "atkEV": 0,
+      "defEV": 231,
+      "speEV": 0,
+      "spaEV": 211,
+      "spdEV": 0,
+      "unknown_46": [
+        135,
+        0,
+        48,
+        0,
+        127,
+        0,
+        71,
+        0,
+        227,
+        0
+      ],
+      "ivData": 31588472,
+      "unknown_54": [
+        213,
+        0,
+        219,
+        1
+      ],
+      "level": 44,
+      "unknown_59": 0,
+      "maxHp": 457,
+      "attack": 120,
+      "defense": 9,
+      "speed": 422,
+      "spAttack": 33,
+      "spDefense": 738,
+      "unknown_66": [
+        14,
+        0
+      ],
+      "displayOtId": "00149",
+      "displayNature": "Calm",
+      "moves": {
+        "move1": {
+          "name": "Move 70",
+          "id": 70,
+          "pp": 114
+        },
+        "move2": {
+          "name": "Move 82",
+          "id": 82,
+          "pp": 0
+        },
+        "move3": {
+          "name": "Move 21",
+          "id": 21,
+          "pp": 102
+        },
+        "move4": {
+          "name": "Move 484",
+          "id": 484,
+          "pp": 0
+        }
+      },
+      "evs": [
+        45,
+        0,
+        231,
+        0,
+        211,
+        0
+      ],
+      "ivs": [
+        24,
+        3,
+        0,
+        4,
+        30,
+        0
+      ],
+      "totalEvs": 487,
+      "totalIvs": 61
+    },
+    {
+      "personality": 14352596,
+      "otId": 14025206,
+      "nickname": "D",
+      "unknown_12": [
+        115,
+        0
+      ],
+      "otName": "\u0001\u0001",
+      "unknown_1B": [
+        0,
+        219,
+        0,
+        4,
+        0,
+        135,
+        0,
+        52
+      ],
+      "currentHp": 52,
+      "unknown_25": [
+        32,
+        0,
+        135
+      ],
+      "speciesId": 141,
+      "item": 102,
+      "unknown_2C": [
+        46,
+        0,
+        215,
+        0,
+        174,
+        1,
+        72,
+        0
+      ],
+      "move1": 136,
+      "move2": 136,
+      "move3": 136,
+      "move4": 1,
+      "pp1": 136,
+      "pp2": 0,
+      "pp3": 72,
+      "pp4": 0,
+      "hpEV": 136,
+      "atkEV": 0,
+      "defEV": 136,
+      "speEV": 0,
+      "spaEV": 136,
+      "spdEV": 0,
+      "unknown_46": [
+        52,
+        0,
+        71,
+        0,
+        179,
+        1,
+        32,
+        0,
+        48,
+        0
+      ],
+      "ivData": 4587585,
+      "unknown_54": [
+        102,
+        0,
+        52,
+        0
+      ],
+      "level": 32,
+      "unknown_59": 0,
+      "maxHp": 135,
+      "attack": 71,
+      "defense": 34,
+      "speed": 120,
+      "spAttack": 0,
+      "spDefense": 0,
+      "unknown_66": [
+        0,
+        0
+      ],
+      "displayOtId": "00502",
+      "displayNature": "Gentle",
+      "moves": {
+        "move1": {
+          "name": "Move 136",
+          "id": 136,
+          "pp": 136
+        },
+        "move2": {
+          "name": "Move 136",
+          "id": 136,
+          "pp": 0
+        },
+        "move3": {
+          "name": "Move 136",
+          "id": 136,
+          "pp": 72
+        },
+        "move4": {
+          "name": "Move 1",
+          "id": 1,
+          "pp": 0
+        }
+      },
+      "evs": [
+        136,
+        0,
+        136,
+        0,
+        136,
+        0
+      ],
+      "ivs": [
+        1,
+        2,
+        0,
+        12,
+        4,
+        0
+      ],
+      "totalEvs": 408,
+      "totalIvs": 19
+    }
+  ]
+}
