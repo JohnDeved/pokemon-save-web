@@ -30,7 +30,17 @@ export interface WatchConfirmMessage {
   message: string
 }
 
-export type WebSocketMessage = WatchMessage | MemoryUpdateMessage | WatchConfirmMessage
+export interface WelcomeMessage {
+  type: 'welcome'
+  message: string
+}
+
+export interface ErrorMessage {
+  type: 'error'
+  error: string
+}
+
+export type WebSocketMessage = WatchMessage | MemoryUpdateMessage | WatchConfirmMessage | WelcomeMessage | ErrorMessage
 
 export interface MemoryRegion {
   address: number
@@ -212,8 +222,14 @@ export class MgbaWebSocketClient {
             console.log('Memory watching confirmed:', message.message)
             this.isWatching = true
             break
+          case 'welcome':
+            // Silently handle welcome messages
+            break
+          case 'error':
+            console.error('WebSocket watch error:', message.error)
+            break
           default:
-            console.warn('Unknown WebSocket message type:', message.type)
+            console.warn('Unknown WebSocket message type:', (message as any).type)
         }
       }
     } catch (error) {

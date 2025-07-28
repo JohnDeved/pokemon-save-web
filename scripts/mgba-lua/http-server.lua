@@ -601,13 +601,49 @@ end)
 -- Memory watching state for WebSocket connections
 local memoryWatchers = {}
 
--- Simple JSON parser for WebSocket messages
+-- Simple JSON parser for WebSocket messages - handles specific patterns we expect
 local function parseJSON(str)
-    local chunk, err = load("return " .. str)
-    if not chunk then return nil, err end
-    local ok, result = pcall(chunk)
-    if not ok then return nil, result end
-    return result
+    if not str or str == "" then
+        return nil, "Empty JSON string"
+    end
+    
+    str = str:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
+    
+    -- Handle the simple case we expect: {"type":"watch","regions":[...]}
+    if str:match('^%s*{%s*"type"%s*:%s*"watch"') then
+        local result = { type = "watch" }
+        
+        -- Extract regions array
+        local regionsMatch = str:match('"regions"%s*:%s*%[(.-)%]')
+        if regionsMatch then
+            result.regions = {}
+            
+            -- Simple parser for objects like {"address":123,"size":7}
+            for objMatch in regionsMatch:gmatch('{[^}]*}') do
+                local obj = {}
+                
+                -- Extract address
+                local address = objMatch:match('"address"%s*:%s*(%d+)')
+                if address then
+                    obj.address = tonumber(address)
+                end
+                
+                -- Extract size
+                local size = objMatch:match('"size"%s*:%s*(%d+)')
+                if size then
+                    obj.size = tonumber(size)
+                end
+                
+                if obj.address and obj.size then
+                    table.insert(result.regions, obj)
+                end
+            end
+        end
+        
+        return result
+    end
+    
+    return nil, "Unsupported JSON format"
 end
 
 -- WebSocket route for Lua code evaluation
