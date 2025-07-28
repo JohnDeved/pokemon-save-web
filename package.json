@@ -45,7 +45,6 @@
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.0",
-    "isomorphic-ws": "^5.0.0",
     "lucide-react": "^0.525.0",
     "next-themes": "^0.4.6",
     "react-dropzone": "^14.3.8",
@@ -54,6 +53,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.11",
     "three": "^0.178.0",
+    "websocket": "^1.0.35",
     "zod": "^3.25.67"
   },
   "devDependencies": {
@@ -66,6 +66,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@types/three": "^0.177.0",
+    "@types/websocket": "^1.0.10",
     "@types/wicg-file-system-access": "^2023.10.6",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.7.0",

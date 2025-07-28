@@ -105,17 +105,17 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
     })
 
     it('should throw error when starting watch without regions', async () => {
-      // Mock connection state for watch endpoint
+      // Mock connection state for watch endpoint with new websocket package
       ;(client as any).watchConnected = true
-      ;(client as any).watchWs = { readyState: 1 }
+      ;(client as any).watchWs = { connected: true }
 
       await expect(client.startWatching([])).rejects.toThrow('No regions to watch')
     })
 
     it('should throw error when starting preload region watching without config', async () => {
-      // Mock connection state for watch endpoint
+      // Mock connection state for watch endpoint with new websocket package
       ;(client as any).watchConnected = true
-      ;(client as any).watchWs = { readyState: 1 }
+      ;(client as any).watchWs = { connected: true }
 
       await expect(client.startWatchingPreloadRegions()).rejects.toThrow('No preload regions configured')
     })

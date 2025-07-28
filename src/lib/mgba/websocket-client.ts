@@ -3,7 +3,9 @@
  * Handles communication with the mGBA Lua HTTP server's WebSocket endpoint
  */
 
-import WebSocket from 'isomorphic-ws'
+import * as WebSocket from 'websocket'
+
+type WebSocketConnection = WebSocket.connection
 
 export interface MgbaEvalResponse {
   result?: unknown
@@ -69,8 +71,8 @@ const MEMORY_CONSTANTS = {
 } as const
 
 export class MgbaWebSocketClient {
-  private evalWs: WebSocket | null = null
-  private watchWs: WebSocket | null = null
+  private evalWs: WebSocketConnection | null = null
+  private watchWs: WebSocketConnection | null = null
   private evalConnected = false
   private watchConnected = false
   private baseUrl: string
@@ -115,28 +117,34 @@ export class MgbaWebSocketClient {
   private async connectEval (): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        this.evalWs = new WebSocket(`${this.baseUrl}/eval`)
+        const wsClient = new WebSocket.client()
 
-        const onOpen = () => {
+        wsClient.on('connectFailed', (error) => {
+          console.error('WebSocket eval connection failed:', error)
+          this.evalConnected = false
+          reject(error)
+        })
+
+        wsClient.on('connect', (connection) => {
           console.log('Connected to mGBA WebSocket eval endpoint')
+          this.evalWs = connection
           this.evalConnected = true
+
+          connection.on('close', () => {
+            console.log('WebSocket eval connection closed')
+            this.evalConnected = false
+            this.evalWs = null
+          })
+
+          connection.on('error', (error) => {
+            console.error('WebSocket eval error:', error)
+            this.evalConnected = false
+          })
+
           resolve()
-        }
+        })
 
-        const onError = (error: ErrorEvent | Event | unknown) => {
-          console.error('WebSocket eval error:', error)
-          this.evalConnected = false
-          reject(error instanceof Error ? error : new Error(String(error)))
-        }
-
-        const onClose = () => {
-          console.log('WebSocket eval connection closed')
-          this.evalConnected = false
-        }
-
-        this.evalWs.addEventListener('open', onOpen)
-        this.evalWs.addEventListener('error', onError)
-        this.evalWs.addEventListener('close', onClose)
+        wsClient.connect(`${this.baseUrl}/eval`)
       } catch (error) {
         reject(error)
       }
@@ -149,34 +157,40 @@ export class MgbaWebSocketClient {
   private async connectWatch (): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        this.watchWs = new WebSocket(`${this.baseUrl}/watch`)
+        const wsClient = new WebSocket.client()
 
-        const onOpen = () => {
+        wsClient.on('connectFailed', (error) => {
+          console.error('WebSocket watch connection failed:', error)
+          this.watchConnected = false
+          reject(error)
+        })
+
+        wsClient.on('connect', (connection) => {
           console.log('Connected to mGBA WebSocket watch endpoint')
+          this.watchWs = connection
           this.watchConnected = true
+
+          connection.on('close', () => {
+            console.log('WebSocket watch connection closed')
+            this.watchConnected = false
+            this.isWatching = false
+            this.watchWs = null
+          })
+
+          connection.on('error', (error) => {
+            console.error('WebSocket watch error:', error)
+            this.watchConnected = false
+          })
+
+          connection.on('message', (message) => {
+            const messageText = message.type === 'utf8' ? message.utf8Data : ''
+            this.handleWatchMessage(messageText || '')
+          })
+
           resolve()
-        }
+        })
 
-        const onError = (error: ErrorEvent | Event | unknown) => {
-          console.error('WebSocket watch error:', error)
-          this.watchConnected = false
-          reject(error instanceof Error ? error : new Error(String(error)))
-        }
-
-        const onClose = () => {
-          console.log('WebSocket watch connection closed')
-          this.watchConnected = false
-          this.isWatching = false
-        }
-
-        const onMessage = (event: { data: unknown }) => {
-          this.handleWatchMessage(String(event.data))
-        }
-
-        this.watchWs.addEventListener('open', onOpen)
-        this.watchWs.addEventListener('error', onError)
-        this.watchWs.addEventListener('close', onClose)
-        this.watchWs.addEventListener('message', onMessage)
+        wsClient.connect(`${this.baseUrl}/watch`)
       } catch (error) {
         reject(error)
       }
@@ -287,7 +301,7 @@ export class MgbaWebSocketClient {
       regions: regionsToWatch
     }
 
-    this.watchWs!.send(JSON.stringify(watchMessage))
+    this.watchWs!.sendUTF(JSON.stringify(watchMessage))
     console.log(`🔍 Started watching ${regionsToWatch.length} memory regions`)
   }
 
@@ -345,14 +359,14 @@ export class MgbaWebSocketClient {
    * Check if connected to eval endpoint
    */
   isEvalConnected (): boolean {
-    return this.evalConnected && this.evalWs?.readyState === WebSocket.OPEN
+    return this.evalConnected && this.evalWs?.connected === true
   }
 
   /**
    * Check if connected to watch endpoint
    */
   isWatchConnected (): boolean {
-    return this.watchConnected && this.watchWs?.readyState === WebSocket.OPEN
+    return this.watchConnected && this.watchWs?.connected === true
   }
 
   /**
@@ -370,32 +384,32 @@ export class MgbaWebSocketClient {
       }
 
       // Set up one-time message handler for this eval
-      const messageHandler = (event: { data: unknown }) => {
-        const message = typeof event.data === 'string' ? event.data : String(event.data)
+      const messageHandler = (message: any) => {
+        const messageText = message.type === 'utf8' ? message.utf8Data : (message.binaryData?.toString() || '')
 
         // Skip welcome messages and other non-JSON responses
-        if (!message.startsWith('{')) {
+        if (!messageText.startsWith('{')) {
           return // Don't resolve/reject, wait for actual response
         }
 
         try {
-          const response = JSON.parse(message) as MgbaEvalResponse
-          this.evalWs?.removeEventListener('message', messageHandler)
+          const response = JSON.parse(messageText) as MgbaEvalResponse
+          this.evalWs?.removeListener('message', messageHandler)
           resolve(response)
         } catch (error) {
-          this.evalWs?.removeEventListener('message', messageHandler)
+          this.evalWs?.removeListener('message', messageHandler)
           reject(new Error(`Failed to parse eval response: ${String(error)}`))
         }
       }
 
-      this.evalWs.addEventListener('message', messageHandler)
+      this.evalWs.on('message', messageHandler)
 
       // Send the code to evaluate
-      this.evalWs.send(code)
+      this.evalWs.sendUTF(code)
 
       // Timeout after configured time
       setTimeout(() => {
-        this.evalWs?.removeEventListener('message', messageHandler)
+        this.evalWs?.removeListener('message', messageHandler)
         reject(new Error('Eval request timed out'))
       }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
     })

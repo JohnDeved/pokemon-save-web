@@ -31,6 +31,47 @@ local HttpServer = {}
 HttpServer.__index = HttpServer
 
 --------------------------------------------------------------------------------
+-- Logging Utilities
+--------------------------------------------------------------------------------
+
+--- Enhanced logging that outputs to both mGBA console and stdout for Docker visibility
+---@param level string
+---@param message string
+local function log(level, message)
+    local timestamp = os.date("%H:%M:%S")
+    local logMessage = string.format("[%s] %s: %s", timestamp, level, message)
+    
+    -- Log to mGBA console (internal log window)
+    if level == "ERROR" then
+        console:error(logMessage)
+    else
+        console:log(logMessage)
+    end
+    
+    -- Also log to stdout so it appears in Docker console
+    io.stdout:write(logMessage .. "\n")
+    io.stdout:flush()
+end
+
+--- Log info message
+---@param message string
+local function logInfo(message)
+    log("INFO", message)
+end
+
+--- Log error message  
+---@param message string
+local function logError(message)
+    log("ERROR", message)
+end
+
+--- Log debug message
+---@param message string
+local function logDebug(message)
+    log("DEBUG", message)
+end
+
+--------------------------------------------------------------------------------
 -- "Static" Methods
 --------------------------------------------------------------------------------
 
@@ -292,7 +333,7 @@ function HttpServer:_create_response(client, clientId)
             local ok, err = client:send(response_str)
             
             if not ok then
-                console:log("[ERROR] Send failed for client " .. clientId .. ": " .. tostring(err))
+                logError("Send failed for client " .. clientId .. ": " .. tostring(err))
             end
             
             self.finished = true
@@ -401,7 +442,7 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     
     local ok, err = client:send(response)
     if not ok then
-        console:log("[ERROR] WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
+        logError("WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
         self:_cleanup_client(clientId)
         return
     end
@@ -537,7 +578,7 @@ function HttpServer:listen(port, callback)
             if err == socket.ERRORS.ADDRESS_IN_USE then
                 port = port + 1
             elseif err then
-                console:log("Error binding server: " .. tostring(err))
+                logError("Error binding server: " .. tostring(err))
                 return
             end
         until server
@@ -546,7 +587,7 @@ function HttpServer:listen(port, callback)
         local ok, listen_err = server:listen()
         if listen_err then
             server:close()
-            console:log("Error listening: " .. tostring(listen_err))
+            logError("Error listening: " .. tostring(listen_err))
             return
         end
 
@@ -561,11 +602,11 @@ function HttpServer:listen(port, callback)
         start_server()
     else
         -- ROM not loaded, register callback to start server later
-        console:log("🕹️ mGBA HTTP Server is initializing. Waiting for ROM to be loaded in the emulator...")
+        logInfo("🕹️ mGBA HTTP Server is initializing. Waiting for ROM to be loaded in the emulator...")
         local cbid
         cbid = callbacks:add("start", function()
             if not emu or not emu.romSize or emu:romSize() == 0 then
-                console:error("[ERROR] No ROM loaded. HTTP server will not start.")
+                logError("No ROM loaded. HTTP server will not start.")
                 return
             end
             start_server()
@@ -582,7 +623,7 @@ local app = HttpServer:new()
 
 -- Global middleware
 app:use(function(req, res)
-    console:log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
+    logInfo(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
 end)
 
 -- Routes
@@ -648,11 +689,11 @@ end
 
 -- WebSocket route for Lua code evaluation
 app:websocket("/eval", function(ws)
-    console:log("WebSocket connected to eval endpoint: " .. ws.path)
+    logInfo("WebSocket connected to eval endpoint: " .. ws.path)
 
     ws.onMessage = function(message)
         local function safe_handler()
-            console:log("WebSocket eval message: " .. tostring(message))
+            logDebug("WebSocket eval message: " .. tostring(message))
             
             local chunk = message
             
@@ -672,18 +713,18 @@ app:websocket("/eval", function(ws)
                 ws:send(HttpServer.jsonStringify({result = result}))
             else
                 ws:send(HttpServer.jsonStringify({error = tostring(result)}))
-                console:error("[WebSocket Eval Error] " .. tostring(result))
+                logError("WebSocket Eval Error: " .. tostring(result))
             end
         end
         local ok, err = pcall(safe_handler)
         if not ok then
             ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
-            console:error("[WebSocket Handler Error] " .. tostring(err))
+            logError("WebSocket Handler Error: " .. tostring(err))
         end
     end
 
     ws.onClose = function()
-        console:log("WebSocket disconnected from eval endpoint: " .. ws.path)
+        logInfo("WebSocket disconnected from eval endpoint: " .. ws.path)
     end
 
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
@@ -691,7 +732,7 @@ end)
 
 -- WebSocket route for memory watching
 app:websocket("/watch", function(ws)
-    console:log("WebSocket connected to watch endpoint: " .. ws.path)
+    logInfo("WebSocket connected to watch endpoint: " .. ws.path)
 
     -- Initialize memory watcher for this connection
     memoryWatchers[ws.id] = {
@@ -701,7 +742,7 @@ app:websocket("/watch", function(ws)
 
     ws.onMessage = function(message)
         local function safe_handler()
-            console:log("WebSocket watch message: " .. tostring(message))
+            logDebug("WebSocket watch message: " .. tostring(message))
             
             -- Parse JSON message for memory watching
             local parsed, parseErr = parseJSON(message)
@@ -716,7 +757,7 @@ app:websocket("/watch", function(ws)
             if parsed.type == "watch" then
                 -- Handle memory region watching request
                 if parsed.regions and type(parsed.regions) == "table" then
-                    console:log("Setting up memory watch for " .. #parsed.regions .. " regions")
+                    logInfo("Setting up memory watch for " .. #parsed.regions .. " regions")
                     local watcher = memoryWatchers[ws.id]
                     watcher.regions = parsed.regions
                     watcher.lastData = {}
@@ -749,12 +790,12 @@ app:websocket("/watch", function(ws)
         local ok, err = pcall(safe_handler)
         if not ok then
             ws:send(HttpServer.jsonStringify({type = "error", error = "Internal server error: " .. tostring(err)}))
-            console:error("[WebSocket Watch Handler Error] " .. tostring(err))
+            logError("WebSocket Watch Handler Error: " .. tostring(err))
         end
     end
 
     ws.onClose = function()
-        console:log("WebSocket disconnected from watch endpoint: " .. ws.path)
+        logInfo("WebSocket disconnected from watch endpoint: " .. ws.path)
         -- Cleanup memory watcher
         memoryWatchers[ws.id] = nil
     end
@@ -815,7 +856,7 @@ local function setupMemoryMonitoring()
         callbacks:remove(frameCallbackId)
     end
     frameCallbackId = callbacks:add("frame", checkMemoryChanges)
-    console:log("🔍 Memory monitoring callback registered")
+    logInfo("🔍 Memory monitoring callback registered")
 end
 
 -- Setup monitoring when ROM is loaded
@@ -831,5 +872,5 @@ end
 
 -- Start server
 app:listen(7102, function(port)
-    console:log("🚀 mGBA HTTP Server started on port " .. port)
+    logInfo("🚀 mGBA HTTP Server started on port " .. port)
 end)
