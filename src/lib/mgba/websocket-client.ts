@@ -287,21 +287,25 @@ export class MgbaWebSocketClient {
    */
   private startHeartbeat (): void {
     this.stopHeartbeat() // Clean up any existing interval
+    this.lastPingTime = Date.now() // Initialize ping time
 
     this.heartbeatInterval = setInterval(() => {
       try {
-        if (this.evalWs && this.evalConnected) {
+        const now = Date.now()
+        
+        // Send ping frames to both connections if they're open
+        if (this.evalWs && this.evalConnected && this.evalWs.readyState === WebSocket.OPEN) {
           this.evalWs.ping('ping')
         }
-        if (this.watchWs && this.watchConnected) {
+        
+        if (this.watchWs && this.watchConnected && this.watchWs.readyState === WebSocket.OPEN) {
           this.watchWs.ping('ping')
         }
 
-        // Check if we've received recent pongs
-        const now = Date.now()
-        if (this.lastPingTime > 0 && (now - this.lastPingTime) > CONNECTION_CONSTANTS.HEARTBEAT_INTERVAL_MS * 2) {
-          console.warn('WebSocket heartbeat timeout detected')
-          // Don't auto-reconnect, just log the issue
+        // Check if we've received recent pongs (only if we've sent pings before)
+        if (this.lastPingTime > 0 && (now - this.lastPingTime) > CONNECTION_CONSTANTS.HEARTBEAT_INTERVAL_MS * 3) {
+          console.warn('WebSocket heartbeat timeout detected - no pong responses for extended period')
+          // Don't auto-reconnect, just log the issue for debugging
         }
       } catch (error) {
         console.error('Heartbeat error:', error)
@@ -323,36 +327,57 @@ export class MgbaWebSocketClient {
    * Handle incoming WebSocket messages from watch endpoint
    */
   private handleWatchMessage (data: string): void {
-    // Skip empty messages or non-JSON messages (like welcome messages)
-    if (!data.trim() || !data.startsWith('{')) {
+    // Enhanced message validation and filtering
+    if (!data || typeof data !== 'string') {
+      console.warn('Received invalid message type:', typeof data)
+      return
+    }
+
+    const trimmedData = data.trim()
+    
+    // Skip empty messages or whitespace-only messages
+    if (trimmedData.length === 0) {
+      // Silently ignore empty messages - these can come from ping/pong frames
+      return
+    }
+
+    // Skip non-JSON messages (like plain text welcome messages from older server versions)
+    if (!trimmedData.startsWith('{')) {
+      console.log('Received non-JSON message:', trimmedData.substring(0, 100))
       return
     }
 
     try {
-      const message = JSON.parse(data) as WebSocketMessage
+      const message = JSON.parse(trimmedData) as WebSocketMessage
+
+      // Validate message structure
+      if (!message || typeof message !== 'object' || !('type' in message)) {
+        console.warn('Received message without type field:', trimmedData.substring(0, 100))
+        return
+      }
 
       // Handle structured messages
-      if ('type' in message) {
-        switch (message.type) {
-          case 'memoryUpdate':
-            this.handleMemoryUpdate(message)
-            break
-          case 'watchConfirm':
-            console.log('Memory watching confirmed:', message.message)
-            this.isWatching = true
-            break
-          case 'welcome':
-            // Silently handle welcome messages
-            break
-          case 'error':
-            console.error('WebSocket watch error:', message.error)
-            break
-          default:
-            console.warn('Unknown WebSocket message type:', (message as { type: string }).type)
-        }
+      switch (message.type) {
+        case 'memoryUpdate':
+          this.handleMemoryUpdate(message)
+          break
+        case 'watchConfirm':
+          console.log('Memory watching confirmed:', message.message)
+          this.isWatching = true
+          break
+        case 'welcome':
+          // Silently handle welcome messages
+          console.log('WebSocket watch endpoint ready')
+          break
+        case 'error':
+          console.error('WebSocket watch error:', message.error)
+          break
+        default:
+          console.warn('Unknown WebSocket message type:', (message as { type: string }).type)
       }
     } catch (error) {
-      console.warn('Failed to parse WebSocket message:', error)
+      console.warn('Failed to parse WebSocket message as JSON:', error)
+      console.warn('Message preview:', trimmedData.substring(0, 200))
     }
   }
 

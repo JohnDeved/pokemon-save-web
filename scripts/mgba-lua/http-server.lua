@@ -207,11 +207,12 @@ function HttpServer.createWebSocketFrame(data)
     return frame .. data
 end
 
---- Parses WebSocket frame.
+--- Parses WebSocket frame with comprehensive frame type handling.
 ---@param data string
----@return string?, number
+---@return string?, number, string?
 function HttpServer.parseWebSocketFrame(data)
-    if #data < 2 then return nil, 0 end
+    if #data < 2 then return nil, 0, "incomplete_frame" end
+    
     local b1, b2 = string.byte(data, 1, 2)
     local fin = (b1 & 0x80) ~= 0
     local opcode = b1 & 0x0F
@@ -219,24 +220,33 @@ function HttpServer.parseWebSocketFrame(data)
     local len = b2 & 0x7F
     local offset = 2
     local mask = nil
+    
+    -- Handle extended payload length
     if len == 126 then
-        if #data < 4 then return nil, 0 end
+        if #data < 4 then return nil, 0, "incomplete_frame" end
         len = (string.byte(data, 3) << 8) + string.byte(data, 4)
         offset = 4
     elseif len == 127 then
-        if #data < 10 then return nil, 0 end
+        if #data < 10 then return nil, 0, "incomplete_frame" end
         len = (string.byte(data, 9) << 8) + string.byte(data, 10)
         offset = 10
     end
+    
+    -- Handle masking
     if masked then
-        if #data < offset + 4 then return nil, 0 end
+        if #data < offset + 4 then return nil, 0, "incomplete_frame" end
         mask = {data:byte(offset+1, offset+4)}
         offset = offset + 4
     end
-    if #data < offset + len then return nil, 0 end
-    if opcode == 0x8 then -- Close frame
-        return nil, -1
-    elseif opcode == 0x1 or opcode == 0x2 then -- Text or binary
+    
+    -- Check if we have complete payload
+    if #data < offset + len then return nil, 0, "incomplete_frame" end
+    
+    -- Handle different frame types
+    if opcode == 0x0 then -- Continuation frame
+        logDebug("Received continuation frame (not implemented)")
+        return nil, offset + len, "continuation_frame"
+    elseif opcode == 0x1 then -- Text frame
         local payload = data:sub(offset + 1, offset + len)
         if masked and mask then
             local unmasked = {}
@@ -245,9 +255,31 @@ function HttpServer.parseWebSocketFrame(data)
             end
             payload = table.concat(unmasked)
         end
-        return payload, offset + len
+        return payload, offset + len, "text"
+    elseif opcode == 0x2 then -- Binary frame
+        local payload = data:sub(offset + 1, offset + len)
+        if masked and mask then
+            local unmasked = {}
+            for i = 1, #payload do
+                unmasked[i] = string.char(payload:byte(i) ~ mask[((i-1)%4)+1])
+            end
+            payload = table.concat(unmasked)
+        end
+        return payload, offset + len, "binary"
+    elseif opcode == 0x8 then -- Close frame
+        logDebug("Received close frame")
+        return nil, -1, "close"
+    elseif opcode == 0x9 then -- Ping frame
+        logDebug("Received ping frame")
+        return nil, offset + len, "ping"
+    elseif opcode == 0xA then -- Pong frame
+        logDebug("Received pong frame")
+        return nil, offset + len, "pong"
+    else
+        logError("Unknown WebSocket opcode: " .. opcode)
+        return nil, offset + len, "unknown"
     end
-    return "", offset + len
+end
 end
 
 --------------------------------------------------------------------------------
@@ -468,7 +500,7 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     end
 end
 
---- Handles WebSocket frame data.
+--- Handles WebSocket frame data with robust frame type handling.
 ---@param clientId number
 ---@private
 function HttpServer:_handle_websocket_data(clientId)
@@ -479,17 +511,39 @@ function HttpServer:_handle_websocket_data(clientId)
     local chunk, err = client:receive(1024)
     if not chunk then
         if err ~= socket.ERRORS.AGAIN then
+            logDebug("WebSocket receive error for client " .. clientId .. ": " .. tostring(err))
             self:_cleanup_client(clientId)
         end
         return
     end
     
-    local message, consumed = HttpServer.parseWebSocketFrame(chunk)
+    local message, consumed, frameType = HttpServer.parseWebSocketFrame(chunk)
     if consumed == -1 then -- Close frame
+        logInfo("WebSocket close frame received from client " .. clientId)
         self:_cleanup_client(clientId)
         return
-    elseif message and ws.onMessage then
-        ws.onMessage(message)
+    elseif frameType == "ping" then
+        -- Respond to ping with pong
+        local pongFrame = string.char(0x8A, 0x00) -- Pong frame with no payload
+        local ok, sendErr = client:send(pongFrame)
+        if not ok then
+            logError("Failed to send pong response to client " .. clientId .. ": " .. tostring(sendErr))
+        else
+            logDebug("Sent pong response to client " .. clientId)
+        end
+    elseif frameType == "pong" then
+        -- Handle pong response (do nothing, just log)
+        logDebug("Received pong response from client " .. clientId)
+    elseif frameType == "text" or frameType == "binary" then
+        -- Only process text and binary frames as messages
+        if message and #message > 0 and ws.onMessage then
+            logDebug("Processing " .. frameType .. " message from client " .. clientId .. " (length: " .. #message .. ")")
+            ws.onMessage(message)
+        elseif message and #message == 0 then
+            logDebug("Received empty " .. frameType .. " message from client " .. clientId .. " - ignoring")
+        end
+    elseif frameType then
+        logDebug("Received " .. frameType .. " frame from client " .. clientId .. " - ignoring")
     end
 end
 
@@ -770,18 +824,30 @@ app:websocket("/eval", function(ws)
 
     ws.onMessage = function(message)
         local function safe_handler()
-            if not message or message == "" then
-                ws:send(HttpServer.jsonStringify({error = "Empty message"}))
+            -- Enhanced message validation
+            if not message then
+                logDebug("Received nil message on eval endpoint")
                 return
             end
             
-            logDebug("WebSocket eval message: " .. tostring(message))
+            if type(message) ~= "string" then
+                logDebug("Received non-string message on eval endpoint: " .. type(message))
+                return
+            end
             
-            local chunk = message
+            local trimmedMessage = message:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
+            if #trimmedMessage == 0 then
+                logDebug("Received empty message on eval endpoint (after trimming)")
+                return
+            end
+            
+            logDebug("WebSocket eval message: " .. tostring(trimmedMessage))
+            
+            local chunk = trimmedMessage
             
             -- Enhanced support for non-self-executing function inputs
-            if not message:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
-                chunk = "return " .. message
+            if not trimmedMessage:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+                chunk = "return " .. trimmedMessage
             end
             
             -- Validate chunk length to prevent memory issues
@@ -857,18 +923,27 @@ app:websocket("/watch", function(ws)
 
     ws.onMessage = function(message)
         local function safe_handler()
-            if not message or message == "" then
-                ws:send(HttpServer.jsonStringify({
-                    type = "error",
-                    error = "Empty message"
-                }))
+            -- Enhanced message validation
+            if not message then
+                logDebug("Received nil message on watch endpoint")
                 return
             end
             
-            logDebug("WebSocket watch message: " .. tostring(message))
+            if type(message) ~= "string" then
+                logDebug("Received non-string message on watch endpoint: " .. type(message))
+                return
+            end
+            
+            local trimmedMessage = message:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
+            if #trimmedMessage == 0 then
+                logDebug("Received empty message on watch endpoint (after trimming)")
+                return
+            end
+            
+            logDebug("WebSocket watch message: " .. tostring(trimmedMessage))
             
             -- Parse JSON message for memory watching
-            local parsed, parseErr = parseJSON(message)
+            local parsed, parseErr = parseJSON(trimmedMessage)
             if not parsed or type(parsed) ~= "table" or not parsed.type then
                 ws:send(HttpServer.jsonStringify({
                     type = "error",
