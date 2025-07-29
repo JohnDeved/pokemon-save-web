@@ -61,7 +61,7 @@ describe('Pokemon Quetzal Tests', () => {
 
       // Auto-detection should work correctly
       const autoParser = new PokemonSaveParser()
-      const autoResult = await autoParser.parseSaveFile(testSaveData)
+      const autoResult = await autoParser.parse(testSaveData)
       expect(autoResult.party_pokemon.length).toBe(groundTruth.party_pokemon.length)
       expect(autoParser.gameConfig?.name).toBe('Pokemon Quetzal')
     })
@@ -81,13 +81,13 @@ describe('Pokemon Quetzal Tests', () => {
 
       // Auto-detection should pick the right config
       const quetzalParser = new PokemonSaveParser()
-      const quetzalResult = await quetzalParser.parseSaveFile(testSaveData)
+      const quetzalResult = await quetzalParser.parse(testSaveData)
       expect(quetzalParser.gameConfig?.name).toBe('Pokemon Quetzal')
       expect(quetzalResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon
 
       const vanillaParser = new PokemonSaveParser()
       const vanillaArrayBuffer = vanillaBuffer.buffer.slice(vanillaBuffer.byteOffset, vanillaBuffer.byteOffset + vanillaBuffer.byteLength)
-      const vanillaResult = await vanillaParser.parseSaveFile(vanillaArrayBuffer)
+      const vanillaResult = await vanillaParser.parse(vanillaArrayBuffer)
       expect(vanillaParser.gameConfig?.name).toBe('Pokemon Emerald (Vanilla)')
       expect(vanillaResult.party_pokemon.length).toBe(1) // Vanilla has one Pokemon
     })
@@ -97,7 +97,7 @@ describe('Pokemon Quetzal Tests', () => {
     let parsedData: SaveData
 
     beforeAll(async () => {
-      parsedData = await parser.parseSaveFile(testSaveData)
+      parsedData = await parser.parse(testSaveData)
     })
 
     it('should parse player information correctly', () => {
@@ -211,7 +211,7 @@ describe('Pokemon Quetzal Tests', () => {
 
   describe('Nature Calculation', () => {
     it('should calculate natures correctly using Quetzal formula', async () => {
-      const result = await parser.parseSaveFile(testSaveData)
+      const result = await parser.parse(testSaveData)
 
       for (let i = 0; i < result.party_pokemon.length; i++) {
         const pokemon = result.party_pokemon[i]
@@ -230,7 +230,7 @@ describe('Pokemon Quetzal Tests', () => {
 
   describe('EV Writing and Persistence', () => {
     it('should allow writing and reading EVs back correctly', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -246,7 +246,7 @@ describe('Pokemon Quetzal Tests', () => {
         const reconstructed = parser.reconstructSaveFile(parsedData.party_pokemon)
 
         // Parse the reconstructed save file
-        const reparsed = await parser.parseSaveFile(reconstructed)
+        const reparsed = await parser.parse(reconstructed)
 
         // Verify EVs persisted correctly
         expect(reparsed.party_pokemon).toHaveLength(parsedData.party_pokemon.length)
@@ -261,7 +261,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should handle individual EV modifications', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -283,7 +283,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should test EV writing across multiple Pokemon', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       // Modify EVs for all Pokemon in party
       parsedData.party_pokemon.forEach((pokemon, index) => {
@@ -293,7 +293,7 @@ describe('Pokemon Quetzal Tests', () => {
 
       // Reconstruct and reparse
       const reconstructed = parser.reconstructSaveFile(parsedData.party_pokemon)
-      const reparsed = await parser.parseSaveFile(reconstructed)
+      const reparsed = await parser.parse(reconstructed)
 
       // Verify all Pokemon have correct EVs
       reparsed.party_pokemon.forEach((pokemon, index) => {
@@ -306,7 +306,7 @@ describe('Pokemon Quetzal Tests', () => {
 
   describe('IV Writing and Persistence', () => {
     it('should allow writing and reading IVs back correctly', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -322,7 +322,7 @@ describe('Pokemon Quetzal Tests', () => {
         const reconstructed = parser.reconstructSaveFile(parsedData.party_pokemon)
 
         // Parse the reconstructed save file
-        const reparsed = await parser.parseSaveFile(reconstructed)
+        const reparsed = await parser.parse(reconstructed)
 
         // Verify IVs persisted correctly
         expect(reparsed.party_pokemon).toHaveLength(parsedData.party_pokemon.length)
@@ -337,7 +337,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should handle individual IV modifications', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -354,7 +354,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should test IV writing across multiple Pokemon', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       // Modify IVs for all Pokemon in party
       parsedData.party_pokemon.forEach((pokemon, index) => {
@@ -364,7 +364,7 @@ describe('Pokemon Quetzal Tests', () => {
 
       // Reconstruct and reparse
       const reconstructed = parser.reconstructSaveFile(parsedData.party_pokemon)
-      const reparsed = await parser.parseSaveFile(reconstructed)
+      const reparsed = await parser.parse(reconstructed)
 
       // Verify all Pokemon have correct IVs
       reparsed.party_pokemon.forEach((pokemon, index) => {
@@ -377,7 +377,7 @@ describe('Pokemon Quetzal Tests', () => {
 
   describe('Save File Reconstruction', () => {
     it('should produce identical save file when reconstructing with unchanged party', async () => {
-      const parsed = await parser.parseSaveFile(testSaveData)
+      const parsed = await parser.parse(testSaveData)
       const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon.slice())
 
       // Create hash function for comparison
@@ -393,7 +393,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should produce different hash when party order is changed', async () => {
-      const parsed = await parser.parseSaveFile(testSaveData)
+      const parsed = await parser.parse(testSaveData)
 
       if (parsed.party_pokemon.length < 2) return
 
@@ -417,7 +417,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should reflect party changes when reparsing reconstructed data', async () => {
-      const parsed = await parser.parseSaveFile(testSaveData)
+      const parsed = await parser.parse(testSaveData)
 
       if (parsed.party_pokemon.length < 2) return
 
@@ -427,7 +427,7 @@ describe('Pokemon Quetzal Tests', () => {
       swapped[swapped.length - 1] = temp!
 
       const reconstructed = parser.reconstructSaveFile(swapped)
-      const reparsed = await parser.parseSaveFile(reconstructed)
+      const reparsed = await parser.parse(reconstructed)
 
       // Verify the swap was preserved
       expect(reparsed.party_pokemon[0]!.speciesId).toBe(parsed.party_pokemon[parsed.party_pokemon.length - 1]!.speciesId)
@@ -435,7 +435,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should maintain data integrity when modifying Pokemon stats and EVs/IVs', async () => {
-      const parsed = await parser.parseSaveFile(testSaveData)
+      const parsed = await parser.parse(testSaveData)
 
       if (parsed.party_pokemon.length > 0) {
         const pokemon = parsed.party_pokemon[0]!
@@ -450,7 +450,7 @@ describe('Pokemon Quetzal Tests', () => {
 
         // Reconstruct and reparse
         const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon)
-        const reparsed = await parser.parseSaveFile(reconstructed)
+        const reparsed = await parser.parse(reconstructed)
 
         // Verify changes persisted
         const reparsedPokemon = reparsed.party_pokemon[0]!
@@ -466,7 +466,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should handle unencrypted data structure correctly during reconstruction', async () => {
-      const parsed = await parser.parseSaveFile(testSaveData)
+      const parsed = await parser.parse(testSaveData)
 
       // Modify multiple Pokemon with various changes
       parsed.party_pokemon.forEach((pokemon, index) => {
@@ -478,7 +478,7 @@ describe('Pokemon Quetzal Tests', () => {
 
       // Reconstruct and reparse
       const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon)
-      const reparsed = await parser.parseSaveFile(reconstructed)
+      const reparsed = await parser.parse(reconstructed)
 
       // Verify all changes persisted correctly
       reparsed.party_pokemon.forEach((pokemon, index) => {
@@ -496,7 +496,7 @@ describe('Pokemon Quetzal Tests', () => {
 
   describe('Data Structure Validation', () => {
     it('should create properly structured Pokemon data', async () => {
-      const result = await parser.parseSaveFile(testSaveData)
+      const result = await parser.parse(testSaveData)
 
       result.party_pokemon.forEach((pokemon) => {
         // Verify required properties exist
@@ -519,7 +519,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should handle Quetzal-specific features correctly', async () => {
-      const result = await parser.parseSaveFile(testSaveData)
+      const result = await parser.parse(testSaveData)
 
       result.party_pokemon.forEach((pokemon) => {
         // Test shiny calculation (Quetzal-specific)
@@ -539,7 +539,7 @@ describe('Pokemon Quetzal Tests', () => {
     })
 
     it('should use correct Quetzal shiny logic distinct from vanilla', async () => {
-      const result = await parser.parseSaveFile(testSaveData)
+      const result = await parser.parse(testSaveData)
 
       result.party_pokemon.forEach((pokemon) => {
         // Verify shiny logic is different from vanilla

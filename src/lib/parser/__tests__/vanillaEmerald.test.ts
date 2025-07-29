@@ -77,7 +77,7 @@ describe('Vanilla Emerald Save Parser', () => {
 
       // Auto-detection should also work correctly
       const autoParser = new PokemonSaveParser()
-      const autoResult = await autoParser.parseSaveFile(testSaveData)
+      const autoResult = await autoParser.parse(testSaveData)
       expect(autoResult.party_pokemon.length).toBe(1)
       expect(autoResult.party_pokemon[0]?.speciesId).toBe(252)
       expect(autoResult.party_pokemon[0]?.nature).toBe('Hasty')
@@ -100,7 +100,7 @@ describe('Vanilla Emerald Save Parser', () => {
       // Auto-detection should pick Quetzal for quetzal.sav
       const autoParser = new PokemonSaveParser()
       const quetzalArrayBuffer = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
-      const autoResult = await autoParser.parseSaveFile(quetzalArrayBuffer)
+      const autoResult = await autoParser.parse(quetzalArrayBuffer)
       expect(autoParser.gameConfig?.name).toBe('Pokemon Quetzal')
       expect(autoResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon
     })
@@ -110,7 +110,7 @@ describe('Vanilla Emerald Save Parser', () => {
     let parsedData: SaveData
 
     beforeAll(async () => {
-      parsedData = await parser.parseSaveFile(testSaveData)
+      parsedData = await parser.parse(testSaveData)
     })
 
     it('should parse player name correctly', () => {

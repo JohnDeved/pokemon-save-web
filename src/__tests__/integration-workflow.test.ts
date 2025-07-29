@@ -20,7 +20,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       const parser = new PokemonSaveParser()
 
       // Parse save file
-      const result = await parser.parseSaveFile(saveData.buffer)
+      const result = await parser.parse(saveData.buffer)
 
       // Verify basic structure
       expect(result).toBeDefined()
@@ -44,7 +44,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       // Load and parse save file
       const saveData = fs.readFileSync(testDataPath)
       const parser = new PokemonSaveParser()
-      const result = await parser.parseSaveFile(saveData.buffer)
+      const result = await parser.parse(saveData.buffer)
 
       // Get first Pokemon
       const pokemon = result.party_pokemon[0]
@@ -64,7 +64,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       // Load and parse save file
       const saveData = fs.readFileSync(testDataPath)
       const parser = new PokemonSaveParser()
-      const result = await parser.parseSaveFile(saveData.buffer)
+      const result = await parser.parse(saveData.buffer)
 
       // Reconstruct save file
       const reconstructed = parser.reconstructSaveFile(result.party_pokemon)
@@ -115,7 +115,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       const invalidData = new ArrayBuffer(100) // Too small for valid save
 
       // Should throw error for invalid data
-      await expect(parser.parseSaveFile(invalidData)).rejects.toThrow()
+      await expect(parser.parse(invalidData)).rejects.toThrow()
     })
 
     it('should handle empty or corrupted data', async () => {
@@ -125,7 +125,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       const emptyData = new ArrayBuffer(0)
 
       // Should throw error for empty data
-      await expect(parser.parseSaveFile(emptyData)).rejects.toThrow()
+      await expect(parser.parse(emptyData)).rejects.toThrow()
     })
   })
 
@@ -165,7 +165,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       const parser = new PokemonSaveParser()
 
       const startTime = Date.now()
-      const result = await parser.parseSaveFile(saveData.buffer)
+      const result = await parser.parse(saveData.buffer)
       const endTime = Date.now()
 
       // Should complete in under 1 second
@@ -181,14 +181,14 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       // Load original
       const saveData = fs.readFileSync(testDataPath)
       const parser = new PokemonSaveParser()
-      const original = await parser.parseSaveFile(saveData.buffer)
+      const original = await parser.parse(saveData.buffer)
 
       // Reconstruct without changes
       const reconstructed = parser.reconstructSaveFile(original.party_pokemon)
 
       // Parse reconstructed
       const parser2 = new PokemonSaveParser()
-      const reparsed = await parser2.parseSaveFile(reconstructed.buffer)
+      const reparsed = await parser2.parse(reconstructed.buffer)
 
       // Data should be consistent
       expect(reparsed.party_pokemon.length).toBe(original.party_pokemon.length)

@@ -153,14 +153,14 @@ async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { 
     mode = 'FILE'
     const absPath = path.resolve(input)
     const buffer = fs.readFileSync(absPath)
-    result = await parser.parseSaveFile(buffer)
+    result = await parser.parse(buffer)
     if (!options.skipDisplay) {
       console.log(`📁 Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
     }
   } else {
     // WebSocket mode
     mode = 'MEMORY'
-    result = await parser.parseSaveFile(input)
+    result = await parser.parse(input)
     if (!options.skipDisplay) {
       console.log(`🎮 Connected to: ${parser.gameConfig?.name ?? 'unknown'} (via mGBA WebSocket)`)
     }
@@ -224,7 +224,7 @@ async function watchModeFile (filePath: string, options: { debug: boolean, graph
       // Parse save data without re-initializing parser
       const absPath = path.resolve(filePath)
       const buffer = fs.readFileSync(absPath)
-      const result = await parser.parseSaveFile(buffer)
+      const result = await parser.parse(buffer)
 
       // Create a simple hash of the party data to detect changes
       const dataHash = JSON.stringify(
@@ -271,7 +271,7 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
       // Only process changes to party-related memory regions
       if (address === 0x20244e9 || address === 0x20244ec) {
         // Parse the updated save data
-        const result = await parser.parseSaveFile(client)
+        const result = await parser.parse(client)
 
         // Create a simple hash of the party data to detect changes
         const dataHash = JSON.stringify(
@@ -316,7 +316,7 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
 
     // Initial display
     try {
-      const result = await parser.parseSaveFile(client)
+      const result = await parser.parse(client)
       clearScreen()
       displayPartyPokemon(result.party_pokemon, 'MEMORY')
       lastDataHash = JSON.stringify(
@@ -351,7 +351,7 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     while (true) {
       try {
-        const result = await parser.parseSaveFile(client)
+        const result = await parser.parse(client)
         const dataHash = JSON.stringify(
           result.party_pokemon.map(p => ({
             species: p.speciesId,
