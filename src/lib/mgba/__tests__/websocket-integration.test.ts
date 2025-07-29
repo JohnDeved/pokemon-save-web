@@ -37,7 +37,7 @@ describe('WebSocket Integration Tests', () => {
 
   // Add delay between tests to avoid overwhelming the server
   afterEach(async () => {
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise(resolve => setTimeout(resolve, 500))
   })
 
   it('should use shared buffer for watched regions', async () => {

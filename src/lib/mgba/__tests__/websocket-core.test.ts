@@ -37,7 +37,7 @@ describe('WebSocket Core Tests', () => {
 
   // Add delay between tests to avoid overwhelming the server
   afterEach(async () => {
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise(resolve => setTimeout(resolve, 500))
   })
 
   it('should handle connection state correctly', async () => {

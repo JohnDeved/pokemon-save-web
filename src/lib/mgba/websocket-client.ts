@@ -75,9 +75,36 @@ export class MgbaWebSocketClient {
    * Connect to mGBA WebSocket endpoints
    */
   async connect (): Promise<void> {
-    // Connect sequentially to avoid overwhelming the server
-    await this.connectEval()
-    await this.connectWatch()
+    // Connect sequentially to avoid overwhelming the server, with retries
+    await this.connectWithRetry('eval')
+    await this.connectWithRetry('watch')
+  }
+
+  /**
+   * Connect with retry logic for better reliability
+   */
+  private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 3): Promise<void> {
+    let lastError: Error | null = null
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (type === 'eval') {
+          await this.connectEval()
+        } else {
+          await this.connectWatch()
+        }
+        return // Success
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+        if (attempt < maxRetries) {
+          // Wait before retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 3000)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+      }
+    }
+    
+    throw lastError
   }
 
   /**
