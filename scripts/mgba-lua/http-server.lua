@@ -883,9 +883,36 @@ app:websocket("/eval", function(ws)
             
             local chunk = trimmedMessage
             
-            -- Enhanced support for non-self-executing function inputs
-            if not trimmedMessage:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
-                chunk = "return " .. trimmedMessage
+            -- Don't process empty input
+            if #trimmedMessage == 0 then
+                chunk = ""
+            else
+                -- Enhanced support for non-self-executing function inputs
+                -- Only prepend 'return' for simple expressions that don't already have control flow
+                local needsReturn = true
+                
+                -- Don't add return if code already contains these keywords at the start
+                local keywords = {"return", "local", "function", "for", "while", "if", "do", "repeat", "goto", "break", "end"}
+                for _, keyword in ipairs(keywords) do
+                    if trimmedMessage:match("^%s*" .. keyword .. "[%s%(]") or trimmedMessage == keyword then
+                        needsReturn = false
+                        break
+                    end
+                end
+                
+                -- Don't add return for multi-line code
+                if trimmedMessage:find("[\n\r]") then
+                    needsReturn = false
+                end
+                
+                -- Don't add return if code contains semicolons (likely statements)
+                if trimmedMessage:find(";") then
+                    needsReturn = false
+                end
+                
+                if needsReturn then
+                    chunk = "return " .. trimmedMessage
+                end
             end
             
             -- Validate chunk length to prevent memory issues
