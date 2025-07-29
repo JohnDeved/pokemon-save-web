@@ -120,7 +120,7 @@ describe('CLI Event-Driven Functionality', () => {
     if (capturedListener) {
       const mockData = new Uint8Array([6, 0, 0, 0, 0, 0, 0]) // 6 Pokemon in party
       // Note: The actual listener is async in CLI, but the type is sync
-      void (capturedListener as any)(0x20244e9, 7, mockData)
+      void (capturedListener as (address: number, size: number, data: Uint8Array) => void)(0x20244e9, 7, mockData)
 
       // The test can't directly verify CLI behavior, but we can verify
       // that the parseSaveFile would be called when memory changes

@@ -3,38 +3,12 @@
  * Tests memory watching, shared buffer, and real-time updates
  */
 
-import { describe, it, expect, beforeAll, afterEach } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { MgbaWebSocketClient, type MgbaEvalResponse } from '../websocket-client'
 
 const WEBSOCKET_URL = 'ws://localhost:7102'
 
-/**
- * Check if mGBA WebSocket server is available and throw error with installation instructions if not
- */
-async function checkServerAvailable (): Promise<void> {
-  try {
-    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
-    await client.connect()
-    client.disconnect()
-  } catch (error) {
-    throw new Error(
-      `mGBA WebSocket server not available at ${WEBSOCKET_URL}.\n\n` +
-      'To run mGBA WebSocket tests:\n' +
-      '1. Install Docker: https://docs.docker.com/get-docker/\n' +
-      '2. Run: npm run mgba\n' +
-      '3. Wait for "HTTP server running on port 7102" message\n' +
-      '4. Run: npm run test:mgba\n\n' +
-      `Original error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    )
-  }
-}
-
 describe('WebSocket Integration Tests', () => {
-  // Check server availability once before all tests
-  beforeAll(async () => {
-    
-  }, 10000)
-
   // Add delay between tests to avoid overwhelming the server
   afterEach(async () => {
     await new Promise(resolve => setTimeout(resolve, 500))
@@ -65,8 +39,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle memory change listeners', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -102,8 +74,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should start watching preload regions', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -120,7 +90,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle preload shared buffers', async () => {
-    
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -133,8 +102,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should provide game title when available', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -166,8 +133,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle concurrent operations safely', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -192,8 +157,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should maintain shared buffer integrity under load', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -219,8 +182,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle WebSocket message parsing robustness', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -262,8 +223,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle malformed WebSocket messages gracefully', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 

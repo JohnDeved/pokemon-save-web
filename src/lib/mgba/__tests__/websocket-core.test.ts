@@ -3,38 +3,12 @@
  * Tests basic connection, eval, and communication
  */
 
-import { describe, it, expect, beforeAll, afterEach } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { MgbaWebSocketClient } from '../websocket-client'
 
 const WEBSOCKET_URL = 'ws://localhost:7102'
 
-/**
- * Check if mGBA WebSocket server is available and throw error with installation instructions if not
- */
-async function checkServerAvailable (): Promise<void> {
-  try {
-    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
-    await client.connect()
-    client.disconnect()
-  } catch (error) {
-    throw new Error(
-      `mGBA WebSocket server not available at ${WEBSOCKET_URL}.\n\n` +
-      'To run mGBA WebSocket tests:\n' +
-      '1. Install Docker: https://docs.docker.com/get-docker/\n' +
-      '2. Run: npm run mgba\n' +
-      '3. Wait for "HTTP server running on port 7102" message\n' +
-      '4. Run: npm run test:mgba\n\n' +
-      `Original error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    )
-  }
-}
-
 describe('WebSocket Core Tests', () => {
-  // Check server availability once before all tests
-  beforeAll(async () => {
-    
-  }, 10000)
-
   // Add delay between tests to avoid overwhelming the server
   afterEach(async () => {
     await new Promise(resolve => setTimeout(resolve, 500))
@@ -86,8 +60,6 @@ describe('WebSocket Core Tests', () => {
   })
 
   it('should read memory directly', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -100,8 +72,6 @@ describe('WebSocket Core Tests', () => {
   })
 
   it('should handle memory watching state', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
 
     expect(client.isWatchingMemory()).toBe(false)
@@ -123,8 +93,6 @@ describe('WebSocket Core Tests', () => {
   })
 
   it('should handle different WebSocket message types without errors', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -176,8 +144,6 @@ describe('WebSocket Core Tests', () => {
   })
 
   it('should handle structured WATCH message format correctly', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
