@@ -291,8 +291,8 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, _options: { debu
   try {
     // Parse once to initialize the parser with the WebSocket client
     const initialResult = await parser.parse(client)
-    
-    // Start watching using the parser's integrated watch functionality  
+
+    // Start watching using the parser's integrated watch functionality
     await parser.watch(watchCallback)
     console.log('✅ Memory watching started - will update display when party data changes')
 

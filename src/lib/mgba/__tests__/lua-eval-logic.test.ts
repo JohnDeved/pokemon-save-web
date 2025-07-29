@@ -6,19 +6,19 @@
 import { describe, it, expect } from 'vitest'
 
 // Mock the eval logic from http-server.lua
-function processEvalInput(input: string): string {
+function processEvalInput (input: string): string {
   const trimmedMessage = input.trim()
   let chunk = trimmedMessage
-  
+
   // Don't process empty input
   if (trimmedMessage === '') {
     return trimmedMessage
   }
-  
+
   // Enhanced support for non-self-executing function inputs
   // Only prepend 'return' for simple expressions that don't already have control flow
   let needsReturn = true
-  
+
   // Don't add return if code already contains these keywords at the start
   const keywords = ['return', 'local', 'function', 'for', 'while', 'if', 'do', 'repeat', 'goto', 'break', 'end']
   for (const keyword of keywords) {
@@ -28,21 +28,21 @@ function processEvalInput(input: string): string {
       break
     }
   }
-  
+
   // Don't add return for multi-line code
   if (trimmedMessage.includes('\n') || trimmedMessage.includes('\r')) {
     needsReturn = false
   }
-  
+
   // Don't add return if code contains semicolons (likely statements)
   if (trimmedMessage.includes(';')) {
     needsReturn = false
   }
-  
+
   if (needsReturn) {
-    chunk = 'return ' + trimmedMessage
+    chunk = `return ${trimmedMessage}`
   }
-  
+
   return chunk
 }
 

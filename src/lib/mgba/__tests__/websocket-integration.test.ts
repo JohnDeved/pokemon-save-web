@@ -4,31 +4,34 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { MgbaWebSocketClient } from '../websocket-client'
+import { MgbaWebSocketClient, type MgbaEvalResponse } from '../websocket-client'
 
 const WEBSOCKET_URL = 'ws://localhost:7102'
 
 /**
- * Check if mGBA WebSocket server is available
+ * Check if mGBA WebSocket server is available and throw error with installation instructions if not
  */
-async function isServerAvailable(): Promise<boolean> {
+async function checkServerAvailable (): Promise<void> {
   try {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
     client.disconnect()
-    return true
-  } catch {
-    return false
+  } catch (error) {
+    throw new Error(
+      `mGBA WebSocket server not available at ${WEBSOCKET_URL}.\n\n` +
+      'To run mGBA WebSocket tests:\n' +
+      '1. Install Docker: https://docs.docker.com/get-docker/\n' +
+      '2. Run: npm run mgba\n' +
+      '3. Wait for "HTTP server running on port 7102" message\n' +
+      '4. Run: npm run test:mgba\n\n' +
+      `Original error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
   }
 }
 
 describe('WebSocket Integration Tests', () => {
   it('should use shared buffer for watched regions', async () => {
-    const serverAvailable = await isServerAvailable()
-    if (!serverAvailable) {
-      console.log('⏭️  Skipping shared buffer tests - mGBA server not available')
-      return
-    }
+    await checkServerAvailable()
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -54,11 +57,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle memory change listeners', async () => {
-    const serverAvailable = await isServerAvailable()
-    if (!serverAvailable) {
-      console.log('⏭️  Skipping memory change listener tests - mGBA server not available')
-      return
-    }
+    await checkServerAvailable()
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -95,17 +94,13 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should start watching preload regions', async () => {
-    const serverAvailable = await isServerAvailable()
-    if (!serverAvailable) {
-      console.log('⏭️  Skipping preload regions test - mGBA server not available')
-      return
-    }
+    await checkServerAvailable()
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
     await client.startWatchingPreloadRegions()
-    
+
     expect(client.isWatchingMemory()).toBe(true)
     expect(client.getWatchedRegions().length).toBeGreaterThan(0)
 
@@ -117,29 +112,20 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle preload shared buffers', async () => {
-    const serverAvailable = await isServerAvailable()
-    if (!serverAvailable) {
-      console.log('⏭️  Skipping preload shared buffers test - mGBA server not available')
-      return
-    }
-
+    await checkServerAvailable()
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
     // Start watching preload regions
     await expect(client.startWatchingPreloadRegions()).resolves.not.toThrow()
-    
+
     expect(client.isWatchingMemory()).toBe(true)
 
     client.disconnect()
   })
 
   it('should provide game title when available', async () => {
-    const serverAvailable = await isServerAvailable()
-    if (!serverAvailable) {
-      console.log('⏭️  Skipping game title test - mGBA server not available')
-      return
-    }
+    await checkServerAvailable()
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -154,20 +140,73 @@ describe('WebSocket Integration Tests', () => {
   it('should handle connection errors gracefully', async () => {
     // Test with invalid URL
     const client = new MgbaWebSocketClient('ws://localhost:9999')
-    
+
     await expect(client.connect()).rejects.toThrow()
     expect(client.isConnected()).toBe(false)
   })
 
   it('should handle eval errors when disconnected', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
-    
+
     await expect(client.eval('return 1')).rejects.toThrow()
   })
 
   it('should handle memory reading when disconnected', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
-    
+
     await expect(client.readMemory(0x20244e9, 4)).rejects.toThrow()
+  })
+
+  it('should handle concurrent operations safely', async () => {
+    await checkServerAvailable()
+
+    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
+    await client.connect()
+
+    // Run multiple concurrent operations
+    const operations = [
+      client.eval('return 42'),
+      client.readMemory(0x20244e9, 4),
+      client.eval('return "test"'),
+      client.readMemory(0x20244ec, 8),
+    ]
+
+    const results = await Promise.all(operations)
+    expect(results).toHaveLength(4)
+
+    // Check eval results
+    const evalResult1 = results[0] as MgbaEvalResponse
+    const evalResult2 = results[2] as MgbaEvalResponse
+    expect(evalResult1.result).toBe(42)
+    expect(evalResult2.result).toBe('test')
+
+    client.disconnect()
+  })
+
+  it('should maintain shared buffer integrity under load', async () => {
+    await checkServerAvailable()
+
+    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
+    await client.connect()
+
+    const region = { address: 0x20244e9, size: 8 }
+    await client.startWatching([region])
+
+    // Perform multiple rapid reads to test shared buffer stability
+    const reads = []
+    for (let i = 0; i < 10; i++) {
+      reads.push(client.readMemory(region.address, region.size))
+    }
+
+    const results = await Promise.all(reads)
+
+    // All reads should succeed and return consistent results
+    expect(results).toHaveLength(10)
+    for (const result of results) {
+      expect(result).toBeInstanceOf(Uint8Array)
+      expect(result.length).toBe(region.size)
+    }
+
+    client.disconnect()
   })
 })

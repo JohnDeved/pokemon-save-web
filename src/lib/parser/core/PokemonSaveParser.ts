@@ -585,24 +585,29 @@ export class PokemonSaveParser {
       throw new Error('Watch mode only available in memory mode with WebSocket client')
     }
 
-    // Configure preload regions for party data
+    // Configure preload regions for party data from game config
+    if (!this.config?.memoryAddresses?.preloadRegions) {
+      throw new Error('Game config missing memory addresses for watch mode')
+    }
+
     this.webSocketClient.configureSharedBuffer({
-      preloadRegions: [
-        { address: 0x20244e9, size: 7 }, // Party count + context
-        { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
-      ],
+      preloadRegions: this.config.memoryAddresses.preloadRegions,
     })
 
     // Start watching the preload regions
     await this.webSocketClient.startWatchingPreloadRegions()
 
     // Set up memory change listener for real-time updates
-    const memoryChangeListener = async (address: number, _size: number, _data: Uint8Array) => {
+    const memoryChangeListener = async (address: number, size: number, data: Uint8Array) => {
       try {
         // Only process changes to party-related memory regions
-        if (address === 0x20244e9 || address === 0x20244ec) {
-          const result = await this.parse(this.webSocketClient!)
-          callback(result)
+        const partyCountAddr = this.config!.memoryAddresses?.partyCount
+        const partyDataAddr = this.config!.memoryAddresses?.partyData
+
+        if (partyCountAddr && partyDataAddr && (address === partyCountAddr || address === partyDataAddr)) {
+          // Smart integration: create SaveData using the passed data instead of refetching
+          const saveData = await this.createSaveDataFromMemoryUpdate(address, size, data)
+          callback(saveData)
         }
       } catch (error) {
         console.error('❌ Error processing memory change:', error instanceof Error ? error.message : 'Unknown error')
@@ -611,6 +616,68 @@ export class PokemonSaveParser {
 
     // Add the memory change listener
     this.webSocketClient.addMemoryChangeListener(memoryChangeListener)
+  }
+
+  /**
+   * Create SaveData from memory update instead of refetching all data
+   * Uses the passed memory data to construct party information efficiently
+   */
+  private async createSaveDataFromMemoryUpdate (address: number, _size: number, data: Uint8Array): Promise<SaveData> {
+    if (!this.config || !this.webSocketClient) {
+      throw new Error('Config and WebSocket client required for memory updates')
+    }
+
+    const partyCountAddr = this.config.memoryAddresses?.partyCount
+    const partyDataAddr = this.config.memoryAddresses?.partyData
+
+    if (!partyCountAddr || !partyDataAddr) {
+      throw new Error('Game config missing memory addresses')
+    }
+
+    // Get current party count and data from shared buffer or passed data
+    let partyCount: number
+    let partyData: Uint8Array
+
+    if (address === partyCountAddr) {
+      partyCount = data[0] ?? 0 // Party count is in the first byte
+      // Get party data from shared buffer
+      partyData = await this.webSocketClient.readMemory(partyDataAddr, 600)
+    } else if (address === partyDataAddr) {
+      // Get party count from shared buffer
+      const countData = await this.webSocketClient.readMemory(partyCountAddr, 1)
+      partyCount = countData[0] ?? 0
+      partyData = data
+    } else {
+      throw new Error(`Unexpected memory address: ${address}`)
+    }
+
+    // Parse Pokemon from the memory data
+    const partyPokemon: PokemonBase[] = []
+    const effectiveConfig = createEffectiveConfig(this.config)
+
+    for (let i = 0; i < Math.min(partyCount, 6); i++) {
+      const pokemonOffset = i * effectiveConfig.pokemonSize
+      if (pokemonOffset + effectiveConfig.pokemonSize <= partyData.length) {
+        const pokemonBytes = partyData.slice(pokemonOffset, pokemonOffset + effectiveConfig.pokemonSize)
+        try {
+          const pokemon = new PokemonBase(pokemonBytes, this.config)
+          // Stop at empty slots (species ID = 0)
+          if (pokemon.speciesId !== 0) {
+            partyPokemon.push(pokemon)
+          }
+        } catch (error) {
+          // Skip invalid Pokemon data
+          console.warn(`Failed to parse Pokemon at index ${i}:`, error)
+        }
+      }
+    }
+
+    return {
+      party_pokemon: partyPokemon,
+      player_name: '', // Not updated from memory changes
+      play_time: { hours: 0, minutes: 0, seconds: 0 },
+      active_slot: 1,
+    }
   }
 
   /**

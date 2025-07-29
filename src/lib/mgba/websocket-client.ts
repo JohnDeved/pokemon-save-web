@@ -43,9 +43,7 @@ export interface ErrorMessage {
 export type WebSocketMessage = WatchMessage | MemoryUpdateMessage | WatchConfirmMessage | ErrorMessage
 
 // For backwards compatibility
-export interface SharedBufferConfig {
-  // Simplified: no configuration needed
-}
+export type SharedBufferConfig = Record<string, unknown>
 
 export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void
 
@@ -53,35 +51,35 @@ export type MemoryChangeListener = (address: number, size: number, data: Uint8Ar
  * Simplified WebSocket client for mGBA
  */
 export class MgbaWebSocketClient {
-  private baseUrl: string
+  private readonly baseUrl: string
   private evalWs: WebSocket | null = null
   private watchWs: WebSocket | null = null
   private evalConnected = false
   private watchConnected = false
-  
+
   // Memory watching state
   private watchedRegions: MemoryRegion[] = []
-  private sharedBuffer = new Map<number, Uint8Array>() // address -> data
-  private memoryChangeListeners: MemoryChangeListener[] = []
+  private readonly sharedBuffer = new Map<number, Uint8Array>() // address -> data
+  private readonly memoryChangeListeners: MemoryChangeListener[] = []
 
-  constructor(baseUrl = 'ws://localhost:7102') {
+  constructor (baseUrl = 'ws://localhost:7102') {
     this.baseUrl = baseUrl
   }
 
   /**
    * Connect to mGBA WebSocket endpoints
    */
-  async connect(): Promise<void> {
+  async connect (): Promise<void> {
     await Promise.all([
       this.connectEval(),
-      this.connectWatch()
+      this.connectWatch(),
     ])
   }
 
   /**
    * Disconnect all connections
    */
-  disconnect(): void {
+  disconnect (): void {
     this.evalWs?.close()
     this.watchWs?.close()
     this.evalWs = null
@@ -95,7 +93,7 @@ export class MgbaWebSocketClient {
   /**
    * Execute Lua code and get result
    */
-  async eval(code: string): Promise<MgbaEvalResponse> {
+  async eval (code: string): Promise<MgbaEvalResponse> {
     if (!this.evalConnected || !this.evalWs) {
       throw new Error('Eval WebSocket not connected')
     }
@@ -129,10 +127,10 @@ export class MgbaWebSocketClient {
   /**
    * Read memory directly (uses shared buffer if available)
    */
-  async readMemory(address: number, size: number): Promise<Uint8Array> {
+  async readMemory (address: number, size: number): Promise<Uint8Array> {
     // Check if this region is in shared buffer
     for (const watchedRegion of this.watchedRegions) {
-      if (address >= watchedRegion.address && 
+      if (address >= watchedRegion.address &&
           address + size <= watchedRegion.address + watchedRegion.size) {
         const bufferData = this.sharedBuffer.get(watchedRegion.address)
         if (bufferData) {
@@ -162,7 +160,7 @@ export class MgbaWebSocketClient {
   /**
    * Start watching memory regions for changes
    */
-  async startWatching(regions: MemoryRegion[]): Promise<void> {
+  async startWatching (regions: MemoryRegion[]): Promise<void> {
     if (!this.watchConnected || !this.watchWs) {
       throw new Error('Watch WebSocket not connected')
     }
@@ -192,14 +190,14 @@ export class MgbaWebSocketClient {
   /**
    * Add memory change listener
    */
-  addMemoryChangeListener(listener: MemoryChangeListener): void {
+  addMemoryChangeListener (listener: MemoryChangeListener): void {
     this.memoryChangeListeners.push(listener)
   }
 
   /**
    * Remove memory change listener
    */
-  removeMemoryChangeListener(listener: MemoryChangeListener): void {
+  removeMemoryChangeListener (listener: MemoryChangeListener): void {
     const index = this.memoryChangeListeners.indexOf(listener)
     if (index >= 0) {
       this.memoryChangeListeners.splice(index, 1)
@@ -209,30 +207,28 @@ export class MgbaWebSocketClient {
   /**
    * Configure shared buffer (for API compatibility)
    */
-  configureSharedBuffer(_config: any): void {
+  configureSharedBuffer (_config: any): void {
     // Simplified: no configuration needed
   }
 
   /**
    * Start watching preload regions from config
    */
-  async startWatchingPreloadRegions(): Promise<void> {
-    // Import config to get preload regions  
+  async startWatchingPreloadRegions (): Promise<void> {
+    // Import config to get preload regions
     const { VanillaConfig } = await import('../parser/games/vanilla/config')
     const vanillaConfig = new VanillaConfig()
     const regions = vanillaConfig.memoryAddresses.preloadRegions
-    
-    if (regions.length > 0) {
-      await this.startWatching([...regions])
-    }
+
+    await this.startWatching([...regions])
   }
 
   /**
    * Get shared buffer for compatibility
    */
-  getSharedBuffer(): Map<number, Uint8Array>
-  getSharedBuffer(address: number, size: number): Promise<Uint8Array>
-  getSharedBuffer(address?: number, size?: number): Map<number, Uint8Array> | Promise<Uint8Array> {
+  getSharedBuffer (): Map<number, Uint8Array>
+  getSharedBuffer (address: number, size: number): Promise<Uint8Array>
+  getSharedBuffer (address?: number, size?: number): Map<number, Uint8Array> | Promise<Uint8Array> {
     if (address !== undefined && size !== undefined) {
       // Parser-style usage: get specific memory region
       return this.readMemory(address, size)
@@ -244,14 +240,14 @@ export class MgbaWebSocketClient {
   /**
    * Check if client is connected
    */
-  isConnected(): boolean {
+  isConnected (): boolean {
     return this.evalConnected && this.watchConnected
   }
 
   /**
    * Get game title from mGBA
    */
-  async getGameTitle(): Promise<string> {
+  async getGameTitle (): Promise<string> {
     try {
       const response = await this.eval('return emu:getGameTitle()')
       if (response.error) {
@@ -267,14 +263,14 @@ export class MgbaWebSocketClient {
   /**
    * Check if watching memory (for compatibility)
    */
-  isWatchingMemory(): boolean {
+  isWatchingMemory (): boolean {
     return this.watchedRegions.length > 0
   }
 
   /**
    * Stop watching memory
    */
-  async stopWatching(): Promise<void> {
+  async stopWatching (): Promise<void> {
     this.watchedRegions = []
     this.sharedBuffer.clear()
   }
@@ -282,28 +278,28 @@ export class MgbaWebSocketClient {
   /**
    * Get watched regions (for compatibility)
    */
-  getWatchedRegions(): MemoryRegion[] {
+  getWatchedRegions (): MemoryRegion[] {
     return [...this.watchedRegions]
   }
 
   /**
    * Check eval connection status (for compatibility)
    */
-  isEvalConnected(): boolean {
+  isEvalConnected (): boolean {
     return this.evalConnected
   }
 
   /**
    * Check watch connection status (for compatibility)
    */
-  isWatchConnected(): boolean {
+  isWatchConnected (): boolean {
     return this.watchConnected
   }
 
-  private async connectEval(): Promise<void> {
+  private async connectEval (): Promise<void> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/eval`)
-      
+
       ws.on('open', () => {
         this.evalWs = ws
         this.evalConnected = true
@@ -321,10 +317,10 @@ export class MgbaWebSocketClient {
     })
   }
 
-  private async connectWatch(): Promise<void> {
+  private async connectWatch (): Promise<void> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/watch`)
-      
+
       ws.on('open', () => {
         this.watchWs = ws
         this.watchConnected = true
@@ -346,20 +342,19 @@ export class MgbaWebSocketClient {
     })
   }
 
-  private handleWatchMessage(messageText: string): void {
+  private handleWatchMessage (messageText: string): void {
     try {
       const message = JSON.parse(messageText) as MemoryUpdateMessage
-      
-      if (message.type === 'memoryUpdate') {
-        for (const region of message.regions) {
-          // Update shared buffer
-          const data = new Uint8Array(region.data)
-          this.sharedBuffer.set(region.address, data)
 
-          // Notify listeners
-          for (const listener of this.memoryChangeListeners) {
-            listener(region.address, region.size, data)
-          }
+      // Process memory update
+      for (const region of message.regions) {
+        // Update shared buffer
+        const data = new Uint8Array(region.data)
+        this.sharedBuffer.set(region.address, data)
+
+        // Notify listeners
+        for (const listener of this.memoryChangeListeners) {
+          listener(region.address, region.size, data)
         }
       }
     } catch (error) {
