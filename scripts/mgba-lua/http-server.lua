@@ -464,8 +464,6 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     local client = self.clients[clientId]
     if not client then return end
     
-    logInfo("WebSocket upgrade requested for path: " .. tostring(req.path))
-    
     local wsKey = req.headers["sec-websocket-key"]
     local accept = HttpServer.generateWebSocketAccept(wsKey)
     local response = "HTTP/1.1 101 Switching Protocols\r\n" ..
@@ -479,9 +477,6 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
         self:_cleanup_client(clientId)
         return
     end
-    
-    logInfo("WebSocket handshake successful for path: " .. tostring(req.path))
-    
     -- Create WebSocket instance
     local ws = {
         id = clientId,
@@ -497,18 +492,10 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
         end
     }
     self.websockets[clientId] = ws
-    
     -- Call WebSocket route handler
     local handler = self.wsRoutes[req.path]
     if handler then
-        logInfo("Found WebSocket handler for path: " .. tostring(req.path))
         handler(ws)
-    else
-        logError("No WebSocket handler found for path: " .. tostring(req.path) .. ". Available routes: " .. HttpServer.jsonStringify(self.wsRoutes))
-        -- Send error and close connection
-        local errorFrame = HttpServer.createWebSocketFrame("No handler for path: " .. tostring(req.path))
-        client:send(errorFrame)
-        self:_cleanup_client(clientId)
     end
 end
 
@@ -708,28 +695,83 @@ end)
 -- Memory watching state for WebSocket connections
 local memoryWatchers = {}
 
--- Simple but robust JSON parser for WebSocket messages
+-- Simple message parser supporting both structured format and basic JSON
 local function parseJSON(str)
     if not str or str == "" then
-        return nil, "Empty JSON string"
+        return nil, "Empty message"
     end
     
     str = str:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
     
-    if not str:match('^%s*{') then
-        return nil, "Not a JSON object"
+    -- Try structured format first (more efficient)
+    if not str:match("^%s*{") then
+        -- Structured format: WATCH\naddress,size\n...
+        local lines = {}
+        for line in str:gmatch("([^\r\n]+)") do
+            table.insert(lines, line:gsub("^%s*(.-)%s*$", "%1")) -- trim each line
+        end
+        
+        if #lines > 0 then
+            local messageType = lines[1]:upper()
+            
+            if messageType == "WATCH" then
+                local regions = {}
+                for i = 2, #lines do
+                    local line = lines[i]
+                    local address, size = line:match("^(%d+),(%d+)$")
+                    if address and size then
+                        table.insert(regions, {
+                            address = tonumber(address),
+                            size = tonumber(size)
+                        })
+                    else
+                        return nil, "Invalid region format on line " .. i .. ": expected 'address,size'"
+                    end
+                end
+                return {
+                    type = "watch",
+                    regions = regions
+                }
+            else
+                return nil, "Unknown message type: " .. messageType
+            end
+        end
+        
+        return nil, "No valid message format"
     end
     
-    -- Enhanced parser with better error handling
-    local function extractString(s, pos)
-        local i = pos or 1
-        if s:sub(i, i) ~= '"' then return nil, i end
-        i = i + 1
-        local result = ""
-        while i <= #s do
-            local c = s:sub(i, i)
-            if c == '"' then
-                return result, i + 1
+    -- Fallback to simple JSON parsing for backward compatibility
+    local typeMatch = str:match('"type"%s*:%s*"([^"]+)"')
+    if typeMatch == "watch" then
+        local regions = {}
+        local regionsSection = str:match('"regions"%s*:%s*%[([^%]]+)%]')
+        if regionsSection then
+            -- Extract simple address:value, size:value patterns
+            for objMatch in regionsSection:gmatch("{([^}]+)}") do
+                local address = objMatch:match('"address"%s*:%s*(%d+)')
+                local size = objMatch:match('"size"%s*:%s*(%d+)')
+                if address and size then
+                    table.insert(regions, {
+                        address = tonumber(address),
+                        size = tonumber(size)
+                    })
+                end
+            end
+        end
+        return {
+            type = "watch",
+            regions = regions
+        }
+    end
+    
+    return nil, "Unsupported message format"
+end
+
+-- WebSocket route for Lua code evaluation with enhanced error handling
+app:websocket("/eval", function(ws)
+    logInfo("WebSocket connected to eval endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
+
+    ws.onMessage = function(message)
             elseif c == '\\' then
                 i = i + 1
                 if i <= #s then
@@ -1063,7 +1105,6 @@ app:websocket("/watch", function(ws)
     }))
 end)
 
-
 -- Enhanced frame callback for memory change detection with throttling and error handling
 local frameCallbackId = nil
 local frameCount = 0
@@ -1088,7 +1129,7 @@ local function checkMemoryChanges()
     
     for wsId, watcher in pairs(memoryWatchers) do
         local ws = app.websockets[wsId]
-        -- Process watchers for active connections on /watch endpoint
+        -- Only process watchers for active connections on the /watch endpoint
         if ws and ws.path == "/watch" and #watcher.regions > 0 then
             -- Skip if too many recent errors
             if watcher.errorCount > 10 then
@@ -1179,5 +1220,4 @@ end
 -- Start server
 app:listen(7102, function(port)
     logInfo("🚀 mGBA HTTP Server started on port " .. port)
-    logInfo("📡 WebSocket routes registered: " .. HttpServer.jsonStringify(app.wsRoutes))
 end)

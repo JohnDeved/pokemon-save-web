@@ -440,12 +440,14 @@ export class MgbaWebSocketClient {
 
     this.watchedRegions = [...regionsToWatch]
 
-    const watchMessage: WatchMessage = {
-      type: 'watch',
-      regions: regionsToWatch,
+    // Create structured message instead of JSON
+    const messageLines = ['WATCH']
+    for (const region of regionsToWatch) {
+      messageLines.push(`${region.address},${region.size}`)
     }
+    const structuredMessage = messageLines.join('\n')
 
-    this.watchWs!.send(JSON.stringify(watchMessage))
+    this.watchWs!.send(structuredMessage)
     console.log(`🔍 Started watching ${regionsToWatch.length} memory regions`)
   }
 
