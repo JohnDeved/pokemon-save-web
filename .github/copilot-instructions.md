@@ -15,3 +15,5 @@ ensure the use of modern APIs and follow best practices at all times.
 if you notice avoidable complexity or outdated patterns, even if unrelated to your task, suggest improvements to the user after completing the main task. Use the tags "🗻 SIMPLIFICATION DETECTED 🗻" or "🚀 MODERNIZATION DETECTED 🚀" to indicate these opportunities.  
 work independently. never wait for user input or confirmation. if the user wishes to stop you, they will do so themselves.
 do not create vscode tasks unprompted.
+always view whole files, not just snippets, to understand the context of the code you are working on.
+before replacing or modifying code, ensure you understand the entire file to avoid bad and broken replacements.
