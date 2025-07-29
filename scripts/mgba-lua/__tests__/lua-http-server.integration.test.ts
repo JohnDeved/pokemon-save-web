@@ -35,8 +35,18 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     luaAvailable = await checkLuaAvailability()
     
     if (!luaAvailable) {
-      console.warn('⚠️ Lua not found - skipping Lua integration tests')
-      return
+      throw new Error(
+        'Lua is required for mGBA integration tests.\n\n' +
+        'To install Lua:\n' +
+        '1. Ubuntu/Debian: sudo apt-get install lua5.4 lua5.4-dev luarocks\n' +
+        '2. macOS: brew install lua\n' +
+        '3. Windows: Download from https://www.lua.org/download.html\n\n' +
+        'Alternatively, run tests with mGBA Docker environment:\n' +
+        '1. Install Docker: https://docs.docker.com/get-docker/\n' +
+        '2. Run: npm run mgba\n' +
+        '3. Wait for "HTTP server running on port 7102" message\n' +
+        '4. Run: npm run test:mgba'
+      )
     }
 
     // Start the actual mGBA HTTP server using our simplified virtual environment
@@ -97,11 +107,6 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
 
   describe('HTTP Endpoints', () => {
     it('should handle GET / and return welcome message', async () => {
-      if (!luaAvailable) {
-        console.log('⏭️ Skipping test - Lua not available')
-        return
-      }
-
       const response = await fetch(`${baseUrl}/`)
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('text/plain')
@@ -112,11 +117,6 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     })
 
     it('should handle GET /json and return JSON with CORS headers', async () => {
-      if (!luaAvailable) {
-        console.log('⏭️ Skipping test - Lua not available')
-        return
-      }
-
       const response = await fetch(`${baseUrl}/json`)
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('application/json')
@@ -129,11 +129,6 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     })
 
     it('should handle POST /echo and echo the request body', async () => {
-      if (!luaAvailable) {
-        console.log('⏭️ Skipping test - Lua not available')
-        return
-      }
-
       const testData = { test: 'data', number: 42 }
       const response = await fetch(`${baseUrl}/echo`, {
         method: 'POST',
@@ -153,11 +148,6 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     })
 
     it('should return 404 for unknown routes', async () => {
-      if (!luaAvailable) {
-        console.log('⏭️ Skipping test - Lua not available')
-        return
-      }
-
       const response = await fetch(`${baseUrl}/unknown`)
       expect(response.status).toBe(404)
 
@@ -166,11 +156,6 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     })
 
     it('should include CORS headers in JSON API responses', async () => {
-      if (!luaAvailable) {
-        console.log('⏭️ Skipping test - Lua not available')
-        return
-      }
-
       // Only the /json endpoint has CORS middleware in the server code
       const response = await fetch(`${baseUrl}/json`)
 
@@ -182,11 +167,6 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
 
   describe('WebSocket Functionality', () => {
     it('should handle WebSocket handshake and send welcome message', async () => {
-      if (!luaAvailable) {
-        console.log('⏭️ Skipping test - Lua not available')
-        return
-      }
-
       const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
 
       // Wait for connection and welcome message
@@ -211,11 +191,6 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     })
 
     it('should handle WebSocket eval functionality', async () => {
-      if (!luaAvailable) {
-        console.log('⏭️ Skipping test - Lua not available')
-        return
-      }
-
       const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
 
       let welcomeReceived = false

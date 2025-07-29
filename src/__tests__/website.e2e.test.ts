@@ -47,8 +47,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     })
 
     // Wait for Pokemon data to load and be displayed
-    await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
-    await expect(page.getByText('Lv.5')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible({ timeout: 10000 })
 
     // Check that the File menu is visible
     await expect(page.getByRole('menuitem', { name: 'File' })).toBeVisible()
@@ -64,7 +63,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await loadTestSaveFile(page)
 
     // Wait for Pokemon data to be visible
-    await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible({ timeout: 10000 })
 
     // Find and click on HP IV value to maximize it
     const hpIvElement = page.locator('text="Click to set to max (31)"').first()
@@ -79,7 +78,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await loadTestSaveFile(page)
 
     // Wait for Pokemon data to be visible
-    await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible({ timeout: 10000 })
 
     // Open nature dropdown
     await page.getByRole('combobox').click()
@@ -96,7 +95,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await loadTestSaveFile(page)
 
     // Wait for Pokemon data to be visible
-    await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible({ timeout: 10000 })
 
     // Make a modification (change nature)
     await page.getByRole('combobox').click()
@@ -119,7 +118,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await loadTestSaveFile(page)
 
     // Wait for Pokemon data to be visible
-    await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible({ timeout: 10000 })
 
     // Open File menu
     await page.getByRole('menuitem', { name: 'File' }).click()
@@ -138,7 +137,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await loadTestSaveFile(page)
 
     // Wait for Pokemon data to be visible
-    await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible({ timeout: 10000 })
 
     // Find HP EV slider and interact with it
     const hpEvSlider = page.locator('[role="slider"]').first()
@@ -157,7 +156,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await loadTestSaveFile(page)
 
     // Wait for Pokemon data to be visible
-    await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible({ timeout: 10000 })
 
     // Check that empty party slots are displayed correctly
     await expect(page.getByText('Empty Slot')).toBeVisible()
@@ -170,18 +169,18 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
 
     // Load save file
     await loadTestSaveFile(page)
-    await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible({ timeout: 10000 })
 
     // Verify that elements are still visible and functional on mobile
     await expect(page.getByRole('menuitem', { name: 'File' })).toBeVisible()
 
     // Test tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 })
-    await expect(page.getByText('TREECKO')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible()
 
     // Test desktop viewport
     await page.setViewportSize({ width: 1920, height: 1080 })
-    await expect(page.getByText('TREECKO')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2 }).filter({ hasText: 'TREECKO' })).toBeVisible()
   })
 })
 

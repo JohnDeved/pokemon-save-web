@@ -27,3 +27,8 @@ MAINTAINABILITY: structure code to be easily understood and modified by future d
 VALIDATION: always test performance-critical changes with appropriate benchmarks when modifying hot paths.
 RELIABILITY: prioritize stable, predictable behavior over experimental or cutting-edge approaches.
 SCALABILITY: consider how code changes will perform under increased load or data volume.
+COMPLEXITY_REDUCTION: actively identify and eliminate unnecessary complexity in code structures.
+READABILITY: code must be self-documenting and easily understood by developers of varying experience levels.
+MINIMAL_DEPENDENCIES: avoid adding new dependencies unless absolutely necessary for core functionality.
+MEMORY_EFFICIENCY: minimize memory allocations and prevent memory leaks in performance-critical paths.
+PERFORMANCE_MONITORING: include appropriate performance logging and monitoring in production code changes.
