@@ -103,12 +103,7 @@ export class MgbaWebSocketClient {
   private messageSequence = 0
 
   constructor (baseUrlOrFullUrl = 'ws://localhost:7102') {
-    // Handle backward compatibility: if URL contains /ws, /eval, or /watch, extract base URL
-    if (baseUrlOrFullUrl.includes('/ws') || baseUrlOrFullUrl.includes('/eval') || baseUrlOrFullUrl.includes('/watch')) {
-      this.baseUrl = baseUrlOrFullUrl.replace(/\/(ws|eval|watch)$/, '')
-    } else {
-      this.baseUrl = baseUrlOrFullUrl
-    }
+    this.baseUrl = baseUrlOrFullUrl
   }
 
   /**
@@ -121,19 +116,9 @@ export class MgbaWebSocketClient {
       // Clean up any existing connections
       this.disconnect()
 
-      // Try new dual-endpoint approach first
-      try {
-        await this.connectDualEndpoints()
-        console.log('✅ Successfully connected to both mGBA WebSocket endpoints')
-        return
-      } catch (error) {
-        console.warn('Dual endpoint connection failed, trying legacy single endpoint:', error)
-        this.disconnect() // Clean up partial connections
-      }
-
-      // Fallback to legacy single endpoint approach for Windows compatibility
-      await this.connectLegacySingleEndpoint()
-      console.log('✅ Connected to mGBA WebSocket in legacy compatibility mode')
+      // Connect to dual endpoints
+      await this.connectDualEndpoints()
+      console.log('✅ Successfully connected to both mGBA WebSocket endpoints')
 
     } catch (error) {
       // Clean up any connections on failure
@@ -158,92 +143,7 @@ export class MgbaWebSocketClient {
     this.startHeartbeat()
   }
 
-  /**
-   * Connect to legacy /ws endpoint (fallback for Windows compatibility)
-   */
-  private async connectLegacySingleEndpoint(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Legacy connection timeout - ensure mGBA Docker container is running'))
-      }, CONNECTION_CONSTANTS.CONNECTION_TIMEOUT_MS)
 
-      try {
-        const ws = new WebSocket(`${this.baseUrl}/ws`)
-
-        ws.on('error', (error) => {
-          clearTimeout(timeout)
-          const errorMsg = error instanceof Error ? error.message : String(error)
-          reject(new Error(`Legacy WebSocket connection failed: ${errorMsg}. Ensure mGBA Docker container is running with: npm run mgba -- run --game emerald`))
-        })
-
-        ws.on('open', () => {
-          clearTimeout(timeout)
-          console.log('Connected to mGBA WebSocket legacy endpoint')
-          
-          // Use single connection for both eval and watch
-          this.evalWs = ws
-          this.watchWs = ws
-          this.evalConnected = true
-          this.watchConnected = true
-
-          ws.on('close', (code, reason) => {
-            console.error(`WebSocket legacy connection closed: ${code} - ${reason.toString()}`)
-            this.evalConnected = false
-            this.watchConnected = false
-            this.isWatching = false
-            this.evalWs = null
-            this.watchWs = null
-          })
-
-          ws.on('error', (error) => {
-            console.error('WebSocket legacy error:', error)
-            this.evalConnected = false
-            this.watchConnected = false
-          })
-
-          ws.on('message', (data) => {
-            try {
-              const messageText = data instanceof Buffer ? data.toString() : String(data)
-              // Try to parse as JSON for watch messages, fallback to eval response
-              try {
-                const parsed = JSON.parse(messageText)
-                if (parsed.type) {
-                  this.handleWatchMessage(messageText)
-                } else {
-                  // Legacy eval response - store for pending eval
-                  if (this.pendingEvalCallback) {
-                    this.pendingEvalCallback(parsed)
-                    this.pendingEvalCallback = null
-                  }
-                }
-              } catch {
-                // Not JSON, might be plain text eval response
-                if (this.pendingEvalCallback) {
-                  this.pendingEvalCallback({ result: messageText })
-                  this.pendingEvalCallback = null
-                }
-              }
-            } catch (error) {
-              console.error('Error handling legacy message:', error)
-            }
-          })
-
-          // Add ping/pong handling for connection health
-          ws.on('pong', () => {
-            this.lastPingTime = Date.now()
-          })
-
-          // Start connection health monitoring
-          this.startHeartbeat()
-
-          resolve()
-        })
-      } catch (error) {
-        clearTimeout(timeout)
-        reject(new Error(`Failed to create legacy WebSocket: ${String(error)}`))
-      }
-    })
-  }
 
   /**
    * Connect to the eval endpoint for Lua code execution with enhanced error handling
@@ -519,27 +419,9 @@ export class MgbaWebSocketClient {
     }
   }
 
-  /**
-   * Handle eval response messages (for single endpoint mode)
-   */
-  private handleEvalResponse (messageText: string): void {
-    // Store the response for any pending eval operations
-    // This is used in single endpoint mode where eval responses come mixed with watch messages
-    if (this.pendingEvalCallback) {
-      try {
-        const response = JSON.parse(messageText) as MgbaEvalResponse
-        this.pendingEvalCallback(response)
-        this.pendingEvalCallback = null
-      } catch (error) {
-        // If it's not JSON, treat as raw response
-        this.pendingEvalCallback({ result: messageText })
-        this.pendingEvalCallback = null
-      }
-    }
-  }
 
   // Callback for pending eval operations in single endpoint mode
-  private pendingEvalCallback: ((response: MgbaEvalResponse) => void) | null = null
+
 
   /**
    * Start watching memory regions for changes
@@ -644,27 +526,13 @@ export class MgbaWebSocketClient {
       throw new Error('Eval WebSocket connection is null')
     }
 
-    // Check if we're in legacy single endpoint mode (both connections use same WebSocket)
-    const isLegacyMode = this.evalWs === this.watchWs
-
     return new Promise((resolve, reject) => {
       ++this.messageSequence
       let responseReceived = false
 
-      if (isLegacyMode) {
-        // In legacy mode, store callback for handling mixed messages
-        this.pendingEvalCallback = (response) => {
-          if (!responseReceived) {
-            responseReceived = true
-            clearTimeout(timeout)
-            resolve(response)
-          }
-        }
-      }
-
-      // Set up one-time message handler for dual endpoint mode
+      // Set up one-time message handler
       const messageHandler = (data: Buffer) => {
-        if (responseReceived || isLegacyMode) return // Skip in legacy mode
+        if (responseReceived) return
 
         const messageText = data.toString()
 
@@ -693,12 +561,8 @@ export class MgbaWebSocketClient {
       const errorHandler = (error: Error) => {
         if (!responseReceived) {
           responseReceived = true
-          if (!isLegacyMode) {
-            this.evalWs?.removeListener('message', messageHandler)
-            this.evalWs?.removeListener('error', errorHandler)
-          } else {
-            this.pendingEvalCallback = null
-          }
+          this.evalWs?.removeListener('message', messageHandler)
+          this.evalWs?.removeListener('error', errorHandler)
           clearTimeout(timeout)
           reject(new Error(`WebSocket error during eval: ${String(error)}`))
         }
@@ -708,33 +572,29 @@ export class MgbaWebSocketClient {
       const timeout = setTimeout(() => {
         if (!responseReceived) {
           responseReceived = true
-          if (!isLegacyMode) {
-            this.evalWs?.removeListener('message', messageHandler)
-            this.evalWs?.removeListener('error', errorHandler)
-          } else {
-            this.pendingEvalCallback = null
-          }
+          this.evalWs?.removeListener('message', messageHandler)
+          this.evalWs?.removeListener('error', errorHandler)
           reject(new Error(`Eval request timed out after ${CONNECTION_CONSTANTS.MESSAGE_TIMEOUT_MS}ms`))
         }
       }, CONNECTION_CONSTANTS.MESSAGE_TIMEOUT_MS)
 
-      // Attach event handlers only for dual endpoint mode
-      if (!isLegacyMode && this.evalWs) {
+      // Attach event handlers
+      if (this.evalWs) {
         this.evalWs.on('message', messageHandler)
         this.evalWs.on('error', errorHandler)
       }
 
       try {
         // Send the code to evaluate
-        this.evalWs.send(code)
+        if (this.evalWs) {
+          this.evalWs.send(code)
+        } else {
+          throw new Error('Eval WebSocket is null')
+        }
       } catch (error) {
         responseReceived = true
-        if (!isLegacyMode) {
-          this.evalWs?.removeListener('message', messageHandler)
-          this.evalWs?.removeListener('error', errorHandler)
-        } else {
-          this.pendingEvalCallback = null
-        }
+        this.evalWs?.removeListener('message', messageHandler)
+        this.evalWs?.removeListener('error', errorHandler)
         clearTimeout(timeout)
         reject(new Error(`Failed to send eval request: ${String(error)}`))
       }
