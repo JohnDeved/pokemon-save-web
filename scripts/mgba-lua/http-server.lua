@@ -464,6 +464,8 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     local client = self.clients[clientId]
     if not client then return end
     
+    logInfo("WebSocket upgrade requested for path: " .. tostring(req.path))
+    
     local wsKey = req.headers["sec-websocket-key"]
     local accept = HttpServer.generateWebSocketAccept(wsKey)
     local response = "HTTP/1.1 101 Switching Protocols\r\n" ..
@@ -477,6 +479,9 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
         self:_cleanup_client(clientId)
         return
     end
+    
+    logInfo("WebSocket handshake successful for path: " .. tostring(req.path))
+    
     -- Create WebSocket instance
     local ws = {
         id = clientId,
@@ -492,10 +497,18 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
         end
     }
     self.websockets[clientId] = ws
+    
     -- Call WebSocket route handler
     local handler = self.wsRoutes[req.path]
     if handler then
+        logInfo("Found WebSocket handler for path: " .. tostring(req.path))
         handler(ws)
+    else
+        logError("No WebSocket handler found for path: " .. tostring(req.path) .. ". Available routes: " .. HttpServer.jsonStringify(self.wsRoutes))
+        -- Send error and close connection
+        local errorFrame = HttpServer.createWebSocketFrame("No handler for path: " .. tostring(req.path))
+        client:send(errorFrame)
+        self:_cleanup_client(clientId)
     end
 end
 
@@ -1050,6 +1063,93 @@ app:websocket("/watch", function(ws)
     }))
 end)
 
+-- Legacy WebSocket route for backward compatibility (combines eval + watch)
+app:websocket("/ws", function(ws)
+    logInfo("WebSocket connected to legacy endpoint: " .. ws.path .. " (ID: " .. ws.id .. ") - compatibility mode")
+
+    -- Initialize memory watcher for this connection
+    memoryWatchers[ws.id] = {
+        regions = {},
+        lastData = {},
+        lastCheck = 0,
+        errorCount = 0
+    }
+
+    ws.onMessage = function(message)
+        local function safe_handler()
+            logDebug("WebSocket legacy message: " .. tostring(message))
+            
+            -- Try to parse as JSON first for structured messages
+            local parsed, parseErr = parseJSON(message)
+            if parsed and type(parsed) == "table" and parsed.type then
+                if parsed.type == "watch" then
+                    -- Handle memory region watching request (same as /watch endpoint)
+                    if parsed.regions and type(parsed.regions) == "table" then
+                        logInfo("Setting up memory watch for " .. #parsed.regions .. " regions (legacy mode)")
+                        local watcher = memoryWatchers[ws.id]
+                        watcher.regions = parsed.regions
+                        watcher.lastData = {}
+                        
+                        -- Initialize baseline data for each region
+                        for i, region in ipairs(parsed.regions) do
+                            if region.address and region.size then
+                                local data = emu:readRange(region.address, region.size)
+                                watcher.lastData[i] = data
+                            end
+                        end
+                        
+                        ws:send(HttpServer.jsonStringify({
+                            type = "watchConfirm",
+                            message = "Watching " .. #parsed.regions .. " memory regions"
+                        }))
+                    else
+                        ws:send(HttpServer.jsonStringify({
+                            type = "error",
+                            error = "Invalid watch request - regions array required"
+                        }))
+                    end
+                    return
+                end
+            end
+            
+            -- Fallback to legacy eval mode for backward compatibility
+            local chunk = message
+            
+            -- Enhanced support for non-self-executing function inputs
+            if not message:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+                chunk = "return " .. message
+            end
+            
+            local fn, err = load(chunk, "websocket-eval")
+            if not fn then
+                ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
+                return
+            end
+            local ok, result = pcall(fn)
+            if ok then
+                ws:send(HttpServer.jsonStringify({result = result}))
+            else
+                ws:send(HttpServer.jsonStringify({error = tostring(result)}))
+                logError("WebSocket Eval Error: " .. tostring(result))
+            end
+        end
+        local ok, err = pcall(safe_handler)
+        if not ok then
+            ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
+            logError("WebSocket Handler Error: " .. tostring(err))
+        end
+    end
+
+    ws.onClose = function()
+        logInfo("WebSocket disconnected from legacy endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
+        -- Cleanup memory watcher
+        memoryWatchers[ws.id] = nil
+    end
+
+    -- Send welcome message
+    ws:send("Welcome to WebSocket! Send Lua code to execute or JSON messages for memory watching.")
+end)
+
 -- Enhanced frame callback for memory change detection with throttling and error handling
 local frameCallbackId = nil
 local frameCount = 0
@@ -1074,8 +1174,8 @@ local function checkMemoryChanges()
     
     for wsId, watcher in pairs(memoryWatchers) do
         local ws = app.websockets[wsId]
-        -- Only process watchers for active connections on the /watch endpoint
-        if ws and ws.path == "/watch" and #watcher.regions > 0 then
+        -- Process watchers for active connections on /watch or /ws (legacy) endpoints
+        if ws and (ws.path == "/watch" or ws.path == "/ws") and #watcher.regions > 0 then
             -- Skip if too many recent errors
             if watcher.errorCount > 10 then
                 logError("Too many errors for watcher " .. wsId .. ", skipping")
@@ -1165,4 +1265,5 @@ end
 -- Start server
 app:listen(7102, function(port)
     logInfo("🚀 mGBA HTTP Server started on port " .. port)
+    logInfo("📡 WebSocket routes registered: " .. HttpServer.jsonStringify(app.wsRoutes))
 end)
