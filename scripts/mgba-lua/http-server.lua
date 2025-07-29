@@ -695,7 +695,7 @@ end)
 -- Memory watching state for WebSocket connections
 local memoryWatchers = {}
 
--- Simple message parser supporting both structured format and basic JSON
+-- Simple but robust JSON parser for WebSocket messages
 local function parseJSON(str)
     if not str or str == "" then
         return nil, "Empty message"
@@ -703,53 +703,18 @@ local function parseJSON(str)
     
     str = str:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
     
-    -- Try structured format first (more efficient)
-    if not str:match("^%s*{") then
+    -- Support both structured format and simple JSON
+    if not str:match('^%s*{') then
         -- Structured format: WATCH\naddress,size\n...
         local lines = {}
         for line in str:gmatch("([^\r\n]+)") do
-            table.insert(lines, line:gsub("^%s*(.-)%s*$", "%1")) -- trim each line
+            table.insert(lines, line:gsub("^%s*(.-)%s*$", "%1"))
         end
         
-        if #lines > 0 then
-            local messageType = lines[1]:upper()
-            
-            if messageType == "WATCH" then
-                local regions = {}
-                for i = 2, #lines do
-                    local line = lines[i]
-                    local address, size = line:match("^(%d+),(%d+)$")
-                    if address and size then
-                        table.insert(regions, {
-                            address = tonumber(address),
-                            size = tonumber(size)
-                        })
-                    else
-                        return nil, "Invalid region format on line " .. i .. ": expected 'address,size'"
-                    end
-                end
-                return {
-                    type = "watch",
-                    regions = regions
-                }
-            else
-                return nil, "Unknown message type: " .. messageType
-            end
-        end
-        
-        return nil, "No valid message format"
-    end
-    
-    -- Fallback to simple JSON parsing for backward compatibility
-    local typeMatch = str:match('"type"%s*:%s*"([^"]+)"')
-    if typeMatch == "watch" then
-        local regions = {}
-        local regionsSection = str:match('"regions"%s*:%s*%[([^%]]+)%]')
-        if regionsSection then
-            -- Extract simple address:value, size:value patterns
-            for objMatch in regionsSection:gmatch("{([^}]+)}") do
-                local address = objMatch:match('"address"%s*:%s*(%d+)')
-                local size = objMatch:match('"size"%s*:%s*(%d+)')
+        if #lines > 0 and lines[1]:upper() == "WATCH" then
+            local regions = {}
+            for i = 2, #lines do
+                local address, size = lines[i]:match("^(%d+),(%d+)$")
                 if address and size then
                     table.insert(regions, {
                         address = tonumber(address),
@@ -757,21 +722,40 @@ local function parseJSON(str)
                     })
                 end
             end
+            return { type = "watch", regions = regions }
         end
-        return {
-            type = "watch",
-            regions = regions
-        }
+        return nil, "Invalid structured format"
     end
     
-    return nil, "Unsupported message format"
+    -- Simple JSON fallback for {"type":"watch","regions":[{"address":123,"size":456}]}
+    local typeMatch = str:match('"type"%s*:%s*"([^"]+)"')
+    if typeMatch == "watch" then
+        local regions = {}
+        for objMatch in str:gmatch('{"address"%s*:%s*(%d+)%s*,%s*"size"%s*:%s*(%d+)%s*}') do
+            local address, size = objMatch, objMatch:match(',%s*"size"%s*:%s*(%d+)')
+            address = objMatch:match('"address"%s*:%s*(%d+)')
+            if address and size then
+                table.insert(regions, {
+                    address = tonumber(address),
+                    size = tonumber(size)
+                })
+            end
+        end
+        return { type = "watch", regions = regions }
+    end
+    
+    return nil, "Unsupported format"
 end
 
 -- WebSocket route for Lua code evaluation with enhanced error handling
-app:websocket("/eval", function(ws)
-    logInfo("WebSocket connected to eval endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
-
-    ws.onMessage = function(message)
+        local i = pos or 1
+        if s:sub(i, i) ~= '"' then return nil, i end
+        i = i + 1
+        local result = ""
+        while i <= #s do
+            local c = s:sub(i, i)
+            if c == '"' then
+                return result, i + 1
             elseif c == '\\' then
                 i = i + 1
                 if i <= #s then
