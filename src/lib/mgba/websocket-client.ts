@@ -300,35 +300,6 @@ export class MgbaWebSocketClient {
     return this.watchConnected
   }
 
-  /**
-   * Preload shared buffers (for compatibility)
-   */
-  async preloadSharedBuffers(): Promise<void> {
-    // Simplified: start watching preload regions
-    await this.startWatchingPreloadRegions()
-  }
-
-  /**
-   * Clear cache (for compatibility - now a no-op)
-   */
-  clearCache(): void {
-    // Simplified: no separate cache to clear
-  }
-
-  /**
-   * Invalidate cache (for compatibility - now a no-op)
-   */
-  invalidateCache(_address: number, _size: number): void {
-    // Simplified: no separate cache to invalidate
-  }
-
-  /**
-   * Get cache stats (for compatibility)
-   */
-  getCacheStats(): { hits: number, misses: number, size: number, regions: MemoryRegion[] } {
-    return { hits: 0, misses: 0, size: this.sharedBuffer.size, regions: this.watchedRegions }
-  }
-
   private async connectEval(): Promise<void> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/eval`)

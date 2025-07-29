@@ -177,7 +177,7 @@ export class PokemonSaveParser {
       client.configureSharedBuffer({
         preloadRegions: [...this.config.memoryAddresses.preloadRegions],
       })
-      await client.preloadSharedBuffers()
+      await client.startWatchingPreloadRegions()
     }
   }
 

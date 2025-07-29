@@ -131,19 +131,4 @@ describe('WebSocket Core Tests', () => {
 
     client.disconnect()
   })
-
-  it('should provide compatibility methods', () => {
-    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
-    
-    // These should not throw
-    expect(() => client.configureSharedBuffer({})).not.toThrow()
-    expect(() => client.clearCache()).not.toThrow()
-    expect(() => client.invalidateCache(0x20244e9, 4)).not.toThrow()
-    
-    const stats = client.getCacheStats()
-    expect(typeof stats.hits).toBe('number')
-    expect(typeof stats.misses).toBe('number')
-    expect(typeof stats.size).toBe('number')
-    expect(Array.isArray(stats.regions)).toBe(true)
-  })
 })

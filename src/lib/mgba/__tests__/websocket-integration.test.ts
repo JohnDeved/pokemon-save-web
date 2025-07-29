@@ -116,7 +116,7 @@ describe('WebSocket Integration Tests', () => {
     client.disconnect()
   })
 
-  it('should handle preload shared buffers compatibility', async () => {
+  it('should handle preload shared buffers', async () => {
     const serverAvailable = await isServerAvailable()
     if (!serverAvailable) {
       console.log('⏭️  Skipping preload shared buffers test - mGBA server not available')
@@ -126,8 +126,8 @@ describe('WebSocket Integration Tests', () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
-    // This should work for compatibility
-    await expect(client.preloadSharedBuffers()).resolves.not.toThrow()
+    // Start watching preload regions
+    await expect(client.startWatchingPreloadRegions()).resolves.not.toThrow()
     
     expect(client.isWatchingMemory()).toBe(true)
 

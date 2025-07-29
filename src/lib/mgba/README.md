@@ -90,9 +90,6 @@ await client.startWatching(customRegions)
 ### Cache Management
 
 - `getSharedBuffer(address, size)` - Get data with intelligent caching
-- `clearCache()` - Clear all cached data
-- `invalidateCache(address, size)` - Invalidate specific cache entry
-- `getCacheStats()` - Get cache statistics
 
 ## Server-side Setup
 
