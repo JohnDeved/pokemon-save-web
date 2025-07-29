@@ -276,7 +276,15 @@ function HttpServer.parseWebSocketFrame(data)
         logDebug("Received pong frame")
         return nil, offset + len, "pong"
     else
-        logError("Unknown WebSocket opcode: " .. opcode)
+        logError("Unknown WebSocket opcode: " .. opcode .. " (0x" .. string.format("%X", opcode) .. ")")
+        logDebug("Frame details: FIN=" .. (fin and "1" or "0") .. ", masked=" .. (masked and "1" or "0") .. ", len=" .. len)
+        if #data >= 10 then
+            local hexDump = ""
+            for i = 1, math.min(10, #data) do
+                hexDump = hexDump .. string.format("%02X ", string.byte(data, i))
+            end
+            logDebug("First 10 bytes: " .. hexDump)
+        end
         return nil, offset + len, "unknown"
     end
 end
