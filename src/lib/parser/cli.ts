@@ -260,7 +260,7 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, _options: { debu
   console.log('Setting up memory region watching for real-time updates')
   console.log('Press Ctrl+C to exit')
 
-  // Create parser once and reuse it
+  // Create parser and set up with client
   const parser = new PokemonSaveParser()
   let lastDataHash = ''
   let isFirstRun = true
@@ -289,27 +289,25 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, _options: { debu
   }
 
   try {
-    // Start watching using the parser's integrated watch functionality
+    // Parse once to initialize the parser with the WebSocket client
+    const initialResult = await parser.parse(client)
+    
+    // Start watching using the parser's integrated watch functionality  
     await parser.watch(watchCallback)
     console.log('✅ Memory watching started - will update display when party data changes')
 
     // Initial display
-    try {
-      const result = await parser.parse(client)
-      clearScreen()
-      displayPartyPokemon(result.party_pokemon, 'MEMORY')
-      lastDataHash = JSON.stringify(
-        result.party_pokemon.map(p => ({
-          species: p.speciesId,
-          level: p.level,
-          hp: p.currentHp,
-          nickname: p.nickname,
-        })),
-      )
-      isFirstRun = false
-    } catch (error) {
-      console.error('❌ Error loading initial data:', error instanceof Error ? error.message : 'Unknown error')
-    }
+    clearScreen()
+    displayPartyPokemon(initialResult.party_pokemon, 'MEMORY')
+    lastDataHash = JSON.stringify(
+      initialResult.party_pokemon.map(p => ({
+        species: p.speciesId,
+        level: p.level,
+        hp: p.currentHp,
+        nickname: p.nickname,
+      })),
+    )
+    isFirstRun = false
 
     // Keep the process alive and handle cleanup
     return new Promise<void>((resolve) => {

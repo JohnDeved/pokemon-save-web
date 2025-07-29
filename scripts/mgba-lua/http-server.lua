@@ -759,7 +759,24 @@ app:websocket("/eval", function(ws)
             local chunk = trimmedMessage
             
             -- Enhanced support for non-self-executing function inputs
-            if not trimmedMessage:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+            -- Check if the message already starts with keywords that don't need "return"
+            local needsReturn = true
+            local trimmedLower = trimmedMessage:lower()
+            
+            if trimmedLower:match("^%s*return%s") or
+               trimmedLower:match("^%s*local%s") or  
+               trimmedLower:match("^%s*function%s") or
+               trimmedLower:match("^%s*for%s") or
+               trimmedLower:match("^%s*while%s") or
+               trimmedLower:match("^%s*if%s") or
+               trimmedLower:match("^%s*do%s") or
+               trimmedLower:match("^%s*repeat%s") or
+               trimmedLower:match("^%s*end%s") or
+               trimmedMessage:match("^%s*%(") then -- function call
+                needsReturn = false
+            end
+            
+            if needsReturn then
                 chunk = "return " .. trimmedMessage
             end
             
