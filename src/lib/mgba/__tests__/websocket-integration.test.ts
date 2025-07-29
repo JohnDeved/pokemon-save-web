@@ -3,7 +3,7 @@
  * Tests memory watching, shared buffer, and real-time updates
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterEach } from 'vitest'
 import { MgbaWebSocketClient, type MgbaEvalResponse } from '../websocket-client'
 
 const WEBSOCKET_URL = 'ws://localhost:7102'
@@ -30,9 +30,17 @@ async function checkServerAvailable (): Promise<void> {
 }
 
 describe('WebSocket Integration Tests', () => {
-  it('should use shared buffer for watched regions', async () => {
-    await checkServerAvailable()
+  // Check server availability once before all tests
+  beforeAll(async () => {
+    
+  }, 10000)
 
+  // Add delay between tests to avoid overwhelming the server
+  afterEach(async () => {
+    await new Promise(resolve => setTimeout(resolve, 300))
+  })
+
+  it('should use shared buffer for watched regions', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -57,7 +65,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle memory change listeners', async () => {
-    await checkServerAvailable()
+    
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -94,7 +102,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should start watching preload regions', async () => {
-    await checkServerAvailable()
+    
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -112,7 +120,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle preload shared buffers', async () => {
-    await checkServerAvailable()
+    
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -125,7 +133,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should provide game title when available', async () => {
-    await checkServerAvailable()
+    
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -158,7 +166,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle concurrent operations safely', async () => {
-    await checkServerAvailable()
+    
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -184,7 +192,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should maintain shared buffer integrity under load', async () => {
-    await checkServerAvailable()
+    
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -211,7 +219,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle WebSocket message parsing robustness', async () => {
-    await checkServerAvailable()
+    
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
@@ -254,7 +262,7 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle malformed WebSocket messages gracefully', async () => {
-    await checkServerAvailable()
+    
 
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()

@@ -75,10 +75,9 @@ export class MgbaWebSocketClient {
    * Connect to mGBA WebSocket endpoints
    */
   async connect (): Promise<void> {
-    await Promise.all([
-      this.connectEval(),
-      this.connectWatch(),
-    ])
+    // Connect sequentially to avoid overwhelming the server
+    await this.connectEval()
+    await this.connectWatch()
   }
 
   /**
@@ -304,18 +303,27 @@ export class MgbaWebSocketClient {
   private async connectEval (): Promise<void> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/eval`)
+      
+      // Add connection timeout
+      const timeout = setTimeout(() => {
+        ws.close()
+        reject(new Error('Eval connection timeout'))
+      }, 5000)
 
       ws.on('open', () => {
+        clearTimeout(timeout)
         this.evalWs = ws
         this.evalConnected = true
         resolve()
       })
 
       ws.on('error', (error: Error) => {
+        clearTimeout(timeout)
         reject(new Error(`Eval connection failed: ${String(error)}`))
       })
 
       ws.on('close', () => {
+        clearTimeout(timeout)
         this.evalConnected = false
         this.evalWs = null
       })
@@ -325,18 +333,27 @@ export class MgbaWebSocketClient {
   private async connectWatch (): Promise<void> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/watch`)
+      
+      // Add connection timeout
+      const timeout = setTimeout(() => {
+        ws.close()
+        reject(new Error('Watch connection timeout'))
+      }, 5000)
 
       ws.on('open', () => {
+        clearTimeout(timeout)
         this.watchWs = ws
         this.watchConnected = true
         resolve()
       })
 
       ws.on('error', (error: Error) => {
+        clearTimeout(timeout)
         reject(new Error(`Watch connection failed: ${String(error)}`))
       })
 
       ws.on('close', () => {
+        clearTimeout(timeout)
         this.watchConnected = false
         this.watchWs = null
       })
