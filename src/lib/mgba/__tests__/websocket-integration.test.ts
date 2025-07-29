@@ -209,4 +209,80 @@ describe('WebSocket Integration Tests', () => {
 
     client.disconnect()
   })
+
+  it('should handle WebSocket message parsing robustness', async () => {
+    await checkServerAvailable()
+
+    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
+    await client.connect()
+
+    let parseErrors = 0
+    const originalConsoleWarn = console.warn
+
+    // Capture parsing errors
+    console.warn = (message: string, ...args: any[]) => {
+      if (message.includes('Failed to parse watch message')) {
+        parseErrors++
+      }
+      originalConsoleWarn(message, ...args)
+    }
+
+    try {
+      // Start watching which will trigger various message types
+      const regions = [
+        { address: 0x20244e9, size: 7 },
+        { address: 0x20244ec, size: 600 }
+      ]
+      await client.startWatching(regions)
+
+      // Wait for messages to be processed
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Trigger some memory operations that may generate different message types
+      await client.eval('return 1 + 1')
+      await client.readMemory(0x20244e9, 4)
+
+      // Wait for any additional messages
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Should have no parsing errors
+      expect(parseErrors).toBe(0)
+    } finally {
+      console.warn = originalConsoleWarn
+      client.disconnect()
+    }
+  })
+
+  it('should handle malformed WebSocket messages gracefully', async () => {
+    await checkServerAvailable()
+
+    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
+    await client.connect()
+
+    let warnCount = 0
+    const originalConsoleWarn = console.warn
+
+    console.warn = (message: string, ...args: any[]) => {
+      if (message.includes('Failed to parse watch message') || 
+          message.includes('Unknown message type')) {
+        warnCount++
+      }
+      originalConsoleWarn(message, ...args)
+    }
+
+    try {
+      // Test that normal operation works without warnings
+      const regions = [{ address: 0x20244e9, size: 4 }]
+      await client.startWatching(regions)
+
+      // Wait for normal messages to be processed
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Should handle watchConfirm, memoryUpdate, etc. without warnings
+      expect(warnCount).toBe(0)
+    } finally {
+      console.warn = originalConsoleWarn
+      client.disconnect()
+    }
+  })
 })

@@ -117,4 +117,84 @@ describe('WebSocket Core Tests', () => {
 
     client.disconnect()
   })
+
+  it('should handle different WebSocket message types without errors', async () => {
+    await checkServerAvailable()
+
+    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
+    await client.connect()
+
+    let messageReceived = false
+    let errorOccurred = false
+
+    // Capture console messages to check for errors
+    const originalConsoleWarn = console.warn
+    const originalConsoleError = console.error
+    const originalConsoleLog = console.log
+
+    console.warn = (message: string, ...args: any[]) => {
+      if (message.includes('Failed to parse watch message')) {
+        errorOccurred = true
+      }
+      originalConsoleWarn(message, ...args)
+    }
+
+    console.error = (message: string, ...args: any[]) => {
+      originalConsoleError(message, ...args)
+    }
+
+    console.log = (message: string, ...args: any[]) => {
+      if (message.includes('Watch confirmed')) {
+        messageReceived = true
+      }
+      originalConsoleLog(message, ...args)
+    }
+
+    try {
+      // Start watching to trigger watchConfirm message
+      const regions = [{ address: 0x20244e9, size: 4 }]
+      await client.startWatching(regions)
+
+      // Wait for messages to be processed
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Should have received watchConfirm without parsing errors
+      expect(messageReceived).toBe(true)
+      expect(errorOccurred).toBe(false)
+    } finally {
+      // Restore console
+      console.warn = originalConsoleWarn
+      console.error = originalConsoleError
+      console.log = originalConsoleLog
+      
+      client.disconnect()
+    }
+  })
+
+  it('should handle structured WATCH message format correctly', async () => {
+    await checkServerAvailable()
+
+    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
+    await client.connect()
+
+    // Test that we can start watching without errors
+    const regions = [
+      { address: 0x20244e9, size: 7 },
+      { address: 0x20244ec, size: 600 }
+    ]
+
+    let startWatchingSucceeded = false
+    try {
+      await client.startWatching(regions)
+      startWatchingSucceeded = true
+    } catch (error) {
+      console.error('Failed to start watching:', error)
+    }
+
+    expect(startWatchingSucceeded).toBe(true)
+    expect(client.isWatchingMemory()).toBe(true)
+    expect(client.getWatchedRegions()).toHaveLength(2)
+
+    client.disconnect()
+  })
 })

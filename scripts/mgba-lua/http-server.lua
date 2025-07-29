@@ -1042,7 +1042,12 @@ local function checkMemoryChanges()
                         -- Safe byte extraction with length validation
                         local dataLen = math.min(#currentData, region.size)
                         for j = 1, dataLen do
-                            bytes[j] = string.byte(currentData, j)
+                            local byte = string.byte(currentData, j)
+                            if byte and type(byte) == "number" then
+                                bytes[j] = byte
+                            else
+                                bytes[j] = 0  -- fallback to 0 for invalid bytes
+                            end
                         end
                         
                         table.insert(changedRegions, {

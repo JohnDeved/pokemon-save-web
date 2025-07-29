@@ -40,7 +40,12 @@ export interface ErrorMessage {
   error: string
 }
 
-export type WebSocketMessage = WatchMessage | MemoryUpdateMessage | WatchConfirmMessage | ErrorMessage
+export interface WelcomeMessage {
+  type: 'welcome'
+  message: string
+}
+
+export type WebSocketMessage = WatchMessage | MemoryUpdateMessage | WatchConfirmMessage | ErrorMessage | WelcomeMessage
 
 // For backwards compatibility
 export type SharedBufferConfig = Record<string, unknown>
@@ -344,18 +349,39 @@ export class MgbaWebSocketClient {
 
   private handleWatchMessage (messageText: string): void {
     try {
-      const message = JSON.parse(messageText) as MemoryUpdateMessage
+      const message = JSON.parse(messageText) as WebSocketMessage
 
-      // Process memory update
-      for (const region of message.regions) {
-        // Update shared buffer
-        const data = new Uint8Array(region.data)
-        this.sharedBuffer.set(region.address, data)
+      // Handle different message types
+      switch (message.type) {
+        case 'memoryUpdate':
+          // Process memory update
+          for (const region of message.regions) {
+            // Update shared buffer
+            const data = new Uint8Array(region.data)
+            this.sharedBuffer.set(region.address, data)
 
-        // Notify listeners
-        for (const listener of this.memoryChangeListeners) {
-          listener(region.address, region.size, data)
-        }
+            // Notify listeners
+            for (const listener of this.memoryChangeListeners) {
+              listener(region.address, region.size, data)
+            }
+          }
+          break
+
+        case 'watchConfirm':
+          // Server confirmed it's watching memory regions
+          console.log('Watch confirmed:', message.message)
+          break
+
+        case 'error':
+          console.error('WebSocket error:', message.error)
+          break
+
+        case 'welcome':
+          // Server welcome message - safe to ignore
+          break
+
+        default:
+          console.warn('Unknown message type:', (message as any).type)
       }
     } catch (error) {
       console.warn('Failed to parse watch message:', error)

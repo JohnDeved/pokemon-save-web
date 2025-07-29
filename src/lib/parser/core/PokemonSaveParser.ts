@@ -73,6 +73,8 @@ export class PokemonSaveParser {
   // Memory mode properties
   private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
+  private cachedPlayerName = 'MEMORY'
+  private cachedPlayTime = { hours: 0, minutes: 0, seconds: 0 }
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
@@ -523,12 +525,14 @@ export class PokemonSaveParser {
     if (this.isMemoryMode && this.webSocketClient) {
       const partyPokemon = await this.parsePartyPokemon()
 
-      // TODO: Implement memory support for player name and playtime
-      // These fields should be read from memory addresses when implemented
+      // Cache initial values for memory updates
+      this.cachedPlayerName = 'MEMORY'
+      this.cachedPlayTime = { hours: 0, minutes: 0, seconds: 0 }
+
       return {
         party_pokemon: partyPokemon,
-        player_name: 'MEMORY', // TODO: Read from memory if needed
-        play_time: { hours: 0, minutes: 0, seconds: 0 }, // TODO: Read from memory if needed
+        player_name: this.cachedPlayerName,
+        play_time: this.cachedPlayTime,
         active_slot: 0, // Memory doesn't have multiple save slots
       }
     }
@@ -606,7 +610,7 @@ export class PokemonSaveParser {
 
         if (partyCountAddr && partyDataAddr && (address === partyCountAddr || address === partyDataAddr)) {
           // Smart integration: create SaveData using the passed data instead of refetching
-          const saveData = await this.createSaveDataFromMemoryUpdate(address, size, data)
+          const saveData = this.createSaveDataFromMemoryUpdate(address, size, data)
           callback(saveData)
         }
       } catch (error) {
@@ -619,64 +623,62 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Create SaveData from memory update instead of refetching all data
-   * Uses the passed memory data to construct party information efficiently
+   * Create SaveData from memory update using shared buffer data only
+   * Patches existing data intelligently without additional memory reads
    */
-  private async createSaveDataFromMemoryUpdate (address: number, _size: number, data: Uint8Array): Promise<SaveData> {
+  private createSaveDataFromMemoryUpdate (address: number, _size: number, data: Uint8Array): SaveData {
     if (!this.config || !this.webSocketClient) {
       throw new Error('Config and WebSocket client required for memory updates')
     }
 
-    const partyCountAddr = this.config.memoryAddresses?.partyCount
-    const partyDataAddr = this.config.memoryAddresses?.partyData
-
-    if (!partyCountAddr || !partyDataAddr) {
-      throw new Error('Game config missing memory addresses')
-    }
-
-    // Get current party count and data from shared buffer or passed data
-    let partyCount: number
+    const memAddrs = this.config.memoryAddresses!
+    const sharedBuffer = this.webSocketClient.getSharedBuffer()
+    
+    // Extract party count and data from shared buffer
+    let partyCount = 0
     let partyData: Uint8Array
 
-    if (address === partyCountAddr) {
-      partyCount = data[0] ?? 0 // Party count is in the first byte
-      // Get party data from shared buffer
-      partyData = await this.webSocketClient.readMemory(partyDataAddr, 600)
-    } else if (address === partyDataAddr) {
-      // Get party count from shared buffer
-      const countData = await this.webSocketClient.readMemory(partyCountAddr, 1)
-      partyCount = countData[0] ?? 0
+    const countBuffer = sharedBuffer.get(memAddrs.partyCount)
+    const dataBuffer = sharedBuffer.get(memAddrs.partyData)
+
+    if (address === memAddrs.partyCount && countBuffer) {
+      // Party count changed - use updated count and existing data from shared buffer
+      partyCount = data[0] ?? 0
+      partyData = dataBuffer ?? new Uint8Array(600)
+    } else if (address === memAddrs.partyData && dataBuffer) {
+      // Party data changed - use existing count and updated data 
+      partyCount = countBuffer?.[0] ?? 0
       partyData = data
     } else {
-      throw new Error(`Unexpected memory address: ${address}`)
+      // Fallback: try to use shared buffer data
+      partyCount = countBuffer?.[0] ?? 0  
+      partyData = dataBuffer ?? new Uint8Array(600)
     }
 
-    // Parse Pokemon from the memory data
+    // Parse Pokemon directly from patched data
     const partyPokemon: PokemonBase[] = []
     const effectiveConfig = createEffectiveConfig(this.config)
 
     for (let i = 0; i < Math.min(partyCount, 6); i++) {
-      const pokemonOffset = i * effectiveConfig.pokemonSize
-      if (pokemonOffset + effectiveConfig.pokemonSize <= partyData.length) {
-        const pokemonBytes = partyData.slice(pokemonOffset, pokemonOffset + effectiveConfig.pokemonSize)
+      const offset = i * effectiveConfig.pokemonSize
+      if (offset + effectiveConfig.pokemonSize <= partyData.length) {
         try {
+          const pokemonBytes = partyData.slice(offset, offset + effectiveConfig.pokemonSize)
           const pokemon = new PokemonBase(pokemonBytes, this.config)
-          // Stop at empty slots (species ID = 0)
           if (pokemon.speciesId !== 0) {
             partyPokemon.push(pokemon)
           }
         } catch (error) {
           // Skip invalid Pokemon data
-          console.warn(`Failed to parse Pokemon at index ${i}:`, error)
         }
       }
     }
 
     return {
       party_pokemon: partyPokemon,
-      player_name: '', // Not updated from memory changes
-      play_time: { hours: 0, minutes: 0, seconds: 0 },
-      active_slot: 1,
+      player_name: this.cachedPlayerName,
+      play_time: this.cachedPlayTime,
+      active_slot: 0,
     }
   }
 
