@@ -576,6 +576,44 @@ export class PokemonSaveParser {
   }
 
   /**
+   * Start watching memory for real-time Pokemon data changes
+   * Only works when connected to a WebSocket client (memory mode)
+   * @param callback Function called when party data changes
+   */
+  async watch (callback: (data: SaveData) => void): Promise<void> {
+    if (!this.isMemoryMode || !this.webSocketClient) {
+      throw new Error('Watch mode only available in memory mode with WebSocket client')
+    }
+
+    // Configure preload regions for party data
+    this.webSocketClient.configureSharedBuffer({
+      preloadRegions: [
+        { address: 0x20244e9, size: 7 }, // Party count + context
+        { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
+      ],
+    })
+
+    // Start watching the preload regions
+    await this.webSocketClient.startWatchingPreloadRegions()
+
+    // Set up memory change listener for real-time updates
+    const memoryChangeListener = async (address: number, _size: number, _data: Uint8Array) => {
+      try {
+        // Only process changes to party-related memory regions
+        if (address === 0x20244e9 || address === 0x20244ec) {
+          const result = await this.parse(this.webSocketClient!)
+          callback(result)
+        }
+      } catch (error) {
+        console.error('❌ Error processing memory change:', error instanceof Error ? error.message : 'Unknown error')
+      }
+    }
+
+    // Add the memory change listener
+    this.webSocketClient.addMemoryChangeListener(memoryChangeListener)
+  }
+
+  /**
    * Reconstruct the full save file from a new party (PokemonInstance[]).
    * Updates SaveBlock1 with the given party and returns a new Uint8Array representing the reconstructed save file.
    *

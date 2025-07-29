@@ -3,7 +3,7 @@
  * Core features: direct reads, memory watching, shared buffer
  */
 
-import WebSocket from 'ws'
+import WebSocket from 'isomorphic-ws'
 
 export interface MgbaEvalResponse {
   result?: unknown
@@ -339,7 +339,7 @@ export class MgbaWebSocketClient {
         resolve()
       })
 
-      ws.on('error', (error) => {
+      ws.on('error', (error: Error) => {
         reject(new Error(`Eval connection failed: ${String(error)}`))
       })
 
@@ -360,7 +360,7 @@ export class MgbaWebSocketClient {
         resolve()
       })
 
-      ws.on('error', (error) => {
+      ws.on('error', (error: Error) => {
         reject(new Error(`Watch connection failed: ${String(error)}`))
       })
 
@@ -369,7 +369,7 @@ export class MgbaWebSocketClient {
         this.watchWs = null
       })
 
-      ws.on('message', (data) => {
+      ws.on('message', (data: Buffer) => {
         this.handleWatchMessage(data.toString())
       })
     })

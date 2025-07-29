@@ -915,44 +915,17 @@ app:websocket("/eval", function(ws)
                 end
             end
             
-            -- Validate chunk length to prevent memory issues
-            if #chunk > 10000 then
-                ws:send(HttpServer.jsonStringify({error = "Code too long (max 10KB)"}))
-                return
-            end
-            
+            -- Simple code execution for localhost usage
             local fn, err = load(chunk, "websocket-eval")
             if not fn then
                 ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
                 return
             end
             
-            -- Set execution timeout using a pcall wrapper
-            local ok, result = pcall(function()
-                -- Simple timeout mechanism - this won't work for all cases but helps with infinite loops
-                local start_time = os.clock()
-                local timeout = 5 -- 5 seconds
-                
-                local function check_timeout()
-                    if os.clock() - start_time > timeout then
-                        error("Execution timeout (5 seconds)")
-                    end
-                end
-                
-                -- Execute the function
-                local ret = fn()
-                check_timeout()
-                return ret
-            end)
+            local ok, result = pcall(fn)
             
             if ok then
-                -- Validate result size to prevent memory issues
-                local resultStr = HttpServer.jsonStringify({result = result})
-                if #resultStr > 100000 then -- 100KB limit
-                    ws:send(HttpServer.jsonStringify({error = "Result too large (max 100KB)"}))
-                else
-                    ws:send(resultStr)
-                end
+                ws:send(HttpServer.jsonStringify({result = result}))
             else
                 ws:send(HttpServer.jsonStringify({error = tostring(result)}))
                 logError("WebSocket Eval Error: " .. tostring(result))
@@ -1027,36 +1000,8 @@ app:websocket("/watch", function(ws)
                     return
                 end
                 
-                -- Limit number of regions to prevent resource exhaustion
-                if #parsed.regions > 50 then
-                    ws:send(HttpServer.jsonStringify({
-                        type = "error",
-                        error = "Too many regions (max 50)"
-                    }))
-                    return
-                end
-                
-                -- Validate each region
-                local validRegions = {}
-                for i, region in ipairs(parsed.regions) do
-                    if not region.address or not region.size then
-                        logError("Invalid region " .. i .. ": missing address or size")
-                    elseif region.size <= 0 or region.size > 0x10000 then
-                        logError("Invalid region " .. i .. ": size out of range (1-65536)")
-                    elseif region.address < 0 or region.address > 0xFFFFFFFF then
-                        logError("Invalid region " .. i .. ": address out of range")
-                    else
-                        table.insert(validRegions, region)
-                    end
-                end
-                
-                if #validRegions == 0 then
-                    ws:send(HttpServer.jsonStringify({
-                        type = "error",
-                        error = "No valid regions in watch request"
-                    }))
-                    return
-                end
+                -- Simple validation for localhost usage
+                local validRegions = parsed.regions
                 
                 logInfo("Setting up memory watch for " .. #validRegions .. " regions")
                 local watcher = memoryWatchers[ws.id]
@@ -1116,95 +1061,45 @@ app:websocket("/watch", function(ws)
     }))
 end)
 
--- Enhanced frame callback for memory change detection with throttling and error handling
+-- Enhanced frame callback for memory change detection
 local frameCallbackId = nil
 local frameCount = 0
-local lastMemoryCheck = 0
 
 local function checkMemoryChanges()
     frameCount = frameCount + 1
-    
-    -- Throttle memory checks to every 10 frames (about 6fps at 60fps)
-    if frameCount % 10 ~= 0 then
-        return
-    end
-    
-    local currentTime = os.clock()
-    
-    -- Additional throttling - check at most every 100ms
-    if currentTime - lastMemoryCheck < 0.1 then
-        return
-    end
-    
-    lastMemoryCheck = currentTime
+    -- Simple throttling - check every 10 frames
+    if frameCount % 10 ~= 0 then return end
     
     for wsId, watcher in pairs(memoryWatchers) do
         local ws = app.websockets[wsId]
-        -- Only process watchers for active connections on the /watch endpoint
         if ws and ws.path == "/watch" and #watcher.regions > 0 then
-            -- Skip if too many recent errors
-            if watcher.errorCount > 10 then
-                logError("Too many errors for watcher " .. wsId .. ", skipping")
-                goto continue
-            end
-            
             local changedRegions = {}
             
             for i, region in ipairs(watcher.regions) do
-                if region.address and region.size then
-                    local ok, currentData = pcall(function()
-                        return emu:readRange(region.address, region.size)
-                    end)
-                    
-                    if not ok then
-                        watcher.errorCount = watcher.errorCount + 1
-                        logError("Error reading memory region " .. i .. " for watcher " .. wsId .. ": " .. tostring(currentData))
-                        goto continue_region
+                local currentData = emu:readRange(region.address, region.size)
+                if currentData ~= watcher.lastData[i] then
+                    local bytes = {}
+                    for j = 1, #currentData do
+                        bytes[j] = string.byte(currentData, j)
                     end
                     
-                    if currentData ~= watcher.lastData[i] then
-                        -- Memory changed, prepare update
-                        local bytes = {}
-                        
-                        -- Safe byte extraction with length validation
-                        local dataLen = math.min(#currentData, region.size)
-                        for j = 1, dataLen do
-                            bytes[j] = string.byte(currentData, j)
-                        end
-                        
-                        table.insert(changedRegions, {
-                            address = region.address,
-                            size = region.size,
-                            data = bytes
-                        })
-                        
-                        -- Update stored data
-                        watcher.lastData[i] = currentData
-                    end
+                    table.insert(changedRegions, {
+                        address = region.address,
+                        size = region.size,
+                        data = bytes
+                    })
                     
-                    ::continue_region::
+                    watcher.lastData[i] = currentData
                 end
-            end
             
-            -- Send memory update if any regions changed
             if #changedRegions > 0 then
-                local ok, err = pcall(function()
-                    ws:send(HttpServer.jsonStringify({
-                        type = "memoryUpdate",
-                        regions = changedRegions,
-                        timestamp = os.time(),
-                        frameCount = frameCount
-                    }))
-                end)
-                
-                if not ok then
-                    watcher.errorCount = watcher.errorCount + 1
-                    logError("Error sending memory update for watcher " .. wsId .. ": " .. tostring(err))
-                end
+                ws:send(HttpServer.jsonStringify({
+                    type = "memoryUpdate",
+                    regions = changedRegions,
+                    timestamp = os.time()
+                }))
             end
         end
-        
-        ::continue::
     end
 end
 
