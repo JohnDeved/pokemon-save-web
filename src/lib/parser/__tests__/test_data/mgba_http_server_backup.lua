@@ -715,8 +715,7 @@ local function parseWebSocketMessage(str)
     -- Parse structured format: WATCH\naddress,size\naddress,size\n...
     local lines = {}
     for line in str:gmatch("([^\r\n]+)") do
-        local trimmedLine = line:gsub("^%s*(.-)%s*$", "%1")
-        table.insert(lines, trimmedLine) -- trim each line
+        table.insert(lines, line:gsub("^%s*(.-)%s*$", "%1")) -- trim each line
     end
     
     if #lines > 0 and lines[1]:upper() == "WATCH" then

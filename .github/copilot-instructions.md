@@ -17,3 +17,13 @@ work independently. never wait for user input or confirmation. if the user wishe
 do not create vscode tasks unprompted.
 always view whole files, not just snippets, to understand the context of the code you are working on.
 before replacing or modifying code, ensure you understand the entire file to avoid bad and broken replacements.
+
+## Code Quality and Performance Rules
+
+PERFORMANCE: optimize for speed and memory efficiency in all code changes.
+SIMPLICITY: prefer simple, readable solutions over clever or complex ones.
+CONCISENESS: write minimal code that achieves the goal without sacrificing clarity.
+MAINTAINABILITY: structure code to be easily understood and modified by future developers.
+VALIDATION: always test performance-critical changes with appropriate benchmarks when modifying hot paths.
+RELIABILITY: prioritize stable, predictable behavior over experimental or cutting-edge approaches.
+SCALABILITY: consider how code changes will perform under increased load or data volume.
