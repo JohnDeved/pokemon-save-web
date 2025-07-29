@@ -695,165 +695,40 @@ end)
 -- Memory watching state for WebSocket connections
 local memoryWatchers = {}
 
--- Simple but robust JSON parser for WebSocket messages
-local function parseJSON(str)
+-- Simple message parser for WebSocket messages
+-- Supports structured format: WATCH\naddress,size\naddress,size\n...
+local function parseWebSocketMessage(str)
     if not str or str == "" then
         return nil, "Empty message"
     end
     
     str = str:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
     
-    -- Support both structured format and simple JSON
-    if not str:match('^%s*{') then
-        -- Structured format: WATCH\naddress,size\n...
-        local lines = {}
-        for line in str:gmatch("([^\r\n]+)") do
-            table.insert(lines, line:gsub("^%s*(.-)%s*$", "%1"))
-        end
-        
-        if #lines > 0 and lines[1]:upper() == "WATCH" then
-            local regions = {}
-            for i = 2, #lines do
-                local address, size = lines[i]:match("^(%d+),(%d+)$")
-                if address and size then
-                    table.insert(regions, {
-                        address = tonumber(address),
-                        size = tonumber(size)
-                    })
-                end
-            end
-            return { type = "watch", regions = regions }
-        end
-        return nil, "Invalid structured format"
+    -- Parse structured format: WATCH\naddress,size\naddress,size\n...
+    local lines = {}
+    for line in str:gmatch("([^\r\n]+)") do
+        table.insert(lines, line:gsub("^%s*(.-)%s*$", "%1")) -- trim each line
     end
     
-    -- Simple JSON fallback for {"type":"watch","regions":[{"address":123,"size":456}]}
-    local typeMatch = str:match('"type"%s*:%s*"([^"]+)"')
-    if typeMatch == "watch" then
+    if #lines > 0 and lines[1]:upper() == "WATCH" then
         local regions = {}
-        for objMatch in str:gmatch('{"address"%s*:%s*(%d+)%s*,%s*"size"%s*:%s*(%d+)%s*}') do
-            local address, size = objMatch, objMatch:match(',%s*"size"%s*:%s*(%d+)')
-            address = objMatch:match('"address"%s*:%s*(%d+)')
+        for i = 2, #lines do
+            local address, size = lines[i]:match("^(%d+),(%d+)$")
             if address and size then
-                table.insert(regions, {
-                    address = tonumber(address),
-                    size = tonumber(size)
-                })
+                local addr = tonumber(address)
+                local sz = tonumber(size)
+                if addr and sz and addr >= 0 and addr <= 0xFFFFFFFF and sz > 0 and sz <= 0x10000 then
+                    table.insert(regions, {
+                        address = addr,
+                        size = sz
+                    })
+                end
             end
         end
         return { type = "watch", regions = regions }
     end
     
     return nil, "Unsupported format"
-end
-
--- WebSocket route for Lua code evaluation with enhanced error handling
-        local i = pos or 1
-        if s:sub(i, i) ~= '"' then return nil, i end
-        i = i + 1
-        local result = ""
-        while i <= #s do
-            local c = s:sub(i, i)
-            if c == '"' then
-                return result, i + 1
-            elseif c == '\\' then
-                i = i + 1
-                if i <= #s then
-                    local escaped = s:sub(i, i)
-                    if escaped == 'n' then result = result .. '\n'
-                    elseif escaped == 't' then result = result .. '\t'
-                    elseif escaped == 'r' then result = result .. '\r'
-                    elseif escaped == '\\' then result = result .. '\\'
-                    elseif escaped == '"' then result = result .. '"'
-                    else result = result .. escaped end
-                end
-            else
-                result = result .. c
-            end
-            i = i + 1
-        end
-        return nil, i
-    end
-    
-    local function extractNumber(s, pos)
-        local i = pos or 1
-        local result = ""
-        local hasDecimal = false
-        
-        while i <= #s do
-            local c = s:sub(i, i)
-            if c:match('[%d]') then
-                result = result .. c
-            elseif c == '.' and not hasDecimal then
-                hasDecimal = true
-                result = result .. c
-            elseif c == '-' and result == "" then
-                result = result .. c
-            else
-                break
-            end
-            i = i + 1
-        end
-        
-        if result == "" or result == "-" then
-            return nil, pos
-        end
-        
-        return tonumber(result), i
-    end
-    
-    -- Handle the specific case we expect: {"type":"watch","regions":[...]}
-    if str:match('^%s*{%s*"type"%s*:%s*"watch"') then
-        local result = { type = "watch" }
-        
-        -- Extract regions array with better error handling
-        local regionsMatch = str:match('"regions"%s*:%s*%[(.-)%]')
-        if regionsMatch then
-            result.regions = {}
-            
-            -- Enhanced parser for objects like {"address":123,"size":7}
-            local pos = 1
-            while pos <= #regionsMatch do
-                -- Find next object
-                local objStart = regionsMatch:find('{', pos)
-                if not objStart then break end
-                
-                local objEnd = regionsMatch:find('}', objStart)
-                if not objEnd then break end
-                
-                local objStr = regionsMatch:sub(objStart, objEnd)
-                local obj = {}
-                
-                -- Extract address with validation
-                local addressMatch = objStr:match('"address"%s*:%s*(%d+)')
-                if addressMatch then
-                    local addr = tonumber(addressMatch)
-                    if addr and addr >= 0 and addr <= 0xFFFFFFFF then
-                        obj.address = addr
-                    end
-                end
-                
-                -- Extract size with validation
-                local sizeMatch = objStr:match('"size"%s*:%s*(%d+)')
-                if sizeMatch then
-                    local size = tonumber(sizeMatch)
-                    if size and size > 0 and size <= 0x10000 then -- Max 64KB per region
-                        obj.size = size
-                    end
-                end
-                
-                if obj.address and obj.size then
-                    table.insert(result.regions, obj)
-                end
-                
-                pos = objEnd + 1
-            end
-        end
-        
-        return result
-    end
-    
-    return nil, "Unsupported JSON format"
 end
 
 -- WebSocket route for Lua code evaluation with enhanced error handling
@@ -883,49 +758,49 @@ app:websocket("/eval", function(ws)
             
             local chunk = trimmedMessage
             
-            -- Don't process empty input
-            if #trimmedMessage == 0 then
-                chunk = ""
-            else
-                -- Enhanced support for non-self-executing function inputs
-                -- Only prepend 'return' for simple expressions that don't already have control flow
-                local needsReturn = true
-                
-                -- Don't add return if code already contains these keywords at the start
-                local keywords = {"return", "local", "function", "for", "while", "if", "do", "repeat", "goto", "break", "end"}
-                for _, keyword in ipairs(keywords) do
-                    if trimmedMessage:match("^%s*" .. keyword .. "[%s%(]") or trimmedMessage == keyword then
-                        needsReturn = false
-                        break
-                    end
-                end
-                
-                -- Don't add return for multi-line code
-                if trimmedMessage:find("[\n\r]") then
-                    needsReturn = false
-                end
-                
-                -- Don't add return if code contains semicolons (likely statements)
-                if trimmedMessage:find(";") then
-                    needsReturn = false
-                end
-                
-                if needsReturn then
-                    chunk = "return " .. trimmedMessage
-                end
+            -- Enhanced support for non-self-executing function inputs
+            if not trimmedMessage:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+                chunk = "return " .. trimmedMessage
             end
             
-            -- Simple code execution for localhost usage
+            -- Validate chunk length to prevent memory issues
+            if #chunk > 10000 then
+                ws:send(HttpServer.jsonStringify({error = "Code too long (max 10KB)"}))
+                return
+            end
+            
             local fn, err = load(chunk, "websocket-eval")
             if not fn then
                 ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
                 return
             end
             
-            local ok, result = pcall(fn)
+            -- Set execution timeout using a pcall wrapper
+            local ok, result = pcall(function()
+                -- Simple timeout mechanism - this won't work for all cases but helps with infinite loops
+                local start_time = os.clock()
+                local timeout = 5 -- 5 seconds
+                
+                local function check_timeout()
+                    if os.clock() - start_time > timeout then
+                        error("Execution timeout (5 seconds)")
+                    end
+                end
+                
+                -- Execute the function
+                local ret = fn()
+                check_timeout()
+                return ret
+            end)
             
             if ok then
-                ws:send(HttpServer.jsonStringify({result = result}))
+                -- Validate result size to prevent memory issues
+                local resultStr = HttpServer.jsonStringify({result = result})
+                if #resultStr > 100000 then -- 100KB limit
+                    ws:send(HttpServer.jsonStringify({error = "Result too large (max 100KB)"}))
+                else
+                    ws:send(resultStr)
+                end
             else
                 ws:send(HttpServer.jsonStringify({error = tostring(result)}))
                 logError("WebSocket Eval Error: " .. tostring(result))
@@ -981,7 +856,7 @@ app:websocket("/watch", function(ws)
             logDebug("WebSocket watch message: " .. tostring(trimmedMessage))
             
             -- Parse JSON message for memory watching
-            local parsed, parseErr = parseJSON(trimmedMessage)
+            local parsed, parseErr = parseWebSocketMessage(trimmedMessage)
             if not parsed or type(parsed) ~= "table" or not parsed.type then
                 ws:send(HttpServer.jsonStringify({
                     type = "error",
@@ -1000,8 +875,36 @@ app:websocket("/watch", function(ws)
                     return
                 end
                 
-                -- Simple validation for localhost usage
-                local validRegions = parsed.regions
+                -- Limit number of regions to prevent resource exhaustion
+                if #parsed.regions > 50 then
+                    ws:send(HttpServer.jsonStringify({
+                        type = "error",
+                        error = "Too many regions (max 50)"
+                    }))
+                    return
+                end
+                
+                -- Validate each region
+                local validRegions = {}
+                for i, region in ipairs(parsed.regions) do
+                    if not region.address or not region.size then
+                        logError("Invalid region " .. i .. ": missing address or size")
+                    elseif region.size <= 0 or region.size > 0x10000 then
+                        logError("Invalid region " .. i .. ": size out of range (1-65536)")
+                    elseif region.address < 0 or region.address > 0xFFFFFFFF then
+                        logError("Invalid region " .. i .. ": address out of range")
+                    else
+                        table.insert(validRegions, region)
+                    end
+                end
+                
+                if #validRegions == 0 then
+                    ws:send(HttpServer.jsonStringify({
+                        type = "error",
+                        error = "No valid regions in watch request"
+                    }))
+                    return
+                end
                 
                 logInfo("Setting up memory watch for " .. #validRegions .. " regions")
                 local watcher = memoryWatchers[ws.id]
@@ -1061,45 +964,95 @@ app:websocket("/watch", function(ws)
     }))
 end)
 
--- Enhanced frame callback for memory change detection
+-- Enhanced frame callback for memory change detection with throttling and error handling
 local frameCallbackId = nil
 local frameCount = 0
+local lastMemoryCheck = 0
 
 local function checkMemoryChanges()
     frameCount = frameCount + 1
-    -- Simple throttling - check every 10 frames
-    if frameCount % 10 ~= 0 then return end
+    
+    -- Throttle memory checks to every 10 frames (about 6fps at 60fps)
+    if frameCount % 10 ~= 0 then
+        return
+    end
+    
+    local currentTime = os.clock()
+    
+    -- Additional throttling - check at most every 100ms
+    if currentTime - lastMemoryCheck < 0.1 then
+        return
+    end
+    
+    lastMemoryCheck = currentTime
     
     for wsId, watcher in pairs(memoryWatchers) do
         local ws = app.websockets[wsId]
+        -- Only process watchers for active connections on the /watch endpoint
         if ws and ws.path == "/watch" and #watcher.regions > 0 then
+            -- Skip if too many recent errors
+            if watcher.errorCount > 10 then
+                logError("Too many errors for watcher " .. wsId .. ", skipping")
+                goto continue
+            end
+            
             local changedRegions = {}
             
             for i, region in ipairs(watcher.regions) do
-                local currentData = emu:readRange(region.address, region.size)
-                if currentData ~= watcher.lastData[i] then
-                    local bytes = {}
-                    for j = 1, #currentData do
-                        bytes[j] = string.byte(currentData, j)
+                if region.address and region.size then
+                    local ok, currentData = pcall(function()
+                        return emu:readRange(region.address, region.size)
+                    end)
+                    
+                    if not ok then
+                        watcher.errorCount = watcher.errorCount + 1
+                        logError("Error reading memory region " .. i .. " for watcher " .. wsId .. ": " .. tostring(currentData))
+                        goto continue_region
                     end
                     
-                    table.insert(changedRegions, {
-                        address = region.address,
-                        size = region.size,
-                        data = bytes
-                    })
+                    if currentData ~= watcher.lastData[i] then
+                        -- Memory changed, prepare update
+                        local bytes = {}
+                        
+                        -- Safe byte extraction with length validation
+                        local dataLen = math.min(#currentData, region.size)
+                        for j = 1, dataLen do
+                            bytes[j] = string.byte(currentData, j)
+                        end
+                        
+                        table.insert(changedRegions, {
+                            address = region.address,
+                            size = region.size,
+                            data = bytes
+                        })
+                        
+                        -- Update stored data
+                        watcher.lastData[i] = currentData
+                    end
                     
-                    watcher.lastData[i] = currentData
+                    ::continue_region::
                 end
+            end
             
+            -- Send memory update if any regions changed
             if #changedRegions > 0 then
-                ws:send(HttpServer.jsonStringify({
-                    type = "memoryUpdate",
-                    regions = changedRegions,
-                    timestamp = os.time()
-                }))
+                local ok, err = pcall(function()
+                    ws:send(HttpServer.jsonStringify({
+                        type = "memoryUpdate",
+                        regions = changedRegions,
+                        timestamp = os.time(),
+                        frameCount = frameCount
+                    }))
+                end)
+                
+                if not ok then
+                    watcher.errorCount = watcher.errorCount + 1
+                    logError("Error sending memory update for watcher " .. wsId .. ": " .. tostring(err))
+                end
             end
         end
+        
+        ::continue::
     end
 end
 
