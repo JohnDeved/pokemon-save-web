@@ -212,7 +212,7 @@ export class MgbaWebSocketClient {
   /**
    * Configure shared buffer (for API compatibility)
    */
-  configureSharedBuffer (_config: any): void {
+  configureSharedBuffer (_config: unknown): void {
     // Simplified: no configuration needed
   }
 
@@ -381,7 +381,7 @@ export class MgbaWebSocketClient {
           break
 
         default:
-          console.warn('Unknown message type:', (message as any).type)
+          console.warn('Unknown message type:', (message as { type?: unknown }).type)
       }
     } catch (error) {
       console.warn('Failed to parse watch message:', error)

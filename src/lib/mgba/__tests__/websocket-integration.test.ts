@@ -220,7 +220,7 @@ describe('WebSocket Integration Tests', () => {
     const originalConsoleWarn = console.warn
 
     // Capture parsing errors
-    console.warn = (message: string, ...args: any[]) => {
+    console.warn = (message: string, ...args: unknown[]) => {
       if (message.includes('Failed to parse watch message')) {
         parseErrors++
       }
@@ -231,7 +231,7 @@ describe('WebSocket Integration Tests', () => {
       // Start watching which will trigger various message types
       const regions = [
         { address: 0x20244e9, size: 7 },
-        { address: 0x20244ec, size: 600 }
+        { address: 0x20244ec, size: 600 },
       ]
       await client.startWatching(regions)
 
@@ -262,8 +262,8 @@ describe('WebSocket Integration Tests', () => {
     let warnCount = 0
     const originalConsoleWarn = console.warn
 
-    console.warn = (message: string, ...args: any[]) => {
-      if (message.includes('Failed to parse watch message') || 
+    console.warn = (message: string, ...args: unknown[]) => {
+      if (message.includes('Failed to parse watch message') ||
           message.includes('Unknown message type')) {
         warnCount++
       }

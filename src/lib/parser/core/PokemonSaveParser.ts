@@ -633,7 +633,7 @@ export class PokemonSaveParser {
 
     const memAddrs = this.config.memoryAddresses!
     const sharedBuffer = this.webSocketClient.getSharedBuffer()
-    
+
     // Extract party count and data from shared buffer
     let partyCount = 0
     let partyData: Uint8Array
@@ -646,12 +646,12 @@ export class PokemonSaveParser {
       partyCount = data[0] ?? 0
       partyData = dataBuffer ?? new Uint8Array(600)
     } else if (address === memAddrs.partyData && dataBuffer) {
-      // Party data changed - use existing count and updated data 
+      // Party data changed - use existing count and updated data
       partyCount = countBuffer?.[0] ?? 0
       partyData = data
     } else {
       // Fallback: try to use shared buffer data
-      partyCount = countBuffer?.[0] ?? 0  
+      partyCount = countBuffer?.[0] ?? 0
       partyData = dataBuffer ?? new Uint8Array(600)
     }
 

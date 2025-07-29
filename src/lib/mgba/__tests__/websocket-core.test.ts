@@ -132,18 +132,18 @@ describe('WebSocket Core Tests', () => {
     const originalConsoleError = console.error
     const originalConsoleLog = console.log
 
-    console.warn = (message: string, ...args: any[]) => {
+    console.warn = (message: string, ...args: unknown[]) => {
       if (message.includes('Failed to parse watch message')) {
         errorOccurred = true
       }
       originalConsoleWarn(message, ...args)
     }
 
-    console.error = (message: string, ...args: any[]) => {
+    console.error = (message: string, ...args: unknown[]) => {
       originalConsoleError(message, ...args)
     }
 
-    console.log = (message: string, ...args: any[]) => {
+    console.log = (message: string, ...args: unknown[]) => {
       if (message.includes('Watch confirmed')) {
         messageReceived = true
       }
@@ -166,7 +166,7 @@ describe('WebSocket Core Tests', () => {
       console.warn = originalConsoleWarn
       console.error = originalConsoleError
       console.log = originalConsoleLog
-      
+
       client.disconnect()
     }
   })
@@ -180,7 +180,7 @@ describe('WebSocket Core Tests', () => {
     // Test that we can start watching without errors
     const regions = [
       { address: 0x20244e9, size: 7 },
-      { address: 0x20244ec, size: 600 }
+      { address: 0x20244ec, size: 600 },
     ]
 
     let startWatchingSucceeded = false
