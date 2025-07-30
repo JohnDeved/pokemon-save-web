@@ -598,7 +598,7 @@ export class PokemonSaveParser {
     await this.webSocketClient.startWatchingPreloadRegions()
 
     // Set up memory change listener for real-time updates
-    const memoryChangeListener = async (address: number, size: number, data: Uint8Array) => {
+    const memoryChangeListener = async (address: number, _size: number, data: Uint8Array) => {
       try {
         // Only process changes to party-related memory regions
         const partyCountAddr = this.config!.memoryAddresses?.partyCount
@@ -606,7 +606,7 @@ export class PokemonSaveParser {
 
         if (partyCountAddr && partyDataAddr && (address === partyCountAddr || address === partyDataAddr)) {
           // Smart integration: create SaveData using the passed data instead of refetching
-          const saveData = this.createSaveDataFromMemoryUpdate(address, size, data)
+          const saveData = this.createSaveDataFromMemoryUpdate(address, data)
           callback(saveData)
         }
       } catch (error) {
@@ -622,7 +622,7 @@ export class PokemonSaveParser {
    * Create SaveData from memory update by patching existing Pokemon with new data
    * Efficiently updates only the Pokemon that changed instead of recreating all
    */
-  private createSaveDataFromMemoryUpdate (address: number, _size: number, data: Uint8Array): SaveData {
+  private createSaveDataFromMemoryUpdate (address: number, data: Uint8Array): SaveData {
     if (!this.config) {
       throw new Error('Config required for memory updates')
     }

@@ -1,1 +1,0 @@
-../../../../scripts/mgba-lua/http-server.lua

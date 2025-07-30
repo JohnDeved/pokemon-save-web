@@ -202,7 +202,7 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
     return watchModeFile(input, options)
   } else {
     // WebSocket-based watch mode - use event-driven updates
-    return watchModeWebSocket(input, options)
+    return watchModeWebSocket(input)
   }
 }
 
@@ -255,7 +255,7 @@ async function watchModeFile (filePath: string, options: { debug: boolean, graph
 /**
  * WebSocket-based watch mode - event-driven approach using memory change listeners
  */
-async function watchModeWebSocket (client: MgbaWebSocketClient, _options: { debug: boolean, graph: boolean, interval: number }) {
+async function watchModeWebSocket (client: MgbaWebSocketClient) {
   console.log('🔄 Starting event-driven watch mode...')
   console.log('Setting up memory region watching for real-time updates')
   console.log('Press Ctrl+C to exit')

@@ -25,11 +25,7 @@ jobs:
           sudo apt-get install -y \
             lua5.4 \
             lua5.4-dev \
-            luarocks \
-            curl \
-            wget \
-            git \
-            build-essential
+            luarocks
       
       - name: Set up Lua alternatives
         run: |
@@ -38,9 +34,6 @@ jobs:
       
       - name: Install Playwright browsers with dependencies
         run: npx playwright install --with-deps
-      
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
       
       - name: Verify environment setup
         run: |
