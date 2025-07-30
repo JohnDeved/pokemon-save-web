@@ -86,8 +86,6 @@ describe('WebSocket Core Tests', () => {
   })
 
   it('should read memory directly', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -100,8 +98,6 @@ describe('WebSocket Core Tests', () => {
   })
 
   it('should handle memory watching state', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
 
     expect(client.isWatchingMemory()).toBe(false)
@@ -123,8 +119,6 @@ describe('WebSocket Core Tests', () => {
   })
 
   it('should handle different WebSocket message types without errors', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -176,8 +170,6 @@ describe('WebSocket Core Tests', () => {
   })
 
   it('should handle structured WATCH message format correctly', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 

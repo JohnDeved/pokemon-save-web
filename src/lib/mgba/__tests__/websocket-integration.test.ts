@@ -65,8 +65,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle memory change listeners', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -102,8 +100,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should start watching preload regions', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -120,7 +116,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle preload shared buffers', async () => {
-    
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -133,8 +128,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should provide game title when available', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -166,8 +159,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle concurrent operations safely', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -192,8 +183,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should maintain shared buffer integrity under load', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -219,8 +208,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle WebSocket message parsing robustness', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
@@ -262,8 +249,6 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle malformed WebSocket messages gracefully', async () => {
-    
-
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 

@@ -85,7 +85,7 @@ export class MgbaWebSocketClient {
    */
   private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 5): Promise<void> {
     let lastError: Error | null = null
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         if (type === 'eval') {
@@ -96,19 +96,19 @@ export class MgbaWebSocketClient {
         return // Success
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
-        
+
         if (attempt < maxRetries) {
           // Wait before retry with exponential backoff, but add jitter to avoid thundering herd
           const baseDelay = Math.min(500 * Math.pow(2, attempt - 1), 2000)
           const jitter = Math.random() * 300 // Add up to 300ms random jitter
           const delay = baseDelay + jitter
-          
+
           console.debug(`${type} connection attempt ${attempt} failed, retrying in ${Math.round(delay)}ms...`)
           await new Promise(resolve => setTimeout(resolve, delay))
         }
       }
     }
-    
+
     throw new Error(`Failed to connect ${type} after ${maxRetries} attempts: ${lastError?.message}`)
   }
 
@@ -125,7 +125,7 @@ export class MgbaWebSocketClient {
       }
       this.evalWs = null
     }
-    
+
     if (this.watchWs) {
       try {
         this.watchWs.close()
@@ -134,11 +134,11 @@ export class MgbaWebSocketClient {
       }
       this.watchWs = null
     }
-    
+
     // Reset connection states
     this.evalConnected = false
     this.watchConnected = false
-    
+
     // Clear all cached data
     this.sharedBuffer.clear()
     this.watchedRegions = []
@@ -389,7 +389,7 @@ export class MgbaWebSocketClient {
   private async connectEval (): Promise<void> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/eval`)
-      
+
       // Add connection timeout
       const timeout = setTimeout(() => {
         ws.close()
@@ -419,7 +419,7 @@ export class MgbaWebSocketClient {
   private async connectWatch (): Promise<void> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/watch`)
-      
+
       // Add connection timeout
       const timeout = setTimeout(() => {
         ws.close()

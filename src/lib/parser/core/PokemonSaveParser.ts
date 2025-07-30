@@ -73,8 +73,7 @@ export class PokemonSaveParser {
   // Memory mode properties
   private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
-  private cachedPlayerName = 'MEMORY'
-  private cachedPlayTime = { hours: 0, minutes: 0, seconds: 0 }
+  private currentPartyPokemon: PokemonBase[] = []
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
@@ -524,15 +523,12 @@ export class PokemonSaveParser {
     // Memory mode: read directly from emulator memory
     if (this.isMemoryMode && this.webSocketClient) {
       const partyPokemon = await this.parsePartyPokemon()
-
-      // Cache initial values for memory updates
-      this.cachedPlayerName = 'MEMORY'
-      this.cachedPlayTime = { hours: 0, minutes: 0, seconds: 0 }
+      this.currentPartyPokemon = partyPokemon // Cache for patching during memory updates
 
       return {
         party_pokemon: partyPokemon,
-        player_name: this.cachedPlayerName,
-        play_time: this.cachedPlayTime,
+        player_name: 'MEMORY',
+        play_time: { hours: 0, minutes: 0, seconds: 0 },
         active_slot: 0, // Memory doesn't have multiple save slots
       }
     }
@@ -623,61 +619,48 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Create SaveData from memory update using shared buffer data only
-   * Patches existing data intelligently without additional memory reads
+   * Create SaveData from memory update by patching existing Pokemon with new data
+   * Efficiently updates only the Pokemon that changed instead of recreating all
    */
   private createSaveDataFromMemoryUpdate (address: number, _size: number, data: Uint8Array): SaveData {
-    if (!this.config || !this.webSocketClient) {
-      throw new Error('Config and WebSocket client required for memory updates')
+    if (!this.config) {
+      throw new Error('Config required for memory updates')
     }
 
     const memAddrs = this.config.memoryAddresses!
-    const sharedBuffer = this.webSocketClient.getSharedBuffer()
-
-    // Extract party count and data from shared buffer
-    let partyCount = 0
-    let partyData: Uint8Array
-
-    const countBuffer = sharedBuffer.get(memAddrs.partyCount)
-    const dataBuffer = sharedBuffer.get(memAddrs.partyData)
-
-    if (address === memAddrs.partyCount && countBuffer) {
-      // Party count changed - use updated count and existing data from shared buffer
-      partyCount = data[0] ?? 0
-      partyData = dataBuffer ?? new Uint8Array(600)
-    } else if (address === memAddrs.partyData && dataBuffer) {
-      // Party data changed - use existing count and updated data
-      partyCount = countBuffer?.[0] ?? 0
-      partyData = data
-    } else {
-      // Fallback: try to use shared buffer data
-      partyCount = countBuffer?.[0] ?? 0
-      partyData = dataBuffer ?? new Uint8Array(600)
-    }
-
-    // Parse Pokemon directly from patched data
-    const partyPokemon: PokemonBase[] = []
     const effectiveConfig = createEffectiveConfig(this.config)
 
-    for (let i = 0; i < Math.min(partyCount, 6); i++) {
-      const offset = i * effectiveConfig.pokemonSize
-      if (offset + effectiveConfig.pokemonSize <= partyData.length) {
+    if (address === memAddrs.partyCount) {
+      // Party count changed - update current party size but keep existing Pokemon
+      const newPartyCount = Math.min(data[0] ?? 0, 6)
+      this.currentPartyPokemon = this.currentPartyPokemon.slice(0, newPartyCount)
+    } else if (address === memAddrs.partyData) {
+      // Party data changed - replace Pokemon with updated data efficiently
+      const partyCount = Math.min(Math.floor(data.length / effectiveConfig.pokemonSize), 6)
+
+      for (let i = 0; i < partyCount; i++) {
+        const offset = i * effectiveConfig.pokemonSize
+        const pokemonData = data.slice(offset, offset + effectiveConfig.pokemonSize)
+
         try {
-          const pokemonBytes = partyData.slice(offset, offset + effectiveConfig.pokemonSize)
-          const pokemon = new PokemonBase(pokemonBytes, this.config)
+          // Create new Pokemon with updated data (efficient: only creates what changed)
+          const pokemon = new PokemonBase(pokemonData, this.config)
           if (pokemon.speciesId !== 0) {
-            partyPokemon.push(pokemon)
+            this.currentPartyPokemon[i] = pokemon
           }
         } catch (error) {
           // Skip invalid Pokemon data
         }
       }
+
+      // Remove Pokemon beyond the current data
+      this.currentPartyPokemon = this.currentPartyPokemon.slice(0, partyCount)
     }
 
     return {
-      party_pokemon: partyPokemon,
-      player_name: this.cachedPlayerName,
-      play_time: this.cachedPlayTime,
+      party_pokemon: this.currentPartyPokemon,
+      player_name: 'MEMORY',
+      play_time: { hours: 0, minutes: 0, seconds: 0 },
       active_slot: 0,
     }
   }
