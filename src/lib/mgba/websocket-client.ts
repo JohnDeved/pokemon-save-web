@@ -174,7 +174,7 @@ export class MgbaWebSocketClient {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Eval timeout'))
-      }, 10000)
+      }, 8000)
 
       const messageHandler = (data: Buffer) => {
         const messageText = data.toString()
@@ -234,8 +234,17 @@ export class MgbaWebSocketClient {
    * Start watching memory regions for changes
    */
   async startWatching (regions: MemoryRegion[]): Promise<void> {
+    // Auto-connect watch if needed for resilience
     if (!this.watchConnected || !this.watchWs) {
-      throw new Error('Watch WebSocket not connected')
+      if (this.autoReconnect) {
+        try {
+          await this.connectWithRetry('watch')
+        } catch (error) {
+          throw new Error(`Watch WebSocket not connected: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      } else {
+        throw new Error('Watch WebSocket not connected')
+      }
     }
 
     // Validate regions on client side
@@ -260,8 +269,9 @@ export class MgbaWebSocketClient {
     // Send watch request and wait for confirmation or error
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Watch setup timeout'))
-      }, 15000)
+        this.watchWs?.removeListener('message', handleResponse)
+        reject(new Error('Watch setup timeout - no confirmation received'))
+      }, 10000)
 
       const handleResponse = (data: Buffer) => {
         try {
@@ -280,17 +290,28 @@ export class MgbaWebSocketClient {
         }
       }
 
-      this.watchWs.on('message', handleResponse)
-      this.watchWs.send(structuredMessage)
+      this.watchWs!.on('message', handleResponse)
+      this.watchWs!.send(structuredMessage)
     }).then(async () => {
       // Initialize shared buffer with current data after successful setup
-      for (const region of regions) {
+      // Use Promise.allSettled to handle individual failures gracefully
+      const initPromises = regions.map(async (region) => {
         try {
           const data = await this.readMemory(region.address, region.size)
           this.sharedBuffer.set(region.address, data)
+          return { region, success: true }
         } catch (error) {
           console.warn(`Failed to initialize shared buffer for region 0x${region.address.toString(16)}: ${String(error)}`)
+          return { region, success: false, error }
         }
+      })
+      
+      const results = await Promise.allSettled(initPromises)
+      const failed = results.filter(result => result.status === 'rejected' || 
+        (result.status === 'fulfilled' && !result.value.success))
+      
+      if (failed.length > 0) {
+        console.warn(`Failed to initialize ${failed.length}/${regions.length} shared buffer regions`)
       }
     })
   }
@@ -346,7 +367,7 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Check if client is connected
+   * Check if client is connected (both eval and watch required)
    */
   isConnected (): boolean {
     return this.evalConnected && this.watchConnected
@@ -408,11 +429,11 @@ export class MgbaWebSocketClient {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/eval`)
 
-      // Add connection timeout - increased for better reliability under load
+      // Add connection timeout - reduced for faster failure detection
       const timeout = setTimeout(() => {
         ws.close()
         reject(new Error('Eval connection timeout'))
-      }, 10000)
+      }, 5000)
 
       ws.on('open', () => {
         clearTimeout(timeout)
@@ -441,11 +462,11 @@ export class MgbaWebSocketClient {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/watch`)
 
-      // Add connection timeout - increased for better reliability under load
+      // Add connection timeout - reduced for faster failure detection
       const timeout = setTimeout(() => {
         ws.close()
         reject(new Error('Watch connection timeout'))
-      }, 10000)
+      }, 5000)
 
       ws.on('open', () => {
         clearTimeout(timeout)

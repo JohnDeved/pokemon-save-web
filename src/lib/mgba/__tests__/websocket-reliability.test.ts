@@ -37,7 +37,7 @@ describe('WebSocket Reliability Tests', () => {
 
   // Add delay between tests to avoid overwhelming the server
   afterEach(async () => {
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 2000))
   })
 
   it('should handle rapid connect/disconnect cycles reliably', async () => {
