@@ -330,7 +330,7 @@ function HttpServer:_create_response(client, clientId)
     }
 end
 
---- Handles client data and HTTP requests.
+--- Handles client data and HTTP requests with improved robustness.
 ---@param clientId number
 ---@private
 function HttpServer:_handle_client_data(clientId)
@@ -344,23 +344,35 @@ function HttpServer:_handle_client_data(clientId)
         return
     end
 
-    -- Read request data
+    -- Read request data with better error handling
     local data = ""
+    local maxChunks = 100  -- Prevent infinite loops
+    local chunks = 0
+    
     repeat
+        chunks = chunks + 1
         local chunk, err = client:receive(1024)
         if chunk then
             data = data .. chunk
-        elseif err ~= socket.ERRORS.AGAIN then
+        elseif err == socket.ERRORS.AGAIN then
+            -- Non-blocking mode - data not ready yet
+            break
+        elseif err then
+            -- Connection error
             self:_cleanup_client(clientId)
             return
+        else
+            -- No chunk and no error - connection closed
+            break
         end
-    until data:find("\r\n\r\n") or not chunk
+    until data:find("\r\n\r\n") or chunks >= maxChunks
 
     if data == "" then return end
 
-    -- Parse and handle request
+    -- Parse and handle request with better error handling
     local req = self:_parse_request(data)
     if not req then
+        logError("Failed to parse HTTP request for client " .. clientId)
         self:_cleanup_client(clientId)
         return
     end
@@ -378,6 +390,9 @@ function HttpServer:_handle_client_data(clientId)
     if not res.finished then
         res:send("404 Not Found", "Not Found")
     end
+    
+    -- Clean up after handling HTTP request (not WebSocket)
+    self:_cleanup_client(clientId)
 end
 
 --- Handles HTTP requests through middleware and routes.
@@ -413,15 +428,24 @@ function HttpServer:_is_websocket_request(req)
            req.headers["sec-websocket-key"] ~= nil
 end
 
---- Handles WebSocket upgrade handshake.
+--- Handles WebSocket upgrade handshake with enhanced reliability.
 ---@param clientId number
 ---@param req Request
 ---@private
 function HttpServer:_handle_websocket_upgrade(clientId, req)
     local client = self.clients[clientId]
-    if not client then return end
+    if not client then 
+        logError("WebSocket upgrade failed: client " .. clientId .. " not found")
+        return 
+    end
     
     local wsKey = req.headers["sec-websocket-key"]
+    if not wsKey then
+        logError("WebSocket upgrade failed: missing sec-websocket-key")
+        self:_cleanup_client(clientId)
+        return
+    end
+    
     local accept = HttpServer.generateWebSocketAccept(wsKey)
     local response = "HTTP/1.1 101 Switching Protocols\r\n" ..
                     "Upgrade: websocket\r\n" ..
@@ -434,25 +458,37 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
         self:_cleanup_client(clientId)
         return
     end
-    -- Create WebSocket instance
+    
+    -- Create WebSocket instance with enhanced error handling
     local ws = {
         id = clientId,
         client = client,
         path = req.path,
         send = function(self, data)
+            if not self.client then return false end
             local frame = HttpServer.createWebSocketFrame(data)
-            self.client:send(frame)
+            return pcall(self.client.send, self.client, frame)
         end,
         close = function(self)
+            if not self.client then return end
             local closeFrame = string.char(0x88, 0x00) -- Close frame
-            self.client:send(closeFrame)
+            pcall(self.client.send, self.client, closeFrame)
         end
     }
+    
     self.websockets[clientId] = ws
-    -- Call WebSocket route handler
+    
+    -- Call WebSocket route handler with error protection
     local handler = self.wsRoutes[req.path]
     if handler then
-        handler(ws)
+        local ok, err = pcall(handler, ws)
+        if not ok then
+            logError("WebSocket handler failed for " .. req.path .. ": " .. tostring(err))
+            self:_cleanup_client(clientId)
+        end
+    else
+        logError("No WebSocket handler found for path: " .. req.path)
+        self:_cleanup_client(clientId)
     end
 end
 
@@ -482,20 +518,46 @@ function HttpServer:_handle_websocket_data(clientId)
     end
 end
 
---- Accepts and configures new client connections.
+--- Accepts and configures new client connections with enhanced error handling.
 ---@private
 function HttpServer:_accept_client()
     if not self.server then return end
     
     local client, err = self.server:accept()
-    if not client or err then return end
+    if not client then 
+        if err and err ~= socket.ERRORS.AGAIN then
+            logError("Failed to accept client: " .. tostring(err))
+        end
+        return 
+    end
     
     local id = self.nextClientId
     self.nextClientId = id + 1
     self.clients[id] = client
     
-    client:add("received", function() self:_handle_client_data(id) end)
-    client:add("error", function() self:_cleanup_client(id) end)
+    -- Add error handling to client event listeners
+    local ok1, err1 = pcall(client.add, client, "received", function() 
+        local success, error = pcall(self._handle_client_data, self, id)
+        if not success then
+            logError("Client data handler failed for " .. id .. ": " .. tostring(error))
+            self:_cleanup_client(id)
+        end
+    end)
+    
+    local ok2, err2 = pcall(client.add, client, "error", function() 
+        logError("Client " .. id .. " error event triggered")
+        self:_cleanup_client(id) 
+    end)
+    
+    if not ok1 then
+        logError("Failed to add received handler: " .. tostring(err1))
+        self:_cleanup_client(id)
+    end
+    
+    if not ok2 then
+        logError("Failed to add error handler: " .. tostring(err2))
+        self:_cleanup_client(id)
+    end
 end
 
 --------------------------------------------------------------------------------

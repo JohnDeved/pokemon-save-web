@@ -72,31 +72,49 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Connect to mGBA WebSocket endpoints with enhanced state management and stress tolerance
+   * Connect to mGBA WebSocket endpoints with enhanced reliability for first-attempt success
    */
   async connect (): Promise<void> {
     // Disconnect any existing connections first to ensure clean state
     this.disconnect()
     
-    // Connect sequentially to avoid overwhelming the server, with retries
-    await this.connectWithRetry('eval')
-    await this.connectWithRetry('watch')
+    // Try simultaneous connections first (faster)
+    try {
+      const connectPromises = [
+        this.connectWithRetry('eval'),
+        this.connectWithRetry('watch')
+      ]
+      
+      await Promise.all(connectPromises)
+    } catch (error) {
+      // If parallel connection fails, try sequential approach for better compatibility
+      console.debug('Parallel connection failed, trying sequential approach...')
+      this.disconnect()
+      
+      try {
+        await this.connectWithRetry('eval')
+        await this.connectWithRetry('watch')
+      } catch (sequentialError) {
+        this.disconnect()
+        throw sequentialError
+      }
+    }
     
-    // Add verification delay and give more time for connections to stabilize under stress
-    await new Promise(resolve => setTimeout(resolve, 200))
+    // Brief stability check to ensure connections are established
+    await new Promise(resolve => setTimeout(resolve, 100))
     
-    // Additional verification step for stress scenarios - wait up to 3 seconds for both connections
-    let verificationAttempts = 0
-    while ((!this.evalConnected || !this.watchConnected) && verificationAttempts < 30) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-      verificationAttempts++
+    // Final verification
+    if (!this.evalConnected || !this.watchConnected) {
+      this.disconnect()
+      throw new Error(`Connection verification failed - eval: ${this.evalConnected}, watch: ${this.watchConnected}`)
     }
   }
 
   /**
-   * Connect with enhanced retry logic and server load handling
+   * Connect with immediate reliability - should succeed on first attempt for healthy servers
+   * Only retries on actual server issues, not for normal operation
    */
-  private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 5): Promise<void> {
+  private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 2): Promise<void> {
     let lastError: Error | null = null
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -107,23 +125,18 @@ export class MgbaWebSocketClient {
           await this.connectWatch()
         }
         
-        // Add small delay between connections to avoid overwhelming server
-        if (type === 'eval') {
-          await new Promise(resolve => setTimeout(resolve, 50))
-        }
-        
         return // Success
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
 
-        if (attempt < maxRetries) {
-          // Enhanced exponential backoff for server load tolerance
-          const baseDelay = Math.min(150 * Math.pow(1.4, attempt - 1), 800)
-          const jitter = Math.random() * 100 // Add up to 100ms random jitter
-          const delay = baseDelay + jitter
+        // Log retry attempts - these indicate connection reliability issues
+        if (attempt === 1) {
+          console.debug(`${type} connection attempt ${attempt} failed, retrying in 150ms...`)
+        }
 
-          console.debug(`${type} connection attempt ${attempt} failed, retrying in ${Math.round(delay)}ms...`)
-          await new Promise(resolve => setTimeout(resolve, delay))
+        if (attempt < maxRetries) {
+          // Short delay for retry - server should be immediately available
+          await new Promise(resolve => setTimeout(resolve, 150))
         }
       }
     }
@@ -447,11 +460,11 @@ export class MgbaWebSocketClient {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/eval`)
 
-      // Reduced connection timeout for faster failure detection
+      // Connection timeout - should be quick for healthy servers
       const timeout = setTimeout(() => {
         ws.close()
         reject(new Error('Eval connection timeout'))
-      }, 3000)
+      }, 5000)
 
       ws.on('open', () => {
         clearTimeout(timeout)
@@ -466,8 +479,7 @@ export class MgbaWebSocketClient {
       })
 
       ws.on('close', () => {
-        clearTimeout(timeout)
-        // Only reset state if this is the current connection
+        // Only reset state if this was an established connection
         if (this.evalWs === ws) {
           this.evalConnected = false
           this.evalWs = null
@@ -480,11 +492,11 @@ export class MgbaWebSocketClient {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/watch`)
 
-      // Reduced connection timeout for faster failure detection
+      // Connection timeout - should be quick for healthy servers
       const timeout = setTimeout(() => {
         ws.close()
         reject(new Error('Watch connection timeout'))
-      }, 3000)
+      }, 5000)
 
       ws.on('open', () => {
         clearTimeout(timeout)
@@ -499,8 +511,7 @@ export class MgbaWebSocketClient {
       })
 
       ws.on('close', () => {
-        clearTimeout(timeout)
-        // Only reset state if this is the current connection
+        // Only reset state if this was an established connection
         if (this.watchWs === ws) {
           this.watchConnected = false
           this.watchWs = null

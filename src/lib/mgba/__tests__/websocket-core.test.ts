@@ -35,9 +35,9 @@ describe('WebSocket Core Tests', () => {
     await checkServerAvailable()
   }, 10000)
 
-  // Add delay between tests to avoid overwhelming the server
+  // Add meaningful delay between tests to ensure server state cleanup
   afterEach(async () => {
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise(resolve => setTimeout(resolve, 3000))
   })
 
   it('should handle connection state correctly', async () => {
@@ -48,15 +48,10 @@ describe('WebSocket Core Tests', () => {
     expect(client.isEvalConnected()).toBe(false)
     expect(client.isWatchConnected()).toBe(false)
 
+    // Connection should succeed immediately for healthy server
     await client.connect()
     
-    // Wait actively for connection to be established
-    let attempts = 0
-    while (!client.isConnected() && attempts < 20) {
-      await new Promise(resolve => setTimeout(resolve, 250))
-      attempts++
-    }
-    
+    // Connection state should be immediately available after connect() resolves
     expect(client.isConnected()).toBe(true)
     expect(client.isEvalConnected()).toBe(true)
     expect(client.isWatchConnected()).toBe(true)

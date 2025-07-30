@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterEach } from 'vitest'
-import { MgbaWebSocketClient, type MgbaEvalResponse } from '../websocket-client'
+import { MgbaWebSocketClient } from '../websocket-client'
 
 const WEBSOCKET_URL = 'ws://localhost:7102'
 
