@@ -34,42 +34,30 @@ HttpServer.__index = HttpServer
 -- Logging Utilities
 --------------------------------------------------------------------------------
 
---- Enhanced logging that outputs to both mGBA console and stdout for Docker visibility
+--- Simple logging that outputs to both mGBA console and stdout
 ---@param level string
 ---@param message string
 local function log(level, message)
-    local timestamp = os.date("%H:%M:%S")
-    local logMessage = string.format("[%s] %s: %s", timestamp, level, message)
+    local logMessage = string.format("[%s] %s: %s", os.date("%H:%M:%S"), level, message)
     
-    -- Log to mGBA console (internal log window)
     if level == "ERROR" then
         console:error(logMessage)
     else
         console:log(logMessage)
     end
     
-    -- Also log to stdout so it appears in Docker console
     io.stdout:write(logMessage .. "\n")
     io.stdout:flush()
 end
 
---- Log info message
 ---@param message string
-local function logInfo(message)
-    log("INFO", message)
-end
+local function logInfo(message) log("INFO", message) end
 
---- Log error message  
----@param message string
-local function logError(message)
-    log("ERROR", message)
-end
+---@param message string  
+local function logError(message) log("ERROR", message) end
 
---- Log debug message
 ---@param message string
-local function logDebug(message)
-    log("DEBUG", message)
-end
+local function logDebug(message) log("DEBUG", message) end
 
 --------------------------------------------------------------------------------
 -- "Static" Methods
@@ -96,7 +84,7 @@ function HttpServer.jsonStringify(val)
                 return "[" .. table.concat(parts, ",") .. "]"
             else -- Object
                 for k, val in pairs(v) do
-                    table.insert(parts, serialize(tostring(k)) .. ":" .. serialize(val))
+                    parts[#parts + 1] = serialize(tostring(k)) .. ":" .. serialize(val)
                 end
                 return "{" .. table.concat(parts, ",") .. "}"
             end
@@ -207,19 +195,17 @@ function HttpServer.createWebSocketFrame(data)
     return frame .. data
 end
 
---- Parses WebSocket frame with comprehensive frame type handling.
+--- Parses WebSocket frame with essential frame type handling.
 ---@param data string
 ---@return string?, number, string?
 function HttpServer.parseWebSocketFrame(data)
     if #data < 2 then return nil, 0, "incomplete_frame" end
     
     local b1, b2 = string.byte(data, 1, 2)
-    local fin = (b1 & 0x80) ~= 0
     local opcode = b1 & 0x0F
     local masked = (b2 & 0x80) ~= 0
     local len = b2 & 0x7F
     local offset = 2
-    local mask = nil
     
     -- Handle extended payload length
     if len == 126 then
@@ -233,6 +219,7 @@ function HttpServer.parseWebSocketFrame(data)
     end
     
     -- Handle masking
+    local mask = nil
     if masked then
         if #data < offset + 4 then return nil, 0, "incomplete_frame" end
         mask = {data:byte(offset+1, offset+4)}
@@ -242,49 +229,31 @@ function HttpServer.parseWebSocketFrame(data)
     -- Check if we have complete payload
     if #data < offset + len then return nil, 0, "incomplete_frame" end
     
-    -- Handle different frame types
-    if opcode == 0x0 then -- Continuation frame
-        logDebug("Received continuation frame (not implemented)")
-        return nil, offset + len, "continuation_frame"
-    elseif opcode == 0x1 then -- Text frame
+    -- Extract and unmask payload if needed
+    local function getPayload()
         local payload = data:sub(offset + 1, offset + len)
         if masked and mask then
             local unmasked = {}
             for i = 1, #payload do
                 unmasked[i] = string.char(payload:byte(i) ~ mask[((i-1)%4)+1])
             end
-            payload = table.concat(unmasked)
+            return table.concat(unmasked)
         end
-        return payload, offset + len, "text"
+        return payload
+    end
+    
+    -- Handle frame types
+    if opcode == 0x1 then -- Text frame
+        return getPayload(), offset + len, "text"
     elseif opcode == 0x2 then -- Binary frame
-        local payload = data:sub(offset + 1, offset + len)
-        if masked and mask then
-            local unmasked = {}
-            for i = 1, #payload do
-                unmasked[i] = string.char(payload:byte(i) ~ mask[((i-1)%4)+1])
-            end
-            payload = table.concat(unmasked)
-        end
-        return payload, offset + len, "binary"
+        return getPayload(), offset + len, "binary"
     elseif opcode == 0x8 then -- Close frame
-        logDebug("Received close frame")
         return nil, -1, "close"
     elseif opcode == 0x9 then -- Ping frame
-        logDebug("Received ping frame")
         return nil, offset + len, "ping"
     elseif opcode == 0xA then -- Pong frame
-        logDebug("Received pong frame")
         return nil, offset + len, "pong"
     else
-        logError("Unknown WebSocket opcode: " .. opcode .. " (0x" .. string.format("%X", opcode) .. ")")
-        logDebug("Frame details: FIN=" .. (fin and "1" or "0") .. ", masked=" .. (masked and "1" or "0") .. ", len=" .. len)
-        if #data >= 10 then
-            local hexDump = ""
-            for i = 1, math.min(10, #data) do
-                hexDump = hexDump .. string.format("%02X ", string.byte(data, i))
-            end
-            logDebug("First 10 bytes: " .. hexDump)
-        end
         return nil, offset + len, "unknown"
     end
 end
@@ -507,7 +476,7 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     end
 end
 
---- Handles WebSocket frame data with robust frame type handling.
+--- Handles WebSocket frame data with essential frame handling.
 ---@param clientId number
 ---@private
 function HttpServer:_handle_websocket_data(clientId)
@@ -518,7 +487,6 @@ function HttpServer:_handle_websocket_data(clientId)
     local chunk, err = client:receive(1024)
     if not chunk then
         if err ~= socket.ERRORS.AGAIN then
-            logDebug("WebSocket receive error for client " .. clientId .. ": " .. tostring(err))
             self:_cleanup_client(clientId)
         end
         return
@@ -526,31 +494,17 @@ function HttpServer:_handle_websocket_data(clientId)
     
     local message, consumed, frameType = HttpServer.parseWebSocketFrame(chunk)
     if consumed == -1 then -- Close frame
-        logInfo("WebSocket close frame received from client " .. clientId)
         self:_cleanup_client(clientId)
         return
     elseif frameType == "ping" then
         -- Respond to ping with pong
-        local pongFrame = string.char(0x8A, 0x00) -- Pong frame with no payload
-        local ok, sendErr = client:send(pongFrame)
-        if not ok then
-            logError("Failed to send pong response to client " .. clientId .. ": " .. tostring(sendErr))
-        else
-            logDebug("Sent pong response to client " .. clientId)
-        end
-    elseif frameType == "pong" then
-        -- Handle pong response (do nothing, just log)
-        logDebug("Received pong response from client " .. clientId)
+        local pongFrame = string.char(0x8A, 0x00)
+        client:send(pongFrame)
     elseif frameType == "text" or frameType == "binary" then
-        -- Only process text and binary frames as messages
+        -- Process text and binary frames as messages
         if message and #message > 0 and ws.onMessage then
-            logDebug("Processing " .. frameType .. " message from client " .. clientId .. " (length: " .. #message .. ")")
             ws.onMessage(message)
-        elseif message and #message == 0 then
-            logDebug("Received empty " .. frameType .. " message from client " .. clientId .. " - ignoring")
         end
-    elseif frameType then
-        logDebug("Received " .. frameType .. " frame from client " .. clientId .. " - ignoring")
     end
 end
 
@@ -700,25 +654,15 @@ app:post("/echo", function(req, res)
     res:send("200 OK", req.body, req.headers['content-type'])
 end)
 
--- Memory watching state for WebSocket connections
-local memoryWatchers = {}
-local activeWatchConnections = 0
-local maxConcurrentWatchers = 50
-
 -- Simple message parser for WebSocket messages
--- Supports structured format: WATCH\naddress,size\naddress,size\n...
 local function parseWebSocketMessage(str)
-    if not str or str == "" then
-        return nil, "Empty message"
-    end
+    if not str or str == "" then return nil, "Empty message" end
     
     str = str:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
     
-    -- Parse structured format: WATCH\naddress,size\naddress,size\n...
     local lines = {}
     for line in str:gmatch("([^\r\n]+)") do
-        local trimmedLine = line:gsub("^%s*(.-)%s*$", "%1")
-        table.insert(lines, trimmedLine) -- trim each line
+        lines[#lines + 1] = line:gsub("^%s*(.-)%s*$", "%1")
     end
     
     if #lines > 0 and lines[1]:upper() == "WATCH" then
@@ -728,11 +672,8 @@ local function parseWebSocketMessage(str)
             if address and size then
                 local addr = tonumber(address)
                 local sz = tonumber(size)
-                if addr and sz and addr >= 0 and addr <= 0xFFFFFFFF and sz > 0 and sz <= 0x10000 then
-                    table.insert(regions, {
-                        address = addr,
-                        size = sz
-                    })
+                if addr and sz and addr >= 0 and sz > 0 and sz <= 0x10000 then
+                    regions[#regions + 1] = { address = addr, size = sz }
                 end
             end
         end
@@ -742,19 +683,16 @@ local function parseWebSocketMessage(str)
     return nil, "Unsupported format"
 end
 
--- Connection tracking for eval endpoint
+-- Connection tracking
 local activeEvalConnections = 0
+local activeWatchConnections = 0
 local maxConcurrentEvals = 100
+local maxConcurrentWatchers = 50
 
--- WebSocket route for Lua code evaluation with enhanced error handling
+-- WebSocket route for Lua code evaluation
 app:websocket("/eval", function(ws)
-    logInfo("WebSocket connected to eval endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
-
-    -- Check concurrent connection limit
     if activeEvalConnections >= maxConcurrentEvals then
-        ws:send(HttpServer.jsonStringify({
-            error = "Server at maximum capacity (" .. maxConcurrentEvals .. " eval connections). Please try again later."
-        }))
+        ws:send(HttpServer.jsonStringify({ error = "Server at capacity" }))
         ws:close()
         return
     end
@@ -762,271 +700,116 @@ app:websocket("/eval", function(ws)
     activeEvalConnections = activeEvalConnections + 1
 
     ws.onMessage = function(message)
-        local function safe_handler()
-            -- Enhanced message validation
-            if not message then
-                logDebug("Received nil message on eval endpoint")
-                return
-            end
-            
-            if type(message) ~= "string" then
-                logDebug("Received non-string message on eval endpoint: " .. type(message))
-                return
-            end
-            
-            local trimmedMessage = message:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
-            if #trimmedMessage == 0 then
-                logDebug("Received empty message on eval endpoint (after trimming)")
-                return
-            end
-            
-            logDebug("WebSocket eval message: " .. tostring(trimmedMessage))
-            
-            local chunk = trimmedMessage
-            
-            -- Enhanced support for non-self-executing function inputs
-            -- Check if the message already starts with keywords that don't need "return"
-            local needsReturn = true
-            local trimmedLower = trimmedMessage:lower()
-            
-            if trimmedLower:match("^%s*return%s") or
-               trimmedLower:match("^%s*local%s") or  
-               trimmedLower:match("^%s*function%s") or
-               trimmedLower:match("^%s*for%s") or
-               trimmedLower:match("^%s*while%s") or
-               trimmedLower:match("^%s*if%s") or
-               trimmedLower:match("^%s*do%s") or
-               trimmedLower:match("^%s*repeat%s") or
-               trimmedLower:match("^%s*end%s") or
-               trimmedMessage:match("^%s*%(") then -- function call
-                needsReturn = false
-            end
-            
-            if needsReturn then
-                chunk = "return " .. trimmedMessage
-            end
-            
-            -- Validate chunk length to prevent memory issues
-            if #chunk > 10000 then
-                ws:send(HttpServer.jsonStringify({error = "Code too long (max 10KB)"}))
-                return
-            end
-            
-            local fn, err = load(chunk, "websocket-eval")
-            if not fn then
-                ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
-                return
-            end
-            
-            -- Set execution timeout using a pcall wrapper
-            local ok, result = pcall(function()
-                -- Simple timeout mechanism - this won't work for all cases but helps with infinite loops
-                local start_time = os.clock()
-                local timeout = 5 -- 5 seconds
-                
-                local function check_timeout()
-                    if os.clock() - start_time > timeout then
-                        error("Execution timeout (5 seconds)")
-                    end
-                end
-                
-                -- Execute the function
-                local ret = fn()
-                check_timeout()
-                return ret
-            end)
-            
-            if ok then
-                -- Validate result size to prevent memory issues
-                local resultStr = HttpServer.jsonStringify({result = result})
-                if #resultStr > 100000 then -- 100KB limit
-                    ws:send(HttpServer.jsonStringify({error = "Result too large (max 100KB)"}))
-                else
-                    ws:send(resultStr)
-                end
-            else
-                ws:send(HttpServer.jsonStringify({error = tostring(result)}))
-                logError("WebSocket Eval Error: " .. tostring(result))
-            end
+        if not message or type(message) ~= "string" then return end
+        
+        local code = message:gsub("^%s*(.-)%s*$", "%1")
+        if #code == 0 then return end
+        
+        -- Add return if needed
+        if not code:match("^%s*return%s") and not code:match("^%s*local%s") and 
+           not code:match("^%s*function%s") and not code:match("^%s*for%s") and
+           not code:match("^%s*while%s") and not code:match("^%s*if%s") and
+           not code:match("^%s*do%s") and not code:match("^%s*repeat%s") then
+            code = "return " .. code
         end
         
-        local ok, err = pcall(safe_handler)
-        if not ok then
-            ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
-            logError("WebSocket Handler Error: " .. tostring(err))
+        local fn, err = load(code, "websocket-eval")
+        if not fn then
+            ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
+            return
+        end
+        
+        local ok, result = pcall(fn)
+        if ok then
+            ws:send(HttpServer.jsonStringify({result = result}))
+        else
+            ws:send(HttpServer.jsonStringify({error = tostring(result)}))
         end
     end
 
     ws.onClose = function()
-        logInfo("WebSocket disconnected from eval endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
         activeEvalConnections = math.max(0, activeEvalConnections - 1)
-        logDebug("Active eval connections: " .. activeEvalConnections)
     end
 
     -- Send welcome message
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
 end)
 
--- WebSocket route for memory watching with enhanced robustness
-app:websocket("/watch", function(ws)
-    logInfo("WebSocket connected to watch endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
+-- Memory watching state
+local memoryWatchers = {}
 
+-- WebSocket route for memory watching
+app:websocket("/watch", function(ws)
     -- Check concurrent connection limit
     if activeWatchConnections >= maxConcurrentWatchers then
         ws:send(HttpServer.jsonStringify({
             type = "error",
-            error = "Server at maximum capacity (" .. maxConcurrentWatchers .. " watchers). Please try again later."
+            error = "Server at capacity"
         }))
         ws:close()
         return
     end
 
-    -- Initialize memory watcher for this connection with validation
+    -- Initialize memory watcher
     memoryWatchers[ws.id] = {
         regions = {},
         lastData = {},
-        lastCheck = 0,
-        errorCount = 0,
-        connectionId = ws.id  -- Store connection ID for debugging
+        errorCount = 0
     }
     activeWatchConnections = activeWatchConnections + 1
 
     ws.onMessage = function(message)
-        local function safe_handler()
-            -- Enhanced message validation
-            if not message then
-                logDebug("Received nil message on watch endpoint")
-                return
-            end
-            
-            if type(message) ~= "string" then
-                logDebug("Received non-string message on watch endpoint: " .. type(message))
-                return
-            end
-            
-            local trimmedMessage = message:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
-            if #trimmedMessage == 0 then
-                logDebug("Received empty message on watch endpoint (after trimming)")
-                return
-            end
-            
-            logDebug("WebSocket watch message: " .. tostring(trimmedMessage))
-            
-            -- Parse JSON message for memory watching
-            local parsed, parseErr = parseWebSocketMessage(trimmedMessage)
-            if not parsed or type(parsed) ~= "table" or not parsed.type then
-                ws:send(HttpServer.jsonStringify({
-                    type = "error",
-                    error = "Invalid message format - JSON object with 'type' field required: " .. (parseErr or "unknown error")
-                }))
-                return
-            end
-                
-            if parsed.type == "watch" then
-                -- Validate regions before setting up watching
-                if not parsed.regions or type(parsed.regions) ~= "table" then
-                    ws:send(HttpServer.jsonStringify({
-                        type = "error",
-                        error = "Invalid watch request - regions array required"
-                    }))
-                    return
-                end
-                
-                -- Limit number of regions to prevent resource exhaustion
-                if #parsed.regions > 50 then
-                    ws:send(HttpServer.jsonStringify({
-                        type = "error",
-                        error = "Too many regions (max 50)"
-                    }))
-                    return
-                end
-                
-                -- Validate each region
-                local validRegions = {}
-                for i, region in ipairs(parsed.regions) do
-                    if not region.address or not region.size then
-                        logError("Invalid region " .. i .. ": missing address or size")
-                    elseif region.size <= 0 or region.size > 0x10000 then
-                        logError("Invalid region " .. i .. ": size out of range (1-65536)")
-                    elseif region.address < 0 or region.address > 0xFFFFFFFF then
-                        logError("Invalid region " .. i .. ": address out of range")
-                    else
-                        table.insert(validRegions, region)
-                    end
-                end
-                
-                if #validRegions == 0 then
-                    ws:send(HttpServer.jsonStringify({
-                        type = "error",
-                        error = "No valid regions in watch request"
-                    }))
-                    return
-                end
-                
-                logInfo("Setting up memory watch for " .. #validRegions .. " regions")
-                local watcher = memoryWatchers[ws.id]
-                if not watcher then
-                    -- Watcher might not be initialized yet, try to create it
-                    logDebug("Watcher not found for WebSocket ID " .. ws.id .. ", creating new watcher")
-                    memoryWatchers[ws.id] = {
-                        regions = {},
-                        lastData = {},
-                        lastCheck = 0,
-                        errorCount = 0,
-                        connectionId = ws.id
-                    }
-                    watcher = memoryWatchers[ws.id]
-                end
-                
-                watcher.regions = validRegions
-                watcher.lastData = {}
-                watcher.lastCheck = 0
-                watcher.errorCount = 0
-                
-                -- Initialize baseline data for each region with error handling
-                for i, region in ipairs(validRegions) do
-                    local ok, data = pcall(function()
-                        return emu:readRange(region.address, region.size)
-                    end)
-                    
-                    if ok and data then
-                        watcher.lastData[i] = data
-                    else
-                        logError("Failed to read initial data for region " .. i .. ": " .. tostring(data))
-                        watcher.lastData[i] = ""
-                    end
-                end
-                
-                ws:send(HttpServer.jsonStringify({
-                    type = "watchConfirm",
-                    message = "Watching " .. #validRegions .. " memory regions"
-                }))
-            else
-                ws:send(HttpServer.jsonStringify({
-                    type = "error",
-                    error = "Unknown message type: " .. tostring(parsed.type)
-                }))
-            end
+        if not message or type(message) ~= "string" then return end
+        
+        local parsed = parseWebSocketMessage(message:gsub("^%s*(.-)%s*$", "%1"))
+        if not parsed or parsed.type ~= "watch" then
+            ws:send(HttpServer.jsonStringify({
+                type = "error",
+                error = "Invalid message format"
+            }))
+            return
         end
         
-        local ok, err = pcall(safe_handler)
-        if not ok then
-            ws:send(HttpServer.jsonStringify({type = "error", error = "Internal server error: " .. tostring(err)}))
-            logError("WebSocket Watch Handler Error: " .. tostring(err))
+        if not parsed.regions or #parsed.regions == 0 or #parsed.regions > 50 then
+            ws:send(HttpServer.jsonStringify({
+                type = "error",
+                error = "Invalid regions"
+            }))
+            return
         end
+        
+        local watcher = memoryWatchers[ws.id]
+        if not watcher then
+            memoryWatchers[ws.id] = { regions = {}, lastData = {}, errorCount = 0 }
+            watcher = memoryWatchers[ws.id]
+        end
+        
+        watcher.regions = parsed.regions
+        watcher.lastData = {}
+        watcher.errorCount = 0
+        
+        -- Initialize baseline data
+        for i, region in ipairs(parsed.regions) do
+            local ok, data = pcall(function()
+                return emu:readRange(region.address, region.size)
+            end)
+            watcher.lastData[i] = ok and data or ""
+        end
+        
+        ws:send(HttpServer.jsonStringify({
+            type = "watchConfirm",
+            message = "Watching " .. #parsed.regions .. " memory regions"
+        }))
     end
 
     ws.onClose = function()
-        logInfo("WebSocket disconnected from watch endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
-        -- Robust cleanup of memory watcher
         if memoryWatchers[ws.id] then
             memoryWatchers[ws.id] = nil
             activeWatchConnections = math.max(0, activeWatchConnections - 1)
-            logDebug("Cleaned up watcher for connection " .. ws.id .. ", active connections: " .. activeWatchConnections)
         end
     end
 
-    -- Send enhanced welcome message
+    -- Send welcome message
     ws:send(HttpServer.jsonStringify({
         type = "welcome",
         message = "Welcome to WebSocket Memory Watching! Send JSON messages with 'type': 'watch' to monitor memory regions.",
@@ -1038,118 +821,70 @@ app:websocket("/watch", function(ws)
     }))
 end)
 
--- Enhanced frame callback for memory change detection with throttling and error handling
-local frameCallbackId = nil
+-- Memory change detection callback
 local frameCount = 0
-local lastMemoryCheck = 0
 
 local function checkMemoryChanges()
     frameCount = frameCount + 1
     
-    -- Throttle memory checks to every 10 frames (about 6fps at 60fps)
-    if frameCount % 10 ~= 0 then
-        return
-    end
+    -- Check every 10 frames (about 6fps at 60fps)
+    if frameCount % 10 ~= 0 then return end
     
-    local currentTime = os.clock()
-    
-    -- Additional throttling - check at most every 100ms
-    if currentTime - lastMemoryCheck < 0.1 then
-        return
-    end
-    
-    lastMemoryCheck = currentTime
-    
-    -- Create a snapshot of watchers to avoid concurrent modification issues
-    local watcherSnapshot = {}
     for wsId, watcher in pairs(memoryWatchers) do
-        watcherSnapshot[wsId] = watcher
-    end
-    
-    for wsId, watcher in pairs(watcherSnapshot) do
-        -- Validate that the WebSocket connection still exists and is active
         local ws = app.websockets[wsId]
-        if not ws or ws.path ~= "/watch" or ws.readyState == 2 or ws.readyState == 3 then  -- 2 = CLOSING, 3 = CLOSED
-            -- Connection is no longer valid, clean it up
-            logDebug("Cleaning up stale watcher for connection " .. wsId)
+        if not ws or ws.readyState == 2 or ws.readyState == 3 then
             memoryWatchers[wsId] = nil
             activeWatchConnections = math.max(0, activeWatchConnections - 1)
             goto continue
         end
         
-        -- Only process watchers with regions and below error threshold
-        if #watcher.regions == 0 then
-            goto continue
-        end
-        
-        -- Skip if too many recent errors
-        if watcher.errorCount > 10 then
-            logError("Too many errors for watcher " .. wsId .. ", removing watcher")
-            memoryWatchers[wsId] = nil
-            activeWatchConnections = math.max(0, activeWatchConnections - 1)
+        if #watcher.regions == 0 or watcher.errorCount > 5 then
             goto continue
         end
         
         local changedRegions = {}
         
         for i, region in ipairs(watcher.regions) do
-            if region.address and region.size then
-                local ok, currentData = pcall(function()
-                    return emu:readRange(region.address, region.size)
-                end)
-                
-                if not ok then
-                    watcher.errorCount = watcher.errorCount + 1
-                    logError("Error reading memory region " .. i .. " for watcher " .. wsId .. ": " .. tostring(currentData))
-                    goto continue_region
-                end
-                
-                if currentData ~= watcher.lastData[i] then
-                    -- Memory changed, prepare update
-                    local bytes = {}
-                    
-                    -- Safe byte extraction with length validation
-                    local dataLen = math.min(#currentData, region.size)
-                    for j = 1, dataLen do
-                        local byte = string.byte(currentData, j)
-                        if byte and type(byte) == "number" then
-                            bytes[j] = byte
-                        else
-                            bytes[j] = 0  -- fallback to 0 for invalid bytes
-                        end
-                    end
-                    
-                    table.insert(changedRegions, {
-                        address = region.address,
-                        size = region.size,
-                        data = bytes
-                    })
-                    
-                    -- Update stored data
-                    watcher.lastData[i] = currentData
-                end
-                
-                ::continue_region::
+            local ok, currentData = pcall(function()
+                return emu:readRange(region.address, region.size)
+            end)
+            
+            if not ok then
+                watcher.errorCount = watcher.errorCount + 1
+                goto continue_region
             end
+            
+            if currentData ~= watcher.lastData[i] then
+                local bytes = {}
+                for j = 1, math.min(#currentData, region.size) do
+                    bytes[j] = string.byte(currentData, j) or 0
+                end
+                
+                changedRegions[#changedRegions + 1] = {
+                    address = region.address,
+                    size = region.size,
+                    data = bytes
+                }
+                
+                watcher.lastData[i] = currentData
+            end
+            
+            ::continue_region::
         end
         
         -- Send memory update if any regions changed
         if #changedRegions > 0 then
-            local ok, err = pcall(function()
+            local ok = pcall(function()
                 ws:send(HttpServer.jsonStringify({
                     type = "memoryUpdate",
                     regions = changedRegions,
-                    timestamp = os.time(),
-                    frameCount = frameCount
+                    timestamp = os.time()
                 }))
             end)
             
             if not ok then
                 watcher.errorCount = watcher.errorCount + 1
-                logError("Error sending memory update for watcher " .. wsId .. ": " .. tostring(err))
-                -- If we can't send, the connection is likely dead
                 if watcher.errorCount > 3 then
-                    logError("Too many send errors for watcher " .. wsId .. ", removing")
                     memoryWatchers[wsId] = nil
                     activeWatchConnections = math.max(0, activeWatchConnections - 1)
                 end
@@ -1160,12 +895,9 @@ local function checkMemoryChanges()
     end
 end
 
--- Register frame callback to monitor memory changes
+-- Setup memory monitoring
 local function setupMemoryMonitoring()
-    if frameCallbackId then
-        callbacks:remove(frameCallbackId)
-    end
-    frameCallbackId = callbacks:add("frame", checkMemoryChanges)
+    callbacks:add("frame", checkMemoryChanges)
     logInfo("🔍 Memory monitoring callback registered")
 end
 
