@@ -70,10 +70,9 @@ export class PokemonSaveParser {
   public saveFileName: string | null = null
   public fileHandle: FileSystemFileHandle | null = null
 
-  // Memory mode properties
+  // Memory mode properties  
   private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
-  private currentPartyPokemon: PokemonBase[] = []
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
@@ -523,7 +522,6 @@ export class PokemonSaveParser {
     // Memory mode: read directly from emulator memory
     if (this.isMemoryMode && this.webSocketClient) {
       const partyPokemon = await this.parsePartyPokemon()
-      this.currentPartyPokemon = partyPokemon // Cache for patching during memory updates
 
       return {
         party_pokemon: partyPokemon,
@@ -629,36 +627,35 @@ export class PokemonSaveParser {
 
     const memAddrs = this.config.memoryAddresses!
     const effectiveConfig = createEffectiveConfig(this.config)
-
-    if (address === memAddrs.partyCount) {
-      // Party count changed - update current party size but keep existing Pokemon
-      const newPartyCount = Math.min(data[0] ?? 0, 6)
-      this.currentPartyPokemon = this.currentPartyPokemon.slice(0, newPartyCount)
-    } else if (address === memAddrs.partyData) {
-      // Party data changed - replace Pokemon with updated data efficiently
+    
+    // Parse party Pokemon directly from memory data without caching
+    let partyPokemon: PokemonBase[] = []
+    
+    if (address === memAddrs.partyData) {
+      // Parse Pokemon from the updated party data
       const partyCount = Math.min(Math.floor(data.length / effectiveConfig.pokemonSize), 6)
-
+      
       for (let i = 0; i < partyCount; i++) {
         const offset = i * effectiveConfig.pokemonSize
         const pokemonData = data.slice(offset, offset + effectiveConfig.pokemonSize)
-
+        
         try {
-          // Create new Pokemon with updated data (efficient: only creates what changed)
           const pokemon = new PokemonBase(pokemonData, this.config)
           if (pokemon.speciesId !== 0) {
-            this.currentPartyPokemon[i] = pokemon
+            partyPokemon.push(pokemon)
           }
-        } catch (error) {
+        } catch {
           // Skip invalid Pokemon data
         }
       }
-
-      // Remove Pokemon beyond the current data
-      this.currentPartyPokemon = this.currentPartyPokemon.slice(0, partyCount)
+    } else if (address === memAddrs.partyCount) {
+      // Party count changed - would need to re-read full party data
+      // For now, return empty party (caller should handle re-parsing)
+      partyPokemon = []
     }
 
     return {
-      party_pokemon: this.currentPartyPokemon,
+      party_pokemon: partyPokemon,
       player_name: 'MEMORY',
       play_time: { hours: 0, minutes: 0, seconds: 0 },
       active_slot: 0,

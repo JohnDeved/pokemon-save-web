@@ -257,7 +257,7 @@ export class MgbaWebSocketClient {
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Watch setup timeout'))
-      }, 5000)
+      }, 15000)
 
       const handleResponse = (data: Buffer) => {
         try {

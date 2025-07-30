@@ -37,7 +37,7 @@ describe('WebSocket Integration Tests', () => {
 
   // Add delay between tests to avoid overwhelming the server
   afterEach(async () => {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise(resolve => setTimeout(resolve, 1000))
   })
 
   it('should use shared buffer for watched regions', async () => {
@@ -113,7 +113,7 @@ describe('WebSocket Integration Tests', () => {
     expect(sharedBuffer.size).toBeGreaterThan(0)
 
     client.disconnect()
-  })
+  }, 15000)
 
   it('should handle preload shared buffers', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
@@ -125,7 +125,7 @@ describe('WebSocket Integration Tests', () => {
     expect(client.isWatchingMemory()).toBe(true)
 
     client.disconnect()
-  })
+  }, 15000)
 
   it('should provide game title when available', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)

@@ -57,11 +57,19 @@ _G.socket = {
     end
 }
 
--- Load and start HTTP server
+-- Load and start HTTP server with more robust port replacement
 print("Starting mGBA environment on port " .. test_port)
 local code = assert(io.open((arg[0]:match("(.+)/[^/]+$") or ".") .. "/../http-server.lua", "r")):read("*all")
 local load_func = loadstring or load
-assert(pcall(assert(load_func(code:gsub("app:listen%(7102", "app:listen(" .. test_port)))))
+
+-- Replace the port number more carefully 
+local modified_code = code:gsub("app:listen%(7102,", "app:listen(" .. test_port .. ",")
+if modified_code == code then
+  -- Fallback pattern if the first one didn't match
+  modified_code = code:gsub("app:listen%(7102", "app:listen(" .. test_port)
+end
+
+assert(pcall(assert(load_func(modified_code))))
 print("HTTP server loaded successfully")
 
 -- Event loop

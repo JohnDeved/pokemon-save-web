@@ -56,13 +56,13 @@ describe('WebSocket Reliability Tests', () => {
         clients.push(client)
 
         // Short delay between connections
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 200))
 
         client.disconnect()
         expect(client.isConnected()).toBe(false)
 
         // Ensure connection is fully closed before next iteration
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => setTimeout(resolve, 300))
       }
     } finally {
       // Cleanup any remaining connections
