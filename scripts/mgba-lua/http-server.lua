@@ -966,12 +966,16 @@ app:websocket("/watch", function(ws)
                 logInfo("Setting up memory watch for " .. #validRegions .. " regions")
                 local watcher = memoryWatchers[ws.id]
                 if not watcher then
-                    logError("Watcher not found for WebSocket ID " .. ws.id .. ", connection may have been closed")
-                    ws:send(HttpServer.jsonStringify({
-                        type = "error",
-                        error = "Watcher initialization failed - connection state invalid"
-                    }))
-                    return
+                    -- Watcher might not be initialized yet, try to create it
+                    logDebug("Watcher not found for WebSocket ID " .. ws.id .. ", creating new watcher")
+                    memoryWatchers[ws.id] = {
+                        regions = {},
+                        lastData = {},
+                        lastCheck = 0,
+                        errorCount = 0,
+                        connectionId = ws.id
+                    }
+                    watcher = memoryWatchers[ws.id]
                 end
                 
                 watcher.regions = validRegions
@@ -1065,7 +1069,7 @@ local function checkMemoryChanges()
     for wsId, watcher in pairs(watcherSnapshot) do
         -- Validate that the WebSocket connection still exists and is active
         local ws = app.websockets[wsId]
-        if not ws or ws.path ~= "/watch" or ws.readyState ~= 1 then  -- 1 = OPEN
+        if not ws or ws.path ~= "/watch" or ws.readyState == 2 or ws.readyState == 3 then  -- 2 = CLOSING, 3 = CLOSED
             -- Connection is no longer valid, clean it up
             logDebug("Cleaning up stale watcher for connection " .. wsId)
             memoryWatchers[wsId] = nil

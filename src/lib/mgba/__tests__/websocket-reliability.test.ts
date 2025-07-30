@@ -49,8 +49,12 @@ describe('WebSocket Reliability Tests', () => {
         const client = new MgbaWebSocketClient(WEBSOCKET_URL)
         await client.connect()
         
-        // Add longer delay to ensure connection is stable before checking
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Wait actively for connection to be established
+        let attempts = 0
+        while (!client.isConnected() && attempts < 20) {
+          await new Promise(resolve => setTimeout(resolve, 250))
+          attempts++
+        }
         expect(client.isConnected()).toBe(true)
 
         // Test disconnect
@@ -81,8 +85,14 @@ describe('WebSocket Reliability Tests', () => {
       // All should connect successfully
       await Promise.all(connectPromises)
       
-      // Add longer delay to ensure connections are stable
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Wait actively for all connections to be established
+      for (const client of clients) {
+        let attempts = 0
+        while (!client.isConnected() && attempts < 20) {
+          await new Promise(resolve => setTimeout(resolve, 250))
+          attempts++
+        }
+      }
 
       // Verify all connections are active
       for (const client of clients) {
@@ -113,6 +123,13 @@ describe('WebSocket Reliability Tests', () => {
     try {
       // Initial connection
       await client.connect()
+      
+      // Wait actively for connection to be established
+      let attempts = 0
+      while (!client.isConnected() && attempts < 20) {
+        await new Promise(resolve => setTimeout(resolve, 250))
+        attempts++
+      }
       expect(client.isConnected()).toBe(true)
 
       // Test basic functionality

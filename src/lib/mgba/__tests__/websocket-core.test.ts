@@ -50,8 +50,12 @@ describe('WebSocket Core Tests', () => {
 
     await client.connect()
     
-    // Add delay to ensure connection is fully stable
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Wait actively for connection to be established
+    let attempts = 0
+    while (!client.isConnected() && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 250))
+      attempts++
+    }
     
     expect(client.isConnected()).toBe(true)
     expect(client.isEvalConnected()).toBe(true)
