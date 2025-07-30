@@ -273,17 +273,28 @@ end
 ---@private
 function HttpServer:_parse_request(request_str)
     local header_end = request_str:find("\r\n\r\n")
-    if not header_end then return nil end
+    if not header_end then 
+        logInfo("Failed to find request header end")
+        return nil 
+    end
 
     local header_part = request_str:sub(1, header_end - 1)
     local body = request_str:sub(header_end + 4)
 
     local method, path = header_part:match("^(%w+)%s+([^%s]+)")
-    if not method or not path then return nil end
+    if not method or not path then 
+        logInfo("Failed to parse method and path from: " .. header_part:sub(1, 50))
+        return nil 
+    end
 
     local headers = {}
     for k, v in string.gmatch(header_part, "([%w-]+):%s*([^\r\n]+)") do
         headers[string.lower(k)] = v
+    end
+
+    -- Debug log for WebSocket requests
+    if headers.upgrade or headers.connection then
+        logInfo("Parsed request: " .. method .. " " .. path .. " (upgrade=" .. tostring(headers.upgrade) .. ", connection=" .. tostring(headers.connection) .. ")")
     end
 
     return { method = method, path = path, headers = headers, body = body }
@@ -350,21 +361,34 @@ function HttpServer:_handle_client_data(clientId)
         return
     end
 
-    -- Read request data with better error handling
+    -- Read request data with better error handling and increased buffer
     local data = ""
-    local maxChunks = 100  -- Prevent infinite loops
+    local maxChunks = 50  -- Reduced to prevent excessive loops
     local chunks = 0
+    local maxDataSize = 8192  -- Limit to prevent memory issues
     
     repeat
         chunks = chunks + 1
-        local chunk, err = client:receive(1024)
+        local chunk, err = client:receive(2048)  -- Increased chunk size
         if chunk then
             data = data .. chunk
+            -- Prevent excessive data accumulation
+            if #data > maxDataSize then
+                logError("Request too large for client " .. clientId)
+                self:_cleanup_client(clientId)
+                return
+            end
         elseif err == socket.ERRORS.AGAIN then
             -- Non-blocking mode - data not ready yet
+            if #data > 0 and data:find("\r\n\r\n") then
+                -- We have a complete request even though more data might be coming
+                break
+            end
+            -- Wait a bit for more data if we don't have complete headers
             break
         elseif err then
             -- Connection error
+            logInfo("Client " .. clientId .. " connection error: " .. tostring(err))
             self:_cleanup_client(clientId)
             return
         else
@@ -374,6 +398,13 @@ function HttpServer:_handle_client_data(clientId)
     until data:find("\r\n\r\n") or chunks >= maxChunks
 
     if data == "" then return end
+    
+    -- Check if we have complete headers
+    if not data:find("\r\n\r\n") then
+        logInfo("Incomplete request from client " .. clientId .. " (size: " .. #data .. ")")
+        -- Don't cleanup immediately, might get more data later
+        return
+    end
 
     -- Parse and handle request with better error handling
     local req = self:_parse_request(data)
@@ -429,9 +460,29 @@ end
 ---@return boolean
 ---@private
 function HttpServer:_is_websocket_request(req)
-    return req.headers.upgrade == "websocket" and 
-           req.headers.connection and req.headers.connection:lower():find("upgrade") ~= nil and
-           req.headers["sec-websocket-key"] ~= nil
+    -- Headers are already lowercase from parsing
+    local upgrade = req.headers.upgrade
+    local connection = req.headers.connection
+    local wsKey = req.headers["sec-websocket-key"]
+    
+    -- Debug logging for failed WebSocket detection
+    if not upgrade or upgrade ~= "websocket" then
+        logInfo("WebSocket detection failed: upgrade=" .. tostring(upgrade))
+        return false
+    end
+    
+    if not connection or not connection:lower():find("upgrade") then
+        logInfo("WebSocket detection failed: connection=" .. tostring(connection))
+        return false
+    end
+    
+    if not wsKey then
+        logInfo("WebSocket detection failed: missing sec-websocket-key")
+        return false
+    end
+    
+    logInfo("WebSocket upgrade detected for " .. req.path)
+    return true
 end
 
 --- Handles WebSocket upgrade handshake with enhanced reliability.
@@ -444,6 +495,8 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
         logError("WebSocket upgrade failed: client " .. clientId .. " not found")
         return 
     end
+    
+    logInfo("Starting WebSocket handshake for client " .. clientId .. " on path " .. req.path)
     
     local wsKey = req.headers["sec-websocket-key"]
     if not wsKey then
@@ -458,12 +511,15 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
                     "Connection: Upgrade\r\n" ..
                     "Sec-WebSocket-Accept: " .. accept .. "\r\n\r\n"
     
+    logInfo("Sending WebSocket handshake response for client " .. clientId)
     local ok, err = client:send(response)
     if not ok then
         logError("WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
         self:_cleanup_client(clientId)
         return
     end
+    
+    logInfo("WebSocket handshake sent successfully for client " .. clientId)
     
     -- Create WebSocket instance with enhanced error handling
     local ws = {
@@ -483,14 +539,18 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     }
     
     self.websockets[clientId] = ws
+    logInfo("WebSocket instance created for client " .. clientId)
     
     -- Call WebSocket route handler with error protection
     local handler = self.wsRoutes[req.path]
     if handler then
+        logInfo("Calling WebSocket handler for path " .. req.path)
         local ok, err = pcall(handler, ws)
         if not ok then
             logError("WebSocket handler failed for " .. req.path .. ": " .. tostring(err))
             self:_cleanup_client(clientId)
+        else
+            logInfo("WebSocket handler completed successfully for " .. req.path)
         end
     else
         logError("No WebSocket handler found for path: " .. req.path)
@@ -740,12 +800,13 @@ local MAX_REQUESTS_PER_WINDOW = 10
 -- Enhanced WebSocket route for Lua code evaluation with improved connection reliability
 app:websocket("/eval", function(ws)
     if activeEvalConnections >= maxConcurrentEvals then
-        ws:send(HttpServer.jsonStringify({ error = "Server at capacity" }))
-        ws:close()
+        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({ error = "Server at capacity" }))
+        if ok then pcall(ws.close, ws) end
         return
     end
 
     activeEvalConnections = activeEvalConnections + 1
+    logInfo("Eval WebSocket connected: " .. ws.id .. " (active: " .. activeEvalConnections .. ")")
     
     -- Initialize rate limiting for this connection
     connectionRateLimits[ws.id] = {
@@ -801,22 +862,33 @@ app:websocket("/eval", function(ws)
     end
 
     ws.onClose = function()
+        logInfo("Eval WebSocket disconnected: " .. ws.id)
         activeEvalConnections = math.max(0, activeEvalConnections - 1)
         if connectionRateLimits[ws.id] then
             connectionRateLimits[ws.id] = nil
         end
     end
 
-    -- Send welcome message with error handling
-    local ok, err = pcall(ws.send, ws, "Welcome to WebSocket Eval! Send Lua code to execute.")
-    if not ok then
-        logError("Failed to send eval welcome message: " .. tostring(err))
-        -- Force cleanup if welcome message fails
-        activeEvalConnections = math.max(0, activeEvalConnections - 1)
-        if connectionRateLimits[ws.id] then
-            connectionRateLimits[ws.id] = nil
+    -- Delay welcome message slightly to ensure WebSocket is fully established
+    -- This prevents immediate disconnection if the client isn't ready
+    local welcome_callback_id = callbacks:add("frame", function()
+        if ws and ws.client then
+            -- Send JSON welcome message like watch endpoint
+            local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
+                type = "welcome",
+                message = "WebSocket Eval Ready! Send Lua code to execute.",
+                limits = { rateLimit = MAX_REQUESTS_PER_WINDOW .. " per " .. RATE_LIMIT_WINDOW .. "ms" }
+            }))
+            if not ok then
+                logError("Failed to send eval welcome message: " .. tostring(err))
+                -- Don't force cleanup here, let the connection stabilize
+            else
+                logInfo("Eval welcome message sent to " .. ws.id)
+            end
         end
-    end
+        -- Remove this callback after one execution
+        callbacks:remove(welcome_callback_id)
+    end)
 end)
 
 -- Memory watching state
@@ -826,11 +898,11 @@ local memoryWatchers = {}
 app:websocket("/watch", function(ws)
     -- Connection limit check
     if activeWatchConnections >= maxConcurrentWatchers then
-        ws:send(HttpServer.jsonStringify({
+        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({
             type = "error",
             error = "Server at capacity"
         }))
-        ws:close()
+        if ok then pcall(ws.close, ws) end
         return
     end
 
@@ -841,6 +913,7 @@ app:websocket("/watch", function(ws)
         errorCount = 0
     }
     activeWatchConnections = activeWatchConnections + 1
+    logInfo("Watch WebSocket connected: " .. ws.id .. " (active: " .. activeWatchConnections .. ")")
 
     ws.onMessage = function(message)
         if not message or type(message) ~= "string" then return end
@@ -885,27 +958,32 @@ app:websocket("/watch", function(ws)
     end
 
     ws.onClose = function()
+        logInfo("Watch WebSocket disconnected: " .. ws.id)
         if memoryWatchers[ws.id] then
             memoryWatchers[ws.id] = nil
             activeWatchConnections = math.max(0, activeWatchConnections - 1)
         end
     end
 
-    -- Send streamlined welcome message with error handling
-    local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
-        type = "welcome",
-        message = "Memory Watching Ready! Send WATCH messages with regions.",
-        limits = { maxRegions = 50, maxRegionSize = 65536 }
-    }))
-    
-    if not ok then
-        logError("Failed to send watch welcome message: " .. tostring(err))
-        -- Force cleanup if welcome message fails
-        if memoryWatchers[ws.id] then
-            memoryWatchers[ws.id] = nil
-            activeWatchConnections = math.max(0, activeWatchConnections - 1)
+    -- Delay welcome message slightly to ensure WebSocket is fully established
+    local welcome_callback_id = callbacks:add("frame", function()
+        if ws and ws.client then
+            local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
+                type = "welcome",
+                message = "Memory Watching Ready! Send WATCH messages with regions.",
+                limits = { maxRegions = 50, maxRegionSize = 65536 }
+            }))
+            
+            if not ok then
+                logError("Failed to send watch welcome message: " .. tostring(err))
+                -- Don't force cleanup here, let the connection stabilize
+            else
+                logInfo("Watch welcome message sent to " .. ws.id)
+            end
         end
-    end
+        -- Remove this callback after one execution
+        callbacks:remove(welcome_callback_id)
+    end)
 end)
 
 -- Optimized memory change detection callback

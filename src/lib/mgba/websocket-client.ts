@@ -456,9 +456,10 @@ export class MgbaWebSocketClient {
       const timeout = setTimeout(() => {
         ws.close()
         reject(new Error('Eval connection timeout'))
-      }, 5000)
+      }, 8000) // Increased timeout to account for server initialization
 
       ws.on('open', () => {
+        console.debug('Eval WebSocket opened')
         clearTimeout(timeout)
         this.evalWs = ws
         this.evalConnected = true
@@ -466,16 +467,32 @@ export class MgbaWebSocketClient {
       })
 
       ws.on('error', (error: Error) => {
+        console.debug('Eval WebSocket error:', error.message)
         clearTimeout(timeout)
         reject(new Error(`Eval connection failed: ${String(error)}`))
       })
 
-      ws.on('close', () => {
+      ws.on('close', (code: number, reason: Buffer) => {
+        console.debug(`Eval WebSocket closed: ${code} ${reason.toString()}`)
         // Only reset state if this was an established connection
         if (this.evalWs === ws) {
           this.evalConnected = false
           this.evalWs = null
         }
+      })
+
+      // Handle eval messages (welcome and responses)
+      ws.on('message', (data: Buffer) => {
+        const messageText = data.toString()
+        console.debug('Eval message received:', messageText.substring(0, 100))
+        
+        // Handle welcome messages
+        if (!messageText.startsWith('{')) {
+          console.log('Eval WebSocket message:', messageText)
+          return
+        }
+
+        // Let the eval method handle response messages
       })
     })
   }
@@ -488,9 +505,10 @@ export class MgbaWebSocketClient {
       const timeout = setTimeout(() => {
         ws.close()
         reject(new Error('Watch connection timeout'))
-      }, 5000)
+      }, 8000) // Increased timeout to account for server initialization
 
       ws.on('open', () => {
+        console.debug('Watch WebSocket opened')
         clearTimeout(timeout)
         this.watchWs = ws
         this.watchConnected = true
@@ -498,11 +516,13 @@ export class MgbaWebSocketClient {
       })
 
       ws.on('error', (error: Error) => {
+        console.debug('Watch WebSocket error:', error.message)
         clearTimeout(timeout)
         reject(new Error(`Watch connection failed: ${String(error)}`))
       })
 
-      ws.on('close', () => {
+      ws.on('close', (code: number, reason: Buffer) => {
+        console.debug(`Watch WebSocket closed: ${code} ${reason.toString()}`)
         // Only reset state if this was an established connection
         if (this.watchWs === ws) {
           this.watchConnected = false
@@ -517,6 +537,12 @@ export class MgbaWebSocketClient {
   }
 
   private handleWatchMessage (messageText: string): void {
+    // Handle plain text messages (like legacy eval welcome messages)
+    if (!messageText.startsWith('{')) {
+      console.log('Watch WebSocket message:', messageText)
+      return
+    }
+
     try {
       const message = JSON.parse(messageText) as WebSocketMessage
 
@@ -547,13 +573,19 @@ export class MgbaWebSocketClient {
 
         case 'welcome':
           // Server welcome message - safe to ignore
+          console.log('Watch welcome:', message.message)
           break
 
         default:
           console.warn('Unknown message type:', (message as { type?: unknown }).type)
       }
     } catch (error) {
-      console.warn('Failed to parse watch message:', error)
+      // Only warn about parsing errors for messages that look like JSON
+      if (messageText.trim().startsWith('{')) {
+        console.warn('Failed to parse watch message:', error)
+      } else {
+        console.log('Watch WebSocket message:', messageText)
+      }
     }
   }
 }
