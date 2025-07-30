@@ -65,7 +65,7 @@ export class MgbaWebSocketClient {
   // Memory watching state
   private watchedRegions: MemoryRegion[] = []
   private readonly sharedBuffer = new Map<number, Uint8Array>() // address -> data
-  private readonly memoryChangeListeners: MemoryChangeListener[] = []
+  private memoryChangeListeners: MemoryChangeListener[] = []
 
   constructor (baseUrl = 'ws://localhost:7102') {
     this.baseUrl = baseUrl
@@ -83,7 +83,7 @@ export class MgbaWebSocketClient {
   /**
    * Connect with retry logic for better reliability
    */
-  private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 3): Promise<void> {
+  private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 5): Promise<void> {
     let lastError: Error | null = null
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -96,29 +96,53 @@ export class MgbaWebSocketClient {
         return // Success
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
+        
         if (attempt < maxRetries) {
-          // Wait before retry with exponential backoff
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 3000)
+          // Wait before retry with exponential backoff, but add jitter to avoid thundering herd
+          const baseDelay = Math.min(500 * Math.pow(2, attempt - 1), 2000)
+          const jitter = Math.random() * 300 // Add up to 300ms random jitter
+          const delay = baseDelay + jitter
+          
+          console.debug(`${type} connection attempt ${attempt} failed, retrying in ${Math.round(delay)}ms...`)
           await new Promise(resolve => setTimeout(resolve, delay))
         }
       }
     }
     
-    throw lastError
+    throw new Error(`Failed to connect ${type} after ${maxRetries} attempts: ${lastError?.message}`)
   }
 
   /**
-   * Disconnect all connections
+   * Disconnect all connections with improved cleanup
    */
   disconnect (): void {
-    this.evalWs?.close()
-    this.watchWs?.close()
-    this.evalWs = null
-    this.watchWs = null
+    // Close connections gracefully with timeout
+    if (this.evalWs) {
+      try {
+        this.evalWs.close()
+      } catch (error) {
+        console.debug('Error closing eval WebSocket:', error)
+      }
+      this.evalWs = null
+    }
+    
+    if (this.watchWs) {
+      try {
+        this.watchWs.close()
+      } catch (error) {
+        console.debug('Error closing watch WebSocket:', error)
+      }
+      this.watchWs = null
+    }
+    
+    // Reset connection states
     this.evalConnected = false
     this.watchConnected = false
+    
+    // Clear all cached data
     this.sharedBuffer.clear()
     this.watchedRegions = []
+    this.memoryChangeListeners = []
   }
 
   /**
@@ -196,6 +220,16 @@ export class MgbaWebSocketClient {
       throw new Error('Watch WebSocket not connected')
     }
 
+    // Validate regions on client side
+    for (const region of regions) {
+      if (region.address < 0 || region.address > 0xFFFFFFFF) {
+        throw new Error(`Invalid address: 0x${region.address.toString(16)}`)
+      }
+      if (region.size <= 0 || region.size > 0x10000) {
+        throw new Error(`Invalid size: ${region.size} (must be 1-65536)`)
+      }
+    }
+
     this.watchedRegions = [...regions]
 
     // Send structured watch message
@@ -205,17 +239,42 @@ export class MgbaWebSocketClient {
     }
     const structuredMessage = messageLines.join('\n')
 
-    this.watchWs.send(structuredMessage)
+    // Send watch request and wait for confirmation or error
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Watch setup timeout'))
+      }, 5000)
 
-    // Initialize shared buffer with current data
-    for (const region of regions) {
-      try {
-        const data = await this.readMemory(region.address, region.size)
-        this.sharedBuffer.set(region.address, data)
-      } catch (error) {
-        console.warn(`Failed to initialize shared buffer for region 0x${region.address.toString(16)}: ${String(error)}`)
+      const handleResponse = (data: Buffer) => {
+        try {
+          const message = JSON.parse(data.toString()) as WebSocketMessage
+          if (message.type === 'watchConfirm') {
+            clearTimeout(timeout)
+            this.watchWs?.removeListener('message', handleResponse)
+            resolve()
+          } else if (message.type === 'error') {
+            clearTimeout(timeout)
+            this.watchWs?.removeListener('message', handleResponse)
+            reject(new Error(message.error))
+          }
+        } catch (error) {
+          // Ignore parsing errors for non-JSON messages
+        }
       }
-    }
+
+      this.watchWs.on('message', handleResponse)
+      this.watchWs.send(structuredMessage)
+    }).then(async () => {
+      // Initialize shared buffer with current data after successful setup
+      for (const region of regions) {
+        try {
+          const data = await this.readMemory(region.address, region.size)
+          this.sharedBuffer.set(region.address, data)
+        } catch (error) {
+          console.warn(`Failed to initialize shared buffer for region 0x${region.address.toString(16)}: ${String(error)}`)
+        }
+      }
+    })
   }
 
   /**

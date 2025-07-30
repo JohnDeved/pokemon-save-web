@@ -32,7 +32,7 @@ async function checkServerAvailable (): Promise<void> {
 describe('WebSocket Core Tests', () => {
   // Check server availability once before all tests
   beforeAll(async () => {
-    
+    await checkServerAvailable()
   }, 10000)
 
   // Add delay between tests to avoid overwhelming the server

@@ -702,6 +702,8 @@ end)
 
 -- Memory watching state for WebSocket connections
 local memoryWatchers = {}
+local activeWatchConnections = 0
+local maxConcurrentWatchers = 50
 
 -- Simple message parser for WebSocket messages
 -- Supports structured format: WATCH\naddress,size\naddress,size\n...
@@ -740,9 +742,24 @@ local function parseWebSocketMessage(str)
     return nil, "Unsupported format"
 end
 
+-- Connection tracking for eval endpoint
+local activeEvalConnections = 0
+local maxConcurrentEvals = 100
+
 -- WebSocket route for Lua code evaluation with enhanced error handling
 app:websocket("/eval", function(ws)
     logInfo("WebSocket connected to eval endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
+
+    -- Check concurrent connection limit
+    if activeEvalConnections >= maxConcurrentEvals then
+        ws:send(HttpServer.jsonStringify({
+            error = "Server at maximum capacity (" .. maxConcurrentEvals .. " eval connections). Please try again later."
+        }))
+        ws:close()
+        return
+    end
+
+    activeEvalConnections = activeEvalConnections + 1
 
     ws.onMessage = function(message)
         local function safe_handler()
@@ -842,6 +859,8 @@ app:websocket("/eval", function(ws)
 
     ws.onClose = function()
         logInfo("WebSocket disconnected from eval endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
+        activeEvalConnections = math.max(0, activeEvalConnections - 1)
+        logDebug("Active eval connections: " .. activeEvalConnections)
     end
 
     -- Send welcome message
@@ -852,13 +871,25 @@ end)
 app:websocket("/watch", function(ws)
     logInfo("WebSocket connected to watch endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
 
+    -- Check concurrent connection limit
+    if activeWatchConnections >= maxConcurrentWatchers then
+        ws:send(HttpServer.jsonStringify({
+            type = "error",
+            error = "Server at maximum capacity (" .. maxConcurrentWatchers .. " watchers). Please try again later."
+        }))
+        ws:close()
+        return
+    end
+
     -- Initialize memory watcher for this connection with validation
     memoryWatchers[ws.id] = {
         regions = {},
         lastData = {},
         lastCheck = 0,
-        errorCount = 0
+        errorCount = 0,
+        connectionId = ws.id  -- Store connection ID for debugging
     }
+    activeWatchConnections = activeWatchConnections + 1
 
     ws.onMessage = function(message)
         local function safe_handler()
@@ -934,6 +965,15 @@ app:websocket("/watch", function(ws)
                 
                 logInfo("Setting up memory watch for " .. #validRegions .. " regions")
                 local watcher = memoryWatchers[ws.id]
+                if not watcher then
+                    logError("Watcher not found for WebSocket ID " .. ws.id .. ", connection may have been closed")
+                    ws:send(HttpServer.jsonStringify({
+                        type = "error",
+                        error = "Watcher initialization failed - connection state invalid"
+                    }))
+                    return
+                end
+                
                 watcher.regions = validRegions
                 watcher.lastData = {}
                 watcher.lastCheck = 0
@@ -974,8 +1014,12 @@ app:websocket("/watch", function(ws)
 
     ws.onClose = function()
         logInfo("WebSocket disconnected from watch endpoint: " .. ws.path .. " (ID: " .. ws.id .. ")")
-        -- Cleanup memory watcher
-        memoryWatchers[ws.id] = nil
+        -- Robust cleanup of memory watcher
+        if memoryWatchers[ws.id] then
+            memoryWatchers[ws.id] = nil
+            activeWatchConnections = math.max(0, activeWatchConnections - 1)
+            logDebug("Cleaned up watcher for connection " .. ws.id .. ", active connections: " .. activeWatchConnections)
+        end
     end
 
     -- Send enhanced welcome message
@@ -1012,73 +1056,98 @@ local function checkMemoryChanges()
     
     lastMemoryCheck = currentTime
     
+    -- Create a snapshot of watchers to avoid concurrent modification issues
+    local watcherSnapshot = {}
     for wsId, watcher in pairs(memoryWatchers) do
+        watcherSnapshot[wsId] = watcher
+    end
+    
+    for wsId, watcher in pairs(watcherSnapshot) do
+        -- Validate that the WebSocket connection still exists and is active
         local ws = app.websockets[wsId]
-        -- Only process watchers for active connections on the /watch endpoint
-        if ws and ws.path == "/watch" and #watcher.regions > 0 then
-            -- Skip if too many recent errors
-            if watcher.errorCount > 10 then
-                logError("Too many errors for watcher " .. wsId .. ", skipping")
-                goto continue
-            end
-            
-            local changedRegions = {}
-            
-            for i, region in ipairs(watcher.regions) do
-                if region.address and region.size then
-                    local ok, currentData = pcall(function()
-                        return emu:readRange(region.address, region.size)
-                    end)
-                    
-                    if not ok then
-                        watcher.errorCount = watcher.errorCount + 1
-                        logError("Error reading memory region " .. i .. " for watcher " .. wsId .. ": " .. tostring(currentData))
-                        goto continue_region
-                    end
-                    
-                    if currentData ~= watcher.lastData[i] then
-                        -- Memory changed, prepare update
-                        local bytes = {}
-                        
-                        -- Safe byte extraction with length validation
-                        local dataLen = math.min(#currentData, region.size)
-                        for j = 1, dataLen do
-                            local byte = string.byte(currentData, j)
-                            if byte and type(byte) == "number" then
-                                bytes[j] = byte
-                            else
-                                bytes[j] = 0  -- fallback to 0 for invalid bytes
-                            end
-                        end
-                        
-                        table.insert(changedRegions, {
-                            address = region.address,
-                            size = region.size,
-                            data = bytes
-                        })
-                        
-                        -- Update stored data
-                        watcher.lastData[i] = currentData
-                    end
-                    
-                    ::continue_region::
-                end
-            end
-            
-            -- Send memory update if any regions changed
-            if #changedRegions > 0 then
-                local ok, err = pcall(function()
-                    ws:send(HttpServer.jsonStringify({
-                        type = "memoryUpdate",
-                        regions = changedRegions,
-                        timestamp = os.time(),
-                        frameCount = frameCount
-                    }))
+        if not ws or ws.path ~= "/watch" or ws.readyState ~= 1 then  -- 1 = OPEN
+            -- Connection is no longer valid, clean it up
+            logDebug("Cleaning up stale watcher for connection " .. wsId)
+            memoryWatchers[wsId] = nil
+            activeWatchConnections = math.max(0, activeWatchConnections - 1)
+            goto continue
+        end
+        
+        -- Only process watchers with regions and below error threshold
+        if #watcher.regions == 0 then
+            goto continue
+        end
+        
+        -- Skip if too many recent errors
+        if watcher.errorCount > 10 then
+            logError("Too many errors for watcher " .. wsId .. ", removing watcher")
+            memoryWatchers[wsId] = nil
+            activeWatchConnections = math.max(0, activeWatchConnections - 1)
+            goto continue
+        end
+        
+        local changedRegions = {}
+        
+        for i, region in ipairs(watcher.regions) do
+            if region.address and region.size then
+                local ok, currentData = pcall(function()
+                    return emu:readRange(region.address, region.size)
                 end)
                 
                 if not ok then
                     watcher.errorCount = watcher.errorCount + 1
-                    logError("Error sending memory update for watcher " .. wsId .. ": " .. tostring(err))
+                    logError("Error reading memory region " .. i .. " for watcher " .. wsId .. ": " .. tostring(currentData))
+                    goto continue_region
+                end
+                
+                if currentData ~= watcher.lastData[i] then
+                    -- Memory changed, prepare update
+                    local bytes = {}
+                    
+                    -- Safe byte extraction with length validation
+                    local dataLen = math.min(#currentData, region.size)
+                    for j = 1, dataLen do
+                        local byte = string.byte(currentData, j)
+                        if byte and type(byte) == "number" then
+                            bytes[j] = byte
+                        else
+                            bytes[j] = 0  -- fallback to 0 for invalid bytes
+                        end
+                    end
+                    
+                    table.insert(changedRegions, {
+                        address = region.address,
+                        size = region.size,
+                        data = bytes
+                    })
+                    
+                    -- Update stored data
+                    watcher.lastData[i] = currentData
+                end
+                
+                ::continue_region::
+            end
+        end
+        
+        -- Send memory update if any regions changed
+        if #changedRegions > 0 then
+            local ok, err = pcall(function()
+                ws:send(HttpServer.jsonStringify({
+                    type = "memoryUpdate",
+                    regions = changedRegions,
+                    timestamp = os.time(),
+                    frameCount = frameCount
+                }))
+            end)
+            
+            if not ok then
+                watcher.errorCount = watcher.errorCount + 1
+                logError("Error sending memory update for watcher " .. wsId .. ": " .. tostring(err))
+                -- If we can't send, the connection is likely dead
+                if watcher.errorCount > 3 then
+                    logError("Too many send errors for watcher " .. wsId .. ", removing")
+                    memoryWatchers[wsId] = nil
+                    activeWatchConnections = math.max(0, activeWatchConnections - 1)
                 end
             end
         end
