@@ -160,9 +160,29 @@ end
 --- @param key string
 --- @return string
 function HttpServer.generateWebSocketAccept(key)
+    if not key or type(key) ~= "string" or #key == 0 then
+        logError("Invalid WebSocket key provided: " .. tostring(key))
+        return nil
+    end
+    
     local magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
     -- Per RFC6455, concatenate the original base64 key (not decoded) with the magic string
-    return bin2base64(hex2bin(sha1(key .. magic)))
+    local combined = key .. magic
+    local hash = sha1(combined)
+    
+    if not hash or #hash ~= 40 then  -- SHA-1 should be 40 hex chars
+        logError("SHA-1 hash generation failed for WebSocket key")
+        return nil
+    end
+    
+    local accept = bin2base64(hex2bin(hash))
+    
+    if not accept or #accept == 0 then
+        logError("Base64 encoding failed for WebSocket accept key")
+        return nil
+    end
+    
+    return accept
 end
 
 --- Creates WebSocket frame.
@@ -246,9 +266,19 @@ end
 ---@param clientId number
 ---@private
 function HttpServer:_cleanup_client(clientId)
+    -- Prevent double cleanup
+    if not self.clients[clientId] and not self.websockets[clientId] then
+        return  -- Already cleaned up
+    end
+    
+    logInfo("Cleaning up client " .. clientId)
+    
     local client = self.clients[clientId]
     if client then
-        pcall(client.close, client)  -- Protect against close errors
+        local close_ok, close_err = pcall(client.close, client)
+        if not close_ok then
+            logError("Error closing client " .. clientId .. ": " .. tostring(close_err))
+        end
         self.clients[clientId] = nil
     end
     
@@ -257,12 +287,13 @@ function HttpServer:_cleanup_client(clientId)
     if ws then
         -- Call onClose handler safely
         if ws.onClose then 
-            local ok, err = pcall(ws.onClose)
-            if not ok then
-                logError("WebSocket onClose handler failed for " .. clientId .. ": " .. tostring(err))
+            local handler_ok, handler_err = pcall(ws.onClose)
+            if not handler_ok then
+                logError("WebSocket onClose handler failed for " .. clientId .. ": " .. tostring(handler_err))
             end
         end
         self.websockets[clientId] = nil
+        logInfo("WebSocket cleaned up for client " .. clientId)
     end
 end
 
@@ -505,14 +536,51 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
         return
     end
     
+    -- Validate the WebSocket key format
+    if type(wsKey) ~= "string" or #wsKey == 0 then
+        logError("WebSocket upgrade failed: invalid sec-websocket-key format")
+        self:_cleanup_client(clientId)
+        return
+    end
+    
     local accept = HttpServer.generateWebSocketAccept(wsKey)
+    if not accept or #accept == 0 then
+        logError("WebSocket upgrade failed: could not generate accept key")
+        self:_cleanup_client(clientId)
+        return
+    end
+    
+    -- Construct response with validation
     local response = "HTTP/1.1 101 Switching Protocols\r\n" ..
                     "Upgrade: websocket\r\n" ..
                     "Connection: Upgrade\r\n" ..
                     "Sec-WebSocket-Accept: " .. accept .. "\r\n\r\n"
     
-    logInfo("Sending WebSocket handshake response for client " .. clientId)
-    local ok, err = client:send(response)
+    -- Validate response before sending
+    if #response < 100 then  -- Basic sanity check
+        logError("WebSocket upgrade failed: malformed response")
+        self:_cleanup_client(clientId)
+        return
+    end
+    
+    logInfo("Sending WebSocket handshake response for client " .. clientId .. " (length: " .. #response .. ")")
+    
+    -- Use pcall for extra protection during send
+    local send_ok, send_result = pcall(function()
+        return client:send(response)
+    end)
+    
+    if not send_ok then
+        logError("WebSocket handshake send crashed for client " .. clientId .. ": " .. tostring(send_result))
+        self:_cleanup_client(clientId)
+        return
+    end
+    
+    local ok, err = send_result, nil
+    if send_ok and type(send_result) == "table" then
+        ok, err = send_result, "send returned error"
+    end
+    
     if not ok then
         logError("WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
         self:_cleanup_client(clientId)
@@ -545,9 +613,9 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     local handler = self.wsRoutes[req.path]
     if handler then
         logInfo("Calling WebSocket handler for path " .. req.path)
-        local ok, err = pcall(handler, ws)
-        if not ok then
-            logError("WebSocket handler failed for " .. req.path .. ": " .. tostring(err))
+        local handler_ok, handler_err = pcall(handler, ws)
+        if not handler_ok then
+            logError("WebSocket handler failed for " .. req.path .. ": " .. tostring(handler_err))
             self:_cleanup_client(clientId)
         else
             logInfo("WebSocket handler completed successfully for " .. req.path)
@@ -786,11 +854,53 @@ local function parseWebSocketMessage(str)
     return nil, "Unsupported format"
 end
 
--- Enhanced connection tracking with rate limiting
+-- Enhanced connection tracking with rate limiting and connection management
 local activeEvalConnections = 0
 local activeWatchConnections = 0
-local maxConcurrentEvals = 200  -- Increased capacity
-local maxConcurrentWatchers = 100 -- Increased capacity
+local maxConcurrentEvals = 50  -- Reduced for better stability
+local maxConcurrentWatchers = 25 -- Reduced for better stability
+
+-- Connection rate limiting per client IP (simplified)
+local connectionAttempts = {}
+local CONNECTION_RATE_LIMIT = 10  -- Max connections per second (increased)
+local RATE_LIMIT_RESET_TIME = 1000  -- 1 second
+
+-- Global connection throttling (more permissive)
+local lastConnectionTime = 0
+local MIN_CONNECTION_INTERVAL = 20  -- Minimum 20ms between connections (reduced from 100ms)
+
+local function checkConnectionRateLimit(clientId)
+    local now = os.time() * 1000
+    
+    -- Disable global throttling for now to focus on core connection issues
+    -- if now - lastConnectionTime < MIN_CONNECTION_INTERVAL then
+    --     return false, "Global connection rate limit"
+    -- end
+    
+    -- Per-client throttling (simplified using clientId)
+    local clientKey = tostring(clientId)
+    local attempts = connectionAttempts[clientKey]
+    if not attempts then
+        attempts = { count = 0, resetTime = now }
+        connectionAttempts[clientKey] = attempts
+    end
+    
+    -- Reset counter if time window passed
+    if now - attempts.resetTime > RATE_LIMIT_RESET_TIME then
+        attempts.count = 0
+        attempts.resetTime = now
+    end
+    
+    -- Check rate limit (only per-client, not global)
+    if attempts.count >= CONNECTION_RATE_LIMIT then
+        return false, "Client rate limit exceeded"
+    end
+    
+    -- Allow connection and update counters
+    attempts.count = attempts.count + 1
+    lastConnectionTime = now
+    return true, "OK"
+end
 
 -- Rate limiting per connection
 local connectionRateLimits = {}
@@ -799,14 +909,24 @@ local MAX_REQUESTS_PER_WINDOW = 10
 
 -- Enhanced WebSocket route for Lua code evaluation with improved connection reliability
 app:websocket("/eval", function(ws)
+    -- Check connection rate limit first
+    local rateLimitOk, rateLimitReason = checkConnectionRateLimit(ws.id)
+    if not rateLimitOk then
+        logInfo("Eval connection rate limited for " .. ws.id .. ": " .. rateLimitReason)
+        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({ error = "Rate limited: " .. rateLimitReason }))
+        if ok then pcall(ws.close, ws) end
+        return
+    end
+
     if activeEvalConnections >= maxConcurrentEvals then
+        logInfo("Eval connection rejected for " .. ws.id .. ": server at capacity")
         local ok = pcall(ws.send, ws, HttpServer.jsonStringify({ error = "Server at capacity" }))
         if ok then pcall(ws.close, ws) end
         return
     end
 
     activeEvalConnections = activeEvalConnections + 1
-    logInfo("Eval WebSocket connected: " .. ws.id .. " (active: " .. activeEvalConnections .. ")")
+    logInfo("Eval WebSocket connected: " .. ws.id .. " (active: " .. activeEvalConnections .. "/" .. maxConcurrentEvals .. ")")
     
     -- Initialize rate limiting for this connection
     connectionRateLimits[ws.id] = {
@@ -896,8 +1016,21 @@ local memoryWatchers = {}
 
 -- Enhanced WebSocket route for memory watching with improved reliability
 app:websocket("/watch", function(ws)
+    -- Check connection rate limit first
+    local rateLimitOk, rateLimitReason = checkConnectionRateLimit(ws.id)
+    if not rateLimitOk then
+        logInfo("Watch connection rate limited for " .. ws.id .. ": " .. rateLimitReason)
+        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({
+            type = "error",
+            error = "Rate limited: " .. rateLimitReason
+        }))
+        if ok then pcall(ws.close, ws) end
+        return
+    end
+
     -- Connection limit check
     if activeWatchConnections >= maxConcurrentWatchers then
+        logInfo("Watch connection rejected for " .. ws.id .. ": server at capacity")
         local ok = pcall(ws.send, ws, HttpServer.jsonStringify({
             type = "error",
             error = "Server at capacity"
@@ -913,7 +1046,7 @@ app:websocket("/watch", function(ws)
         errorCount = 0
     }
     activeWatchConnections = activeWatchConnections + 1
-    logInfo("Watch WebSocket connected: " .. ws.id .. " (active: " .. activeWatchConnections .. ")")
+    logInfo("Watch WebSocket connected: " .. ws.id .. " (active: " .. activeWatchConnections .. "/" .. maxConcurrentWatchers .. ")")
 
     ws.onMessage = function(message)
         if not message or type(message) ~= "string" then return end
