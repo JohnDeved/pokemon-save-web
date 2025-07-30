@@ -1,0 +1,56 @@
+name: Copilot Environment Setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  copilot-setup-steps:
+    name: Preinstall dependencies for Copilot environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Install Lua and development tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            lua5.4 \
+            lua5.4-dev \
+            luarocks
+      
+      - name: Set up Lua alternatives
+        run: |
+          sudo update-alternatives --set lua-interpreter /usr/bin/lua5.4 2>/dev/null || true
+          echo "Lua setup completed"
+      
+      - name: Install Playwright browsers with dependencies
+        run: npx playwright install --with-deps
+      
+      - name: Verify environment setup
+        run: |
+          echo "✅ Node.js version: $(node --version)"
+          echo "✅ npm version: $(npm --version)"
+          echo "✅ Lua version: $(lua -v 2>&1 || echo 'Lua not available')"
+          echo "✅ Lua 5.4 version: $(lua5.4 -v 2>&1 || echo 'Lua 5.4 not available')"
+          echo "✅ Docker version: $(docker --version)"
+          echo "✅ Playwright browsers installed"
+          echo "✅ Build tools available: $(gcc --version | head -1)"
+          echo "✅ Environment ready for npm run test:all"
+          
+      - name: Verify Lua integration capability 
+        run: |
+          echo "🌙 Testing Lua integration capability..."
+          lua -e "print('Lua integration test successful')" || echo "⚠️ Lua not configured"
+          lua5.4 -e "print('Lua 5.4 integration test successful')" || echo "⚠️ Lua 5.4 not configured"
