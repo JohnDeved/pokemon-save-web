@@ -22,6 +22,14 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-cache-v1-${{ hashFiles('.github/workflows/copilot-setup-steps.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-cache-v1-
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
@@ -37,6 +45,14 @@ jobs:
         run: |
           sudo update-alternatives --set lua-interpreter /usr/bin/lua5.4 2>/dev/null || true
           echo "Lua setup completed"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-cache-v1-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-cache-v1-
       
       - name: Install Playwright browsers with dependencies
         run: npx playwright install --with-deps
