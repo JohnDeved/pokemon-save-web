@@ -72,7 +72,7 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Connect to mGBA WebSocket endpoints with enhanced state management
+   * Connect to mGBA WebSocket endpoints with enhanced state management and stress tolerance
    */
   async connect (): Promise<void> {
     // Disconnect any existing connections first to ensure clean state
@@ -82,8 +82,15 @@ export class MgbaWebSocketClient {
     await this.connectWithRetry('eval')
     await this.connectWithRetry('watch')
     
-    // Add a brief verification delay to ensure connections are stable
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Add verification delay and give more time for connections to stabilize under stress
+    await new Promise(resolve => setTimeout(resolve, 200))
+    
+    // Additional verification step for stress scenarios - wait up to 3 seconds for both connections
+    let verificationAttempts = 0
+    while ((!this.evalConnected || !this.watchConnected) && verificationAttempts < 30) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      verificationAttempts++
+    }
   }
 
   /**
@@ -158,7 +165,7 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Execute Lua code with enhanced timeout handling
+   * Execute Lua code with enhanced reliability and error recovery
    */
   async eval (code: string): Promise<MgbaEvalResponse> {
     // Auto-reconnect eval if needed for resilience during rapid test cycles
@@ -176,8 +183,9 @@ export class MgbaWebSocketClient {
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        this.evalWs?.removeListener('message', messageHandler)
         reject(new Error('Eval timeout'))
-      }, 8000) // Increased timeout for better reliability under load
+      }, 12000) // Extended timeout for stress scenarios
 
       const messageHandler = (data: Buffer) => {
         const messageText = data.toString()
@@ -234,7 +242,7 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Start watching memory regions for changes
+   * Start watching memory regions with enhanced timeout handling
    */
   async startWatching (regions: MemoryRegion[]): Promise<void> {
     // Auto-connect watch if needed for resilience
@@ -269,12 +277,12 @@ export class MgbaWebSocketClient {
     }
     const structuredMessage = messageLines.join('\n')
 
-    // Send watch request and wait for confirmation or error
+    // Send watch request and wait for confirmation or error with extended timeout
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.watchWs?.removeListener('message', handleResponse)
         reject(new Error('Watch setup timeout - no confirmation received'))
-      }, 10000)
+      }, 15000) // Increased timeout for stress scenarios
 
       const handleResponse = (data: Buffer) => {
         try {

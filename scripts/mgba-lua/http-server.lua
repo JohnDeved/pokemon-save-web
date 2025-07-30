@@ -710,8 +710,16 @@ app:websocket("/eval", function(ws)
         local code = message:gsub("^%s*(.-)%s*$", "%1")
         if #code == 0 then return end
         
-        -- Smart code completion
-        if not code:match("^%s*return%s") and not code:match("^%s*[%a_][%w_]*%s*[=%(]") then
+        -- Smart code completion - improved detection
+        if not code:match("^%s*return%s") and 
+           not code:match("^%s*local%s") and 
+           not code:match("^%s*function%s") and 
+           not code:match("^%s*for%s") and
+           not code:match("^%s*while%s") and 
+           not code:match("^%s*if%s") and
+           not code:match("^%s*do%s") and 
+           not code:match("^%s*repeat%s") and
+           not code:match("^%s*[%a_][%w_]*%s*[=%(]") then
             code = "return " .. code
         end
         
