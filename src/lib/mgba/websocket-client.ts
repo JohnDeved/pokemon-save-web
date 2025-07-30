@@ -67,7 +67,7 @@ export class MgbaWebSocketClient {
   private readonly sharedBuffer = new Map<number, Uint8Array>() // address -> data
   private memoryChangeListeners: MemoryChangeListener[] = []
 
-  constructor (baseUrl = 'ws://localhost:7102') {
+  constructor (baseUrl = 'ws://localhost:7102', private autoReconnect = true) {
     this.baseUrl = baseUrl
   }
 
@@ -160,10 +160,14 @@ export class MgbaWebSocketClient {
   async eval (code: string): Promise<MgbaEvalResponse> {
     // Auto-reconnect eval if needed for resilience during rapid test cycles
     if (!this.evalConnected || !this.evalWs) {
-      try {
-        await this.connectWithRetry('eval')
-      } catch (error) {
-        throw new Error(`Eval WebSocket not connected: ${error instanceof Error ? error.message : String(error)}`)
+      if (this.autoReconnect) {
+        try {
+          await this.connectWithRetry('eval')
+        } catch (error) {
+          throw new Error(`Eval WebSocket not connected: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      } else {
+        throw new Error('Eval WebSocket not connected')
       }
     }
 

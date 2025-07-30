@@ -147,13 +147,13 @@ describe('WebSocket Integration Tests', () => {
   })
 
   it('should handle eval errors when disconnected', async () => {
-    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
+    const client = new MgbaWebSocketClient(WEBSOCKET_URL, false) // Disable auto-reconnect
 
     await expect(client.eval('return 1')).rejects.toThrow()
   })
 
   it('should handle memory reading when disconnected', async () => {
-    const client = new MgbaWebSocketClient(WEBSOCKET_URL)
+    const client = new MgbaWebSocketClient(WEBSOCKET_URL, false) // Disable auto-reconnect
 
     await expect(client.readMemory(0x20244e9, 4)).rejects.toThrow()
   })

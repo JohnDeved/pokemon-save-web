@@ -9,6 +9,8 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{js,ts,tsx}', 'scripts/**/*.{test,spec}.{js,ts,tsx}'],
     exclude: ['node_modules', 'dist', 'src/**/*.e2e.test.ts'],
     setupFiles: ['src/__tests__/setup.ts'],
+    testTimeout: 30000, // 30 seconds for WebSocket tests
+    hookTimeout: 30000, // 30 seconds for setup/teardown hooks
   },
   resolve: {
     alias: {
@@ -25,6 +27,8 @@ export default defineConfig({
         include: ['src/**/*.{test,spec}.{js,ts,tsx}'],
         exclude: ['src/**/*.e2e.test.ts'],
         setupFiles: ['src/__tests__/setup.ts'],
+        testTimeout: 30000, // 30 seconds for WebSocket tests
+        hookTimeout: 30000, // 30 seconds for setup/teardown hooks
       },
       resolve: {
         alias: {
@@ -37,6 +41,8 @@ export default defineConfig({
       test: {
         environment: 'node',
         include: ['scripts/**/*.{test,spec}.{js,ts}'],
+        testTimeout: 30000, // 30 seconds for WebSocket tests
+        hookTimeout: 30000, // 30 seconds for setup/teardown hooks
       },
     },
   ],

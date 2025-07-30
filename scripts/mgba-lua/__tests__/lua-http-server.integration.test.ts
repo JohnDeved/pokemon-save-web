@@ -18,7 +18,7 @@ const __dirname = dirname(__filename)
 // Helper function to check if Lua is available
 function checkLuaAvailability(): Promise<boolean> {
   return new Promise((resolve) => {
-    const luaCheck = spawn('lua', ['-v'], { stdio: 'ignore' })
+    const luaCheck = spawn('lua5.4', ['-v'], { stdio: 'ignore' })
     luaCheck.on('error', () => resolve(false))
     luaCheck.on('exit', (code) => resolve(code === 0))
   })
@@ -52,7 +52,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     // Start the actual mGBA HTTP server using our simplified virtual environment
     const mgbaEnvPath = resolve(__dirname, 'mgba-env-mock.lua')
 
-    serverProcess = spawn('lua', [mgbaEnvPath, serverPort.toString()], {
+    serverProcess = spawn('lua5.4', [mgbaEnvPath, serverPort.toString()], {
       cwd: __dirname,
       stdio: ['pipe', 'pipe', 'pipe'],
     })

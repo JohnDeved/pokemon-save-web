@@ -49,6 +49,10 @@ describe('WebSocket Core Tests', () => {
     expect(client.isWatchConnected()).toBe(false)
 
     await client.connect()
+    
+    // Add delay to ensure connection is fully stable
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
     expect(client.isConnected()).toBe(true)
     expect(client.isEvalConnected()).toBe(true)
     expect(client.isWatchConnected()).toBe(true)
@@ -105,6 +109,9 @@ describe('WebSocket Core Tests', () => {
 
     await client.connect()
 
+    // Add delay to ensure connection is fully stable
+    await new Promise(resolve => setTimeout(resolve, 500))
+
     const regions = [{ address: 0x20244e9, size: 4 }]
     await client.startWatching(regions)
 
@@ -121,6 +128,9 @@ describe('WebSocket Core Tests', () => {
   it('should handle different WebSocket message types without errors', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
+
+    // Add delay to ensure connection is fully stable
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     let messageReceived = false
     let errorOccurred = false
@@ -172,6 +182,9 @@ describe('WebSocket Core Tests', () => {
   it('should handle structured WATCH message format correctly', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
+
+    // Add delay to ensure connection is fully stable before testing
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     // Test that we can start watching without errors
     const regions = [
