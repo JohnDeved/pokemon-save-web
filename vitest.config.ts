@@ -29,6 +29,14 @@ export default defineConfig({
         setupFiles: ['src/__tests__/setup.ts'],
         testTimeout: 30000, // 30 seconds for WebSocket tests
         hookTimeout: 30000, // 30 seconds for setup/teardown hooks
+        // Limit concurrency for WebSocket tests to prevent server overwhelm
+        pool: 'threads',
+        poolOptions: {
+          threads: {
+            maxThreads: 2,
+            minThreads: 1
+          }
+        }
       },
       resolve: {
         alias: {

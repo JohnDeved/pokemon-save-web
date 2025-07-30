@@ -31,33 +31,21 @@ local HttpServer = {}
 HttpServer.__index = HttpServer
 
 --------------------------------------------------------------------------------
--- Logging Utilities
+-- Simplified Logging Utilities
 --------------------------------------------------------------------------------
 
---- Simple logging that outputs to both mGBA console and stdout
+--- Streamlined logging to mGBA console and stdout
 ---@param level string
 ---@param message string
 local function log(level, message)
-    local logMessage = string.format("[%s] %s: %s", os.date("%H:%M:%S"), level, message)
-    
-    if level == "ERROR" then
-        console:error(logMessage)
-    else
-        console:log(logMessage)
-    end
-    
-    io.stdout:write(logMessage .. "\n")
+    local msg = string.format("[%s] %s: %s", os.date("%H:%M:%S"), level, message)
+    console:log(msg)
+    io.stdout:write(msg .. "\n")
     io.stdout:flush()
 end
 
----@param message string
 local function logInfo(message) log("INFO", message) end
-
----@param message string  
 local function logError(message) log("ERROR", message) end
-
----@param message string
-local function logDebug(message) log("DEBUG", message) end
 
 --------------------------------------------------------------------------------
 -- "Static" Methods
@@ -195,7 +183,7 @@ function HttpServer.createWebSocketFrame(data)
     return frame .. data
 end
 
---- Parses WebSocket frame with essential frame type handling.
+--- Optimized WebSocket frame parsing with essential frame type handling
 ---@param data string
 ---@return string?, number, string?
 function HttpServer.parseWebSocketFrame(data)
@@ -219,42 +207,34 @@ function HttpServer.parseWebSocketFrame(data)
     end
     
     -- Handle masking
-    local mask = nil
     if masked then
         if #data < offset + 4 then return nil, 0, "incomplete_frame" end
-        mask = {data:byte(offset+1, offset+4)}
+        local mask = {data:byte(offset+1, offset+4)}
         offset = offset + 4
-    end
-    
-    -- Check if we have complete payload
-    if #data < offset + len then return nil, 0, "incomplete_frame" end
-    
-    -- Extract and unmask payload if needed
-    local function getPayload()
+        
+        if #data < offset + len then return nil, 0, "incomplete_frame" end
+        
+        -- Extract and unmask payload
         local payload = data:sub(offset + 1, offset + len)
-        if masked and mask then
-            local unmasked = {}
-            for i = 1, #payload do
-                unmasked[i] = string.char(payload:byte(i) ~ mask[((i-1)%4)+1])
-            end
-            return table.concat(unmasked)
+        local unmasked = {}
+        for i = 1, #payload do
+            unmasked[i] = string.char(payload:byte(i) ~ mask[((i-1)%4)+1])
         end
-        return payload
-    end
-    
-    -- Handle frame types
-    if opcode == 0x1 then -- Text frame
-        return getPayload(), offset + len, "text"
-    elseif opcode == 0x2 then -- Binary frame
-        return getPayload(), offset + len, "binary"
-    elseif opcode == 0x8 then -- Close frame
-        return nil, -1, "close"
-    elseif opcode == 0x9 then -- Ping frame
-        return nil, offset + len, "ping"
-    elseif opcode == 0xA then -- Pong frame
-        return nil, offset + len, "pong"
+        payload = table.concat(unmasked)
+        
+        -- Handle frame types
+        if opcode == 0x1 then return payload, offset + len, "text"
+        elseif opcode == 0x8 then return nil, -1, "close"
+        elseif opcode == 0x9 then return nil, offset + len, "ping"
+        else return nil, offset + len, "unknown" end
     else
-        return nil, offset + len, "unknown"
+        if #data < offset + len then return nil, 0, "incomplete_frame" end
+        local payload = data:sub(offset + 1, offset + len)
+        
+        if opcode == 0x1 then return payload, offset + len, "text"
+        elseif opcode == 0x8 then return nil, -1, "close"
+        elseif opcode == 0x9 then return nil, offset + len, "ping"
+        else return nil, offset + len, "unknown" end
     end
 end
 
@@ -476,7 +456,7 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     end
 end
 
---- Handles WebSocket frame data with essential frame handling.
+--- Streamlined WebSocket frame handling
 ---@param clientId number
 ---@private
 function HttpServer:_handle_websocket_data(clientId)
@@ -495,16 +475,10 @@ function HttpServer:_handle_websocket_data(clientId)
     local message, consumed, frameType = HttpServer.parseWebSocketFrame(chunk)
     if consumed == -1 then -- Close frame
         self:_cleanup_client(clientId)
-        return
     elseif frameType == "ping" then
-        -- Respond to ping with pong
-        local pongFrame = string.char(0x8A, 0x00)
-        client:send(pongFrame)
-    elseif frameType == "text" or frameType == "binary" then
-        -- Process text and binary frames as messages
-        if message and #message > 0 and ws.onMessage then
-            ws.onMessage(message)
-        end
+        client:send(string.char(0x8A, 0x00)) -- Pong response
+    elseif (frameType == "text" or frameType == "binary") and message and #message > 0 and ws.onMessage then
+        ws.onMessage(message)
     end
 end
 
@@ -636,9 +610,12 @@ end
 
 local app = HttpServer:new()
 
--- Global middleware
+-- Simplified middleware for essential logging only
 app:use(function(req, res)
-    logInfo(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
+    -- Only log non-favicon requests to reduce noise
+    if not req.path:find("favicon") then
+        logInfo(req.method .. " " .. req.path)
+    end
 end)
 
 -- Routes
@@ -654,12 +631,11 @@ app:post("/echo", function(req, res)
     res:send("200 OK", req.body, req.headers['content-type'])
 end)
 
--- Simple message parser for WebSocket messages
+-- Optimized message parser for WebSocket messages
 local function parseWebSocketMessage(str)
     if not str or str == "" then return nil, "Empty message" end
     
     str = str:gsub("^%s*(.-)%s*$", "%1") -- trim whitespace
-    
     local lines = {}
     for line in str:gmatch("([^\r\n]+)") do
         lines[#lines + 1] = line:gsub("^%s*(.-)%s*$", "%1")
@@ -670,8 +646,7 @@ local function parseWebSocketMessage(str)
         for i = 2, #lines do
             local address, size = lines[i]:match("^(%d+),(%d+)$")
             if address and size then
-                local addr = tonumber(address)
-                local sz = tonumber(size)
+                local addr, sz = tonumber(address), tonumber(size)
                 if addr and sz and addr >= 0 and sz > 0 and sz <= 0x10000 then
                     regions[#regions + 1] = { address = addr, size = sz }
                 end
@@ -683,13 +658,18 @@ local function parseWebSocketMessage(str)
     return nil, "Unsupported format"
 end
 
--- Connection tracking
+-- Enhanced connection tracking with rate limiting
 local activeEvalConnections = 0
 local activeWatchConnections = 0
-local maxConcurrentEvals = 100
-local maxConcurrentWatchers = 50
+local maxConcurrentEvals = 200  -- Increased capacity
+local maxConcurrentWatchers = 100 -- Increased capacity
 
--- WebSocket route for Lua code evaluation
+-- Rate limiting per connection
+local connectionRateLimits = {}
+local RATE_LIMIT_WINDOW = 1000 -- 1 second
+local MAX_REQUESTS_PER_WINDOW = 10
+
+-- Enhanced WebSocket route for Lua code evaluation with rate limiting
 app:websocket("/eval", function(ws)
     if activeEvalConnections >= maxConcurrentEvals then
         ws:send(HttpServer.jsonStringify({ error = "Server at capacity" }))
@@ -698,49 +678,66 @@ app:websocket("/eval", function(ws)
     end
 
     activeEvalConnections = activeEvalConnections + 1
+    
+    -- Initialize rate limiting for this connection
+    connectionRateLimits[ws.id] = {
+        lastReset = os.time() * 1000,
+        requestCount = 0
+    }
 
     ws.onMessage = function(message)
         if not message or type(message) ~= "string" then return end
         
+        -- Check rate limit
+        local now = os.time() * 1000
+        local limit = connectionRateLimits[ws.id]
+        if not limit then
+            limit = { lastReset = now, requestCount = 0 }
+            connectionRateLimits[ws.id] = limit
+        end
+        
+        if now - limit.lastReset > RATE_LIMIT_WINDOW then
+            limit.lastReset = now
+            limit.requestCount = 0
+        end
+        
+        limit.requestCount = limit.requestCount + 1
+        if limit.requestCount > MAX_REQUESTS_PER_WINDOW then
+            ws:send(HttpServer.jsonStringify({error = "Rate limit exceeded"}))
+            return
+        end
+        
         local code = message:gsub("^%s*(.-)%s*$", "%1")
         if #code == 0 then return end
         
-        -- Add return if needed
-        if not code:match("^%s*return%s") and not code:match("^%s*local%s") and 
-           not code:match("^%s*function%s") and not code:match("^%s*for%s") and
-           not code:match("^%s*while%s") and not code:match("^%s*if%s") and
-           not code:match("^%s*do%s") and not code:match("^%s*repeat%s") then
+        -- Smart code completion
+        if not code:match("^%s*return%s") and not code:match("^%s*[%a_][%w_]*%s*[=%(]") then
             code = "return " .. code
         end
         
         local fn, err = load(code, "websocket-eval")
-        if not fn then
-            ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
-            return
-        end
-        
-        local ok, result = pcall(fn)
-        if ok then
-            ws:send(HttpServer.jsonStringify({result = result}))
+        if fn then
+            local ok, result = pcall(fn)
+            ws:send(HttpServer.jsonStringify(ok and {result = result} or {error = tostring(result)}))
         else
-            ws:send(HttpServer.jsonStringify({error = tostring(result)}))
+            ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
         end
     end
 
     ws.onClose = function()
         activeEvalConnections = math.max(0, activeEvalConnections - 1)
+        connectionRateLimits[ws.id] = nil
     end
 
-    -- Send welcome message
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
 end)
 
 -- Memory watching state
 local memoryWatchers = {}
 
--- WebSocket route for memory watching
+-- Enhanced WebSocket route for memory watching
 app:websocket("/watch", function(ws)
-    -- Check concurrent connection limit
+    -- Connection limit check
     if activeWatchConnections >= maxConcurrentWatchers then
         ws:send(HttpServer.jsonStringify({
             type = "error",
@@ -750,7 +747,7 @@ app:websocket("/watch", function(ws)
         return
     end
 
-    -- Initialize memory watcher
+    -- Initialize memory watcher state
     memoryWatchers[ws.id] = {
         regions = {},
         lastData = {},
@@ -788,11 +785,9 @@ app:websocket("/watch", function(ws)
         watcher.lastData = {}
         watcher.errorCount = 0
         
-        -- Initialize baseline data
+        -- Initialize baseline data efficiently
         for i, region in ipairs(parsed.regions) do
-            local ok, data = pcall(function()
-                return emu:readRange(region.address, region.size)
-            end)
+            local ok, data = pcall(emu.readRange, emu, region.address, region.size)
             watcher.lastData[i] = ok and data or ""
         end
         
@@ -809,30 +804,26 @@ app:websocket("/watch", function(ws)
         end
     end
 
-    -- Send welcome message
+    -- Send streamlined welcome message
     ws:send(HttpServer.jsonStringify({
         type = "welcome",
-        message = "Welcome to WebSocket Memory Watching! Send JSON messages with 'type': 'watch' to monitor memory regions.",
-        version = "1.0",
-        limits = {
-            maxRegions = 50,
-            maxRegionSize = 65536
-        }
+        message = "Memory Watching Ready! Send WATCH messages with regions.",
+        limits = { maxRegions = 50, maxRegionSize = 65536 }
     }))
 end)
 
--- Memory change detection callback
+-- Optimized memory change detection callback
 local frameCount = 0
 
 local function checkMemoryChanges()
     frameCount = frameCount + 1
     
-    -- Check every 10 frames (about 6fps at 60fps)
-    if frameCount % 10 ~= 0 then return end
+    -- Check every 8 frames (improved from 10 frames for better responsiveness)
+    if frameCount % 8 ~= 0 then return end
     
     for wsId, watcher in pairs(memoryWatchers) do
         local ws = app.websockets[wsId]
-        if not ws or ws.readyState == 2 or ws.readyState == 3 then
+        if not ws then
             memoryWatchers[wsId] = nil
             activeWatchConnections = math.max(0, activeWatchConnections - 1)
             goto continue
@@ -845,9 +836,7 @@ local function checkMemoryChanges()
         local changedRegions = {}
         
         for i, region in ipairs(watcher.regions) do
-            local ok, currentData = pcall(function()
-                return emu:readRange(region.address, region.size)
-            end)
+            local ok, currentData = pcall(emu.readRange, emu, region.address, region.size)
             
             if not ok then
                 watcher.errorCount = watcher.errorCount + 1
@@ -874,13 +863,11 @@ local function checkMemoryChanges()
         
         -- Send memory update if any regions changed
         if #changedRegions > 0 then
-            local ok = pcall(function()
-                ws:send(HttpServer.jsonStringify({
-                    type = "memoryUpdate",
-                    regions = changedRegions,
-                    timestamp = os.time()
-                }))
-            end)
+            local ok = pcall(ws.send, ws, HttpServer.jsonStringify({
+                type = "memoryUpdate",
+                regions = changedRegions,
+                timestamp = os.time()
+            }))
             
             if not ok then
                 watcher.errorCount = watcher.errorCount + 1
@@ -895,13 +882,13 @@ local function checkMemoryChanges()
     end
 end
 
--- Setup memory monitoring
+-- Streamlined setup and monitoring initialization
 local function setupMemoryMonitoring()
     callbacks:add("frame", checkMemoryChanges)
     logInfo("🔍 Memory monitoring callback registered")
 end
 
--- Setup monitoring when ROM is loaded
+-- Initialize monitoring based on ROM availability
 if emu and emu.romSize and emu:romSize() > 0 then
     setupMemoryMonitoring()
 else
