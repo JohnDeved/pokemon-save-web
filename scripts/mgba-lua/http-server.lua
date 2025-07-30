@@ -242,20 +242,26 @@ end
 -- "Private" Instance Methods for Connection Handling
 --------------------------------------------------------------------------------
 
---- Closes a client connection and cleans up.
+--- Closes a client connection and cleans up with enhanced state management.
 ---@param clientId number
 ---@private
 function HttpServer:_cleanup_client(clientId)
     local client = self.clients[clientId]
     if client then
-        client:close()
+        pcall(client.close, client)  -- Protect against close errors
         self.clients[clientId] = nil
     end
     
     -- Clean up WebSocket if exists
     local ws = self.websockets[clientId]
     if ws then
-        if ws.onClose then ws.onClose() end
+        -- Call onClose handler safely
+        if ws.onClose then 
+            local ok, err = pcall(ws.onClose)
+            if not ok then
+                logError("WebSocket onClose handler failed for " .. clientId .. ": " .. tostring(err))
+            end
+        end
         self.websockets[clientId] = nil
     end
 end
@@ -731,7 +737,7 @@ local connectionRateLimits = {}
 local RATE_LIMIT_WINDOW = 1000 -- 1 second
 local MAX_REQUESTS_PER_WINDOW = 10
 
--- Enhanced WebSocket route for Lua code evaluation with rate limiting
+-- Enhanced WebSocket route for Lua code evaluation with improved connection reliability
 app:websocket("/eval", function(ws)
     if activeEvalConnections >= maxConcurrentEvals then
         ws:send(HttpServer.jsonStringify({ error = "Server at capacity" }))
@@ -796,16 +802,27 @@ app:websocket("/eval", function(ws)
 
     ws.onClose = function()
         activeEvalConnections = math.max(0, activeEvalConnections - 1)
-        connectionRateLimits[ws.id] = nil
+        if connectionRateLimits[ws.id] then
+            connectionRateLimits[ws.id] = nil
+        end
     end
 
-    ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
+    -- Send welcome message with error handling
+    local ok, err = pcall(ws.send, ws, "Welcome to WebSocket Eval! Send Lua code to execute.")
+    if not ok then
+        logError("Failed to send eval welcome message: " .. tostring(err))
+        -- Force cleanup if welcome message fails
+        activeEvalConnections = math.max(0, activeEvalConnections - 1)
+        if connectionRateLimits[ws.id] then
+            connectionRateLimits[ws.id] = nil
+        end
+    end
 end)
 
 -- Memory watching state
 local memoryWatchers = {}
 
--- Enhanced WebSocket route for memory watching
+-- Enhanced WebSocket route for memory watching with improved reliability
 app:websocket("/watch", function(ws)
     -- Connection limit check
     if activeWatchConnections >= maxConcurrentWatchers then
@@ -874,12 +891,21 @@ app:websocket("/watch", function(ws)
         end
     end
 
-    -- Send streamlined welcome message
-    ws:send(HttpServer.jsonStringify({
+    -- Send streamlined welcome message with error handling
+    local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
         type = "welcome",
         message = "Memory Watching Ready! Send WATCH messages with regions.",
         limits = { maxRegions = 50, maxRegionSize = 65536 }
     }))
+    
+    if not ok then
+        logError("Failed to send watch welcome message: " .. tostring(err))
+        -- Force cleanup if welcome message fails
+        if memoryWatchers[ws.id] then
+            memoryWatchers[ws.id] = nil
+            activeWatchConnections = math.max(0, activeWatchConnections - 1)
+        end
+    end
 end)
 
 -- Optimized memory change detection callback

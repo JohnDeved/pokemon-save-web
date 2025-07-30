@@ -72,36 +72,28 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Connect to mGBA WebSocket endpoints with enhanced reliability for first-attempt success
+   * Connect to mGBA WebSocket endpoints with maximum reliability for first-attempt success
    */
   async connect (): Promise<void> {
     // Disconnect any existing connections first to ensure clean state
     this.disconnect()
     
-    // Try simultaneous connections first (faster)
+    // Add small delay to ensure server is ready for new connections
+    await new Promise(resolve => setTimeout(resolve, 50))
+    
+    // Always use sequential connection approach for maximum reliability
     try {
-      const connectPromises = [
-        this.connectWithRetry('eval'),
-        this.connectWithRetry('watch')
-      ]
-      
-      await Promise.all(connectPromises)
+      await this.connectWithRetry('eval')
+      // Small delay between connections to avoid server overwhelm
+      await new Promise(resolve => setTimeout(resolve, 100))
+      await this.connectWithRetry('watch')
     } catch (error) {
-      // If parallel connection fails, try sequential approach for better compatibility
-      console.debug('Parallel connection failed, trying sequential approach...')
       this.disconnect()
-      
-      try {
-        await this.connectWithRetry('eval')
-        await this.connectWithRetry('watch')
-      } catch (sequentialError) {
-        this.disconnect()
-        throw sequentialError
-      }
+      throw error
     }
     
     // Brief stability check to ensure connections are established
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 50))
     
     // Final verification
     if (!this.evalConnected || !this.watchConnected) {
@@ -145,13 +137,13 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Disconnect all connections with improved cleanup
+   * Disconnect all connections with improved cleanup and server state reset
    */
   disconnect (): void {
     // Close connections gracefully with timeout
     if (this.evalWs) {
       try {
-        this.evalWs.close()
+        this.evalWs.close(1000, 'Client disconnect') // Clean close with reason
       } catch (error) {
         console.debug('Error closing eval WebSocket:', error)
       }
@@ -160,7 +152,7 @@ export class MgbaWebSocketClient {
 
     if (this.watchWs) {
       try {
-        this.watchWs.close()
+        this.watchWs.close(1000, 'Client disconnect') // Clean close with reason
       } catch (error) {
         console.debug('Error closing watch WebSocket:', error)
       }
