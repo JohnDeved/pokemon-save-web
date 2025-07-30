@@ -185,7 +185,10 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
         ws.on('error', reject)
       })
 
-      expect(welcomeMessage).toBe('Welcome to WebSocket Eval! Send Lua code to execute.')
+      // Parse the JSON welcome message
+      const welcomeData = JSON.parse(welcomeMessage)
+      expect(welcomeData.type).toBe('welcome')
+      expect(welcomeData.message).toBe('WebSocket Eval Ready! Send Lua code to execute.')
 
       ws.close()
     })

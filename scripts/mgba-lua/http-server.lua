@@ -989,26 +989,19 @@ app:websocket("/eval", function(ws)
         end
     end
 
-    -- Delay welcome message slightly to ensure WebSocket is fully established
-    -- This prevents immediate disconnection if the client isn't ready
-    local welcome_callback_id = callbacks:add("frame", function()
-        if ws and ws.client then
-            -- Send JSON welcome message like watch endpoint
-            local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
-                type = "welcome",
-                message = "WebSocket Eval Ready! Send Lua code to execute.",
-                limits = { rateLimit = MAX_REQUESTS_PER_WINDOW .. " per " .. RATE_LIMIT_WINDOW .. "ms" }
-            }))
-            if not ok then
-                logError("Failed to send eval welcome message: " .. tostring(err))
-                -- Don't force cleanup here, let the connection stabilize
-            else
-                logInfo("Eval welcome message sent to " .. ws.id)
-            end
+    -- Send welcome message immediately since WebSocket is established
+    if ws and ws.client then
+        local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
+            type = "welcome",
+            message = "WebSocket Eval Ready! Send Lua code to execute.",
+            limits = { rateLimit = MAX_REQUESTS_PER_WINDOW .. " per " .. RATE_LIMIT_WINDOW .. "ms" }
+        }))
+        if not ok then
+            logError("Failed to send eval welcome message: " .. tostring(err))
+        else
+            logInfo("Eval welcome message sent to " .. ws.id)
         end
-        -- Remove this callback after one execution
-        callbacks:remove(welcome_callback_id)
-    end)
+    end
 end)
 
 -- Memory watching state
@@ -1098,25 +1091,20 @@ app:websocket("/watch", function(ws)
         end
     end
 
-    -- Delay welcome message slightly to ensure WebSocket is fully established
-    local welcome_callback_id = callbacks:add("frame", function()
-        if ws and ws.client then
-            local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
-                type = "welcome",
-                message = "Memory Watching Ready! Send WATCH messages with regions.",
-                limits = { maxRegions = 50, maxRegionSize = 65536 }
-            }))
-            
-            if not ok then
-                logError("Failed to send watch welcome message: " .. tostring(err))
-                -- Don't force cleanup here, let the connection stabilize
-            else
-                logInfo("Watch welcome message sent to " .. ws.id)
-            end
+    -- Send welcome message immediately since WebSocket is established
+    if ws and ws.client then
+        local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
+            type = "welcome",
+            message = "Memory Watching Ready! Send WATCH messages with regions.",
+            limits = { maxRegions = 50, maxRegionSize = 65536 }
+        }))
+        
+        if not ok then
+            logError("Failed to send watch welcome message: " .. tostring(err))
+        else
+            logInfo("Watch welcome message sent to " .. ws.id)
         end
-        -- Remove this callback after one execution
-        callbacks:remove(welcome_callback_id)
-    end)
+    end
 end)
 
 -- Optimized memory change detection callback
