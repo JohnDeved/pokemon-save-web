@@ -40,7 +40,7 @@ if [[ ! -f "$SAVESTATE" ]]; then
   SAVESTATE="/app/roms/${GAME}.ss0"
   SAVESTATE_SRC="/app/roms"
 fi
-LUA_SCRIPT="/app/scripts/mgba_http_server.lua"
+LUA_SCRIPT="/app/data/mgba_http_server.lua"
 MGBA_BIN="/usr/local/bin/mgba-qt"
 
 echo "[entrypoint] === FILE CHECK SUMMARY ==="

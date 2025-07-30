@@ -75,6 +75,9 @@ export class MgbaWebSocketClient {
    * Connect to mGBA WebSocket endpoints
    */
   async connect (): Promise<void> {
+    // Disconnect any existing connections first to ensure clean state
+    this.disconnect()
+    
     // Connect sequentially to avoid overwhelming the server, with retries
     await this.connectWithRetry('eval')
     await this.connectWithRetry('watch')
@@ -83,7 +86,7 @@ export class MgbaWebSocketClient {
   /**
    * Connect with retry logic for better reliability
    */
-  private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 5): Promise<void> {
+  private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 3): Promise<void> {
     let lastError: Error | null = null
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -93,14 +96,20 @@ export class MgbaWebSocketClient {
         } else {
           await this.connectWatch()
         }
+        
+        // Add small delay between connections to avoid overwhelming server
+        if (type === 'eval') {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+        
         return // Success
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
 
         if (attempt < maxRetries) {
           // Wait before retry with exponential backoff, but add jitter to avoid thundering herd
-          const baseDelay = Math.min(500 * Math.pow(2, attempt - 1), 2000)
-          const jitter = Math.random() * 300 // Add up to 300ms random jitter
+          const baseDelay = Math.min(300 * Math.pow(2, attempt - 1), 1500)
+          const jitter = Math.random() * 200 // Add up to 200ms random jitter
           const delay = baseDelay + jitter
 
           console.debug(`${type} connection attempt ${attempt} failed, retrying in ${Math.round(delay)}ms...`)
@@ -149,8 +158,13 @@ export class MgbaWebSocketClient {
    * Execute Lua code and get result
    */
   async eval (code: string): Promise<MgbaEvalResponse> {
+    // Auto-reconnect eval if needed for resilience during rapid test cycles
     if (!this.evalConnected || !this.evalWs) {
-      throw new Error('Eval WebSocket not connected')
+      try {
+        await this.connectWithRetry('eval')
+      } catch (error) {
+        throw new Error(`Eval WebSocket not connected: ${error instanceof Error ? error.message : String(error)}`)
+      }
     }
 
     return new Promise((resolve, reject) => {
@@ -390,11 +404,11 @@ export class MgbaWebSocketClient {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/eval`)
 
-      // Add connection timeout
+      // Add connection timeout - increased for better reliability under load
       const timeout = setTimeout(() => {
         ws.close()
         reject(new Error('Eval connection timeout'))
-      }, 5000)
+      }, 10000)
 
       ws.on('open', () => {
         clearTimeout(timeout)
@@ -410,8 +424,11 @@ export class MgbaWebSocketClient {
 
       ws.on('close', () => {
         clearTimeout(timeout)
-        this.evalConnected = false
-        this.evalWs = null
+        // Only reset state if this is the current connection
+        if (this.evalWs === ws) {
+          this.evalConnected = false
+          this.evalWs = null
+        }
       })
     })
   }
@@ -420,11 +437,11 @@ export class MgbaWebSocketClient {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${this.baseUrl}/watch`)
 
-      // Add connection timeout
+      // Add connection timeout - increased for better reliability under load
       const timeout = setTimeout(() => {
         ws.close()
         reject(new Error('Watch connection timeout'))
-      }, 5000)
+      }, 10000)
 
       ws.on('open', () => {
         clearTimeout(timeout)
@@ -440,8 +457,11 @@ export class MgbaWebSocketClient {
 
       ws.on('close', () => {
         clearTimeout(timeout)
-        this.watchConnected = false
-        this.watchWs = null
+        // Only reset state if this is the current connection
+        if (this.watchWs === ws) {
+          this.watchConnected = false
+          this.watchWs = null
+        }
       })
 
       ws.on('message', (data: Buffer) => {

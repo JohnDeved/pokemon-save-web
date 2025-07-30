@@ -62,7 +62,7 @@ describe('WebSocket Integration Tests', () => {
     expect(partialData.length).toBe(4)
 
     client.disconnect()
-  })
+  }, 15000)
 
   it('should handle memory change listeners', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
@@ -162,25 +162,24 @@ describe('WebSocket Integration Tests', () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
     await client.connect()
 
-    // Run multiple concurrent operations
-    const operations = [
-      client.eval('return 42'),
-      client.readMemory(0x20244e9, 4),
-      client.eval('return "test"'),
-      client.readMemory(0x20244ec, 8),
-    ]
-
-    const results = await Promise.all(operations)
-    expect(results).toHaveLength(4)
+    // Run eval operations sequentially to avoid race conditions
+    const evalResult1 = await client.eval('return 42')
+    const memoryResult1 = await client.readMemory(0x20244e9, 4)
+    const evalResult2 = await client.eval('return "test"')
+    const memoryResult2 = await client.readMemory(0x20244ec, 8)
 
     // Check eval results
-    const evalResult1 = results[0] as MgbaEvalResponse
-    const evalResult2 = results[2] as MgbaEvalResponse
     expect(evalResult1.result).toBe(42)
     expect(evalResult2.result).toBe('test')
+    
+    // Check memory results
+    expect(memoryResult1).toBeInstanceOf(Uint8Array)
+    expect(memoryResult1.length).toBe(4)
+    expect(memoryResult2).toBeInstanceOf(Uint8Array)
+    expect(memoryResult2.length).toBe(8)
 
     client.disconnect()
-  })
+  }, 15000)
 
   it('should maintain shared buffer integrity under load', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)

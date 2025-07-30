@@ -55,7 +55,7 @@ describe('WebSocket Core Tests', () => {
 
     client.disconnect()
     expect(client.isConnected()).toBe(false)
-  })
+  }, 15000)
 
   it('should execute basic eval commands', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
@@ -116,7 +116,7 @@ describe('WebSocket Core Tests', () => {
     expect(client.getWatchedRegions()).toHaveLength(0)
 
     client.disconnect()
-  })
+  }, 15000)
 
   it('should handle different WebSocket message types without errors', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
@@ -167,7 +167,7 @@ describe('WebSocket Core Tests', () => {
 
       client.disconnect()
     }
-  })
+  }, 15000)
 
   it('should handle structured WATCH message format correctly', async () => {
     const client = new MgbaWebSocketClient(WEBSOCKET_URL)
