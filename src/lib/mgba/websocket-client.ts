@@ -53,163 +53,232 @@ export type SharedBufferConfig = Record<string, unknown>
 export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void
 
 /**
- * Simplified WebSocket client for mGBA
+ * Simplified WebSocket client for mGBA with unified connection
  */
 export class MgbaWebSocketClient {
   private readonly baseUrl: string
-  private evalWs: WebSocket | null = null
-  private watchWs: WebSocket | null = null
-  private evalConnected = false
-  private watchConnected = false
+  private ws: WebSocket | null = null
+  private connected = false
 
   // Memory watching state
   private watchedRegions: MemoryRegion[] = []
   private readonly sharedBuffer = new Map<number, Uint8Array>() // address -> data
-  private memoryChangeListeners: MemoryChangeListener[] = []
+  private readonly memoryChangeListeners: MemoryChangeListener[] = []
 
-  constructor (baseUrl = 'ws://localhost:7102', private autoReconnect = true) {
+  constructor (baseUrl = 'ws://localhost:7102', private readonly autoReconnect = true) {
     this.baseUrl = baseUrl
   }
 
   /**
-   * Connect to mGBA WebSocket endpoints with maximum reliability for first-attempt success
+   * Connect to mGBA WebSocket with single unified endpoint
    */
   async connect (): Promise<void> {
-    // Disconnect any existing connections first to ensure clean state
+    // Disconnect any existing connection first to ensure clean state
     this.disconnect()
-    
+
     // Add small delay to ensure server is ready for new connections
     await new Promise(resolve => setTimeout(resolve, 50))
-    
-    // Always use sequential connection approach for maximum reliability
+
     try {
-      await this.connectWithRetry('eval')
-      // Small delay between connections to avoid server overwhelm
-      await new Promise(resolve => setTimeout(resolve, 100))
-      await this.connectWithRetry('watch')
+      await this.connectWebSocket()
     } catch (error) {
       this.disconnect()
       throw error
     }
-    
-    // Brief stability check to ensure connections are established
+
+    // Brief stability check to ensure connection is established
     await new Promise(resolve => setTimeout(resolve, 50))
-    
+
     // Final verification
-    if (!this.evalConnected || !this.watchConnected) {
+    if (!this.connected) {
       this.disconnect()
-      throw new Error(`Connection verification failed - eval: ${this.evalConnected}, watch: ${this.watchConnected}`)
+      throw new Error('Failed to establish WebSocket connection')
     }
   }
 
   /**
-   * Connect with immediate reliability - should succeed on first attempt for healthy servers
-   * Only retries on actual server issues, not for normal operation
+   * Connect to unified WebSocket endpoint - should succeed on first attempt for healthy servers
    */
-  private async connectWithRetry (type: 'eval' | 'watch', maxRetries = 2): Promise<void> {
-    let lastError: Error | null = null
+  private async connectWebSocket (): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const wsUrl = `${this.baseUrl.replace(/^http/, 'ws')}/ws`
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        if (type === 'eval') {
-          await this.connectEval()
-        } else {
-          await this.connectWatch()
-        }
-        
-        return // Success
+        this.ws = new WebSocket(wsUrl)
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error))
+        reject(new Error(`Failed to create WebSocket: ${String(error)}`))
+        return
+      }
 
-        // Log retry attempts - these indicate connection reliability issues
-        if (attempt === 1) {
-          console.debug(`${type} connection attempt ${attempt} failed, retrying in 150ms...`)
-        }
+      // Set timeouts for connection reliability
+      const connectTimeout = setTimeout(() => {
+        this.ws?.close()
+        reject(new Error('WebSocket connection timeout'))
+      }, 10000)
 
-        if (attempt < maxRetries) {
-          // Short delay for retry - server should be immediately available
-          await new Promise(resolve => setTimeout(resolve, 150))
+      this.ws.onopen = () => {
+        clearTimeout(connectTimeout)
+        this.connected = true
+        console.debug('✅ WebSocket connected successfully!')
+        resolve()
+      }
+
+      this.ws.onmessage = (event: MessageEvent) => {
+        this.handleMessage(String(event.data))
+      }
+
+      this.ws.onclose = (event: CloseEvent) => {
+        clearTimeout(connectTimeout)
+        this.connected = false
+
+        if (event.wasClean) {
+          console.debug('WebSocket closed cleanly')
+        } else {
+          console.debug(`WebSocket closed unexpectedly: ${event.code} ${event.reason}`)
+
+          if (this.autoReconnect) {
+            setTimeout(() => {
+              this.connect().catch(console.error)
+            }, 1000)
+          }
         }
       }
-    }
 
-    throw new Error(`Failed to connect ${type} after ${maxRetries} attempts: ${lastError?.message}`)
+      this.ws.onerror = (error: Event) => {
+        clearTimeout(connectTimeout)
+        console.debug('WebSocket error:', error)
+        reject(new Error('WebSocket connection failed'))
+      }
+    })
   }
 
   /**
-   * Disconnect all connections with improved cleanup and server state reset
+   * Handle incoming WebSocket messages with routing
+   */
+  private handleMessage (data: string): void {
+    try {
+      // Try to parse as JSON first
+      const message = JSON.parse(data)
+
+      if (message.type === 'welcome') {
+        console.debug('Welcome message received:', message.message)
+        return
+      }
+
+      if (message.type === 'error') {
+        console.error('Server error:', message.error)
+        return
+      }
+
+      if (message.type === 'memoryUpdate') {
+        this.handleMemoryUpdate(message as MemoryUpdateMessage)
+        return
+      }
+
+      if (message.type === 'watchConfirm') {
+        console.debug('Watch confirmed:', message.message)
+        return
+      }
+
+      // Handle eval response (with result or error)
+      if (message.result !== undefined || message.error !== undefined) {
+        // This is an eval response - handled by pending eval promises
+        this.handleEvalResponse(message as MgbaEvalResponse)
+        return
+      }
+
+      console.debug('Unknown message type:', message)
+    } catch (error) {
+      // If not JSON, treat as plain text response
+      console.debug('Plain text message:', data)
+    }
+  }
+
+  // Track pending eval requests
+  private pendingEvals: Array<{
+    resolve: (response: MgbaEvalResponse) => void
+    reject: (error: Error) => void
+    timeout: NodeJS.Timeout
+  }> = []
+
+  /**
+   * Handle eval response
+   */
+  private handleEvalResponse (response: MgbaEvalResponse): void {
+    const pending = this.pendingEvals.shift()
+    if (pending) {
+      clearTimeout(pending.timeout)
+      pending.resolve(response)
+    }
+  }
+
+  /**
+   * Disconnect WebSocket connection with improved cleanup
    */
   disconnect (): void {
-    // Close connections gracefully with timeout
-    if (this.evalWs) {
+    if (this.ws) {
       try {
-        this.evalWs.close(1000, 'Client disconnect') // Clean close with reason
+        this.ws.close(1000, 'Client disconnect') // Clean close with reason
       } catch (error) {
-        console.debug('Error closing eval WebSocket:', error)
+        console.debug('Error closing WebSocket:', error)
       }
-      this.evalWs = null
+      this.ws = null
     }
 
-    if (this.watchWs) {
-      try {
-        this.watchWs.close(1000, 'Client disconnect') // Clean close with reason
-      } catch (error) {
-        console.debug('Error closing watch WebSocket:', error)
-      }
-      this.watchWs = null
-    }
-
-    // Reset connection states
-    this.evalConnected = false
-    this.watchConnected = false
-
-    // Clear all cached data
-    this.sharedBuffer.clear()
+    this.connected = false
     this.watchedRegions = []
-    this.memoryChangeListeners = []
+    this.sharedBuffer.clear()
+
+    // Reject all pending evals
+    this.pendingEvals.forEach(pending => {
+      clearTimeout(pending.timeout)
+      pending.reject(new Error('Connection closed'))
+    })
+    this.pendingEvals = []
   }
 
   /**
-   * Execute Lua code with enhanced reliability and error recovery
+   * Execute Lua code with unified WebSocket connection
    */
   async eval (code: string): Promise<MgbaEvalResponse> {
-    // Auto-reconnect eval if needed for resilience during rapid test cycles
-    if (!this.evalConnected || !this.evalWs) {
+    // Auto-reconnect if needed for resilience during rapid test cycles
+    if (!this.connected || !this.ws) {
       if (this.autoReconnect) {
         try {
-          await this.connectWithRetry('eval')
+          await this.connect()
         } catch (error) {
-          throw new Error(`Eval WebSocket not connected: ${error instanceof Error ? error.message : String(error)}`)
+          throw new Error(`WebSocket not connected: ${error instanceof Error ? error.message : String(error)}`)
         }
       } else {
-        throw new Error('Eval WebSocket not connected')
+        throw new Error('WebSocket not connected')
       }
     }
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        this.evalWs?.removeListener('message', messageHandler)
+        // Remove from pending list
+        const index = this.pendingEvals.findIndex(p => p.timeout === timeout)
+        if (index >= 0) {
+          this.pendingEvals.splice(index, 1)
+        }
         reject(new Error('Eval timeout'))
       }, 12000) // Extended timeout for stress scenarios
 
-      const messageHandler = (data: Buffer) => {
-        const messageText = data.toString()
-        if (!messageText.startsWith('{')) return
+      // Add to pending requests queue
+      this.pendingEvals.push({ resolve, reject, timeout })
 
-        try {
-          const response = JSON.parse(messageText) as MgbaEvalResponse
-          this.evalWs?.removeListener('message', messageHandler)
-          clearTimeout(timeout)
-          resolve(response)
-        } catch (error) {
-          this.evalWs?.removeListener('message', messageHandler)
-          clearTimeout(timeout)
-          reject(new Error(`Failed to parse response: ${String(error)}`))
+      try {
+        // Send plain Lua code for eval
+        this.ws!.send(code)
+      } catch (error) {
+        // Remove from pending list
+        const index = this.pendingEvals.findIndex(p => p.timeout === timeout)
+        if (index >= 0) {
+          this.pendingEvals.splice(index, 1)
         }
+        clearTimeout(timeout)
+        reject(new Error(`Failed to send eval: ${String(error)}`))
       }
-
-      this.evalWs?.on('message', messageHandler)
-      this.evalWs?.send(code)
     })
   }
 
@@ -247,19 +316,19 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Start watching memory regions with enhanced timeout handling
+   * Start watching memory regions with unified WebSocket connection
    */
   async startWatching (regions: MemoryRegion[]): Promise<void> {
-    // Auto-connect watch if needed for resilience
-    if (!this.watchConnected || !this.watchWs) {
+    // Auto-connect if needed for resilience
+    if (!this.connected || !this.ws) {
       if (this.autoReconnect) {
         try {
-          await this.connectWithRetry('watch')
+          await this.connect()
         } catch (error) {
-          throw new Error(`Watch WebSocket not connected: ${error instanceof Error ? error.message : String(error)}`)
+          throw new Error(`WebSocket not connected: ${error instanceof Error ? error.message : String(error)}`)
         }
       } else {
-        throw new Error('Watch WebSocket not connected')
+        throw new Error('WebSocket not connected')
       }
     }
 
@@ -275,39 +344,58 @@ export class MgbaWebSocketClient {
 
     this.watchedRegions = [...regions]
 
-    // Send structured watch message
-    const messageLines = ['WATCH']
-    for (const region of regions) {
-      messageLines.push(`${region.address},${region.size}`)
+    // Send JSON watch message
+    const watchMessage: WatchMessage = {
+      type: 'watch',
+      regions,
     }
-    const structuredMessage = messageLines.join('\n')
 
     // Send watch request and wait for confirmation or error with extended timeout
     return new Promise<void>((resolve, reject) => {
+      let resolved = false
+
       const timeout = setTimeout(() => {
-        this.watchWs?.removeListener('message', handleResponse)
-        reject(new Error('Watch setup timeout - no confirmation received'))
+        if (!resolved) {
+          resolved = true
+          reject(new Error('Watch setup timeout - no confirmation received'))
+        }
       }, 15000) // Increased timeout for stress scenarios
 
-      const handleResponse = (data: Buffer) => {
+      // Listen for confirmation (handled by message router)
+      const originalHandler = this.handleMessage.bind(this)
+      this.handleMessage = (data: string) => {
         try {
-          const message = JSON.parse(data.toString()) as WebSocketMessage
-          if (message.type === 'watchConfirm') {
+          const message = JSON.parse(data)
+          if (message.type === 'watchConfirm' && !resolved) {
+            resolved = true
             clearTimeout(timeout)
-            this.watchWs?.removeListener('message', handleResponse)
+            this.handleMessage = originalHandler
             resolve()
-          } else if (message.type === 'error') {
+            return
+          } else if (message.type === 'error' && !resolved) {
+            resolved = true
             clearTimeout(timeout)
-            this.watchWs?.removeListener('message', handleResponse)
-            reject(new Error(message.error))
+            this.handleMessage = originalHandler
+            reject(new Error(String(message.error)))
+            return
           }
         } catch (error) {
-          // Ignore parsing errors for non-JSON messages
+          // Fall through to original handler
         }
+        originalHandler(data)
       }
 
-      this.watchWs!.on('message', handleResponse)
-      this.watchWs!.send(structuredMessage)
+      try {
+        this.ws!.send(JSON.stringify(watchMessage))
+      } catch (error) {
+        if (resolved) {
+          return
+        }
+        resolved = true
+        clearTimeout(timeout)
+        this.handleMessage = originalHandler
+        reject(new Error(`Failed to send watch message: ${String(error)}`))
+      }
     }).then(async () => {
       // Initialize shared buffer with current data after successful setup
       // Use Promise.allSettled to handle individual failures gracefully
@@ -321,11 +409,11 @@ export class MgbaWebSocketClient {
           return { region, success: false, error }
         }
       })
-      
+
       const results = await Promise.allSettled(initPromises)
-      const failed = results.filter(result => result.status === 'rejected' || 
-        (result.status === 'fulfilled' && !result.value.success))
-      
+      const failed = results.filter(result => result.status === 'rejected' ||
+        (result.status === 'fulfilled' && result.value.success === false))
+
       if (failed.length > 0) {
         console.warn(`Failed to initialize ${failed.length}/${regions.length} shared buffer regions`)
       }
@@ -383,17 +471,17 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Check if client is connected (improved flexibility for testing)
+   * Check if client is connected
    */
   isConnected (): boolean {
-    return this.evalConnected && this.watchConnected
+    return this.connected
   }
 
   /**
-   * Check if either connection is available (more lenient check)
+   * Check if connection is available (for API compatibility)
    */
   hasAnyConnection (): boolean {
-    return this.evalConnected || this.watchConnected
+    return this.connected
   }
 
   /**
@@ -438,153 +526,32 @@ export class MgbaWebSocketClient {
    * Check eval connection status (for compatibility)
    */
   isEvalConnected (): boolean {
-    return this.evalConnected
+    return this.connected
   }
 
   /**
    * Check watch connection status (for compatibility)
    */
   isWatchConnected (): boolean {
-    return this.watchConnected
+    return this.connected
   }
 
-  private async connectEval (): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(`${this.baseUrl}/eval`)
+  /**
+   * Handle memory update message from server
+   */
+  private handleMemoryUpdate (message: MemoryUpdateMessage): void {
+    for (const region of message.regions) {
+      // Update shared buffer
+      const data = new Uint8Array(region.data)
+      this.sharedBuffer.set(region.address, data)
 
-      // Connection timeout - should be quick for healthy servers
-      const timeout = setTimeout(() => {
-        ws.close()
-        reject(new Error('Eval connection timeout'))
-      }, 8000) // Increased timeout to account for server initialization
-
-      ws.on('open', () => {
-        console.debug('Eval WebSocket opened')
-        clearTimeout(timeout)
-        this.evalWs = ws
-        this.evalConnected = true
-        resolve()
-      })
-
-      ws.on('error', (error: Error) => {
-        console.debug('Eval WebSocket error:', error.message)
-        clearTimeout(timeout)
-        reject(new Error(`Eval connection failed: ${String(error)}`))
-      })
-
-      ws.on('close', (code: number, reason: Buffer) => {
-        console.debug(`Eval WebSocket closed: ${code} ${reason.toString()}`)
-        // Only reset state if this was an established connection
-        if (this.evalWs === ws) {
-          this.evalConnected = false
-          this.evalWs = null
+      // Notify listeners
+      for (const listener of this.memoryChangeListeners) {
+        try {
+          listener(region.address, region.size, data)
+        } catch (error) {
+          console.error('Memory change listener error:', error)
         }
-      })
-
-      // Handle eval messages (welcome and responses)
-      ws.on('message', (data: Buffer) => {
-        const messageText = data.toString()
-        console.debug('Eval message received:', messageText.substring(0, 100))
-        
-        // Handle welcome messages
-        if (!messageText.startsWith('{')) {
-          console.log('Eval WebSocket message:', messageText)
-          return
-        }
-
-        // Let the eval method handle response messages
-      })
-    })
-  }
-
-  private async connectWatch (): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(`${this.baseUrl}/watch`)
-
-      // Connection timeout - should be quick for healthy servers
-      const timeout = setTimeout(() => {
-        ws.close()
-        reject(new Error('Watch connection timeout'))
-      }, 8000) // Increased timeout to account for server initialization
-
-      ws.on('open', () => {
-        console.debug('Watch WebSocket opened')
-        clearTimeout(timeout)
-        this.watchWs = ws
-        this.watchConnected = true
-        resolve()
-      })
-
-      ws.on('error', (error: Error) => {
-        console.debug('Watch WebSocket error:', error.message)
-        clearTimeout(timeout)
-        reject(new Error(`Watch connection failed: ${String(error)}`))
-      })
-
-      ws.on('close', (code: number, reason: Buffer) => {
-        console.debug(`Watch WebSocket closed: ${code} ${reason.toString()}`)
-        // Only reset state if this was an established connection
-        if (this.watchWs === ws) {
-          this.watchConnected = false
-          this.watchWs = null
-        }
-      })
-
-      ws.on('message', (data: Buffer) => {
-        this.handleWatchMessage(data.toString())
-      })
-    })
-  }
-
-  private handleWatchMessage (messageText: string): void {
-    // Handle plain text messages (like legacy eval welcome messages)
-    if (!messageText.startsWith('{')) {
-      console.log('Watch WebSocket message:', messageText)
-      return
-    }
-
-    try {
-      const message = JSON.parse(messageText) as WebSocketMessage
-
-      // Handle different message types
-      switch (message.type) {
-        case 'memoryUpdate':
-          // Process memory update
-          for (const region of message.regions) {
-            // Update shared buffer
-            const data = new Uint8Array(region.data)
-            this.sharedBuffer.set(region.address, data)
-
-            // Notify listeners
-            for (const listener of this.memoryChangeListeners) {
-              listener(region.address, region.size, data)
-            }
-          }
-          break
-
-        case 'watchConfirm':
-          // Server confirmed it's watching memory regions
-          console.log('Watch confirmed:', message.message)
-          break
-
-        case 'error':
-          console.error('WebSocket error:', message.error)
-          break
-
-        case 'welcome':
-          // Server welcome message - safe to ignore
-          console.log('Watch welcome:', message.message)
-          break
-
-        default:
-          console.warn('Unknown message type:', (message as { type?: unknown }).type)
-      }
-    } catch (error) {
-      // Only warn about parsing errors for messages that look like JSON
-      if (messageText.trim().startsWith('{')) {
-        console.warn('Failed to parse watch message:', error)
-      } else {
-        console.log('Watch WebSocket message:', messageText)
       }
     }
   }

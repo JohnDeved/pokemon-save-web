@@ -167,7 +167,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
 
   describe('WebSocket Functionality', () => {
     it('should handle WebSocket handshake and send welcome message', async () => {
-      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/eval`)
+      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
 
       // Wait for connection and welcome message
       const welcomeMessage = await new Promise<string>((resolve, reject) => {
@@ -188,13 +188,13 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       // Parse the JSON welcome message
       const welcomeData = JSON.parse(welcomeMessage)
       expect(welcomeData.type).toBe('welcome')
-      expect(welcomeData.message).toBe('WebSocket Eval Ready! Send Lua code to execute.')
+      expect(welcomeData.message).toBe('WebSocket Ready! Send Lua code or watch messages.')
 
       ws.close()
     })
 
     it('should handle WebSocket eval functionality', async () => {
-      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/eval`)
+      const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws`)
 
       let welcomeReceived = false
 

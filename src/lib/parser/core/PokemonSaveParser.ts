@@ -70,7 +70,7 @@ export class PokemonSaveParser {
   public saveFileName: string | null = null
   public fileHandle: FileSystemFileHandle | null = null
 
-  // Memory mode properties  
+  // Memory mode properties
   private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
 
@@ -627,18 +627,18 @@ export class PokemonSaveParser {
 
     const memAddrs = this.config.memoryAddresses!
     const effectiveConfig = createEffectiveConfig(this.config)
-    
+
     // Parse party Pokemon directly from memory data without caching
     let partyPokemon: PokemonBase[] = []
-    
+
     if (address === memAddrs.partyData) {
       // Parse Pokemon from the updated party data
       const partyCount = Math.min(Math.floor(data.length / effectiveConfig.pokemonSize), 6)
-      
+
       for (let i = 0; i < partyCount; i++) {
         const offset = i * effectiveConfig.pokemonSize
         const pokemonData = data.slice(offset, offset + effectiveConfig.pokemonSize)
-        
+
         try {
           const pokemon = new PokemonBase(pokemonData, this.config)
           if (pokemon.speciesId !== 0) {

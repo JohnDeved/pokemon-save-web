@@ -907,26 +907,38 @@ local connectionRateLimits = {}
 local RATE_LIMIT_WINDOW = 1000 -- 1 second
 local MAX_REQUESTS_PER_WINDOW = 10
 
--- Enhanced WebSocket route for Lua code evaluation with improved connection reliability
-app:websocket("/eval", function(ws)
+-- Memory watching state
+local memoryWatchers = {}
+
+-- Unified WebSocket endpoint for both eval and watch functionality
+app:websocket("/ws", function(ws)
     -- Check connection rate limit first
     local rateLimitOk, rateLimitReason = checkConnectionRateLimit(ws.id)
     if not rateLimitOk then
-        logInfo("Eval connection rate limited for " .. ws.id .. ": " .. rateLimitReason)
-        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({ error = "Rate limited: " .. rateLimitReason }))
+        logInfo("WebSocket connection rate limited for " .. ws.id .. ": " .. rateLimitReason)
+        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({ 
+            type = "error",
+            error = "Rate limited: " .. rateLimitReason 
+        }))
         if ok then pcall(ws.close, ws) end
         return
     end
 
-    if activeEvalConnections >= maxConcurrentEvals then
-        logInfo("Eval connection rejected for " .. ws.id .. ": server at capacity")
-        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({ error = "Server at capacity" }))
+    -- Combined connection limit check (total connections)
+    local totalConnections = activeEvalConnections + activeWatchConnections
+    if totalConnections >= (maxConcurrentEvals + maxConcurrentWatchers) then
+        logInfo("WebSocket connection rejected for " .. ws.id .. ": server at capacity")
+        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({
+            type = "error",
+            error = "Server at capacity"
+        }))
         if ok then pcall(ws.close, ws) end
         return
     end
 
-    activeEvalConnections = activeEvalConnections + 1
-    logInfo("Eval WebSocket connected: " .. ws.id .. " (active: " .. activeEvalConnections .. "/" .. maxConcurrentEvals .. ")")
+    -- Track connection and initialize state
+    activeEvalConnections = activeEvalConnections + 1  -- Start as eval, may add watch later
+    logInfo("WebSocket connected: " .. ws.id .. " (total active: " .. (totalConnections + 1) .. ")")
     
     -- Initialize rate limiting for this connection
     connectionRateLimits[ws.id] = {
@@ -934,6 +946,7 @@ app:websocket("/eval", function(ws)
         requestCount = 0
     }
 
+    -- Message handler that routes between eval and watch functionality
     ws.onMessage = function(message)
         if not message or type(message) ~= "string" then return end
         
@@ -952,157 +965,120 @@ app:websocket("/eval", function(ws)
         
         limit.requestCount = limit.requestCount + 1
         if limit.requestCount > MAX_REQUESTS_PER_WINDOW then
-            ws:send(HttpServer.jsonStringify({error = "Rate limit exceeded"}))
+            ws:send(HttpServer.jsonStringify({
+                type = "error",
+                error = "Rate limit exceeded"
+            }))
             return
         end
         
-        local code = message:gsub("^%s*(.-)%s*$", "%1")
-        if #code == 0 then return end
+        local trimmedMessage = message:gsub("^%s*(.-)%s*$", "%1")
+        if #trimmedMessage == 0 then return end
         
-        -- Smart code completion - improved detection
-        if not code:match("^%s*return%s") and 
-           not code:match("^%s*local%s") and 
-           not code:match("^%s*function%s") and 
-           not code:match("^%s*for%s") and
-           not code:match("^%s*while%s") and 
-           not code:match("^%s*if%s") and
-           not code:match("^%s*do%s") and 
-           not code:match("^%s*repeat%s") and
-           not code:match("^%s*[%a_][%w_]*%s*[=%(]") then
-            code = "return " .. code
-        end
+        -- Try to parse as JSON first (for watch messages)
+        local parsed = parseWebSocketMessage(trimmedMessage)
         
-        local fn, err = load(code, "websocket-eval")
-        if fn then
-            local ok, result = pcall(fn)
-            ws:send(HttpServer.jsonStringify(ok and {result = result} or {error = tostring(result)}))
+        if parsed and parsed.type == "watch" then
+            -- Handle watch message
+            if not parsed.regions or #parsed.regions == 0 or #parsed.regions > 50 then
+                ws:send(HttpServer.jsonStringify({
+                    type = "error",
+                    error = "Invalid regions"
+                }))
+                return
+            end
+            
+            -- Initialize memory watcher if not exists
+            if not memoryWatchers[ws.id] then
+                memoryWatchers[ws.id] = {
+                    regions = {},
+                    lastData = {},
+                    errorCount = 0
+                }
+                -- Update connection tracking
+                activeWatchConnections = activeWatchConnections + 1
+                logInfo("Memory watcher initialized for " .. ws.id)
+            end
+            
+            local watcher = memoryWatchers[ws.id]
+            watcher.regions = parsed.regions
+            watcher.lastData = {}
+            watcher.errorCount = 0
+            
+            -- Initialize baseline data efficiently
+            for i, region in ipairs(parsed.regions) do
+                local ok, data = pcall(emu.readRange, emu, region.address, region.size)
+                watcher.lastData[i] = ok and data or ""
+            end
+            
+            ws:send(HttpServer.jsonStringify({
+                type = "watchConfirm",
+                message = "Watching " .. #parsed.regions .. " memory regions"
+            }))
         else
-            ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
+            -- Handle as eval message (plain Lua code)
+            local code = trimmedMessage
+            
+            -- Smart code completion - improved detection
+            if not code:match("^%s*return%s") and 
+               not code:match("^%s*local%s") and 
+               not code:match("^%s*function%s") and 
+               not code:match("^%s*for%s") and
+               not code:match("^%s*while%s") and 
+               not code:match("^%s*if%s") and
+               not code:match("^%s*do%s") and 
+               not code:match("^%s*repeat%s") and
+               not code:match("^%s*[%a_][%w_]*%s*[=%(]") then
+                code = "return " .. code
+            end
+            
+            local fn, err = load(code, "websocket-eval")
+            if fn then
+                local ok, result = pcall(fn)
+                ws:send(HttpServer.jsonStringify(ok and {result = result} or {error = tostring(result)}))
+            else
+                ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
+            end
         end
     end
 
     ws.onClose = function()
-        logInfo("Eval WebSocket disconnected: " .. ws.id)
+        logInfo("WebSocket disconnected: " .. ws.id)
+        
+        -- Clean up eval connection tracking
         activeEvalConnections = math.max(0, activeEvalConnections - 1)
+        
+        -- Clean up watch connection tracking
+        if memoryWatchers[ws.id] then
+            memoryWatchers[ws.id] = nil
+            activeWatchConnections = math.max(0, activeWatchConnections - 1)
+        end
+        
+        -- Clean up rate limiting
         if connectionRateLimits[ws.id] then
             connectionRateLimits[ws.id] = nil
         end
     end
 
-    -- Send welcome message immediately since WebSocket is established
+    -- Send unified welcome message
     if ws and ws.client then
         local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
             type = "welcome",
-            message = "WebSocket Eval Ready! Send Lua code to execute.",
-            limits = { rateLimit = MAX_REQUESTS_PER_WINDOW .. " per " .. RATE_LIMIT_WINDOW .. "ms" }
+            message = "WebSocket Ready! Send Lua code or watch messages.",
+            capabilities = {
+                eval = true,
+                watch = true
+            },
+            limits = { 
+                rateLimit = MAX_REQUESTS_PER_WINDOW .. " per " .. RATE_LIMIT_WINDOW .. "ms",
+                maxRegions = 50, 
+                maxRegionSize = 65536 
+            }
         }))
         if not ok then
-            logError("Failed to send eval welcome message: " .. tostring(err))
+            logError("Failed to send welcome message: " .. tostring(err))
         else
-            logInfo("Eval welcome message sent to " .. ws.id)
-        end
-    end
-end)
-
--- Memory watching state
-local memoryWatchers = {}
-
--- Enhanced WebSocket route for memory watching with improved reliability
-app:websocket("/watch", function(ws)
-    -- Check connection rate limit first
-    local rateLimitOk, rateLimitReason = checkConnectionRateLimit(ws.id)
-    if not rateLimitOk then
-        logInfo("Watch connection rate limited for " .. ws.id .. ": " .. rateLimitReason)
-        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({
-            type = "error",
-            error = "Rate limited: " .. rateLimitReason
-        }))
-        if ok then pcall(ws.close, ws) end
-        return
-    end
-
-    -- Connection limit check
-    if activeWatchConnections >= maxConcurrentWatchers then
-        logInfo("Watch connection rejected for " .. ws.id .. ": server at capacity")
-        local ok = pcall(ws.send, ws, HttpServer.jsonStringify({
-            type = "error",
-            error = "Server at capacity"
-        }))
-        if ok then pcall(ws.close, ws) end
-        return
-    end
-
-    -- Initialize memory watcher state
-    memoryWatchers[ws.id] = {
-        regions = {},
-        lastData = {},
-        errorCount = 0
-    }
-    activeWatchConnections = activeWatchConnections + 1
-    logInfo("Watch WebSocket connected: " .. ws.id .. " (active: " .. activeWatchConnections .. "/" .. maxConcurrentWatchers .. ")")
-
-    ws.onMessage = function(message)
-        if not message or type(message) ~= "string" then return end
-        
-        local parsed = parseWebSocketMessage(message:gsub("^%s*(.-)%s*$", "%1"))
-        if not parsed or parsed.type ~= "watch" then
-            ws:send(HttpServer.jsonStringify({
-                type = "error",
-                error = "Invalid message format"
-            }))
-            return
-        end
-        
-        if not parsed.regions or #parsed.regions == 0 or #parsed.regions > 50 then
-            ws:send(HttpServer.jsonStringify({
-                type = "error",
-                error = "Invalid regions"
-            }))
-            return
-        end
-        
-        local watcher = memoryWatchers[ws.id]
-        if not watcher then
-            memoryWatchers[ws.id] = { regions = {}, lastData = {}, errorCount = 0 }
-            watcher = memoryWatchers[ws.id]
-        end
-        
-        watcher.regions = parsed.regions
-        watcher.lastData = {}
-        watcher.errorCount = 0
-        
-        -- Initialize baseline data efficiently
-        for i, region in ipairs(parsed.regions) do
-            local ok, data = pcall(emu.readRange, emu, region.address, region.size)
-            watcher.lastData[i] = ok and data or ""
-        end
-        
-        ws:send(HttpServer.jsonStringify({
-            type = "watchConfirm",
-            message = "Watching " .. #parsed.regions .. " memory regions"
-        }))
-    end
-
-    ws.onClose = function()
-        logInfo("Watch WebSocket disconnected: " .. ws.id)
-        if memoryWatchers[ws.id] then
-            memoryWatchers[ws.id] = nil
-            activeWatchConnections = math.max(0, activeWatchConnections - 1)
-        end
-    end
-
-    -- Send welcome message immediately since WebSocket is established
-    if ws and ws.client then
-        local ok, err = pcall(ws.send, ws, HttpServer.jsonStringify({
-            type = "welcome",
-            message = "Memory Watching Ready! Send WATCH messages with regions.",
-            limits = { maxRegions = 50, maxRegionSize = 65536 }
-        }))
-        
-        if not ok then
-            logError("Failed to send watch welcome message: " .. tostring(err))
-        else
-            logInfo("Watch welcome message sent to " .. ws.id)
+            logInfo("Welcome message sent to " .. ws.id)
         end
     end
 end)

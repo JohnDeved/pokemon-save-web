@@ -50,7 +50,7 @@ describe('WebSocket Core Tests', () => {
 
     // Connection should succeed immediately for healthy server
     await client.connect()
-    
+
     // Connection state should be immediately available after connect() resolves
     expect(client.isConnected()).toBe(true)
     expect(client.isEvalConnected()).toBe(true)

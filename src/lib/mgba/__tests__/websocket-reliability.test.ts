@@ -48,7 +48,7 @@ describe('WebSocket Reliability Tests', () => {
       for (let i = 0; i < 3; i++) {
         const client = new MgbaWebSocketClient(WEBSOCKET_URL)
         await client.connect()
-        
+
         // Wait actively for connection to be established
         let attempts = 0
         while (!client.isConnected() && attempts < 20) {
@@ -84,7 +84,7 @@ describe('WebSocket Reliability Tests', () => {
 
       // All should connect successfully
       await Promise.all(connectPromises)
-      
+
       // Wait actively for all connections to be established
       for (const client of clients) {
         let attempts = 0
@@ -123,7 +123,7 @@ describe('WebSocket Reliability Tests', () => {
     try {
       // Initial connection
       await client.connect()
-      
+
       // Wait actively for connection to be established
       let attempts = 0
       while (!client.isConnected() && attempts < 20) {

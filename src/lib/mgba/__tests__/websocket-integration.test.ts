@@ -171,7 +171,7 @@ describe('WebSocket Integration Tests', () => {
     // Check eval results
     expect(evalResult1.result).toBe(42)
     expect(evalResult2.result).toBe('test')
-    
+
     // Check memory results
     expect(memoryResult1).toBeInstanceOf(Uint8Array)
     expect(memoryResult1.length).toBe(4)
