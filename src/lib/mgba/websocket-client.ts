@@ -109,20 +109,26 @@ export class MgbaWebSocketClient {
       throw new Error('WebSocket not connected')
     }
 
+    console.log('🔧 Sending eval:', code.substring(0, 100) + (code.length > 100 ? '...' : ''))
+
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        console.log('❌ Eval timeout after 5s')
         reject(new Error('Eval timeout'))
       }, 5000)
 
       const handleResponse = (event: any) => {
         try {
+          console.log('📨 Received message:', event.data.substring(0, 200))
           const response = JSON.parse(event.data as string)
           if (response.result !== undefined || response.error !== undefined) {
+            console.log('✅ Valid response received')
             clearTimeout(timeout)
             this.ws?.removeEventListener('message', handleResponse)
             resolve(response)
           }
         } catch (error) {
+          console.log('⚠️ Failed to parse response as JSON:', error)
           // Ignore parse errors
         }
       }

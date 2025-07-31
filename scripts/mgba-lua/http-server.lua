@@ -31,445 +31,616 @@ local HttpServer = {}
 HttpServer.__index = HttpServer
 
 --------------------------------------------------------------------------------
--- Simple JSON utilities
+-- "Static" Methods
 --------------------------------------------------------------------------------
 
-local function jsonStringify(obj)
-    if type(obj) == "table" then
-        local parts = {}
-        local isArray = true
-        local maxIndex = 0
-        
-        for k, v in pairs(obj) do
-            if type(k) ~= "number" then
-                isArray = false
-                break
-            else
-                maxIndex = math.max(maxIndex, k)
+--- Simple JSON stringify function.
+---@param val any
+---@return string
+function HttpServer.jsonStringify(val)
+    local function escape(s)
+        return s:gsub('[\\"]', {['\\']='\\\\', ['"']='\\"'})
+    end
+    
+    local function serialize(v)
+        local t = type(v)
+        if t == "string" then return '"' .. escape(v) .. '"'
+        elseif t == "number" or t == "boolean" then return tostring(v)
+        elseif t == "nil" then return "null"
+        elseif t == "table" then
+            if next(v) == nil then return "{}" end
+            local parts = {}
+            if #v > 0 then -- Array
+                for i = 1, #v do parts[i] = serialize(v[i]) end
+                return "[" .. table.concat(parts, ",") .. "]"
+            else -- Object
+                for k, val in pairs(v) do
+                    table.insert(parts, serialize(tostring(k)) .. ":" .. serialize(val))
+                end
+                return "{" .. table.concat(parts, ",") .. "}"
             end
         end
-        
-        if isArray then
-            for i = 1, maxIndex do
-                parts[i] = jsonStringify(obj[i])
-            end
-            return "[" .. table.concat(parts, ",") .. "]"
-        else
-            for k, v in pairs(obj) do
-                table.insert(parts, '"' .. tostring(k) .. '":' .. jsonStringify(v))
-            end
-            return "{" .. table.concat(parts, ",") .. "}"
-        end
-    elseif type(obj) == "string" then
-        return '"' .. obj:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n') .. '"'
-    elseif type(obj) == "number" or type(obj) == "boolean" then
-        return tostring(obj)
-    else
-        return "null"
+        return '"' .. tostring(v) .. '"'
+    end
+    
+    return serialize(val)
+end
+
+--- CORS middleware factory.
+---@param origin? string
+---@return fun(req: Request, res: Response)
+function HttpServer.cors(origin)
+    origin = origin or "*"
+    return function(req, res)
+        res:setHeader("Access-Control-Allow-Origin", origin)
+        res:setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        res:setHeader("Access-Control-Allow-Headers", "Content-Type")
     end
 end
 
-HttpServer.jsonStringify = jsonStringify
+--- Converts binary data to Base64.
+---@param data string
+---@return string
+local function bin2base64(data)
+    local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    local s, i, len = '', 1, #data
+    while i <= len do
+        local c1, c2, c3 = data:byte(i) or 0, data:byte(i+1) or 0, data:byte(i+2) or 0
+        local n = c1 * 65536 + c2 * 256 + c3
+        local shifts = {18, 12, 6, 0}
+        for j = 1, 4 do
+            s = s .. b:sub(((n >> shifts[j]) & 63) + 1, ((n >> shifts[j]) & 63) + 1)
+        end
+        i = i + 3
+    end
+    local pad = len % 3
+    if pad == 1 then s = s:sub(1, #s-2) .. '=='
+    elseif pad == 2 then s = s:sub(1, #s-1) .. '=' end
+    return s
+end
+
+--- Converts hexadecimal string to binary.
+---@param hex string
+---@return string
+local function hex2bin(hex)
+    return (hex:gsub('..', function(cc) return string.char(tonumber(cc, 16)) end))
+end
+
+--- Computes SHA-1 hash of a string.
+--- @param msg string
+--- @return string
+local function sha1(msg)
+    local H = {0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0}
+    local bytes, ml = {}, #msg * 8
+    for i = 1, #msg do bytes[i] = msg:byte(i) end
+    table.insert(bytes, 0x80)
+    while (#bytes % 64) ~= 56 do table.insert(bytes, 0) end
+    for i = 1, 8 do table.insert(bytes, (ml >> (8 * (8 - i))) & 0xFF) end
+    for i = 1, #bytes, 64 do
+        local w = {}
+        for j = 0, 15 do w[j+1] = (bytes[i+4*j] << 24 | bytes[i+4*j+1] << 16 | bytes[i+4*j+2] << 8 | bytes[i+4*j+3]) & 0xFFFFFFFF end
+        for j = 17, 80 do w[j] = ((w[j-3] ~ w[j-8] ~ w[j-14] ~ w[j-16]) << 1 | (w[j-3] ~ w[j-8] ~ w[j-14] ~ w[j-16]) >> 31) & 0xFFFFFFFF end
+        local a, b, c, d, e = H[1], H[2], H[3], H[4], H[5]
+        for j = 1, 80 do
+            local f, k = 0, 0
+            if j <= 20 then f, k = (b & c) | (~b & d), 0x5A827999
+            elseif j <= 40 then f, k = b ~ c ~ d, 0x6ED9EBA1
+            elseif j <= 60 then f, k = (b & c) | (b & d) | (c & d), 0x8F1BBCDC
+            else f, k = b ~ c ~ d, 0xCA62C1D6 end
+            local temp = (((a << 5) | (a >> 27)) + f + e + k + w[j]) & 0xFFFFFFFF
+            e, d, c, b, a = d, c, (b << 30 | b >> 2) & 0xFFFFFFFF, a, temp
+        end
+        H[1] = (H[1] + a) & 0xFFFFFFFF
+        H[2] = (H[2] + b) & 0xFFFFFFFF
+        H[3] = (H[3] + c) & 0xFFFFFFFF
+        H[4] = (H[4] + d) & 0xFFFFFFFF
+        H[5] = (H[5] + e) & 0xFFFFFFFF
+    end
+    return string.format('%08x%08x%08x%08x%08x',H[1],H[2],H[3],H[4],H[5])
+end
+
+--- Generates WebSocket accept key.
+--- @param key string
+--- @return string
+function HttpServer.generateWebSocketAccept(key)
+    local magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+    -- Per RFC6455, concatenate the original base64 key (not decoded) with the magic string
+    return bin2base64(hex2bin(sha1(key .. magic)))
+end
+
+--- Creates WebSocket frame.
+---@param data string
+---@return string
+function HttpServer.createWebSocketFrame(data)
+    local len = #data
+    local frame = string.char(0x81) -- FIN + text frame
+    
+    if len < 126 then
+        frame = frame .. string.char(len)
+    elseif len < 65536 then
+        frame = frame .. string.char(126) .. string.char(len >> 8) .. string.char(len & 0xFF)
+    else
+        frame = frame .. string.char(127) .. string.rep("\0", 6) .. string.char(len >> 8) .. string.char(len & 0xFF)
+    end
+    
+    return frame .. data
+end
+
+--- Parses WebSocket frame.
+---@param data string
+---@return string?, number
+function HttpServer.parseWebSocketFrame(data)
+    if #data < 2 then return nil, 0 end
+    local b1, b2 = string.byte(data, 1, 2)
+    local fin = (b1 & 0x80) ~= 0
+    local opcode = b1 & 0x0F
+    local masked = (b2 & 0x80) ~= 0
+    local len = b2 & 0x7F
+    local offset = 2
+    local mask = nil
+    if len == 126 then
+        if #data < 4 then return nil, 0 end
+        len = (string.byte(data, 3) << 8) + string.byte(data, 4)
+        offset = 4
+    elseif len == 127 then
+        if #data < 10 then return nil, 0 end
+        len = (string.byte(data, 9) << 8) + string.byte(data, 10)
+        offset = 10
+    end
+    if masked then
+        if #data < offset + 4 then return nil, 0 end
+        mask = {data:byte(offset+1, offset+4)}
+        offset = offset + 4
+    end
+    if #data < offset + len then return nil, 0 end
+    if opcode == 0x8 then -- Close frame
+        return nil, -1
+    elseif opcode == 0x1 or opcode == 0x2 then -- Text or binary
+        local payload = data:sub(offset + 1, offset + len)
+        if masked and mask then
+            local unmasked = {}
+            for i = 1, #payload do
+                unmasked[i] = string.char(payload:byte(i) ~ mask[((i-1)%4)+1])
+            end
+            payload = table.concat(unmasked)
+        end
+        return payload, offset + len
+    end
+    return "", offset + len
+end
 
 --------------------------------------------------------------------------------
--- HTTP Server Implementation
+-- "Private" Instance Methods for Connection Handling
 --------------------------------------------------------------------------------
 
+--- Closes a client connection and cleans up.
+---@param clientId number
+---@private
+function HttpServer:_cleanup_client(clientId)
+    local client = self.clients[clientId]
+    if client then
+        client:close()
+        self.clients[clientId] = nil
+    end
+    
+    -- Clean up WebSocket if exists
+    local ws = self.websockets[clientId]
+    if ws then
+        if ws.onClose then ws.onClose() end
+        self.websockets[clientId] = nil
+    end
+end
+
+
+--- Parses the raw HTTP request string into a Request object.
+---@param request_str string
+---@return Request?
+---@private
+function HttpServer:_parse_request(request_str)
+    local header_end = request_str:find("\r\n\r\n")
+    if not header_end then return nil end
+
+    local header_part = request_str:sub(1, header_end - 1)
+    local body = request_str:sub(header_end + 4)
+
+    local method, path = header_part:match("^(%w+)%s+([^%s]+)")
+    if not method or not path then return nil end
+
+    local headers = {}
+    for k, v in string.gmatch(header_part, "([%w-]+):%s*([^\r\n]+)") do
+        headers[string.lower(k)] = v
+    end
+
+    return { method = method, path = path, headers = headers, body = body }
+end
+
+--- Creates a response object.
+---@param client SocketInstance
+---@param clientId number
+---@return Response
+---@private
+function HttpServer:_create_response(client, clientId)
+    local server = self
+    return {
+        finished = false,
+        _headers = {["Connection"] = "close"},
+        setHeader = function(self, key, value)
+            self._headers[key] = value
+        end,
+        send = function(self, status, body, content_type)
+            if self.finished then return end
+            
+            -- Handle table bodies as JSON
+            if type(body) == "table" then
+                body = HttpServer.jsonStringify(body)
+                content_type = content_type or "application/json"
+            else
+                body = body or ""
+                content_type = content_type or "text/plain"
+            end
+            
+            self:setHeader("Content-Type", content_type)
+            self:setHeader("Content-Length", #body)
+            
+            -- Build response
+            local lines = {"HTTP/1.1 " .. status}
+            for k, v in pairs(self._headers) do
+                table.insert(lines, k .. ": " .. v)
+            end
+            
+            local response_str = table.concat(lines, "\r\n") .. "\r\n\r\n" .. body
+            local ok, err = client:send(response_str)
+            
+            if not ok then
+                console:log("[ERROR] Send failed for client " .. clientId .. ": " .. tostring(err))
+            end
+            
+            self.finished = true
+            -- Cleanup will be handled by the server after response is sent
+        end
+    }
+end
+
+--- Handles client data and HTTP requests.
+---@param clientId number
+---@private
+function HttpServer:_handle_client_data(clientId)
+    local client = self.clients[clientId]
+    if not client then return end
+
+    -- Check if this is a WebSocket connection
+    local ws = self.websockets[clientId]
+    if ws then
+        self:_handle_websocket_data(clientId)
+        return
+    end
+
+    -- Read request data
+    local data = ""
+    repeat
+        local chunk, err = client:receive(1024)
+        if chunk then
+            data = data .. chunk
+        elseif err ~= socket.ERRORS.AGAIN then
+            self:_cleanup_client(clientId)
+            return
+        end
+    until data:find("\r\n\r\n") or not chunk
+
+    if data == "" then return end
+
+    -- Parse and handle request
+    local req = self:_parse_request(data)
+    if not req then
+        self:_cleanup_client(clientId)
+        return
+    end
+
+    -- Check for WebSocket upgrade
+    if self:_is_websocket_request(req) then
+        self:_handle_websocket_upgrade(clientId, req)
+        return
+    end
+
+    local res = self:_create_response(client, clientId)
+    self:_handle_request(req.method, req.path, req, res)
+
+    -- Send 404 if no handler responded
+    if not res.finished then
+        res:send("404 Not Found", "Not Found")
+    end
+end
+
+--- Handles HTTP requests through middleware and routes.
+---@param method string
+---@param path string
+---@param req Request
+---@param res Response
+---@private
+function HttpServer:_handle_request(method, path, req, res)
+    -- Execute global middlewares
+    for _, middleware in ipairs(self.middlewares) do
+        middleware(req, res)
+        if res.finished then return end
+    end
+    
+    -- Execute route handlers
+    local handlers = self.routes[method] and self.routes[method][path]
+    if handlers then
+        for _, handler in ipairs(handlers) do
+            handler(req, res)
+            if res.finished then return end
+        end
+    end
+end
+
+--- Checks if request is a WebSocket upgrade.
+---@param req Request
+---@return boolean
+---@private
+function HttpServer:_is_websocket_request(req)
+    return req.headers.upgrade == "websocket" and 
+           req.headers.connection and req.headers.connection:lower():find("upgrade") ~= nil and
+           req.headers["sec-websocket-key"] ~= nil
+end
+
+--- Handles WebSocket upgrade handshake.
+---@param clientId number
+---@param req Request
+---@private
+function HttpServer:_handle_websocket_upgrade(clientId, req)
+    local client = self.clients[clientId]
+    if not client then return end
+    
+    local wsKey = req.headers["sec-websocket-key"]
+    local accept = HttpServer.generateWebSocketAccept(wsKey)
+    local response = "HTTP/1.1 101 Switching Protocols\r\n" ..
+                    "Upgrade: websocket\r\n" ..
+                    "Connection: Upgrade\r\n" ..
+                    "Sec-WebSocket-Accept: " .. accept .. "\r\n\r\n"
+    
+    local ok, err = client:send(response)
+    if not ok then
+        console:log("[ERROR] WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
+        self:_cleanup_client(clientId)
+        return
+    end
+    -- Create WebSocket instance
+    local ws = {
+        id = clientId,
+        client = client,
+        path = req.path,
+        send = function(self, data)
+            local frame = HttpServer.createWebSocketFrame(data)
+            self.client:send(frame)
+        end,
+        close = function(self)
+            local closeFrame = string.char(0x88, 0x00) -- Close frame
+            self.client:send(closeFrame)
+        end
+    }
+    self.websockets[clientId] = ws
+    -- Call WebSocket route handler
+    local handler = self.wsRoutes[req.path]
+    if handler then
+        handler(ws)
+    end
+end
+
+--- Handles WebSocket frame data.
+---@param clientId number
+---@private
+function HttpServer:_handle_websocket_data(clientId)
+    local client = self.clients[clientId]
+    local ws = self.websockets[clientId]
+    if not client or not ws then return end
+    
+    local chunk, err = client:receive(1024)
+    if not chunk then
+        if err ~= socket.ERRORS.AGAIN then
+            self:_cleanup_client(clientId)
+        end
+        return
+    end
+    
+    local message, consumed = HttpServer.parseWebSocketFrame(chunk)
+    if consumed == -1 then -- Close frame
+        self:_cleanup_client(clientId)
+        return
+    elseif message and ws.onMessage then
+        ws.onMessage(message)
+    end
+end
+
+--- Accepts and configures new client connections.
+---@private
+function HttpServer:_accept_client()
+    if not self.server then return end
+    
+    local client, err = self.server:accept()
+    if not client or err then return end
+    
+    local id = self.nextClientId
+    self.nextClientId = id + 1
+    self.clients[id] = client
+    
+    client:add("received", function() self:_handle_client_data(id) end)
+    client:add("error", function() self:_cleanup_client(id) end)
+end
+
+--------------------------------------------------------------------------------
+-- Public Instance Methods
+--------------------------------------------------------------------------------
+
+--- Creates a new HttpServer instance.
+---@return HttpServer
 function HttpServer:new()
-    local instance = {
-        routes = {},
+    return setmetatable({
+        routes = {GET = {}, POST = {}, PUT = {}, DELETE = {}, OPTIONS = {}},
         middlewares = {},
         clients = {},
         websockets = {},
         wsRoutes = {},
         nextClientId = 1,
         server = nil
-    }
-    setmetatable(instance, self)
-    return instance
+    }, HttpServer)
 end
 
+--- Registers global middleware.
+---@param middleware fun(req: Request, res: Response)
 function HttpServer:use(middleware)
     table.insert(self.middlewares, middleware)
 end
 
-function HttpServer:route(method, path, handler)
-    if not self.routes[path] then
-        self.routes[path] = {}
+--- Registers route handlers for any HTTP method.
+---@param method string
+---@param path string
+---@vararg fun(req: Request, res: Response)
+function HttpServer:route(method, path, ...)
+    if not self.routes[method] then
+        self.routes[method] = {}
     end
-    if not self.routes[path][method] then
-        self.routes[path][method] = {}
-    end
-    table.insert(self.routes[path][method], handler)
+    self.routes[method][path] = {...}
 end
 
-function HttpServer:get(path, handler)
-    self:route("GET", path, handler)
+--- Registers GET route handlers.
+---@param path string
+---@vararg fun(req: Request, res: Response)
+function HttpServer:get(path, ...)
+    self:route("GET", path, ...)
 end
 
-function HttpServer:post(path, handler)
-    self:route("POST", path, handler)
+--- Registers POST route handlers.
+---@param path string
+---@vararg fun(req: Request, res: Response)
+function HttpServer:post(path, ...)
+    self:route("POST", path, ...)
 end
 
+--- Registers WebSocket route handlers.
+---@param path string
+---@param handler fun(ws: WebSocket)
 function HttpServer:websocket(path, handler)
     self.wsRoutes[path] = handler
 end
 
--- Simple WebSocket frame parsing
-function HttpServer:parseWebSocketFrame(data)
-    if #data < 2 then return nil end
-    
-    local byte1 = string.byte(data, 1)
-    local byte2 = string.byte(data, 2)
-    local fin = (byte1 & 0x80) ~= 0
-    local opcode = byte1 & 0x0F
-    local masked = (byte2 & 0x80) ~= 0
-    local payloadLen = byte2 & 0x7F
-    
-    local offset = 3
-    if payloadLen == 126 then
-        if #data < 4 then return nil end
-        payloadLen = (string.byte(data, 3) << 8) | string.byte(data, 4)
-        offset = 5
-    elseif payloadLen == 127 then
-        return nil -- Large payloads not supported
-    end
-    
-    local maskKey = {}
-    if masked then
-        if #data < offset + 3 then return nil end
-        for i = 1, 4 do
-            maskKey[i] = string.byte(data, offset + i - 1)
-        end
-        offset = offset + 4
-    end
-    
-    if #data < offset + payloadLen - 1 then return nil end
-    
-    local payload = {}
-    for i = 1, payloadLen do
-        local byte = string.byte(data, offset + i - 1)
-        if masked then
-            byte = byte ~ maskKey[((i - 1) % 4) + 1]
-        end
-        table.insert(payload, string.char(byte))
-    end
-    
-    return {
-        fin = fin,
-        opcode = opcode,
-        payload = table.concat(payload),
-        totalLength = offset + payloadLen - 1
-    }
-end
-
-function HttpServer:createWebSocketFrame(data)
-    local dataLen = #data
-    local frame = {}
-    
-    table.insert(frame, string.char(0x81)) -- FIN=1, opcode=1 (text)
-    
-    if dataLen < 126 then
-        table.insert(frame, string.char(dataLen))
-    elseif dataLen < 65536 then
-        table.insert(frame, string.char(126))
-        table.insert(frame, string.char((dataLen >> 8) & 0xFF))
-        table.insert(frame, string.char(dataLen & 0xFF))
-    else
-        return nil -- Large frames not supported
-    end
-    
-    table.insert(frame, data)
-    return table.concat(frame)
-end
-
+--- Starts the HTTP server on the specified port.
+---@param port number
+---@param callback? fun(port: number)
 function HttpServer:listen(port, callback)
-    self.server = socket.bind(port, function(sock)
-        local clientId = self.nextClientId
-        self.nextClientId = self.nextClientId + 1
-        
-        self.clients[clientId] = {
-            socket = sock,
-            buffer = "",
-            isWebSocket = false,
-            websocket = nil
-        }
-        
-        sock.onReceive = function(data)
-            local client = self.clients[clientId]
-            if not client then return end
-            
-            client.buffer = client.buffer .. data
-            
-            if client.isWebSocket then
-                -- Handle WebSocket frames
-                while #client.buffer > 0 do
-                    local frame = self:parseWebSocketFrame(client.buffer)
-                    if not frame then break end
-                    
-                    client.buffer = string.sub(client.buffer, frame.totalLength + 1)
-                    
-                    if frame.opcode == 1 and client.websocket and client.websocket.onMessage then
-                        client.websocket.onMessage(frame.payload)
-                    end
-                end
-            else
-                -- Handle HTTP request
-                local headerEnd = string.find(client.buffer, "\r\n\r\n")
-                if headerEnd then
-                    local headerData = string.sub(client.buffer, 1, headerEnd - 1)
-                    local bodyData = string.sub(client.buffer, headerEnd + 4)
-                    
-                    local lines = {}
-                    for line in headerData:gmatch("[^\r\n]+") do
-                        table.insert(lines, line)
-                    end
-                    
-                    if #lines > 0 then
-                        local requestLine = lines[1]
-                        local method, path = requestLine:match("([A-Z]+) ([^ ]+)")
-                        
-                        local headers = {}
-                        for i = 2, #lines do
-                            local key, value = lines[i]:match("([^:]+): (.+)")
-                            if key and value then
-                                headers[key:lower()] = value
-                            end
-                        end
-                        
-                        -- Check for WebSocket upgrade
-                        if headers["upgrade"] and headers["upgrade"]:lower() == "websocket" and self.wsRoutes[path] then
-                            self:handleWebSocketUpgrade(clientId, path, headers)
-                        else
-                            self:handleHttpRequest(clientId, method, path, headers, bodyData)
-                        end
-                    end
-                    
-                    client.buffer = ""
-                end
-            end
-        end
-        
-        sock.onDisconnect = function()
-            local client = self.clients[clientId]
-            if client and client.websocket and client.websocket.onClose then
-                client.websocket.onClose()
-            end
-            self.clients[clientId] = nil
-        end
-    end)
-    
-    if callback then
-        callback(port)
-    end
-end
+    local function start_server()
+        local server, err
 
-function HttpServer:handleWebSocketUpgrade(clientId, path, headers)
-    local client = self.clients[clientId]
-    if not client then return end
-    
-    local key = headers["sec-websocket-key"]
-    if not key then return end
-    
-    -- Simple WebSocket handshake
-    local responseKey = key .. "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-    local hash = sha1 and sha1(responseKey) or "dummy-hash" -- Simplified
-    
-    local response = "HTTP/1.1 101 Switching Protocols\r\n" ..
-                    "Upgrade: websocket\r\n" ..
-                    "Connection: Upgrade\r\n" ..
-                    "Sec-WebSocket-Accept: " .. hash .. "\r\n\r\n"
-    
-    client.socket:send(response)
-    client.isWebSocket = true
-    
-    local ws = {
-        id = clientId,
-        client = client,
-        path = path,
-        send = function(self, data)
-            local frame = HttpServer:createWebSocketFrame(data)
-            if frame and client.socket then
-                client.socket:send(frame)
+        -- Try to bind to the port, incrementing if in use
+        repeat
+            server, err = socket.bind(nil, port)
+            if err == socket.ERRORS.ADDRESS_IN_USE then
+                port = port + 1
+            elseif err then
+                console:log("Error binding server: " .. tostring(err))
+                return
             end
-        end,
-        close = function(self)
-            if client.socket then
-                client.socket:close()
-            end
-        end
-    }
-    
-    client.websocket = ws
-    self.websockets[clientId] = ws
-    
-    if self.wsRoutes[path] then
-        self.wsRoutes[path](ws)
-    end
-end
+        until server
 
-function HttpServer:handleHttpRequest(clientId, method, path, headers, body)
-    local client = self.clients[clientId]
-    if not client then return end
-    
-    local response = {
-        finished = false,
-        _headers = {},
-        setHeader = function(self, key, value)
-            self._headers[key] = value
-        end,
-        send = function(self, status, body, contentType)
-            if self.finished then return end
-            self.finished = true
-            
-            local responseBody = body
-            if type(body) == "table" then
-                responseBody = jsonStringify(body)
-                contentType = contentType or "application/json"
-            end
-            contentType = contentType or "text/plain"
-            
-            local responseHeaders = "HTTP/1.1 " .. status .. "\r\n" ..
-                                  "Content-Type: " .. contentType .. "\r\n" ..
-                                  "Content-Length: " .. #responseBody .. "\r\n"
-            
-            for key, value in pairs(self._headers) do
-                responseHeaders = responseHeaders .. key .. ": " .. value .. "\r\n"
-            end
-            responseHeaders = responseHeaders .. "\r\n"
-            
-            if client.socket then
-                client.socket:send(responseHeaders .. responseBody)
-                client.socket:close()
-            end
+        -- Start listening
+        local ok, listen_err = server:listen()
+        if listen_err then
+            server:close()
+            console:log("Error listening: " .. tostring(listen_err))
+            return
         end
-    }
-    
-    local request = {
-        method = method,
-        path = path,
-        headers = headers,
-        body = body
-    }
-    
-    if self.routes[path] and self.routes[path][method] then
-        for _, handler in ipairs(self.routes[path][method]) do
-            handler(request, response)
-            if response.finished then break end
-        end
+
+        self.server = server
+        server:add("received", function() self:_accept_client() end)
+
+        if callback then callback(port) end
     end
-    
-    if not response.finished then
-        response:send("404 Not Found", "Not Found")
+
+    if emu and emu.romSize and emu:romSize() > 0 then
+        -- ROM is already loaded, start server immediately
+        start_server()
+    else
+        -- ROM not loaded, register callback to start server later
+        console:log("🕹️ mGBA HTTP Server is initializing. Waiting for ROM to be loaded in the emulator...")
+        local cbid
+        cbid = callbacks:add("start", function()
+            if not emu or not emu.romSize or emu:romSize() == 0 then
+                console:error("[ERROR] No ROM loaded. HTTP server will not start.")
+                return
+            end
+            start_server()
+            callbacks:remove(cbid)
+        end)
     end
 end
 
 --------------------------------------------------------------------------------
--- Application Setup
+-- Example Usage
 --------------------------------------------------------------------------------
 
 local app = HttpServer:new()
 
--- Memory watching state
-local watchedRegions = {}
-local lastMemoryState = {}
+-- Global middleware
+app:use(function(req, res)
+    console:log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
+end)
 
--- Simple memory watching callback
-local function checkMemoryChanges()
-    for _, region in ipairs(watchedRegions) do
-        local currentData = {}
-        for i = 0, region.size - 1 do
-            currentData[i] = memory.read8(region.address + i)
-        end
-        
-        local changed = false
-        if not lastMemoryState[region.address] then
-            changed = true
-        else
-            for i = 0, region.size - 1 do
-                if currentData[i] ~= lastMemoryState[region.address][i] then
-                    changed = true
-                    break
-                end
-            end
-        end
-        
-        if changed then
-            lastMemoryState[region.address] = currentData
-            
-            -- Send update to all WebSocket clients
-            local update = {
-                type = "memoryUpdate",
-                regions = {{
-                    address = region.address,
-                    size = region.size,
-                    data = {}
-                }},
-                timestamp = os.time()
-            }
-            
-            for i = 0, region.size - 1 do
-                table.insert(update.regions[1].data, currentData[i])
-            end
-            
-            for _, ws in pairs(app.websockets) do
-                ws:send(jsonStringify(update))
-            end
-        end
-    end
-end
+-- Routes
+app:get("/", function(req, res)
+    res:send("200 OK", "Welcome to mGBA HTTP Server! Playing " .. emu:getGameTitle())
+end)
 
--- Register memory callback
-callbacks:add("frame", checkMemoryChanges)
+app:get("/json", HttpServer.cors(), function(req, res)
+    res:send("200 OK", {message = "Hello, JSON!", timestamp = os.time()})
+end)
+
+app:post("/echo", function(req, res)
+    res:send("200 OK", req.body, req.headers['content-type'])
+end)
 
 -- WebSocket route
 app:websocket("/ws", function(ws)
-    console:log("WebSocket connected")
-    
-    ws:send(jsonStringify({
-        type = "welcome",
-        message = "WebSocket Ready! Send Lua code or watch messages."
-    }))
-    
-    ws.onMessage = function(data)
-        -- Try to parse as JSON first (for watch messages)
-        local success, parsed = pcall(function() return json and json.decode(data) or nil end)
-        
-        if success and parsed and parsed.type == "watch" then
-            -- Handle watch message
-            watchedRegions = parsed.regions or {}
-            ws:send(jsonStringify({
-                type = "watchConfirm",
-                message = "Watching " .. #watchedRegions .. " regions"
-            }))
-        else
-            -- Handle as Lua eval
-            local chunk = data
-            if not data:match("^%s*(return|local|function|for|while|if|do|repeat)") then
-                chunk = "return " .. data
+    console:log("WebSocket connected: " .. ws.path)
+
+    ws.onMessage = function(code)
+        local function safe_eval()
+            console:log("WebSocket eval request: " .. tostring(code))
+            local chunk = code
+            
+            -- Enhanced support for non-self-executing function inputs
+            -- Check if it's already a complete statement or needs a return prefix
+            if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+                chunk = "return " .. code
             end
             
             local fn, err = load(chunk, "websocket-eval")
             if not fn then
-                ws:send(jsonStringify({error = err or "Invalid code"}))
+                ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
                 return
             end
-            
             local ok, result = pcall(fn)
             if ok then
-                ws:send(jsonStringify({result = result}))
+                ws:send(HttpServer.jsonStringify({result = result}))
             else
-                ws:send(jsonStringify({error = tostring(result)}))
+                ws:send(HttpServer.jsonStringify({error = tostring(result)}))
+                console:error("[WebSocket Eval Error] " .. tostring(result))
             end
         end
+        local ok, err = pcall(safe_eval)
+        if not ok then
+            ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
+            console:error("[WebSocket Handler Error] " .. tostring(err))
+        end
     end
-    
+
     ws.onClose = function()
-        console:log("WebSocket disconnected")
+        console:log("WebSocket disconnected: " .. ws.path)
     end
+
+    ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
 end)
 
 -- Start server
 app:listen(7102, function(port)
-    console:log("🚀 Simple mGBA HTTP Server started on port " .. port)
+    console:log("🚀 mGBA HTTP Server started on port " .. port)
 end)
