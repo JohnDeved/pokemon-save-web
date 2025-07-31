@@ -177,6 +177,7 @@ export class MgbaWebSocketClient {
 
       if (message.type === 'watchConfirm') {
         console.debug('Watch confirmed:', message.message)
+        this.handleWatchConfirmResponse()
         return
       }
 
@@ -201,6 +202,13 @@ export class MgbaWebSocketClient {
     timeout: NodeJS.Timeout
   }> = []
 
+  // Track pending watch requests
+  private pendingWatchResolvers: Array<{
+    resolve: () => void
+    reject: (error: Error) => void
+    timeout: NodeJS.Timeout
+  }> = []
+
   /**
    * Handle eval response
    */
@@ -209,6 +217,17 @@ export class MgbaWebSocketClient {
     if (pending) {
       clearTimeout(pending.timeout)
       pending.resolve(response)
+    }
+  }
+
+  /**
+   * Handle watch confirmation response
+   */
+  private handleWatchConfirmResponse (): void {
+    const pending = this.pendingWatchResolvers.shift()
+    if (pending) {
+      clearTimeout(pending.timeout)
+      pending.resolve()
     }
   }
 
@@ -235,6 +254,13 @@ export class MgbaWebSocketClient {
       pending.reject(new Error('Connection closed'))
     })
     this.pendingEvals = []
+
+    // Reject all pending watch resolvers
+    this.pendingWatchResolvers.forEach(pending => {
+      clearTimeout(pending.timeout)
+      pending.reject(new Error('Connection closed'))
+    })
+    this.pendingWatchResolvers = []
   }
 
   /**
@@ -352,48 +378,28 @@ export class MgbaWebSocketClient {
 
     // Send watch request and wait for confirmation or error with extended timeout
     return new Promise<void>((resolve, reject) => {
-      let resolved = false
-
       const timeout = setTimeout(() => {
-        if (!resolved) {
-          resolved = true
-          reject(new Error('Watch setup timeout - no confirmation received'))
+        // Remove from pending list
+        const index = this.pendingWatchResolvers.findIndex(p => p.timeout === timeout)
+        if (index >= 0) {
+          this.pendingWatchResolvers.splice(index, 1)
         }
+        reject(new Error('Watch setup timeout - no confirmation received'))
       }, 15000) // Increased timeout for stress scenarios
 
-      // Listen for confirmation (handled by message router)
-      const originalHandler = this.handleMessage.bind(this)
-      this.handleMessage = (data: string) => {
-        try {
-          const message = JSON.parse(data)
-          if (message.type === 'watchConfirm' && !resolved) {
-            resolved = true
-            clearTimeout(timeout)
-            this.handleMessage = originalHandler
-            resolve()
-            return
-          } else if (message.type === 'error' && !resolved) {
-            resolved = true
-            clearTimeout(timeout)
-            this.handleMessage = originalHandler
-            reject(new Error(String(message.error)))
-            return
-          }
-        } catch (error) {
-          // Fall through to original handler
-        }
-        originalHandler(data)
-      }
+      // Add to pending requests queue
+      this.pendingWatchResolvers.push({ resolve, reject, timeout })
 
       try {
+        // Send JSON watch message
         this.ws!.send(JSON.stringify(watchMessage))
       } catch (error) {
-        if (resolved) {
-          return
+        // Remove from pending list
+        const index = this.pendingWatchResolvers.findIndex(p => p.timeout === timeout)
+        if (index >= 0) {
+          this.pendingWatchResolvers.splice(index, 1)
         }
-        resolved = true
         clearTimeout(timeout)
-        this.handleMessage = originalHandler
         reject(new Error(`Failed to send watch message: ${String(error)}`))
       }
     }).then(async () => {

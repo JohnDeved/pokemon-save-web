@@ -210,12 +210,12 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
           const message = data.toString()
           console.log('[Test] Received message:', message)
 
-          if (message.includes('Welcome to WebSocket Eval') && !welcomeReceived) {
+          if (message.includes('WebSocket Ready') && !welcomeReceived) {
             welcomeReceived = true
             console.log('[Test] Sending 1+1 to WebSocket')
             // Send eval request immediately after welcome
             ws.send('1+2')
-          } else if (welcomeReceived && !message.includes('Welcome to WebSocket Eval')) {
+          } else if (welcomeReceived && !message.includes('WebSocket Ready')) {
             // This should be our eval response
             clearTimeout(timeout)
             resolve(message)
