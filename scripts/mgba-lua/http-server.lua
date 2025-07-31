@@ -600,11 +600,12 @@ end)
 
 -- WebSocket route
 app:websocket("/ws", function(ws)
-    console:log("WebSocket connected: " .. ws.path)
+    console:log("🔌 WebSocket connected: " .. ws.path)
 
     ws.onMessage = function(code)
+        console:log("📨 WebSocket received message: " .. tostring(code))
         local function safe_eval()
-            console:log("WebSocket eval request: " .. tostring(code))
+            console:log("🔧 WebSocket eval request: " .. tostring(code))
             local chunk = code
             
             -- Enhanced support for non-self-executing function inputs
@@ -620,21 +621,24 @@ app:websocket("/ws", function(ws)
             end
             local ok, result = pcall(fn)
             if ok then
+                console:log("✅ WebSocket eval success: " .. tostring(result))
                 ws:send(HttpServer.jsonStringify({result = result}))
             else
+                console:log("❌ WebSocket eval error: " .. tostring(result))
                 ws:send(HttpServer.jsonStringify({error = tostring(result)}))
                 console:error("[WebSocket Eval Error] " .. tostring(result))
             end
         end
         local ok, err = pcall(safe_eval)
         if not ok then
+            console:log("💥 WebSocket handler error: " .. tostring(err))
             ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
             console:error("[WebSocket Handler Error] " .. tostring(err))
         end
     end
 
     ws.onClose = function()
-        console:log("WebSocket disconnected: " .. ws.path)
+        console:log("❌ WebSocket disconnected: " .. ws.path)
     end
 
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
