@@ -172,13 +172,7 @@ export class PokemonSaveParser {
 
     console.log(`Memory mode initialized for ${gameTitle} using config: ${this.config.name}`)
 
-    // Configure and preload memory regions if defined in config
-    if (this.config.memoryAddresses?.preloadRegions) {
-      client.configureSharedBuffer({
-        preloadRegions: [...this.config.memoryAddresses.preloadRegions],
-      })
-      await client.startWatchingPreloadRegions()
-    }
+    // Memory regions will be watched when needed
   }
 
   /**
@@ -583,37 +577,36 @@ export class PokemonSaveParser {
       throw new Error('Watch mode only available in memory mode with WebSocket client')
     }
 
-    // Configure preload regions for party data from game config
+    // Configure memory regions for party data
     if (!this.config?.memoryAddresses?.preloadRegions) {
       throw new Error('Game config missing memory addresses for watch mode')
     }
 
-    this.webSocketClient.configureSharedBuffer({
-      preloadRegions: this.config.memoryAddresses.preloadRegions,
-    })
+    const regions = this.config.memoryAddresses.preloadRegions
 
-    // Start watching the preload regions
-    await this.webSocketClient.startWatchingPreloadRegions()
-
-    // Set up memory change listener for real-time updates
-    const memoryChangeListener = async (address: number, _size: number, data: Uint8Array) => {
+    // Set up memory update listener
+    this.webSocketClient.onMemoryUpdate((updatedRegions) => {
       try {
-        // Only process changes to party-related memory regions
-        const partyCountAddr = this.config!.memoryAddresses?.partyCount
-        const partyDataAddr = this.config!.memoryAddresses?.partyData
+        // Find party-related updates
+        for (const region of updatedRegions) {
+          const partyCountAddr = this.config!.memoryAddresses?.partyCount
+          const partyDataAddr = this.config!.memoryAddresses?.partyData
 
-        if (partyCountAddr && partyDataAddr && (address === partyCountAddr || address === partyDataAddr)) {
-          // Smart integration: create SaveData using the passed data instead of refetching
-          const saveData = this.createSaveDataFromMemoryUpdate(address, data)
-          callback(saveData)
+          if (partyCountAddr && partyDataAddr && (region.address === partyCountAddr || region.address === partyDataAddr)) {
+            // Create SaveData from updated memory
+            const data = new Uint8Array(region.data)
+            const saveData = this.createSaveDataFromMemoryUpdate(region.address, data)
+            callback(saveData)
+            break
+          }
         }
       } catch (error) {
         console.error('❌ Error processing memory change:', error instanceof Error ? error.message : 'Unknown error')
       }
-    }
+    })
 
-    // Add the memory change listener
-    this.webSocketClient.addMemoryChangeListener(memoryChangeListener)
+    // Start watching
+    await this.webSocketClient.startWatching([...regions])
   }
 
   /**
