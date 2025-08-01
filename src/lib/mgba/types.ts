@@ -8,8 +8,4 @@ export interface SimpleMessage {
   data: string[]
 }
 
-export interface SharedBufferConfig {
-  preloadRegions: Array<{ address: number, size: number }>
-}
-
 export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void | Promise<void>

@@ -8,16 +8,14 @@ import type { MemoryChangeListener } from '../../mgba/websocket-client'
 // Mock the MgbaWebSocketClient
 const mockAddMemoryChangeListener = vi.fn()
 const mockRemoveMemoryChangeListener = vi.fn()
-const mockConfigureSharedBuffer = vi.fn()
-const mockStartWatchingPreloadRegions = vi.fn()
+const mockStartWatching = vi.fn()
 const mockDisconnect = vi.fn()
 
 vi.mock('../../mgba/websocket-client', () => ({
   MgbaWebSocketClient: vi.fn().mockImplementation(() => ({
     addMemoryChangeListener: mockAddMemoryChangeListener,
     removeMemoryChangeListener: mockRemoveMemoryChangeListener,
-    configureSharedBuffer: mockConfigureSharedBuffer,
-    startWatchingPreloadRegions: mockStartWatchingPreloadRegions,
+    startWatching: mockStartWatching,
     disconnect: mockDisconnect,
   })),
 }))
@@ -49,7 +47,7 @@ describe('CLI Event-Driven Functionality', () => {
     vi.clearAllMocks()
 
     // Reset default mock behaviors
-    mockStartWatchingPreloadRegions.mockResolvedValue(undefined)
+    mockStartWatching.mockResolvedValue(undefined)
     mockParseSaveFile.mockResolvedValue({
       party_pokemon: [
         {
@@ -67,24 +65,16 @@ describe('CLI Event-Driven Functionality', () => {
     const { MgbaWebSocketClient } = await import('../../mgba/websocket-client')
     const client = new MgbaWebSocketClient()
 
-    // Simulate calling the configuration methods that should be called in event-driven mode
-    client.configureSharedBuffer({
-      preloadRegions: [
-        { address: 0x20244e9, size: 7 }, // Party count + context
-        { address: 0x20244ec, size: 600 }, // Full party data
-      ],
-    })
+    // Simulate calling the simplified watching method that should be called in event-driven mode
+    const regions = [
+      { address: 0x20244e9, size: 7 }, // Party count + context
+      { address: 0x20244ec, size: 600 }, // Full party data
+    ]
+    
+    await client.startWatching(regions)
 
-    await client.startWatchingPreloadRegions()
-
-    // Verify the methods were called correctly
-    expect(mockConfigureSharedBuffer).toHaveBeenCalledWith({
-      preloadRegions: [
-        { address: 0x20244e9, size: 7 },
-        { address: 0x20244ec, size: 600 },
-      ],
-    })
-    expect(mockStartWatchingPreloadRegions).toHaveBeenCalled()
+    // Verify the method was called correctly
+    expect(mockStartWatching).toHaveBeenCalledWith(regions)
   })
 
   it('should add memory change listeners for party data', async () => {
@@ -141,13 +131,13 @@ describe('CLI Event-Driven Functionality', () => {
   })
 
   it('should handle memory watching setup failures gracefully', async () => {
-    // Mock a failure in startWatchingPreloadRegions
-    mockStartWatchingPreloadRegions.mockRejectedValue(new Error('Watch setup failed'))
+    // Mock a failure in startWatching
+    mockStartWatching.mockRejectedValue(new Error('Watch setup failed'))
 
     const { MgbaWebSocketClient } = await import('../../mgba/websocket-client')
     const client = new MgbaWebSocketClient()
 
     // This should throw, simulating the fallback behavior in the CLI
-    await expect(client.startWatchingPreloadRegions()).rejects.toThrow('Watch setup failed')
+    await expect(client.startWatching([{ address: 0x20244e9, size: 7 }])).rejects.toThrow('Watch setup failed')
   })
 })

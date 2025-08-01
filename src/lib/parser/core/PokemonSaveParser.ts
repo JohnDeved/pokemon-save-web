@@ -176,13 +176,6 @@ export class PokemonSaveParser {
     }
 
     console.log(`Memory mode initialized for ${gameTitle} using config: ${this.config.name}`)
-
-    // Configure memory regions if defined in config
-    if (this.config.memoryAddresses?.preloadRegions) {
-      client.configureSharedBuffer({
-        preloadRegions: [...this.config.memoryAddresses.preloadRegions],
-      })
-    }
   }
 
   /**
@@ -401,7 +394,7 @@ export class PokemonSaveParser {
     }
 
     // Get party count from memory
-    const partyCountBuffer = await this.webSocketClient.getSharedBuffer(memoryAddresses.partyCount, 1)
+    const partyCountBuffer = await this.webSocketClient.readBytes(memoryAddresses.partyCount, 1)
     const partyCount = partyCountBuffer[0] ?? 0
 
     const maxPartySize = this.config.saveLayout.maxPartySize!
@@ -416,7 +409,7 @@ export class PokemonSaveParser {
       const pokemonAddress = memoryAddresses.partyData + (i * pokemonSize)
 
       // Read the full Pokemon structure from memory
-      const pokemonBytes = await this.webSocketClient.getSharedBuffer(pokemonAddress, pokemonSize)
+      const pokemonBytes = await this.webSocketClient.readBytes(pokemonAddress, pokemonSize)
       const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
 
       // Stop at empty slots (species ID = 0)
@@ -740,11 +733,11 @@ export class PokemonSaveParser {
     const pokemonSize = this.config.saveLayout.pokemonSize!
 
     // Load party count
-    const partyCountBuffer = await this.webSocketClient!.getSharedBuffer(partyCount, 1)
+    const partyCountBuffer = await this.webSocketClient!.readBytes(partyCount, 1)
     this.memoryBuffer.set(partyCount, new Uint8Array(partyCountBuffer))
 
     // Load full party data (6 slots worth)
-    const partyDataBuffer = await this.webSocketClient!.getSharedBuffer(partyData, 6 * pokemonSize)
+    const partyDataBuffer = await this.webSocketClient!.readBytes(partyData, 6 * pokemonSize)
     this.memoryBuffer.set(partyData, new Uint8Array(partyDataBuffer))
   }
 

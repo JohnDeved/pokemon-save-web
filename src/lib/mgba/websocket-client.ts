@@ -4,7 +4,7 @@
  */
 
 import WebSocket from 'isomorphic-ws'
-import type { SimpleMessage, SharedBufferConfig, MemoryChangeListener } from './types'
+import type { SimpleMessage, MemoryChangeListener } from './types'
 
 // Re-export types for consumers
 export type { MemoryChangeListener } from './types'
@@ -20,9 +20,6 @@ export class MgbaWebSocketClient {
 
   // Memory cache for watched regions
   private readonly memoryCache = new Map<string, Uint8Array>()
-
-  // Preload regions config for backward compatibility
-  private preloadRegions: Array<{ address: number, size: number }> = []
 
   // Eval request handling
   private readonly pendingEvalHandlers: Array<(message: SimpleMessage) => boolean> = []
@@ -338,41 +335,15 @@ export class MgbaWebSocketClient {
     this.pendingEvalHandlers.length = 0
   }
 
-  // Backward compatibility methods (simplified implementations)
-
   /**
-   * Configure preload regions for backward compatibility
-   */
-  configureSharedBuffer (config: SharedBufferConfig): void {
-    this.preloadRegions = [...config.preloadRegions]
-  }
-
-  /**
-   * Start watching preload regions for backward compatibility
-   */
-  async startWatchingPreloadRegions (): Promise<void> {
-    if (this.preloadRegions.length === 0) {
-      throw new Error('No preload regions configured. Set preloadRegions in SharedBufferConfig.')
-    }
-    await this.startWatching(this.preloadRegions)
-  }
-
-  /**
-   * Get shared buffer (cached memory data) for backward compatibility
-   */
-  async getSharedBuffer (address: number, size: number): Promise<Uint8Array> {
-    return this.readBytes(address, size)
-  }
-
-  /**
-   * Check if connected for backward compatibility
+   * Check if connected
    */
   isConnected (): boolean {
     return this.connected
   }
 
   /**
-   * Get game title for backward compatibility
+   * Get game title
    */
   async getGameTitle (): Promise<string> {
     const result = await this.eval('return emu:getGameTitle()')

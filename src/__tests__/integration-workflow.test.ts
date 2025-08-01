@@ -86,7 +86,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       expect(client.isConnected()).toBe(false)
       expect(typeof client.connect).toBe('function')
       expect(typeof client.eval).toBe('function')
-      expect(typeof client.getSharedBuffer).toBe('function')
+      expect(typeof client.readBytes).toBe('function')
     })
 
     it('should handle memory mode parser initialization', async () => {

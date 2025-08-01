@@ -37,18 +37,7 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
   })
 
   describe('Memory Watching Configuration', () => {
-    it('should configure shared buffer with preload regions', () => {
-      const config = {
-        preloadRegions: [
-          { address: 0x20244e9, size: 7 },
-          { address: 0x20244ec, size: 600 },
-        ],
-      }
-
-      expect(() => client.configureSharedBuffer(config)).not.toThrow()
-    })
-
-    it('should track watching state', () => {
+    it('should track watching state without initial config', () => {
       expect(client.isWatching()).toBe(false)
       expect(client.getWatchedRegions()).toHaveLength(0)
     })
@@ -105,12 +94,12 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
       await expect(client.startWatching([])).rejects.toThrow('No regions to watch')
     })
 
-    it('should throw error when starting preload region watching without config', async () => {
+    it('should throw error when starting watch with empty regions', async () => {
       // Mock connection state
       ;(client as any).connected = true
       ;(client as any).ws = { readyState: 1 }
 
-      await expect(client.startWatchingPreloadRegions()).rejects.toThrow('No preload regions configured')
+      await expect(client.startWatching([])).rejects.toThrow('No regions to watch')
     })
   })
 

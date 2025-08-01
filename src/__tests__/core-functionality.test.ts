@@ -29,7 +29,7 @@ describe('Pokemon Save Web - Core Functionality', () => {
         isConnected: vi.fn(() => true),
         eval: vi.fn(),
         getGameTitle: vi.fn(() => Promise.resolve('POKEMON EMER')),
-        getSharedBuffer: vi.fn(),
+        readBytes: vi.fn(),
       }
 
       // Test that parser can identify WebSocket input
