@@ -72,8 +72,10 @@ export class MgbaWebSocketClient {
     }
 
     try {
-      const parsed = JSON.parse(data)
-      this.handleOriginalJsonResponse(parsed)
+      const parsed: unknown = JSON.parse(data)
+      if (typeof parsed === 'object' && parsed !== null) {
+        this.handleOriginalJsonResponse(parsed as { command?: string, status?: string, result?: unknown, error?: string, updates?: unknown[] })
+      }
     } catch (error) {
       console.warn('Failed to parse WebSocket message as JSON:', error)
     }
@@ -82,7 +84,7 @@ export class MgbaWebSocketClient {
   /**
    * Handle JSON responses from original server format
    */
-  private handleOriginalJsonResponse (response: any): void {
+  private handleOriginalJsonResponse (response: { command?: string, status?: string, result?: unknown, error?: string, updates?: unknown[] }): void {
     if (response.command === 'watch') {
       this.handleWatchResponse(response)
     } else if ('result' in response) {
@@ -103,16 +105,16 @@ export class MgbaWebSocketClient {
   /**
    * Handle watch response messages
    */
-  private handleWatchResponse (response: any): void {
+  private handleWatchResponse (response: { status?: string, updates?: Array<{ address?: number, size?: number, data?: number[] }> }): void {
     if (response.status === 'update' && response.updates) {
       // Handle memory updates
       for (const update of response.updates) {
         const { address, size, data } = update
-        if (address && size && data) {
+        if (address !== undefined && size !== undefined && data) {
           // Cache the updated memory data
           const cacheKey = `${address}-${size}`
           this.memoryCache.set(cacheKey, new Uint8Array(data))
-          
+
           // Notify listeners about memory changes
           for (const listener of this.memoryChangeListeners) {
             try {
@@ -248,7 +250,7 @@ export class MgbaWebSocketClient {
     for (const [cacheKey, watchedData] of this.memoryCache.entries()) {
       const parts = cacheKey.split('-')
       if (parts.length !== 2 || !parts[0] || !parts[1]) continue
-      
+
       const watchedAddress = parseInt(parts[0], 10)
       const watchedSize = parseInt(parts[1], 10)
 

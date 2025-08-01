@@ -70,7 +70,7 @@ describe('CLI Event-Driven Functionality', () => {
       { address: 0x20244e9, size: 7 }, // Party count + context
       { address: 0x20244ec, size: 600 }, // Full party data
     ]
-    
+
     await client.startWatching(regions)
 
     // Verify the method was called correctly

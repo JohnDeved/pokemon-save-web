@@ -716,7 +716,7 @@ export class PokemonSaveParser {
    */
   private hasMemoryData (): boolean {
     if (!this.config?.memoryAddresses) return false
-    
+
     const { partyData, partyCount } = this.config.memoryAddresses
     return this.memoryBuffer.has(partyData) && this.memoryBuffer.has(partyCount)
   }
@@ -744,7 +744,7 @@ export class PokemonSaveParser {
         existingBuffer = new Uint8Array(6 * pokemonSize)
         this.memoryBuffer.set(partyData, existingBuffer)
       }
-      
+
       const relativeOffset = address - partyData
       existingBuffer.set(newData, relativeOffset)
     }
@@ -801,7 +801,7 @@ export class PokemonSaveParser {
    * Stop watching for memory changes
    */
   async stopWatching (): Promise<void> {
-    if (!this.isWatching || !this.webSocketClient) {
+    if (!this.webSocketClient) {
       return
     }
 

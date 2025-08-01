@@ -1,0 +1,8 @@
+# Configuration file for nektos/act
+# Run with: act -W .github/workflows/comprehensive-tests.yml
+
+# Use Ubuntu 20.04 runner
+-P ubuntu-latest=catthehacker/ubuntu:act-20.04
+
+# Use secrets from .env file if present (optional)
+--secret-file .env.secrets

@@ -6,7 +6,15 @@ import { describe, test, expect, beforeEach, vi } from 'vitest'
 import { MgbaWebSocketClient } from '../../mgba/websocket-client'
 
 describe('WebSocket Watch Mode Regression Tests', () => {
-  let mockWebSocket: any
+  let mockWebSocket: {
+    send: ReturnType<typeof vi.fn>
+    close: ReturnType<typeof vi.fn>
+    readyState: number
+    onopen?: () => void
+    onmessage?: (event: { data: string }) => void
+    onclose?: () => void
+    onerror?: (error: Event) => void
+  }
 
   beforeEach(() => {
     mockWebSocket = {
@@ -20,7 +28,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     }
 
     // Mock WebSocket constructor to return our mock
-    global.WebSocket = vi.fn(() => mockWebSocket) as any
+    global.WebSocket = vi.fn(() => mockWebSocket) as unknown as typeof WebSocket
     vi.clearAllMocks()
   })
 
@@ -36,7 +44,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     for (const { input, expected, name } of configAddresses) {
       const hexAddress = `0x${input.toString(16)}`
       expect(hexAddress, `${name} should format correctly`).toBe(expected)
-      
+
       // Ensure the hex format doesn't cause Lua syntax issues
       const luaCode = `local addr = ${hexAddress}; return addr + 1`
       expect(luaCode).toContain(expected)
@@ -49,14 +57,14 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     const address = 33703145 // The problematic address from the error
     const size = 7
 
-    // The new fixed format (what we use now) 
+    // The new fixed format (what we use now)
     const hexAddress = `0x${address.toString(16)}`
     const newFormat = `local addr = ${hexAddress}; emu:read8(addr + i)` // "local addr = 0x20244e9; emu:read8(addr + i)"
-    
+
     expect(hexAddress).toBe('0x20244e9')
     expect(newFormat).toContain('0x20244e9')
     expect(newFormat).not.toContain('33703145')
-    
+
     // Full Lua code should be properly formatted
     const fullLuaCode = `
       local bytes = {}
@@ -66,7 +74,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
       end
       return bytes
     `.trim()
-    
+
     expect(fullLuaCode).toContain('local addr = 0x20244e9')
     expect(fullLuaCode).toContain('emu:read8(addr + i)')
     expect(fullLuaCode).not.toContain('33703145') // No decimal addresses
@@ -74,7 +82,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
 
   test('should handle memory watching message format correctly', () => {
     const client = new MgbaWebSocketClient('ws://test:7102/ws')
-    
+
     // Manually simulate connection
     Object.defineProperty(client, 'connected', { value: true, writable: true })
     Object.defineProperty(client, 'ws', { value: mockWebSocket, writable: true })
@@ -99,14 +107,14 @@ describe('WebSocket Watch Mode Regression Tests', () => {
       updates: [{
         address: 0x20244e9, // Party count address from config
         size: 7,
-        data: [1, 0, 0, 0, 0, 0, 0]
-      }]
+        data: [1, 0, 0, 0, 0, 0, 0],
+      }],
     })
 
     // Simulate message directly
-    const handleMessage = (client as any).handleMessage.bind(client)
+    const handleMessage = (client as unknown as { handleMessage: (data: string) => void }).handleMessage.bind(client)
     expect(() => handleMessage(watchUpdate)).not.toThrow()
-    
+
     // Verify memory change was triggered
     expect(memoryChangeTriggered).toBe(true)
     expect(receivedAddress).toBe(0x20244e9)
@@ -117,7 +125,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
 
   test('should handle invalid messages gracefully without crashing', () => {
     const client = new MgbaWebSocketClient('ws://test:7102/ws')
-    const handleMessage = (client as any).handleMessage.bind(client)
+    const handleMessage = (client as unknown as { handleMessage: (data: string) => void }).handleMessage.bind(client)
 
     // These should not throw errors (they should log warnings but not crash)
     expect(() => handleMessage('invalid json')).not.toThrow()
@@ -135,28 +143,28 @@ describe('WebSocket Watch Mode Regression Tests', () => {
 
     // The watch message should use decimal addresses (what server expects)
     const expectedMessage = 'watch\n33703145,7\n33703148,600'
-    
+
     const regionLines = regions.map(r => `${r.address},${r.size}`)
     const actualMessage = ['watch', ...regionLines].join('\n')
-    
+
     expect(actualMessage).toBe(expectedMessage)
   })
 
   test('should prevent the original "syntax error near 33703145" issue', () => {
     // This is a regression test specifically for the reported error:
     // "❌ Error processing memory change: Failed to read memory: [string "websocket-eval"]:2: syntax error near '33703145'"
-    
+
     const problematicAddress = 33703145
     const size = 7
-    
-    // The fixed code that prevents the syntax error  
+
+    // The fixed code that prevents the syntax error
     const hexAddress = `0x${problematicAddress.toString(16)}`
     const fixedCode = `local addr = ${hexAddress}; for i = 0, ${size - 1} do bytes[i + 1] = emu:read8(addr + i) end`
-    
+
     expect(hexAddress).toBe('0x20244e9')
     expect(fixedCode).toContain('0x20244e9')
     expect(fixedCode).not.toContain('33703145')
-    
+
     // Verify the fix pattern is applied
     expect(fixedCode).toMatch(/local addr = 0x[0-9a-f]+/)
     expect(fixedCode).toContain('emu:read8(addr + i)')
