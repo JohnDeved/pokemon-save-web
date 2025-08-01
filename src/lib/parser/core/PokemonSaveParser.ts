@@ -77,7 +77,7 @@ export class PokemonSaveParser {
   // Watching properties
   private isWatching = false
   private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
-  private cachedPartyPokemon: PokemonBase[] = []
+  private readonly memoryBuffer = new Map<number, Uint8Array>()
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
@@ -677,9 +677,9 @@ export class PokemonSaveParser {
       this.webSocketClient.addMemoryChangeListener(memoryChangeListener)
       this.isWatching = true
 
-      // Load initial data to establish baseline
-      const initialPartyPokemon = await this.parsePartyPokemon()
-      this.cachedPartyPokemon = initialPartyPokemon
+      // Load initial memory data to establish baseline
+      await this.initializeMemoryBuffer()
+      const initialPartyPokemon = await this.parsePartyPokemonFromCurrentMemory()
 
       // Notify listeners with initial data
       for (const listener of this.watchListeners) {
@@ -701,12 +701,15 @@ export class PokemonSaveParser {
   /**
    * Handle party data changes with provided memory data and notify listeners
    */
-  private async handlePartyDataChangeWithData (address: number, size: number, data: Uint8Array): Promise<void> {
+  private async handlePartyDataChangeWithData (address: number, _size: number, data: Uint8Array): Promise<void> {
     if (!this.webSocketClient || !this.config?.memoryAddresses) return
 
     try {
-      // Patch existing Pokemon data with the new memory data
-      const updatedPartyPokemon = await this.patchPartyDataWithMemory(address, size, data)
+      // Update memory buffer with new data
+      this.updateMemoryBuffer(address, data)
+
+      // Parse fresh Pokemon objects from updated memory
+      const updatedPartyPokemon = await this.parsePartyPokemonFromCurrentMemory()
 
       // Notify all listeners (no need for change detection as server only sends when changed)
       for (const listener of this.watchListeners) {
@@ -722,10 +725,9 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Patch party Pokemon data with provided memory changes
-   * Uses the cached Pokemon objects and updates their underlying data
+   * Initialize memory buffer with current party data
    */
-  private async patchPartyDataWithMemory (address: number, size: number, newData: Uint8Array): Promise<PokemonBase[]> {
+  private async initializeMemoryBuffer (): Promise<void> {
     if (!this.config?.memoryAddresses) {
       throw new Error('No memory addresses configured')
     }
@@ -733,51 +735,85 @@ export class PokemonSaveParser {
     const { partyData, partyCount } = this.config.memoryAddresses
     const pokemonSize = this.config.saveLayout.pokemonSize!
 
-    // If this is the first update or cache is empty, do a full parse
-    if (this.cachedPartyPokemon.length === 0) {
-      this.cachedPartyPokemon = await this.parsePartyPokemonFromMemory()
-      return this.cachedPartyPokemon
-    }
+    // Load party count
+    const partyCountBuffer = await this.webSocketClient!.getSharedBuffer(partyCount, 1)
+    this.memoryBuffer.set(partyCount, new Uint8Array(partyCountBuffer))
 
-    // Handle party count updates
+    // Load full party data (6 slots worth)
+    const partyDataBuffer = await this.webSocketClient!.getSharedBuffer(partyData, 6 * pokemonSize)
+    this.memoryBuffer.set(partyData, new Uint8Array(partyDataBuffer))
+  }
+
+  /**
+   * Update memory buffer with new data
+   */
+  private updateMemoryBuffer (address: number, newData: Uint8Array): void {
+    if (!this.config?.memoryAddresses) return
+
+    const { partyData, partyCount } = this.config.memoryAddresses
+    const pokemonSize = this.config.saveLayout.pokemonSize!
+
+    // Update party count if changed
     if (address === partyCount) {
-      // Party count changed - need to re-parse the entire party
-      this.cachedPartyPokemon = await this.parsePartyPokemonFromMemory()
-      return this.cachedPartyPokemon
+      this.memoryBuffer.set(partyCount, new Uint8Array(newData))
+      return
     }
 
-    // Handle party data updates
+    // Update party data if in range
     if (address >= partyData && address < partyData + (6 * pokemonSize)) {
-      const relativeOffset = address - partyData
-      const startSlot = Math.floor(relativeOffset / pokemonSize)
-      const endSlot = Math.floor((relativeOffset + size - 1) / pokemonSize)
+      const existingBuffer = this.memoryBuffer.get(partyData)
+      if (existingBuffer) {
+        const relativeOffset = address - partyData
+        existingBuffer.set(newData, relativeOffset)
+      }
+    }
+  }
 
-      // Update affected Pokemon slots
-      for (let slot = startSlot; slot <= endSlot && slot < this.cachedPartyPokemon.length; slot++) {
-        const slotOffset = slot * pokemonSize
-        const dataStartInSlot = Math.max(0, relativeOffset - slotOffset)
-        const dataEndInSlot = Math.min(pokemonSize, relativeOffset + size - slotOffset)
-        const bytesToUpdate = dataEndInSlot - dataStartInSlot
+  /**
+   * Parse party Pokemon from current memory buffer state
+   */
+  private async parsePartyPokemonFromCurrentMemory (): Promise<PokemonBase[]> {
+    if (!this.config?.memoryAddresses) {
+      throw new Error('No memory addresses configured')
+    }
 
-        if (bytesToUpdate > 0) {
-          const sourceStart = Math.max(0, slotOffset - relativeOffset)
-          const targetStart = dataStartInSlot
+    const { partyData, partyCount } = this.config.memoryAddresses
+    const pokemonSize = this.config.saveLayout.pokemonSize!
 
-          // Update the Pokemon's underlying data buffer
-          const pokemon = this.cachedPartyPokemon[slot]!
-          const pokemonData = pokemon.rawBytes
-          pokemonData.set(
-            newData.slice(sourceStart, sourceStart + bytesToUpdate),
-            targetStart,
-          )
-        }
+    // Get party count from buffer
+    const partyCountBuffer = this.memoryBuffer.get(partyCount)
+    if (!partyCountBuffer) {
+      throw new Error('Party count not loaded in memory buffer')
+    }
+    const partyCountValue = partyCountBuffer[0] ?? 0
+
+    const maxPartySize = this.config.saveLayout.maxPartySize!
+    if (partyCountValue < 0 || partyCountValue > maxPartySize) {
+      throw new Error(`Invalid party count: ${partyCountValue}. Expected 0-${maxPartySize}.`)
+    }
+
+    // Get party data from buffer
+    const partyDataBuffer = this.memoryBuffer.get(partyData)
+    if (!partyDataBuffer) {
+      throw new Error('Party data not loaded in memory buffer')
+    }
+
+    const pokemon: PokemonBase[] = []
+
+    for (let i = 0; i < partyCountValue; i++) {
+      const pokemonOffset = i * pokemonSize
+      const pokemonBytes = partyDataBuffer.slice(pokemonOffset, pokemonOffset + pokemonSize)
+      const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
+
+      // Stop at empty slots (species ID = 0)
+      if (pokemonInstance.speciesId === 0) {
+        break
       }
 
-      return this.cachedPartyPokemon
+      pokemon.push(pokemonInstance)
     }
 
-    // If address doesn't match any known regions, return cached data unchanged
-    return this.cachedPartyPokemon
+    return pokemon
   }
 
   /**
@@ -792,7 +828,7 @@ export class PokemonSaveParser {
       await this.webSocketClient.stopWatching()
       this.isWatching = false
       this.watchListeners.length = 0
-      this.cachedPartyPokemon.length = 0
+      this.memoryBuffer.clear()
     } catch (error) {
       console.error('Error stopping watch mode:', error)
     }
