@@ -21,5 +21,6 @@ export type {
   WatchMessage,
   MemoryUpdateMessage,
   WatchConfirmMessage,
-  WebSocketMessage
+  WebSocketMessage,
+  SimpleMessage
 } from './websocket-client'

@@ -32,6 +32,11 @@ export interface WatchConfirmMessage {
 
 export type WebSocketMessage = WatchMessage | MemoryUpdateMessage | WatchConfirmMessage
 
+export interface SimpleMessage {
+  command: 'watch' | 'eval'
+  data: string[]
+}
+
 export interface MemoryRegion {
   address: number
   size: number
@@ -77,6 +82,44 @@ export class MgbaWebSocketClient {
   private isWatching = false
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
+  }
+
+  /**
+   * Parse simple message format (command\ndata\ndata\n...)
+   */
+  private parseSimpleMessage(message: string): SimpleMessage | null {
+    const lines = message.trim().split('\n')
+      .map(line => line.trim())
+      .filter(line => line !== '')
+    
+    if (lines.length === 0) return null
+    
+    const command = lines[0]?.trim().toLowerCase()
+    if (command !== 'watch' && command !== 'eval') return null
+    
+    return {
+      command: command as 'watch' | 'eval',
+      data: lines.slice(1)
+    }
+  }
+
+  /**
+   * Create simple message format string
+   */
+  private createSimpleMessage(command: 'watch' | 'eval', data: string[]): string {
+    return [command, ...data].join('\n')
+  }
+
+  /**
+   * Parse watch regions from simple format (address,size per line)
+   */
+  parseWatchRegions(data: string[]): Array<{ address: number, size: number }> {
+    return data.map(line => {
+      const [addressStr, sizeStr] = line.split(',').map(s => s.trim())
+      const address = parseInt(addressStr || '0', 10)
+      const size = parseInt(sizeStr || '0', 10)
+      return { address, size }
+    }).filter(region => region.address > 0 && region.size > 0)
   }
 
   /**
@@ -135,30 +178,56 @@ export class MgbaWebSocketClient {
    * Handle incoming WebSocket messages
    */
   private handleWebSocketMessage (data: string): void {
-    // Skip non-JSON messages (like welcome messages)
-    if (!data.startsWith('{')) {
+    // Skip non-message data (like welcome messages)
+    if (!data || data.trim() === '') {
       return
     }
 
     try {
-      const message = JSON.parse(data) as WebSocketMessage | MgbaEvalResponse
+      // First try to parse as simple message format
+      const simpleMessage = this.parseSimpleMessage(data)
+      if (simpleMessage) {
+        this.handleSimpleMessage(simpleMessage)
+        return
+      }
 
-      // Handle structured messages
-      if ('type' in message) {
-        switch (message.type) {
-          case 'memoryUpdate':
-            this.handleMemoryUpdate(message)
-            break
-          case 'watchConfirm':
-            console.log('Memory watching confirmed:', message.message)
-            this.isWatching = true
-            break
-          default:
-            console.warn('Unknown WebSocket message type:', message.type)
+      // Fall back to JSON format for backward compatibility
+      if (data.startsWith('{')) {
+        const message = JSON.parse(data) as WebSocketMessage | MgbaEvalResponse
+
+        // Handle structured messages
+        if ('type' in message) {
+          switch (message.type) {
+            case 'memoryUpdate':
+              this.handleMemoryUpdate(message)
+              break
+            case 'watchConfirm':
+              console.log('Memory watching confirmed:', message.message)
+              this.isWatching = true
+              break
+            default:
+              console.warn('Unknown WebSocket message type:', message.type)
+          }
         }
       }
     } catch (error) {
       console.warn('Failed to parse WebSocket message:', error)
+    }
+  }
+
+  /**
+   * Handle simple format messages
+   */
+  private handleSimpleMessage(message: SimpleMessage): void {
+    switch (message.command) {
+      case 'watch':
+        // This would be a response from server, not typically expected
+        console.log('Received watch command from server (unexpected)')
+        break
+      case 'eval':
+        // This would be a response from server, not typically expected  
+        console.log('Received eval command from server (unexpected)')
+        break
     }
   }
 
@@ -207,13 +276,12 @@ export class MgbaWebSocketClient {
 
     this.watchedRegions = [...regionsToWatch]
 
-    const watchMessage: WatchMessage = {
-      type: 'watch',
-      regions: regionsToWatch
-    }
+    // Create simple message format: watch\naddress,size\naddress,size\n...
+    const regionLines = regionsToWatch.map(region => `${region.address},${region.size}`)
+    const simpleMessage = this.createSimpleMessage('watch', regionLines)
 
-    this.ws!.send(JSON.stringify(watchMessage))
-    console.log(`🔍 Started watching ${regionsToWatch.length} memory regions`)
+    this.ws!.send(simpleMessage)
+    console.log(`🔍 Started watching ${regionsToWatch.length} memory regions using simple format`)
   }
 
   /**
@@ -266,7 +334,7 @@ export class MgbaWebSocketClient {
   /**
    * Execute Lua code on the mGBA emulator
    */
-  async eval (code: string): Promise<MgbaEvalResponse> {
+  async eval (code: string, useSimpleFormat = true): Promise<MgbaEvalResponse> {
     if (!this.isConnected()) {
       throw new Error('Not connected to mGBA WebSocket server')
     }
@@ -281,8 +349,8 @@ export class MgbaWebSocketClient {
       const messageHandler = (event: { data: unknown }) => {
         const message = typeof event.data === 'string' ? event.data : String(event.data)
 
-        // Skip welcome messages and other non-JSON responses
-        if (!message.startsWith('{')) {
+        // Skip welcome messages and other non-JSON/non-result responses
+        if (!message.startsWith('{') && !message.includes('result') && !message.includes('error')) {
           return // Don't resolve/reject, wait for actual response
         }
 
@@ -298,8 +366,14 @@ export class MgbaWebSocketClient {
 
       this.ws.addEventListener('message', messageHandler)
 
-      // Send the code to evaluate
-      this.ws.send(code)
+      // Send the code using the appropriate format
+      if (useSimpleFormat) {
+        const simpleMessage = this.createSimpleMessage('eval', [code])
+        this.ws.send(simpleMessage)
+      } else {
+        // Legacy format - send raw code
+        this.ws.send(code)
+      }
 
       // Timeout after configured time
       setTimeout(() => {

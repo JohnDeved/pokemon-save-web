@@ -610,6 +610,47 @@ local function parseJSON(str)
     return result
 end
 
+-- Parse simple message format (command\ndata\ndata\n...)
+local function parseSimpleMessage(message)
+    local lines = {}
+    for line in message:gmatch("[^\r\n]+") do
+        local trimmed = line:match("^%s*(.-)%s*$") -- trim whitespace
+        if trimmed ~= "" then
+            table.insert(lines, trimmed)
+        end
+    end
+    
+    if #lines == 0 then return nil end
+    
+    local command = lines[1]:lower()
+    if command ~= "watch" and command ~= "eval" then return nil end
+    
+    local data = {}
+    for i = 2, #lines do
+        table.insert(data, lines[i])
+    end
+    
+    return {
+        command = command,
+        data = data
+    }
+end
+
+-- Parse watch regions from simple format (address,size per line)
+local function parseWatchRegions(data)
+    local regions = {}
+    for _, line in ipairs(data) do
+        local address, size = line:match("^(%d+)%s*,%s*(%d+)$")
+        if address and size then
+            table.insert(regions, {
+                address = tonumber(address),
+                size = tonumber(size)
+            })
+        end
+    end
+    return regions
+end
+
 -- WebSocket route
 app:websocket("/ws", function(ws)
     console:log("WebSocket connected: " .. ws.path)
@@ -624,13 +665,68 @@ app:websocket("/ws", function(ws)
         local function safe_handler()
             console:log("WebSocket message: " .. tostring(message))
             
-            -- Try to parse as JSON first for structured messages
+            -- Try to parse as simple message format first
+            local simpleMessage = parseSimpleMessage(message)
+            if simpleMessage then
+                if simpleMessage.command == "watch" then
+                    -- Handle memory region watching request in simple format
+                    local regions = parseWatchRegions(simpleMessage.data)
+                    if #regions > 0 then
+                        console:log("Setting up memory watch for " .. #regions .. " regions (simple format)")
+                        local watcher = memoryWatchers[ws.id]
+                        watcher.regions = regions
+                        watcher.lastData = {}
+                        
+                        -- Initialize baseline data for each region
+                        for i, region in ipairs(regions) do
+                            if region.address and region.size then
+                                local data = emu:readRange(region.address, region.size)
+                                watcher.lastData[i] = data
+                            end
+                        end
+                        
+                        ws:send("Memory watching started for " .. #regions .. " regions")
+                    else
+                        ws:send("Error: Invalid watch regions format")
+                    end
+                    return
+                elseif simpleMessage.command == "eval" then
+                    -- Handle eval request in simple format
+                    if #simpleMessage.data > 0 then
+                        local code = table.concat(simpleMessage.data, "\n")
+                        
+                        -- Enhanced support for non-self-executing function inputs
+                        local chunk = code
+                        if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+                            chunk = "return " .. code
+                        end
+                        
+                        local fn, err = load(chunk, "websocket-eval")
+                        if not fn then
+                            ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
+                            return
+                        end
+                        local ok, result = pcall(fn)
+                        if ok then
+                            ws:send(HttpServer.jsonStringify({result = result}))
+                        else
+                            ws:send(HttpServer.jsonStringify({error = tostring(result)}))
+                            console:error("[WebSocket Eval Error] " .. tostring(result))
+                        end
+                    else
+                        ws:send(HttpServer.jsonStringify({error = "No code provided for eval"}))
+                    end
+                    return
+                end
+            end
+            
+            -- Try to parse as JSON for backward compatibility
             local parsed, parseErr = parseJSON(message)
             if parsed and type(parsed) == "table" and parsed.type then
                 if parsed.type == "watch" then
-                    -- Handle memory region watching request
+                    -- Handle memory region watching request (legacy JSON format)
                     if parsed.regions and type(parsed.regions) == "table" then
-                        console:log("Setting up memory watch for " .. #parsed.regions .. " regions")
+                        console:log("Setting up memory watch for " .. #parsed.regions .. " regions (JSON format)")
                         local watcher = memoryWatchers[ws.id]
                         watcher.regions = parsed.regions
                         watcher.lastData = {}
@@ -692,7 +788,7 @@ app:websocket("/ws", function(ws)
         memoryWatchers[ws.id] = nil
     end
 
-    ws:send("Welcome to WebSocket Eval! Send Lua code to execute or JSON messages for memory watching.")
+    ws:send("Welcome to WebSocket Eval! Send simple commands (watch/eval + data) or JSON messages for memory watching.")
 end)
 
 -- Frame callback for memory change detection
