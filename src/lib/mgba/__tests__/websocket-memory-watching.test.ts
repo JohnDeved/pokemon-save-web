@@ -52,13 +52,6 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
       expect(client.isWatchingMemory()).toBe(false)
       expect(client.getWatchedRegions()).toHaveLength(0)
     })
-
-    it('should return cache statistics', () => {
-      const stats = client.getCacheStats()
-      expect(stats).toHaveProperty('size')
-      expect(stats).toHaveProperty('regions')
-      expect(Array.isArray(stats.regions)).toBe(true)
-    })
   })
 
   describe('Watch Message Types', () => {
@@ -118,16 +111,6 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
       ;(client as any).ws = { readyState: 1 }
 
       await expect(client.startWatchingPreloadRegions()).rejects.toThrow('No preload regions configured')
-    })
-  })
-
-  describe('Cache Management', () => {
-    it('should clear cache', () => {
-      expect(() => client.clearCache()).not.toThrow()
-    })
-
-    it('should invalidate specific cache entries', () => {
-      expect(() => client.invalidateCache(0x20244e9, 4)).not.toThrow()
     })
   })
 

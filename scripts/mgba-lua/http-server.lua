@@ -30,6 +30,25 @@
 local HttpServer = {}
 HttpServer.__index = HttpServer
 
+-- Enhanced console logging that outputs to both mGBA console and stdout for docker visibility
+local original_console_log = console.log
+console.log = function(...)
+    local args = {...}
+    local message = table.concat(args, " ")
+    original_console_log(message)
+    io.stdout:write("[mGBA] " .. message .. "\n")
+    io.stdout:flush()
+end
+
+local original_console_error = console.error
+console.error = function(...)
+    local args = {...}
+    local message = table.concat(args, " ")
+    original_console_error(message)
+    io.stderr:write("[mGBA ERROR] " .. message .. "\n")
+    io.stderr:flush()
+end
+
 --------------------------------------------------------------------------------
 -- "Static" Methods
 --------------------------------------------------------------------------------
@@ -665,14 +684,17 @@ app:websocket("/ws", function(ws)
         local function safe_handler()
             console:log("WebSocket message: " .. tostring(message))
             
-            -- Try to parse as simple message format first
+            -- All messages must be in simple format now
             local simpleMessage = parseSimpleMessage(message)
-            if simpleMessage then
+            if not simpleMessage then
+                ws:send("eval\nerror\nInvalid message format. Use simple format: command\\ndata\\ndata...")
+                return
+            end
                 if simpleMessage.command == "watch" then
                     -- Handle memory region watching request in simple format
                     local regions = parseWatchRegions(simpleMessage.data)
                     if #regions > 0 then
-                        console:log("Setting up memory watch for " .. #regions .. " regions (simple format)")
+                        console:log("Setting up memory watch for " .. #regions .. " regions")
                         local watcher = memoryWatchers[ws.id]
                         watcher.regions = regions
                         watcher.lastData = {}
@@ -685,9 +707,11 @@ app:websocket("/ws", function(ws)
                             end
                         end
                         
-                        ws:send("Memory watching started for " .. #regions .. " regions")
+                        -- Send unified response format: watch\nsuccess\nMessage
+                        ws:send("watch\nsuccess\nMemory watching started for " .. #regions .. " regions")
                     else
-                        ws:send("Error: Invalid watch regions format")
+                        -- Send unified error format: watch\nerror\nMessage  
+                        ws:send("watch\nerror\nInvalid watch regions format")
                     end
                     return
                 elseif simpleMessage.command == "eval" then
@@ -696,83 +720,39 @@ app:websocket("/ws", function(ws)
                         local code = table.concat(simpleMessage.data, "\n")
                         
                         -- Enhanced support for non-self-executing function inputs
+                        -- More comprehensive detection of standalone expressions
                         local chunk = code
-                        if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+                        local trimmed = code:match("^%s*(.-)%s*$")
+                        
+                        -- Check if it's a simple expression that needs return prefix
+                        if not trimmed:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end)%s") and
+                           not trimmed:match("%(function") and
+                           not trimmed:match("=") then
                             chunk = "return " .. code
                         end
                         
                         local fn, err = load(chunk, "websocket-eval")
                         if not fn then
-                            ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
+                            -- Send unified error format: eval\nerror\nMessage
+                            ws:send("eval\nerror\n" .. (err or "Invalid code"))
                             return
                         end
                         local ok, result = pcall(fn)
                         if ok then
-                            ws:send(HttpServer.jsonStringify({result = result}))
+                            -- Send unified success format: eval\nsuccess\nResult
+                            ws:send("eval\nsuccess\n" .. tostring(result))
                         else
-                            ws:send(HttpServer.jsonStringify({error = tostring(result)}))
-                            console:error("[WebSocket Eval Error] " .. tostring(result))
+                            -- Send unified error format: eval\nerror\nMessage
+                            ws:send("eval\nerror\n" .. tostring(result))
                         end
                     else
-                        ws:send(HttpServer.jsonStringify({error = "No code provided for eval"}))
+                        -- Send unified error format: eval\nerror\nMessage
+                        ws:send("eval\nerror\nNo code provided for eval")
                     end
                     return
                 end
-            end
-            
-            -- Try to parse as JSON for backward compatibility
-            local parsed, parseErr = parseJSON(message)
-            if parsed and type(parsed) == "table" and parsed.type then
-                if parsed.type == "watch" then
-                    -- Handle memory region watching request (legacy JSON format)
-                    if parsed.regions and type(parsed.regions) == "table" then
-                        console:log("Setting up memory watch for " .. #parsed.regions .. " regions (JSON format)")
-                        local watcher = memoryWatchers[ws.id]
-                        watcher.regions = parsed.regions
-                        watcher.lastData = {}
-                        
-                        -- Initialize baseline data for each region
-                        for i, region in ipairs(parsed.regions) do
-                            if region.address and region.size then
-                                local data = emu:readRange(region.address, region.size)
-                                watcher.lastData[i] = data
-                            end
-                        end
-                        
-                        ws:send(HttpServer.jsonStringify({
-                            type = "watchConfirm",
-                            message = "Watching " .. #parsed.regions .. " memory regions"
-                        }))
-                    else
-                        ws:send(HttpServer.jsonStringify({
-                            type = "error",
-                            error = "Invalid watch request - regions array required"
-                        }))
-                    end
-                    return
-                end
-            end
-            
-            -- Fallback to legacy eval mode for backward compatibility
-            local chunk = message
-            
-            -- Enhanced support for non-self-executing function inputs
-            -- Check if it's already a complete statement or needs a return prefix
-            if not message:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
-                chunk = "return " .. message
-            end
-            
-            local fn, err = load(chunk, "websocket-eval")
-            if not fn then
-                ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
-                return
-            end
-            local ok, result = pcall(fn)
-            if ok then
-                ws:send(HttpServer.jsonStringify({result = result}))
             else
-                ws:send(HttpServer.jsonStringify({error = tostring(result)}))
-                console:error("[WebSocket Eval Error] " .. tostring(result))
+                ws:send("eval\nerror\nUnknown command. Use 'watch' or 'eval'")
             end
         end
         local ok, err = pcall(safe_handler)
@@ -822,13 +802,15 @@ local function checkMemoryChanges()
                 end
             end
             
-            -- Send memory update if any regions changed
+            -- Send memory update if any regions changed using simple format
             if #changedRegions > 0 then
-                ws:send(HttpServer.jsonStringify({
-                    type = "memoryUpdate",
-                    regions = changedRegions,
-                    timestamp = os.time()
-                }))
+                local updateLines = {"watch", "update"}
+                for _, region in ipairs(changedRegions) do
+                    -- Format: address,size,data_as_comma_separated_bytes
+                    local dataStr = table.concat(region.data, ",")
+                    table.insert(updateLines, region.address .. "," .. region.size .. "," .. dataStr)
+                end
+                ws:send(table.concat(updateLines, "\n"))
             end
         end
     end

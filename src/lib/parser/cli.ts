@@ -257,7 +257,6 @@ async function watchModeFile (filePath: string, options: { debug: boolean, graph
  */
 async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
   console.log('🔄 Starting event-driven watch mode...')
-  console.log('Setting up memory region watching for real-time updates')
   console.log('Press Ctrl+C to exit')
 
   // Create parser once and reuse it
@@ -276,7 +275,7 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
   // Start watching the preload regions
   try {
     await client.startWatchingPreloadRegions()
-    console.log('✅ Memory watching started - will update display when party data changes')
+    console.log('✅ Memory watching started')
 
     // Give a moment for the watch setup to complete and messages to settle
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -317,7 +316,8 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
     try {
       // Only process changes to party-related memory regions
       if (address === 0x20244e9 || address === 0x20244ec) {
-        // Parse the updated save data
+        // Use the received memory data directly instead of doing another read
+        // Parse the updated save data using the existing cached/received data
         const result = await parser.parseSaveFile(client)
 
         // Create a simple hash of the party data to detect changes
@@ -333,7 +333,6 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
         // Only update display if party data actually changed
         if (dataHash !== lastDataHash || isFirstRun) {
           clearScreen()
-          console.log(`🔄 Party data updated at 0x${address.toString(16)} (${new Date().toLocaleTimeString()})`)
           displayPartyPokemon(result.party_pokemon, 'MEMORY')
 
           lastDataHash = dataHash
@@ -369,7 +368,6 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
   // Keep the process alive and handle cleanup
   return new Promise<void>((resolve) => {
     const cleanup = () => {
-      console.log('\n🔌 Cleaning up memory listeners...')
       client.removeMemoryChangeListener(memoryChangeListener)
       resolve()
     }
@@ -439,7 +437,6 @@ async function main () {
 
       // Setup cleanup on exit
       process.on('SIGINT', () => {
-        console.log('\n🔌 Disconnecting from mGBA...')
         client.disconnect()
         process.exit(0)
       })

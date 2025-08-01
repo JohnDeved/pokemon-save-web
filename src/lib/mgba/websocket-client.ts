@@ -5,35 +5,9 @@
 
 import WebSocket from 'isomorphic-ws'
 
-export interface MgbaEvalResponse {
-  result?: unknown
-  error?: string
-}
-
-export interface WatchMessage {
-  type: 'watch'
-  regions: Array<{ address: number, size: number }>
-}
-
-export interface MemoryUpdateMessage {
-  type: 'memoryUpdate'
-  regions: Array<{
-    address: number
-    size: number
-    data: number[]
-  }>
-  timestamp: number
-}
-
-export interface WatchConfirmMessage {
-  type: 'watchConfirm'
-  message: string
-}
-
-export type WebSocketMessage = WatchMessage | MemoryUpdateMessage | WatchConfirmMessage
-
 export interface SimpleMessage {
   command: 'watch' | 'eval'
+  status: 'success' | 'error' | 'update'
   data: string[]
 }
 
@@ -42,39 +16,23 @@ export interface MemoryRegion {
   size: number
   data: Uint8Array
   lastUpdated: number
-  dirty: boolean
 }
 
 export interface SharedBufferConfig {
-  maxCacheSize: number
-  cacheTimeout: number // in milliseconds
   preloadRegions: Array<{ address: number, size: number }>
 }
 
-export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void
+export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void | Promise<void>
 
 // Constants for memory operations
 const MEMORY_CONSTANTS = {
-  DEFAULT_CHUNK_SIZE: 100,
-  SMALL_READ_THRESHOLD: 10,
   EVAL_TIMEOUT_MS: 5000,
   MAX_LISTENERS: 100,
-  CACHE_TIMEOUT_MS: 100, // Near real-time for game state sync
-  MAX_CACHE_SIZE: 50,
 } as const
 
 export class MgbaWebSocketClient {
   private ws: WebSocket | null = null
   private connected = false
-
-  // Real-time shared buffer system for memory caching
-  private readonly memoryCache = new Map<string, MemoryRegion>()
-  private cacheAccessCount = 0
-  private sharedBufferConfig: SharedBufferConfig = {
-    maxCacheSize: MEMORY_CONSTANTS.MAX_CACHE_SIZE,
-    cacheTimeout: MEMORY_CONSTANTS.CACHE_TIMEOUT_MS,
-    preloadRegions: [], // Will be set from config
-  }
 
   // Memory watching system
   private watchedRegions: Array<{ address: number, size: number }> = []
@@ -82,26 +40,52 @@ export class MgbaWebSocketClient {
   private isWatching = false
 
   // Eval request handling
-  private readonly pendingEvalHandlers: Array<(message: string) => boolean> = []
+  private readonly pendingEvalHandlers: Array<(message: SimpleMessage) => boolean> = []
+
+  // Simple buffer for the latest memory data from watch updates
+  private readonly latestMemoryData = new Map<string, Uint8Array>()
+
+  // Preload regions configuration
+  private sharedBufferConfig: SharedBufferConfig = {
+    preloadRegions: [],
+  }
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
   }
 
   /**
-   * Parse simple message format (command\ndata\ndata\n...)
+   * Parse simple message format
+   * For outgoing messages (from client): command\ndata\ndata\n...
+   * For incoming responses (from server): command\nstatus\ndata\ndata\n...
    */
   private parseSimpleMessage (message: string): SimpleMessage | null {
     const lines = message.trim().split('\n')
       .map(line => line.trim())
       .filter(line => line !== '')
 
-    if (lines.length === 0) return null
+    if (lines.length < 1) return null
 
     const command = lines[0]?.trim().toLowerCase()
+
     if (command !== 'watch' && command !== 'eval') return null
 
+    // Check if this is a response format (has status) or request format (no status)
+    if (lines.length >= 2) {
+      const possibleStatus = lines[1]?.trim().toLowerCase()
+      if (possibleStatus === 'success' || possibleStatus === 'error' || possibleStatus === 'update') {
+        // This is a response format: command\nstatus\ndata...
+        return {
+          command: command as 'watch' | 'eval',
+          status: possibleStatus as 'success' | 'error' | 'update',
+          data: lines.slice(2),
+        }
+      }
+    }
+
+    // This is a request format: command\ndata...
     return {
       command: command as 'watch' | 'eval',
+      status: 'success', // Default status for request messages
       data: lines.slice(1),
     }
   }
@@ -134,7 +118,6 @@ export class MgbaWebSocketClient {
         this.ws = new WebSocket(this.url)
 
         const onOpen = () => {
-          console.log('Connected to mGBA WebSocket server')
           this.connected = true
           resolve()
         }
@@ -146,7 +129,6 @@ export class MgbaWebSocketClient {
         }
 
         const onClose = () => {
-          console.log('WebSocket connection closed')
           this.connected = false
           this.isWatching = false
         }
@@ -181,63 +163,26 @@ export class MgbaWebSocketClient {
    * Handle incoming WebSocket messages
    */
   private handleWebSocketMessage (data: string): void {
-    // Skip non-message data (like welcome messages)
+    // Skip empty messages
     if (!data || data.trim() === '') {
       return
     }
 
-    try {
-      // First check if any pending eval handlers can process this message
+    // First check if any pending eval handlers can process this message
+    const simpleMessage = this.parseSimpleMessage(data)
+    if (simpleMessage) {
+      // Try eval handlers first
       for (let i = this.pendingEvalHandlers.length - 1; i >= 0; i--) {
         const handler = this.pendingEvalHandlers[i]
-        if (handler && handler(data)) {
+        if (handler && handler(simpleMessage)) {
           // Handler processed the message, remove it and return
           this.pendingEvalHandlers.splice(i, 1)
           return
         }
       }
 
-      // First try to parse as simple message format
-      const simpleMessage = this.parseSimpleMessage(data)
-      if (simpleMessage) {
-        this.handleSimpleMessage(simpleMessage)
-        return
-      }
-
-      // Fall back to JSON format for backward compatibility
-      if (data.startsWith('{')) {
-        const message = JSON.parse(data) as WebSocketMessage | MgbaEvalResponse
-
-        // Handle structured messages
-        if ('type' in message) {
-          switch (message.type) {
-            case 'memoryUpdate':
-              this.handleMemoryUpdate(message)
-              break
-            case 'watchConfirm':
-              console.log('Memory watching confirmed:', message.message)
-              this.isWatching = true
-              break
-            default:
-              console.warn('Unknown WebSocket message type:', message.type)
-          }
-        }
-        return
-      }
-
-      // Handle plain text responses from server (e.g., watch confirmations)
-      if (data.includes('Memory watching started')) {
-        console.log('Memory watching confirmed:', data)
-        this.isWatching = true
-        return
-      }
-
-      // Handle other plain text server messages (like welcome messages)
-      if (data.includes('Welcome to WebSocket')) {
-        console.log('Server welcome:', data)
-      }
-    } catch (error) {
-      console.warn('Failed to parse WebSocket message:', error)
+      // Handle other message types
+      this.handleSimpleMessage(simpleMessage)
     }
   }
 
@@ -247,12 +192,14 @@ export class MgbaWebSocketClient {
   private handleSimpleMessage (message: SimpleMessage): void {
     switch (message.command) {
       case 'watch':
-        // This would be a response from server, not typically expected
-        console.log('Received watch command from server (unexpected)')
+        if (message.status === 'success') {
+          this.isWatching = true
+        } else if (message.status === 'update') {
+          this.handleMemoryUpdate(message)
+        }
         break
       case 'eval':
-        // This would be a response from server, not typically expected
-        console.log('Received eval command from server (unexpected)')
+        // Eval responses are handled by pending handlers
         break
     }
   }
@@ -260,26 +207,30 @@ export class MgbaWebSocketClient {
   /**
    * Handle memory update messages from the server
    */
-  private handleMemoryUpdate (message: MemoryUpdateMessage): void {
-    for (const region of message.regions) {
-      const data = new Uint8Array(region.data)
+  private handleMemoryUpdate (message: SimpleMessage): void {
+    // Parse memory update data: address,size,data_bytes
+    for (const line of message.data) {
+      const parts = line.split(',')
+      if (parts.length >= 3) {
+        const address = parseInt(parts[0] ?? '0', 10)
+        const size = parseInt(parts[1] ?? '0', 10)
+        const dataBytes = parts.slice(2).map(b => parseInt(b, 10)).filter(b => !isNaN(b))
 
-      // Update cache
-      const cacheKey = `${region.address}-${region.size}`
-      this.memoryCache.set(cacheKey, {
-        address: region.address,
-        size: region.size,
-        data: new Uint8Array(data), // Make a copy
-        lastUpdated: Date.now(),
-        dirty: false,
-      })
+        if (address > 0 && size > 0 && dataBytes.length === size) {
+          const data = new Uint8Array(dataBytes)
 
-      // Notify listeners
-      for (const listener of this.memoryChangeListeners) {
-        try {
-          listener(region.address, region.size, data)
-        } catch (error) {
-          console.error('Error in memory change listener:', error)
+          // Store latest data
+          const cacheKey = `${address}-${size}`
+          this.latestMemoryData.set(cacheKey, data)
+
+          // Notify listeners
+          for (const listener of this.memoryChangeListeners) {
+            try {
+              listener(address, size, data)
+            } catch (error) {
+              console.error('Error in memory change listener:', error)
+            }
+          }
         }
       }
     }
@@ -361,7 +312,7 @@ export class MgbaWebSocketClient {
   /**
    * Execute Lua code on the mGBA emulator
    */
-  async eval (code: string, useSimpleFormat = true): Promise<MgbaEvalResponse> {
+  async eval (code: string): Promise<{ result?: string, error?: string }> {
     if (!this.isConnected()) {
       throw new Error('Not connected to mGBA WebSocket server')
     }
@@ -373,33 +324,25 @@ export class MgbaWebSocketClient {
       }
 
       // Create a handler that can process eval responses
-      const messageHandler = (message: string): boolean => {
-        // Skip welcome messages and other non-JSON/non-result responses
-        if (!message.startsWith('{') && !message.includes('result') && !message.includes('error')) {
-          return false // Don't consume this message
+      const messageHandler = (message: SimpleMessage): boolean => {
+        if (message.command !== 'eval') {
+          return false // Not for us
         }
 
-        try {
-          const response = JSON.parse(message) as MgbaEvalResponse
-          resolve(response)
-          return true // Consumed the message
-        } catch (error) {
-          reject(new Error(`Failed to parse eval response: ${String(error)}`))
-          return true // Consumed the message (even though it failed)
+        if (message.status === 'success') {
+          resolve({ result: message.data.join('\n') })
+        } else if (message.status === 'error') {
+          resolve({ error: message.data.join('\n') })
         }
+        return true // Consumed the message
       }
 
       // Add handler to the list of pending eval handlers
       this.pendingEvalHandlers.push(messageHandler)
 
-      // Send the code using the appropriate format
-      if (useSimpleFormat) {
-        const simpleMessage = this.createSimpleMessage('eval', [code])
-        this.ws.send(simpleMessage)
-      } else {
-        // Legacy format - send raw code
-        this.ws.send(code)
-      }
+      // Send the code using simple format
+      const simpleMessage = this.createSimpleMessage('eval', [code])
+      this.ws.send(simpleMessage)
 
       // Timeout after configured time
       setTimeout(() => {
@@ -421,7 +364,7 @@ export class MgbaWebSocketClient {
     if (response.error) {
       throw new Error(`Failed to read byte at 0x${address.toString(16)}: ${response.error}`)
     }
-    return response.result as number
+    return parseInt(response.result ?? '0', 10)
   }
 
   /**
@@ -432,7 +375,7 @@ export class MgbaWebSocketClient {
     if (response.error) {
       throw new Error(`Failed to read word at 0x${address.toString(16)}: ${response.error}`)
     }
-    return response.result as number
+    return parseInt(response.result ?? '0', 10)
   }
 
   /**
@@ -443,62 +386,36 @@ export class MgbaWebSocketClient {
     if (response.error) {
       throw new Error(`Failed to read dword at 0x${address.toString(16)}: ${response.error}`)
     }
-    return response.result as number
+    return parseInt(response.result ?? '0', 10)
   }
 
   /**
-   * Read multiple bytes from memory using the most appropriate method
-   * Automatically chooses between readRange API and bulk Lua operations
+   * Read multiple bytes from memory using bulk Lua operations
    */
   async readBytes (address: number, length: number): Promise<Uint8Array> {
-    // For very small reads, use bulk Lua which is more reliable
-    if (length <= MEMORY_CONSTANTS.SMALL_READ_THRESHOLD) {
-      return this.readBytesBulk(address, length)
+    // Check if we have this data from memory watching first
+    const cacheKey = `${address}-${length}`
+    const cachedData = this.latestMemoryData.get(cacheKey)
+    if (cachedData) {
+      return new Uint8Array(cachedData)
     }
 
-    try {
-      // Try using readRange API - fastest for larger reads
-      const luaCode = `(function()
-        local data = emu:readRange(${address}, ${length})
-        local bytes = {}
-        for i = 1, #data do
-          bytes[i] = string.byte(data, i)
-        end
-        return bytes
-      end)()`
-
-      const response = await this.eval(luaCode)
-      if (response.error) {
-        throw new Error(`Failed to read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
-      }
-
-      return new Uint8Array(response.result as number[])
-    } catch (error) {
-      // Fallback to bulk read if readRange fails
-      console.warn(`readRange failed, falling back to bulk read: ${String(error)}`)
-      return this.readBytesBulk(address, length)
-    }
-  }
-
-  /**
-   * Read multiple bytes using optimized bulk Lua operations (FAST)
-   * This is 100x+ faster than individual byte reads
-   */
-  async readBytesBulk (address: number, length: number): Promise<Uint8Array> {
+    // Fall back to reading via eval
     const luaCode = `(function() 
       local r = {} 
       for i = 0, ${length - 1} do 
         r[i+1] = emu:read8(${address} + i) 
       end 
-      return r 
+      return table.concat(r, ",")
     end)()`
 
     const response = await this.eval(luaCode)
     if (response.error) {
-      throw new Error(`Failed to bulk read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
+      throw new Error(`Failed to read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
     }
 
-    return new Uint8Array(response.result as number[])
+    const bytes = (response.result ?? '').split(',').map(b => parseInt(b.trim(), 10)).filter(b => !isNaN(b))
+    return new Uint8Array(bytes)
   }
 
   /**
@@ -512,59 +429,15 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Write a 16-bit value to memory (little-endian)
-   */
-  async writeWord (address: number, value: number): Promise<void> {
-    const response = await this.eval(`emu:write16(${address}, ${value & 0xFFFF})`)
-    if (response.error) {
-      throw new Error(`Failed to write word at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Write a 32-bit value to memory (little-endian)
-   */
-  async writeDWord (address: number, value: number): Promise<void> {
-    const response = await this.eval(`emu:write32(${address}, ${value})`)
-    if (response.error) {
-      throw new Error(`Failed to write dword at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Write multiple bytes to memory using the most appropriate method
+   * Write multiple bytes to memory using bulk Lua operations
    */
   async writeBytes (address: number, data: Uint8Array): Promise<void> {
-    // For small writes, use individual byte writes for reliability
-    if (data.length <= MEMORY_CONSTANTS.SMALL_READ_THRESHOLD) {
-      return this.writeBytesBulk(address, data)
-    }
-
-    // For larger writes, use chunked approach
-    return this.writeBytesChunked(address, data, MEMORY_CONSTANTS.DEFAULT_CHUNK_SIZE)
-  }
-
-  /**
-   * Write multiple bytes using optimized bulk Lua operations (FAST)
-   */
-  async writeBytesBulk (address: number, data: Uint8Array): Promise<void> {
     const bytes = Array.from(data).join(', ')
     const luaCode = `(function() local data = {${bytes}} for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end end)()`
 
     const response = await this.eval(luaCode)
     if (response.error) {
-      throw new Error(`Failed to bulk write ${data.length} bytes at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Write multiple bytes using chunked approach for very large writes
-   */
-  async writeBytesChunked (address: number, data: Uint8Array, chunkSize = MEMORY_CONSTANTS.DEFAULT_CHUNK_SIZE): Promise<void> {
-    for (let offset = 0; offset < data.length; offset += chunkSize) {
-      const chunkEnd = Math.min(offset + chunkSize, data.length)
-      const chunk = data.slice(offset, chunkEnd)
-      await this.writeBytesBulk(address + offset, chunk)
+      throw new Error(`Failed to write ${data.length} bytes at 0x${address.toString(16)}: ${response.error}`)
     }
   }
 
@@ -576,7 +449,7 @@ export class MgbaWebSocketClient {
     if (response.error) {
       throw new Error(`Failed to get game title: ${response.error}`)
     }
-    return response.result as string
+    return response.result ?? ''
   }
 
   /**
@@ -584,19 +457,6 @@ export class MgbaWebSocketClient {
    */
   configureSharedBuffer (config: Partial<SharedBufferConfig>): void {
     this.sharedBufferConfig = { ...this.sharedBufferConfig, ...config }
-  }
-
-  /**
-   * Preload commonly used memory regions into cache
-   */
-  async preloadSharedBuffers (): Promise<void> {
-    for (const region of this.sharedBufferConfig.preloadRegions) {
-      try {
-        await this.getSharedBuffer(region.address, region.size)
-      } catch (error) {
-        console.warn(`⚠️  Failed to preload region 0x${region.address.toString(16)}: ${String(error)}`)
-      }
-    }
   }
 
   /**
@@ -611,140 +471,17 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Get data from shared buffer (with caching)
-   * This method provides ultra-fast access to frequently used memory regions
-   * When memory watching is active, it prefers cached data to reduce polling
+   * Get data from memory, preferring cached data from watch updates
    */
-  async getSharedBuffer (address: number, size: number, useCache = true): Promise<Uint8Array> {
+  async getSharedBuffer (address: number, size: number): Promise<Uint8Array> {
+    // First check if we have this data from memory watching
     const cacheKey = `${address}-${size}`
-    const now = Date.now()
-
-    // If this region is being watched, prefer cached data (much longer timeout)
-    const isWatchedRegion = this.isWatching && this.watchedRegions.some(
-      region => region.address === address && region.size === size,
-    )
-
-    // Check cache first
-    if (useCache) {
-      const cached = this.memoryCache.get(cacheKey)
-      if (cached && !cached.dirty) {
-        const timeout = isWatchedRegion
-          ? this.sharedBufferConfig.cacheTimeout * 1000 // Much longer timeout for watched regions
-          : this.sharedBufferConfig.cacheTimeout
-
-        if ((now - cached.lastUpdated) < timeout) {
-          return cached.data
-        }
-      }
+    const cachedData = this.latestMemoryData.get(cacheKey)
+    if (cachedData) {
+      return new Uint8Array(cachedData)
     }
 
-    // For watched regions, if we have any cached data (even if expired), return it
-    // The push updates will keep it fresh
-    if (isWatchedRegion && useCache) {
-      const cached = this.memoryCache.get(cacheKey)
-      if (cached && !cached.dirty) {
-        console.log(`🔍 Using cached data for watched region 0x${address.toString(16)} (age: ${now - cached.lastUpdated}ms)`)
-        return cached.data
-      }
-    }
-
-    // Read from memory using optimized method
-    const data = await this.readBytes(address, size)
-
-    // Cache the result
-    if (useCache) {
-      this.memoryCache.set(cacheKey, {
-        address,
-        size,
-        data: new Uint8Array(data), // Make a copy
-        lastUpdated: now,
-        dirty: false,
-      })
-
-      // Cleanup cache periodically (every 10 accesses) to avoid overhead
-      this.cacheAccessCount++
-      if (this.cacheAccessCount % 10 === 0) {
-        this.cleanupCache()
-      }
-    }
-
-    return data
-  }
-
-  /**
-   * Write data to shared buffer and mark cache as dirty
-   */
-  async setSharedBuffer (address: number, data: Uint8Array): Promise<void> {
-    // Write to memory
-    await this.writeBytes(address, data)
-
-    // Mark related cache entries as dirty
-    for (const [, region] of this.memoryCache.entries()) {
-      const regionEnd = region.address + region.size
-      const writeEnd = address + data.length
-
-      // Check if write overlaps with cached region
-      if (address < regionEnd && writeEnd > region.address) {
-        region.dirty = true
-      }
-    }
-  }
-
-  /**
-   * Invalidate specific cache entry
-   */
-  invalidateCache (address: number, size: number): void {
-    const cacheKey = `${address}-${size}`
-    this.memoryCache.delete(cacheKey)
-  }
-
-  /**
-   * Clear all cached memory
-   */
-  clearCache (): void {
-    this.memoryCache.clear()
-  }
-
-  /**
-   * Clean up old cache entries
-   */
-  private cleanupCache (): void {
-    const now = Date.now()
-    const entries = Array.from(this.memoryCache.entries())
-
-    // Remove expired entries
-    for (const [key, region] of entries) {
-      if ((now - region.lastUpdated) > this.sharedBufferConfig.cacheTimeout) {
-        this.memoryCache.delete(key)
-      }
-    }
-
-    // Remove oldest entries if cache is too large
-    if (this.memoryCache.size > this.sharedBufferConfig.maxCacheSize) {
-      const sortedEntries = entries.sort((a, b) => a[1].lastUpdated - b[1].lastUpdated)
-      const toRemove = this.memoryCache.size - this.sharedBufferConfig.maxCacheSize
-
-      for (let i = 0; i < toRemove; i++) {
-        const entry = sortedEntries[i]
-        if (entry) {
-          this.memoryCache.delete(entry[0])
-        }
-      }
-    }
-  }
-
-  /**
-   * Get cache statistics
-   */
-  getCacheStats (): { size: number, regions: Array<{ address: string, size: number, age: number, dirty: boolean }> } {
-    const now = Date.now()
-    const regions = Array.from(this.memoryCache.entries()).map(([, region]) => ({
-      address: `0x${region.address.toString(16)}`,
-      size: region.size,
-      age: now - region.lastUpdated,
-      dirty: region.dirty,
-    }))
-
-    return { size: this.memoryCache.size, regions }
+    // Fall back to reading directly
+    return this.readBytes(address, size)
   }
 }

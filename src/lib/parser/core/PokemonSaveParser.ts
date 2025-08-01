@@ -172,12 +172,11 @@ export class PokemonSaveParser {
 
     console.log(`Memory mode initialized for ${gameTitle} using config: ${this.config.name}`)
 
-    // Configure and preload memory regions if defined in config
+    // Configure memory regions if defined in config
     if (this.config.memoryAddresses?.preloadRegions) {
       client.configureSharedBuffer({
         preloadRegions: [...this.config.memoryAddresses.preloadRegions],
       })
-      await client.preloadSharedBuffers()
     }
   }
 

@@ -20,6 +20,7 @@ describe('Simple Message Format', () => {
 
       expect(parsed).toEqual({
         command: 'watch',
+        status: 'success',
         data: ['132145,8', '154311,600'],
       })
     })
@@ -30,6 +31,7 @@ describe('Simple Message Format', () => {
 
       expect(parsed).toEqual({
         command: 'eval',
+        status: 'success',
         data: ['1+1'],
       })
     })
@@ -40,6 +42,7 @@ describe('Simple Message Format', () => {
 
       expect(parsed).toEqual({
         command: 'eval',
+        status: 'success',
         data: ['local test = 1', 'return test'],
       })
     })
@@ -64,6 +67,7 @@ describe('Simple Message Format', () => {
 
       expect(parsed).toEqual({
         command: 'watch',
+        status: 'success',
         data: ['132145,8', '154311,600'],
       })
     })
