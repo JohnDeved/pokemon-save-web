@@ -21,10 +21,10 @@ describe('WebSocket Watch Mode Regression Tests', () => {
       send: vi.fn(),
       close: vi.fn(),
       readyState: 1, // OPEN
-      onopen: null,
-      onmessage: null,
-      onclose: null,
-      onerror: null,
+      onopen: undefined,
+      onmessage: undefined,
+      onclose: undefined,
+      onerror: undefined,
     }
 
     // Mock WebSocket constructor to return our mock

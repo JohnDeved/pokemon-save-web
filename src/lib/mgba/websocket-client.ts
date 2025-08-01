@@ -86,7 +86,10 @@ export class MgbaWebSocketClient {
    */
   private handleOriginalJsonResponse (response: { command?: string, status?: string, result?: unknown, error?: string, updates?: unknown[] }): void {
     if (response.command === 'watch') {
-      this.handleWatchResponse(response)
+      this.handleWatchResponse({
+        status: response.status,
+        updates: Array.isArray(response.updates) ? response.updates as Array<{ address?: number, size?: number, data?: number[] }> : undefined,
+      })
     } else if ('result' in response) {
       this.handleEvalResponse({
         command: 'eval',
@@ -97,7 +100,7 @@ export class MgbaWebSocketClient {
       this.handleEvalResponse({
         command: 'eval',
         status: 'error',
-        data: [response.error],
+        data: [response.error ?? 'Unknown error'],
       })
     }
   }
