@@ -77,6 +77,7 @@ export class PokemonSaveParser {
   // Watching properties
   private isWatching = false
   private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
+  private cachedPartyPokemon: PokemonBase[] = []
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
@@ -659,7 +660,7 @@ export class PokemonSaveParser {
 
     try {
       // Start watching memory regions directly
-      await this.webSocketClient.startWatching(partyRegions)
+      await this.webSocketClient.startWatching([...partyRegions])
 
       // Set up memory change listener
       const memoryChangeListener = async (address: number, size: number, data: Uint8Array) => {
@@ -677,7 +678,17 @@ export class PokemonSaveParser {
       this.isWatching = true
 
       // Load initial data to establish baseline
-      await this.handlePartyDataChange()
+      const initialPartyPokemon = await this.parsePartyPokemon()
+      this.cachedPartyPokemon = initialPartyPokemon
+
+      // Notify listeners with initial data
+      for (const listener of this.watchListeners) {
+        try {
+          listener(initialPartyPokemon)
+        } catch (error) {
+          console.error('Watch listener error:', error)
+        }
+      }
     } catch (error) {
       if (options.onError) {
         options.onError(error instanceof Error ? error : new Error(String(error)))
@@ -691,15 +702,16 @@ export class PokemonSaveParser {
    * Handle party data changes with provided memory data and notify listeners
    */
   private async handlePartyDataChangeWithData (address: number, size: number, data: Uint8Array): Promise<void> {
-    if (!this.webSocketClient) return
+    if (!this.webSocketClient || !this.config?.memoryAddresses) return
 
     try {
-      const partyPokemon = await this.parsePartyPokemon()
+      // Patch existing Pokemon data with the new memory data
+      const updatedPartyPokemon = await this.patchPartyDataWithMemory(address, size, data)
 
       // Notify all listeners (no need for change detection as server only sends when changed)
       for (const listener of this.watchListeners) {
         try {
-          listener(partyPokemon)
+          listener(updatedPartyPokemon)
         } catch (error) {
           console.error('Watch listener error:', error)
         }
@@ -710,25 +722,62 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Handle party data changes and notify listeners
+   * Patch party Pokemon data with provided memory changes
+   * Uses the cached Pokemon objects and updates their underlying data
    */
-  private async handlePartyDataChange (): Promise<void> {
-    if (!this.webSocketClient) return
+  private async patchPartyDataWithMemory (address: number, size: number, newData: Uint8Array): Promise<PokemonBase[]> {
+    if (!this.config?.memoryAddresses) {
+      throw new Error('No memory addresses configured')
+    }
 
-    try {
-      const partyPokemon = await this.parsePartyPokemon()
+    const { partyData, partyCount } = this.config.memoryAddresses
+    const pokemonSize = this.config.saveLayout.pokemonSize!
 
-      // Notify all listeners (no need for change detection as server only sends when changed)
-      for (const listener of this.watchListeners) {
-        try {
-          listener(partyPokemon)
-        } catch (error) {
-          console.error('Watch listener error:', error)
+    // If this is the first update or cache is empty, do a full parse
+    if (this.cachedPartyPokemon.length === 0) {
+      this.cachedPartyPokemon = await this.parsePartyPokemonFromMemory()
+      return this.cachedPartyPokemon
+    }
+
+    // Handle party count updates
+    if (address === partyCount) {
+      // Party count changed - need to re-parse the entire party
+      this.cachedPartyPokemon = await this.parsePartyPokemonFromMemory()
+      return this.cachedPartyPokemon
+    }
+
+    // Handle party data updates
+    if (address >= partyData && address < partyData + (6 * pokemonSize)) {
+      const relativeOffset = address - partyData
+      const startSlot = Math.floor(relativeOffset / pokemonSize)
+      const endSlot = Math.floor((relativeOffset + size - 1) / pokemonSize)
+
+      // Update affected Pokemon slots
+      for (let slot = startSlot; slot <= endSlot && slot < this.cachedPartyPokemon.length; slot++) {
+        const slotOffset = slot * pokemonSize
+        const dataStartInSlot = Math.max(0, relativeOffset - slotOffset)
+        const dataEndInSlot = Math.min(pokemonSize, relativeOffset + size - slotOffset)
+        const bytesToUpdate = dataEndInSlot - dataStartInSlot
+
+        if (bytesToUpdate > 0) {
+          const sourceStart = Math.max(0, slotOffset - relativeOffset)
+          const targetStart = dataStartInSlot
+
+          // Update the Pokemon's underlying data buffer
+          const pokemon = this.cachedPartyPokemon[slot]!
+          const pokemonData = pokemon.rawBytes
+          pokemonData.set(
+            newData.slice(sourceStart, sourceStart + bytesToUpdate),
+            targetStart,
+          )
         }
       }
-    } catch (error) {
-      console.error('Error handling party data change:', error)
+
+      return this.cachedPartyPokemon
     }
+
+    // If address doesn't match any known regions, return cached data unchanged
+    return this.cachedPartyPokemon
   }
 
   /**
@@ -743,6 +792,7 @@ export class PokemonSaveParser {
       await this.webSocketClient.stopWatching()
       this.isWatching = false
       this.watchListeners.length = 0
+      this.cachedPartyPokemon.length = 0
     } catch (error) {
       console.error('Error stopping watch mode:', error)
     }

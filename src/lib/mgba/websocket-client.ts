@@ -4,7 +4,10 @@
  */
 
 import WebSocket from 'isomorphic-ws'
-import type { SimpleMessage, MemoryRegion, SharedBufferConfig, MemoryChangeListener } from './types'
+import type { SimpleMessage, SharedBufferConfig, MemoryChangeListener } from './types'
+
+// Re-export types for consumers
+export type { MemoryChangeListener } from './types'
 
 export class MgbaWebSocketClient {
   private ws: WebSocket | null = null
@@ -26,8 +29,6 @@ export class MgbaWebSocketClient {
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
   }
-
-
 
   /**
    * Connect to WebSocket server
@@ -106,7 +107,7 @@ export class MgbaWebSocketClient {
         const address = update.address
         const size = update.size
         const dataArray = update.data
-        
+
         if (typeof address === 'number' && typeof size === 'number' && Array.isArray(dataArray)) {
           const data = new Uint8Array(dataArray)
 
@@ -345,5 +346,4 @@ export class MgbaWebSocketClient {
     }
     return result.result?.replace(/"/g, '') ?? 'Unknown Game'
   }
-
 }
