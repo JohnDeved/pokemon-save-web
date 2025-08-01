@@ -274,7 +274,7 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
       },
       onError: (error) => {
         console.error('❌ Error processing memory change:', error.message)
-      }
+      },
     })
     console.log('✅ Memory watching started')
   } catch (error) {

@@ -77,7 +77,6 @@ export class PokemonSaveParser {
   // Watching properties
   private isWatching = false
   private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
-  private lastDataHash = ''
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
@@ -635,7 +634,7 @@ export class PokemonSaveParser {
    * and call the provided callback when changes are detected
    */
   async watch (options: {
-    onPartyChange?: (partyPokemon: PokemonBase[]) => void,
+    onPartyChange?: (partyPokemon: PokemonBase[]) => void
     onError?: (error: Error) => void
   } = {}): Promise<void> {
     if (!this.isMemoryMode || !this.webSocketClient) {
@@ -652,25 +651,28 @@ export class PokemonSaveParser {
     }
 
     // Set up memory watching for party data regions
-    const partyRegions = [
-      { address: 0x20244e9, size: 7 }, // Party count + context  
-      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
-    ]
+    if (!this.config?.memoryAddresses?.preloadRegions) {
+      throw new Error('No memory addresses configured for watching')
+    }
+
+    const partyRegions = this.config.memoryAddresses.preloadRegions
 
     try {
       // Configure and start watching
       this.webSocketClient.configureSharedBuffer({
-        preloadRegions: partyRegions
+        preloadRegions: partyRegions,
       })
-      
+
       await this.webSocketClient.startWatchingPreloadRegions()
 
       // Set up memory change listener
-      const memoryChangeListener = async (address: number, _size: number, _data: Uint8Array) => {
+      const partyAddresses = new Set(partyRegions.map(region => region.address))
+      const memoryChangeListener = async (address: number, size: number, data: Uint8Array) => {
         try {
           // Only process changes to party-related memory regions
-          if (address === 0x20244e9 || address === 0x20244ec) {
-            await this.handlePartyDataChange()
+          if (partyAddresses.has(address)) {
+            // Use the provided data directly instead of making additional calls
+            await this.handlePartyDataChangeWithData(address, size, data)
           }
         } catch (error) {
           if (options.onError) {
@@ -684,13 +686,34 @@ export class PokemonSaveParser {
 
       // Load initial data to establish baseline
       await this.handlePartyDataChange()
-
     } catch (error) {
       if (options.onError) {
         options.onError(error instanceof Error ? error : new Error(String(error)))
       } else {
         throw error
       }
+    }
+  }
+
+  /**
+   * Handle party data changes with provided memory data and notify listeners
+   */
+  private async handlePartyDataChangeWithData (address: number, size: number, data: Uint8Array): Promise<void> {
+    if (!this.webSocketClient) return
+
+    try {
+      const partyPokemon = await this.parsePartyPokemon()
+
+      // Notify all listeners (no need for change detection as server only sends when changed)
+      for (const listener of this.watchListeners) {
+        try {
+          listener(partyPokemon)
+        } catch (error) {
+          console.error('Watch listener error:', error)
+        }
+      }
+    } catch (error) {
+      console.error('Error handling party data change:', error)
     }
   }
 
@@ -702,28 +725,13 @@ export class PokemonSaveParser {
 
     try {
       const partyPokemon = await this.parsePartyPokemon()
-      
-      // Create a hash of the party data to detect actual changes
-      const dataHash = JSON.stringify(
-        partyPokemon.map(p => ({
-          species: p.speciesId,
-          level: p.level,
-          hp: p.currentHp,
-          nickname: p.nickname,
-        }))
-      )
 
-      // Only notify listeners if party data actually changed
-      if (dataHash !== this.lastDataHash) {
-        this.lastDataHash = dataHash
-        
-        // Notify all listeners
-        for (const listener of this.watchListeners) {
-          try {
-            listener(partyPokemon)
-          } catch (error) {
-            console.error('Watch listener error:', error)
-          }
+      // Notify all listeners (no need for change detection as server only sends when changed)
+      for (const listener of this.watchListeners) {
+        try {
+          listener(partyPokemon)
+        } catch (error) {
+          console.error('Watch listener error:', error)
         }
       }
     } catch (error) {
@@ -743,7 +751,6 @@ export class PokemonSaveParser {
       await this.webSocketClient.stopWatching()
       this.isWatching = false
       this.watchListeners.length = 0
-      this.lastDataHash = ''
     } catch (error) {
       console.error('Error stopping watch mode:', error)
     }

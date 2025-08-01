@@ -730,20 +730,20 @@ app:websocket("/ws", function(ws)
                         end
                         local ok, result = pcall(fn)
                         if ok then
-                            -- Send unified success format: eval\nsuccess\nResult
-                            ws:send("eval\nsuccess\n" .. tostring(result))
+                            -- Send JSON response for eval success
+                            ws:send(HttpServer.jsonStringify({result = result}))
                         else
-                            -- Send unified error format: eval\nerror\nMessage
-                            ws:send("eval\nerror\n" .. tostring(result))
+                            -- Send JSON response for eval error
+                            ws:send(HttpServer.jsonStringify({error = tostring(result)}))
                         end
                     else
-                        -- Send unified error format: eval\nerror\nMessage
-                        ws:send("eval\nerror\nNo code provided for eval")
+                        -- Send JSON error response
+                        ws:send(HttpServer.jsonStringify({error = "No code provided for eval"}))
                     end
                     return
                 end
             else
-                ws:send("eval\nerror\nUnknown command. Use 'watch' or 'eval'")
+                ws:send(HttpServer.jsonStringify({error = "Unknown command. Use 'watch' or 'eval'"}))
             end
         end
         local ok, err = pcall(safe_handler)

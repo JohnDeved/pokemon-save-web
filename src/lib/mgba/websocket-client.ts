@@ -104,7 +104,7 @@ export class MgbaWebSocketClient {
         }
 
         this.ws.onerror = (error) => {
-          reject(new Error(`WebSocket connection failed: ${error}`))
+          reject(new Error(`WebSocket connection failed: ${String(error)}`))
         }
       } catch (error) {
         reject(error)
@@ -116,7 +116,24 @@ export class MgbaWebSocketClient {
    * Handle incoming WebSocket messages
    */
   private handleMessage (data: string): void {
-    // Try parsing as simple message first
+    // Try parsing as JSON first (preferred format from server)
+    try {
+      const parsed = JSON.parse(data)
+      if (parsed.result !== undefined || parsed.error !== undefined) {
+        // Handle JSON eval response
+        const message: SimpleMessage = {
+          command: 'eval',
+          status: parsed.error ? 'error' : 'success',
+          data: parsed.error ? [parsed.error] : [JSON.stringify(parsed.result)],
+        }
+        this.handleSimpleMessage(message)
+        return
+      }
+    } catch {
+      // Not JSON, continue to other formats
+    }
+
+    // Try parsing as simple message format (used for watch updates)
     const simpleMessage = this.parseSimpleMessageInternal(data)
     if (simpleMessage) {
       this.handleSimpleMessage(simpleMessage)
@@ -126,23 +143,6 @@ export class MgbaWebSocketClient {
     // Handle plain text responses (like watch confirmations)
     if (data.includes('Memory watching started') || data.includes('Welcome to WebSocket')) {
       // Confirmation messages, ignore for simplicity
-      return
-    }
-
-    // Try parsing as JSON for legacy eval responses
-    try {
-      const parsed = JSON.parse(data)
-      if (parsed.result !== undefined || parsed.error !== undefined) {
-        // Convert JSON eval response to simple message format for consistency
-        const message: SimpleMessage = {
-          command: 'eval',
-          status: parsed.error ? 'error' : 'success',
-          data: parsed.error ? [parsed.error] : [JSON.stringify(parsed.result)]
-        }
-        this.handleSimpleMessage(message)
-      }
-    } catch {
-      // Not JSON, ignore
     }
   }
 
@@ -210,14 +210,14 @@ export class MgbaWebSocketClient {
       throw new Error('Not connected to mGBA WebSocket server')
     }
 
-    if (!regions || regions.length === 0) {
+    if (regions.length === 0) {
       throw new Error('No regions to watch')
     }
 
     this.watchedRegions = [...regions]
     const regionLines = regions.map(r => `${r.address},${r.size}`)
     const message = ['watch', ...regionLines].join('\n')
-    
+
     this.ws.send(message)
     this.isWatching = true
   }
@@ -250,7 +250,7 @@ export class MgbaWebSocketClient {
       const handler = (message: SimpleMessage): boolean => {
         if (message.command === 'eval') {
           clearTimeout(timeout)
-          
+
           if (message.status === 'error') {
             resolve({ error: message.data.join('\n') })
           } else {
@@ -288,16 +288,16 @@ export class MgbaWebSocketClient {
     // Fall back to direct eval read
     const code = `local data = emu:readRange(${address}, ${size}) local bytes = {} for i = 1, #data do bytes[i] = string.byte(data, i) end return bytes`
     const result = await this.eval(code)
-    
+
     if (result.error) {
       throw new Error(`Failed to read memory: ${result.error}`)
     }
 
     try {
-      const bytes = JSON.parse(result.result || '[]')
+      const bytes = JSON.parse(result.result ?? '[]')
       return new Uint8Array(bytes)
     } catch (error) {
-      throw new Error(`Failed to parse memory data: ${error}`)
+      throw new Error(`Failed to parse memory data: ${String(error)}`)
     }
   }
 
@@ -308,7 +308,7 @@ export class MgbaWebSocketClient {
     const bytes = Array.from(data).join(',')
     const code = `local data = {${bytes}} for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end`
     const result = await this.eval(code)
-    
+
     if (result.error) {
       throw new Error(`Failed to write memory: ${result.error}`)
     }
@@ -404,7 +404,7 @@ export class MgbaWebSocketClient {
     if (result.error) {
       throw new Error(`Failed to get game title: ${result.error}`)
     }
-    return result.result?.replace(/"/g, '') || 'Unknown Game'
+    return result.result?.replace(/"/g, '') ?? 'Unknown Game'
   }
 
   /**
@@ -414,8 +414,8 @@ export class MgbaWebSocketClient {
     return data.map(line => {
       const parts = line.split(',')
       return {
-        address: parseInt(parts[0] || '0', 10),
-        size: parseInt(parts[1] || '0', 10)
+        address: parseInt(parts[0] ?? '0', 10),
+        size: parseInt(parts[1] ?? '0', 10),
       }
     }).filter(region => !isNaN(region.address) && !isNaN(region.size) && region.address > 0 && region.size > 0)
   }
