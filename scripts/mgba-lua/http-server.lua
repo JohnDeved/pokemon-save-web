@@ -609,7 +609,22 @@ app:websocket("/ws", function(ws)
             
             -- Enhanced support for non-self-executing function inputs
             -- Check if it's already a complete statement or needs a return prefix
-            if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
+            local is_statement = code:match("^%s*return%s") or
+                                code:match("^%s*local%s") or
+                                code:match("^%s*function%s") or
+                                code:match("^%s*for%s") or
+                                code:match("^%s*while%s") or
+                                code:match("^%s*if%s") or
+                                code:match("^%s*do%s") or
+                                code:match("^%s*repeat%s") or
+                                code:match("^%s*goto%s") or
+                                code:match("^%s*break%s") or
+                                code:match("^%s*::") or
+                                code:match("^%s*end%s") or
+                                code:match("^%s*%(function") or
+                                code:find("\n") -- If multiline, treat as statement
+            
+            if not is_statement then
                 chunk = "return " .. code
             end
             

@@ -65,8 +65,12 @@ class MemoryBenchmark {
   async testReadRange(address: number, size: number): Promise<number> {
     const start = performance.now()
     
-    // Use simpler single-line format to avoid server adding unwanted 'return'
-    const code = `(function() local data = emu:readRange(${address}, ${size}); local bytes = {}; for i = 1, #data do bytes[i] = string.byte(data, i) end; return bytes end)()`
+    const code = `local data = emu:readRange(${address}, ${size})
+local bytes = {}
+for i = 1, #data do
+  bytes[i] = string.byte(data, i)
+end
+return bytes`
     
     const result = await this.client.eval(code)
     
@@ -84,7 +88,11 @@ class MemoryBenchmark {
   async testRead8(address: number, size: number): Promise<number> {
     const start = performance.now()
     
-    const code = `(function() local bytes = {}; for i = 0, ${size - 1} do bytes[i + 1] = emu:read8(${address} + i) end; return bytes end)()`
+    const code = `local bytes = {}
+for i = 0, ${size - 1} do
+  bytes[i + 1] = emu:read8(${address} + i)
+end
+return bytes`
     
     const result = await this.client.eval(code)
     
@@ -106,7 +114,20 @@ class MemoryBenchmark {
     const chunks = Math.floor(size / 4)
     const remainder = size % 4
     
-    const code = `(function() local bytes = {}; local pos = 1; for i = 0, ${chunks - 1} do local val = emu:read32(${address} + i * 4); bytes[pos] = val & 0xFF; bytes[pos + 1] = (val >> 8) & 0xFF; bytes[pos + 2] = (val >> 16) & 0xFF; bytes[pos + 3] = (val >> 24) & 0xFF; pos = pos + 4 end; for i = 0, ${remainder - 1} do bytes[pos + i] = emu:read8(${address + chunks * 4} + i) end; return bytes end)()`
+    const code = `local bytes = {}
+local pos = 1
+for i = 0, ${chunks - 1} do
+  local val = emu:read32(${address} + i * 4)
+  bytes[pos] = val & 0xFF
+  bytes[pos + 1] = (val >> 8) & 0xFF
+  bytes[pos + 2] = (val >> 16) & 0xFF
+  bytes[pos + 3] = (val >> 24) & 0xFF
+  pos = pos + 4
+end
+for i = 0, ${remainder - 1} do
+  bytes[pos + i] = emu:read8(${address + chunks * 4} + i)
+end
+return bytes`
     
     const result = await this.client.eval(code)
     
