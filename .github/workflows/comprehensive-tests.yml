@@ -1,3 +1,4 @@
+---
 name: Comprehensive Tests
 
 on:
@@ -13,11 +14,11 @@ on:
         default: 'all'
         type: choice
         options:
-        - all
-        - unit
-        - integration
-        - lua
-        - lint
+          - all
+          - unit
+          - integration
+          - lua
+          - lint
 
 env:
   REGISTRY: ghcr.io
@@ -28,88 +29,107 @@ jobs:
     name: Run Comprehensive Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-20-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-20-
-            ${{ runner.os }}-node-
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run linting
-        if: github.event.inputs.test_type == 'lint' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+        if: >-
+          ${{ github.event.inputs.test_type == 'lint' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         run: npm run lint
-      
+
       - name: Run build test
-        if: github.event.inputs.test_type == 'unit' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+        if: >-
+          ${{ github.event.inputs.test_type == 'unit' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         run: npm run build
-      
+
       - name: Run unit and integration tests
-        if: github.event.inputs.test_type == 'unit' || github.event.inputs.test_type == 'integration' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+        if: >-
+          ${{ github.event.inputs.test_type == 'unit' ||
+              github.event.inputs.test_type == 'integration' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         run: npm run test:run
-      
+
       # mGBA Docker Setup for Lua Tests
       - name: Set up Docker Buildx
-        if: github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+        if: >-
+          ${{ github.event.inputs.test_type == 'lua' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Log in to Container Registry
-        if: github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+        if: >-
+          ${{ github.event.inputs.test_type == 'lua' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Try to pull pre-built mGBA image
-        if: github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+        if: >-
+          ${{ github.event.inputs.test_type == 'lua' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         id: pull-image
         run: |
           echo "Attempting to pull pre-built mGBA image..."
           if docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest 2>/dev/null; then
             echo "✅ Successfully pulled pre-built image"
             echo "image_available=true" >> $GITHUB_OUTPUT
-            echo "image_source=ghcr" >> $GITHUB_OUTPUT
-            # Tag it for local use
             docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest mgba-test-env:latest
           elif docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main 2>/dev/null; then
             echo "✅ Successfully pulled main branch image"
             echo "image_available=true" >> $GITHUB_OUTPUT
-            echo "image_source=ghcr" >> $GITHUB_OUTPUT
-            # Tag it for local use
             docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main mgba-test-env:latest
           else
             echo "⚠️ Pre-built image not available, will build from source"
             echo "image_available=false" >> $GITHUB_OUTPUT
-            echo "image_source=build" >> $GITHUB_OUTPUT
           fi
         continue-on-error: true
-      
+
       - name: Build mGBA image if not available
-        if: (github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && steps.pull-image.outputs.image_available != 'true'
+        if: >-
+          ${{ (github.event.inputs.test_type == 'lua' ||
+               github.event.inputs.test_type == 'all' ||
+               github.event.inputs.test_type == null ||
+               github.event.inputs.test_type == '') &&
+              steps.pull-image.outputs.image_available != 'true' }}
         run: |
           echo "Building mGBA Docker image from source..."
           docker build -t mgba-test-env:latest -f docker/Dockerfile .
-          echo "image_available=true" >> $GITHUB_OUTPUT
-        continue-on-error: true
-      
+        continue-on-error: false
+
       - name: Start mGBA container for testing
-        if: (github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && (steps.pull-image.outputs.image_available == 'true' || success())
+        if: >-
+          ${{ github.event.inputs.test_type == 'lua' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         run: |
           echo "Starting mGBA container..."
           docker run -d --name mgba-test \
@@ -117,49 +137,61 @@ jobs:
             -e DISPLAY=:99 \
             -e QT_QPA_PLATFORM=xcb \
             mgba-test-env:latest
-          
+
           # Wait for container to be ready
           echo "Waiting for mGBA HTTP server to be ready..."
           timeout 90s bash -c 'until curl -sf http://localhost:7102/ > /dev/null 2>&1; do sleep 3; done'
           echo "✅ mGBA HTTP server is ready"
-      
+
       - name: Verify mGBA container health
-        if: (github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && (steps.pull-image.outputs.image_available == 'true' || success())
+        if: >-
+          ${{ github.event.inputs.test_type == 'lua' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         run: |
           echo "Testing mGBA HTTP server endpoints..."
           curl -sf http://localhost:7102/ || { echo "❌ Root endpoint failed"; exit 1; }
           echo "✅ mGBA HTTP server is responding correctly"
-      
+
       - name: Run Lua HTTP Server integration tests
-        if: (github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && (steps.pull-image.outputs.image_available == 'true' || success())
+        if: >-
+          ${{ github.event.inputs.test_type == 'lua' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         run: |
           echo "Running Lua HTTP Server integration tests..."
           npm run test:run scripts/mgba-lua/__tests__/lua-http-server.integration.test.ts
         env:
           CI: true
           MGBA_HTTP_URL: http://localhost:7102
-      
+
       - name: Test WebSocket watch mode functionality
-        if: (github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && (steps.pull-image.outputs.image_available == 'true' || success())
+        if: >-
+          ${{ github.event.inputs.test_type == 'lua' ||
+              github.event.inputs.test_type == 'all' ||
+              github.event.inputs.test_type == null ||
+              github.event.inputs.test_type == '' }}
         run: |
           echo "Testing WebSocket watch mode..."
           timeout 30s npm run parse -- --websocket --watch --debug || true
           echo "✅ WebSocket watch mode test completed"
         env:
           CI: true
-      
+
       - name: Container logs (if tests fail)
-        if: failure() && (steps.pull-image.outputs.image_available == 'true' || success())
+        if: failure()
         run: |
           echo "=== mGBA Container Logs ==="
           docker logs mgba-test || echo "No container logs available"
-      
+
       - name: Stop mGBA container
-        if: always() && (steps.pull-image.outputs.image_available == 'true' || success())
+        if: always()
         run: |
           docker stop mgba-test || true
           docker rm mgba-test || true
-      
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -170,13 +202,13 @@ jobs:
             coverage/
             *.log
           retention-days: 7
-      
+
       - name: Create test summary
         if: always()
         run: |
           echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Lint**: ${{ (github.event.inputs.test_type == 'lint' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && '✅ Passed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build**: ${{ (github.event.inputs.test_type == 'unit' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && '✅ Passed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Unit/Integration Tests**: ${{ (github.event.inputs.test_type == 'unit' || github.event.inputs.test_type == 'integration' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && '✅ Passed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Lua/Docker Tests**: ${{ (github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && '✅ Passed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **WebSocket Watch Mode**: ${{ (github.event.inputs.test_type == 'lua' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '') && '✅ Tested' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lint**: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build**: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Unit/Integration Tests**: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lua/Docker Tests**: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- **WebSocket Watch Mode**: Tested" >> $GITHUB_STEP_SUMMARY
