@@ -69,12 +69,35 @@ export class MgbaWebSocketClient {
    * Handle incoming WebSocket messages
    */
   private handleMessage (data: string): void {
-    // All server responses are now in JSON format
+    // The original server sends a welcome message first, then JSON responses
+    if (data.startsWith('Welcome to WebSocket')) {
+      return // Ignore welcome message
+    }
+
     try {
       const parsed = JSON.parse(data)
-      this.handleJsonMessage(parsed)
+      this.handleOriginalJsonResponse(parsed)
     } catch (error) {
       console.warn('Failed to parse WebSocket message as JSON:', error)
+    }
+  }
+
+  /**
+   * Handle JSON responses from original server format
+   */
+  private handleOriginalJsonResponse (response: any): void {
+    if ('result' in response) {
+      this.handleEvalResponse({
+        command: 'eval',
+        status: 'success',
+        data: [JSON.stringify(response.result)],
+      })
+    } else if ('error' in response) {
+      this.handleEvalResponse({
+        command: 'eval',
+        status: 'error',
+        data: [response.error],
+      })
     }
   }
 
@@ -201,13 +224,7 @@ export class MgbaWebSocketClient {
             resolve({ error: message.data.join('\n') })
           } else {
             const resultData = message.data.join('\n')
-            // Try to parse JSON result, otherwise return as string
-            try {
-              const parsed = JSON.parse(resultData)
-              resolve({ result: JSON.stringify(parsed) })
-            } catch {
-              resolve({ result: resultData })
-            }
+            resolve({ result: resultData })
           }
           return true
         }
@@ -215,8 +232,9 @@ export class MgbaWebSocketClient {
       }
 
       this.pendingEvalHandlers.push(handler)
-      const message = ['eval', code].join('\n')
-      this.ws!.send(message)
+      
+      // Send plain text Lua code for original server
+      this.ws!.send(code)
     })
   }
 
