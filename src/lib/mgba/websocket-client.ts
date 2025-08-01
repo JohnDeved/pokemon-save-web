@@ -232,7 +232,6 @@ export class MgbaWebSocketClient {
       }
 
       this.pendingEvalHandlers.push(handler)
-      
       // Send plain text Lua code for original server
       this.ws!.send(code)
     })

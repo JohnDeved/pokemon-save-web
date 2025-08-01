@@ -31,6 +31,26 @@ local HttpServer = {}
 HttpServer.__index = HttpServer
 
 --------------------------------------------------------------------------------
+-- Logging wrappers that output to both mGBA console and stdout/stderr for Docker
+--------------------------------------------------------------------------------
+
+--- Log wrapper function that outputs to both console and stdout for Docker visibility
+---@param message string
+local function log(message)
+    console:log(message)
+    io.stdout:write("[mGBA] " .. message .. "\n")
+    io.stdout:flush()
+end
+
+--- Error wrapper function that outputs to both console and stderr for Docker visibility  
+---@param message string
+local function error(message)
+    console:error(message)
+    io.stderr:write("[mGBA ERROR] " .. message .. "\n")
+    io.stderr:flush()
+end
+
+--------------------------------------------------------------------------------
 -- "Static" Methods
 --------------------------------------------------------------------------------
 
@@ -292,7 +312,7 @@ function HttpServer:_create_response(client, clientId)
             local ok, err = client:send(response_str)
             
             if not ok then
-                console:log("[ERROR] Send failed for client " .. clientId .. ": " .. tostring(err))
+                error("Send failed for client " .. clientId .. ": " .. tostring(err))
             end
             
             self.finished = true
@@ -401,7 +421,7 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     
     local ok, err = client:send(response)
     if not ok then
-        console:log("[ERROR] WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
+        error("WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
         self:_cleanup_client(clientId)
         return
     end
@@ -537,7 +557,7 @@ function HttpServer:listen(port, callback)
             if err == socket.ERRORS.ADDRESS_IN_USE then
                 port = port + 1
             elseif err then
-                console:log("Error binding server: " .. tostring(err))
+                error("Error binding server: " .. tostring(err))
                 return
             end
         until server
@@ -546,7 +566,7 @@ function HttpServer:listen(port, callback)
         local ok, listen_err = server:listen()
         if listen_err then
             server:close()
-            console:log("Error listening: " .. tostring(listen_err))
+            error("Error listening: " .. tostring(listen_err))
             return
         end
 
@@ -561,11 +581,11 @@ function HttpServer:listen(port, callback)
         start_server()
     else
         -- ROM not loaded, register callback to start server later
-        console:log("🕹️ mGBA HTTP Server is initializing. Waiting for ROM to be loaded in the emulator...")
+        log("🕹️ mGBA HTTP Server is initializing. Waiting for ROM to be loaded in the emulator...")
         local cbid
         cbid = callbacks:add("start", function()
             if not emu or not emu.romSize or emu:romSize() == 0 then
-                console:error("[ERROR] No ROM loaded. HTTP server will not start.")
+                error("No ROM loaded. HTTP server will not start.")
                 return
             end
             start_server()
@@ -582,7 +602,7 @@ local app = HttpServer:new()
 
 -- Global middleware
 app:use(function(req, res)
-    console:log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
+    log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
 end)
 
 -- Routes
@@ -600,11 +620,11 @@ end)
 
 -- WebSocket route
 app:websocket("/ws", function(ws)
-    console:log("WebSocket connected: " .. ws.path)
+    log("WebSocket connected: " .. ws.path)
 
     ws.onMessage = function(code)
         local function safe_eval()
-            console:log("WebSocket eval request: " .. tostring(code))
+            log("WebSocket eval request: " .. tostring(code))
             local chunk = code
             
             -- Enhanced support for non-self-executing function inputs
@@ -638,18 +658,18 @@ app:websocket("/ws", function(ws)
                 ws:send(HttpServer.jsonStringify({result = result}))
             else
                 ws:send(HttpServer.jsonStringify({error = tostring(result)}))
-                console:error("[WebSocket Eval Error] " .. tostring(result))
+                error("WebSocket Eval Error: " .. tostring(result))
             end
         end
         local ok, err = pcall(safe_eval)
         if not ok then
             ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
-            console:error("[WebSocket Handler Error] " .. tostring(err))
+            error("WebSocket Handler Error: " .. tostring(err))
         end
     end
 
     ws.onClose = function()
-        console:log("WebSocket disconnected: " .. ws.path)
+        log("WebSocket disconnected: " .. ws.path)
     end
 
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
@@ -657,5 +677,5 @@ end)
 
 -- Start server
 app:listen(7102, function(port)
-    console:log("🚀 mGBA HTTP Server started on port " .. port)
+    log("🚀 mGBA HTTP Server started on port " .. port)
 end)
