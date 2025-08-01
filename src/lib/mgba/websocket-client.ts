@@ -1,6 +1,6 @@
 /**
- * WebSocket client for connecting to mGBA's eval API
- * Handles communication with the mGBA Lua HTTP server's WebSocket endpoint
+ * Simplified WebSocket client for connecting to mGBA's eval API
+ * Focuses on core functionality: direct reads/writes, memory watching, and simple shared buffer
  */
 
 import WebSocket from 'isomorphic-ws'
@@ -11,6 +11,7 @@ export interface SimpleMessage {
   data: string[]
 }
 
+// Kept for backward compatibility
 export interface MemoryRegion {
   address: number
   size: number
@@ -18,129 +19,93 @@ export interface MemoryRegion {
   lastUpdated: number
 }
 
+// Kept for backward compatibility
 export interface SharedBufferConfig {
   preloadRegions: Array<{ address: number, size: number }>
 }
 
 export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void | Promise<void>
 
-// Constants for memory operations
-const MEMORY_CONSTANTS = {
-  EVAL_TIMEOUT_MS: 5000,
-  MAX_LISTENERS: 100,
-} as const
-
 export class MgbaWebSocketClient {
   private ws: WebSocket | null = null
   private connected = false
 
-  // Memory watching system
+  // Memory watching
   private watchedRegions: Array<{ address: number, size: number }> = []
   private readonly memoryChangeListeners: MemoryChangeListener[] = []
   private isWatching = false
 
-  // Eval request handling
+  // Simple memory cache for watched regions
+  private readonly watchedMemoryData = new Map<string, Uint8Array>()
+
+  // Simple preload regions config for backward compatibility
+  private preloadRegions: Array<{ address: number, size: number }> = []
+
+  // Eval handling
   private readonly pendingEvalHandlers: Array<(message: SimpleMessage) => boolean> = []
-
-  // Simple buffer for the latest memory data from watch updates
-  private readonly latestMemoryData = new Map<string, Uint8Array>()
-
-  // Preload regions configuration
-  private sharedBufferConfig: SharedBufferConfig = {
-    preloadRegions: [],
-  }
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
   }
 
   /**
-   * Parse simple message format
-   * For outgoing messages (from client): command\ndata\ndata\n...
-   * For incoming responses (from server): command\nstatus\ndata\ndata\n...
+   * Parse simple message format from server (internal)
    */
-  private parseSimpleMessage (message: string): SimpleMessage | null {
-    const lines = message.trim().split('\n')
-      .map(line => line.trim())
-      .filter(line => line !== '')
-
+  private parseSimpleMessageInternal (message: string): SimpleMessage | null {
+    const lines = message.trim().split('\n').map(line => line.trim()).filter(line => line !== '')
     if (lines.length < 1) return null
 
-    const command = lines[0]?.trim().toLowerCase()
-
+    const command = lines[0]?.toLowerCase()
     if (command !== 'watch' && command !== 'eval') return null
 
-    // Check if this is a response format (has status) or request format (no status)
+    // Check for response format (command + status + data)
     if (lines.length >= 2) {
-      const possibleStatus = lines[1]?.trim().toLowerCase()
-      if (possibleStatus === 'success' || possibleStatus === 'error' || possibleStatus === 'update') {
-        // This is a response format: command\nstatus\ndata...
+      const status = lines[1]?.toLowerCase()
+      if (status === 'success' || status === 'error' || status === 'update') {
         return {
           command: command as 'watch' | 'eval',
-          status: possibleStatus as 'success' | 'error' | 'update',
+          status: status as 'success' | 'error' | 'update',
           data: lines.slice(2),
         }
       }
     }
 
-    // This is a request format: command\ndata...
+    // Handle request format (command + data) - for tests and client usage
     return {
       command: command as 'watch' | 'eval',
-      status: 'success', // Default status for request messages
+      status: 'success',
       data: lines.slice(1),
     }
   }
 
   /**
-   * Create simple message format string
-   */
-  private createSimpleMessage (command: 'watch' | 'eval', data: string[]): string {
-    return [command, ...data].join('\n')
-  }
-
-  /**
-   * Parse watch regions from simple format (address,size per line)
-   */
-  parseWatchRegions (data: string[]): Array<{ address: number, size: number }> {
-    return data.map(line => {
-      const [addressStr, sizeStr] = line.split(',').map(s => s.trim())
-      const address = parseInt(addressStr ?? '0', 10)
-      const size = parseInt(sizeStr ?? '0', 10)
-      return { address, size }
-    }).filter(region => region.address > 0 && region.size > 0)
-  }
-
-  /**
-   * Connect to the mGBA WebSocket server
+   * Connect to WebSocket server
    */
   async connect (): Promise<void> {
+    if (this.connected) return
+
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.url)
 
-        const onOpen = () => {
+        this.ws.onopen = () => {
           this.connected = true
           resolve()
         }
 
-        const onError = (error: ErrorEvent | Event | unknown) => {
-          console.error('WebSocket error:', error)
-          this.connected = false
-          reject(error instanceof Error ? error : new Error(String(error)))
+        this.ws.onmessage = (event) => {
+          const data = event.data as string
+          this.handleMessage(data)
         }
 
-        const onClose = () => {
+        this.ws.onclose = () => {
           this.connected = false
           this.isWatching = false
+          this.watchedRegions = []
         }
 
-        const onMessage = (event: { data: unknown }) => {
-          this.handleWebSocketMessage(String(event.data))
+        this.ws.onerror = (error) => {
+          reject(new Error(`WebSocket connection failed: ${error}`))
         }
-
-        this.ws.addEventListener('open', onOpen)
-        this.ws.addEventListener('error', onError)
-        this.ws.addEventListener('close', onClose)
-        this.ws.addEventListener('message', onMessage)
       } catch (error) {
         reject(error)
       }
@@ -148,88 +113,75 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Disconnect from the WebSocket server
-   */
-  disconnect (): void {
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
-    }
-    this.connected = false
-    this.isWatching = false
-  }
-
-  /**
    * Handle incoming WebSocket messages
    */
-  private handleWebSocketMessage (data: string): void {
-    // Skip empty messages
-    if (!data || data.trim() === '') {
+  private handleMessage (data: string): void {
+    // Try parsing as simple message first
+    const simpleMessage = this.parseSimpleMessageInternal(data)
+    if (simpleMessage) {
+      this.handleSimpleMessage(simpleMessage)
       return
     }
 
-    // First check if any pending eval handlers can process this message
-    const simpleMessage = this.parseSimpleMessage(data)
-    if (simpleMessage) {
-      // Try eval handlers first
-      for (let i = this.pendingEvalHandlers.length - 1; i >= 0; i--) {
-        const handler = this.pendingEvalHandlers[i]
-        if (handler && handler(simpleMessage)) {
-          // Handler processed the message, remove it and return
-          this.pendingEvalHandlers.splice(i, 1)
-          return
-        }
-      }
+    // Handle plain text responses (like watch confirmations)
+    if (data.includes('Memory watching started') || data.includes('Welcome to WebSocket')) {
+      // Confirmation messages, ignore for simplicity
+      return
+    }
 
-      // Handle other message types
-      this.handleSimpleMessage(simpleMessage)
+    // Try parsing as JSON for legacy eval responses
+    try {
+      const parsed = JSON.parse(data)
+      if (parsed.result !== undefined || parsed.error !== undefined) {
+        // Convert JSON eval response to simple message format for consistency
+        const message: SimpleMessage = {
+          command: 'eval',
+          status: parsed.error ? 'error' : 'success',
+          data: parsed.error ? [parsed.error] : [JSON.stringify(parsed.result)]
+        }
+        this.handleSimpleMessage(message)
+      }
+    } catch {
+      // Not JSON, ignore
     }
   }
 
   /**
-   * Handle simple format messages
+   * Handle parsed simple messages
    */
   private handleSimpleMessage (message: SimpleMessage): void {
-    switch (message.command) {
-      case 'watch':
-        if (message.status === 'success') {
-          this.isWatching = true
-        } else if (message.status === 'update') {
-          this.handleMemoryUpdate(message)
-        }
-        break
-      case 'eval':
-        // Eval responses are handled by pending handlers
-        break
+    if (message.command === 'watch' && message.status === 'update') {
+      this.handleMemoryUpdate(message)
+      return
+    }
+
+    if (message.command === 'eval') {
+      this.handleEvalResponse(message)
     }
   }
 
   /**
-   * Handle memory update messages from the server
+   * Handle memory update messages from watching
    */
   private handleMemoryUpdate (message: SimpleMessage): void {
-    // Parse memory update data: address,size,data_bytes
-    for (const line of message.data) {
-      const parts = line.split(',')
-      if (parts.length >= 3) {
-        const address = parseInt(parts[0] ?? '0', 10)
-        const size = parseInt(parts[1] ?? '0', 10)
-        const dataBytes = parts.slice(2).map(b => parseInt(b, 10)).filter(b => !isNaN(b))
+    for (const dataLine of message.data) {
+      const parts = dataLine.split(',')
+      if (parts.length >= 3 && parts[0] && parts[1]) {
+        const address = parseInt(parts[0], 10)
+        const size = parseInt(parts[1], 10)
+        const dataBytes = parts.slice(2).map(b => parseInt(b, 10))
+        const data = new Uint8Array(dataBytes)
 
-        if (address > 0 && size > 0 && dataBytes.length === size) {
-          const data = new Uint8Array(dataBytes)
+        // Cache the data
+        const cacheKey = `${address}-${size}`
+        this.watchedMemoryData.set(cacheKey, data)
 
-          // Store latest data
-          const cacheKey = `${address}-${size}`
-          this.latestMemoryData.set(cacheKey, data)
-
-          // Notify listeners
-          for (const listener of this.memoryChangeListeners) {
-            try {
-              listener(address, size, data)
-            } catch (error) {
-              console.error('Error in memory change listener:', error)
-            }
+        // Notify listeners
+        for (const listener of this.memoryChangeListeners) {
+          try {
+            listener(address, size, data)
+          } catch (error) {
+            console.error('Memory change listener error:', error)
           }
         }
       }
@@ -237,65 +189,156 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Start watching memory regions for changes
+   * Handle eval response messages
    */
-  async startWatching (regions?: Array<{ address: number, size: number }>): Promise<void> {
-    if (!this.isConnected()) {
+  private handleEvalResponse (message: SimpleMessage): void {
+    // Find pending handler for this response
+    for (let i = this.pendingEvalHandlers.length - 1; i >= 0; i--) {
+      const handler = this.pendingEvalHandlers[i]
+      if (handler && handler(message)) {
+        this.pendingEvalHandlers.splice(i, 1)
+        break
+      }
+    }
+  }
+
+  /**
+   * Start watching memory regions
+   */
+  async startWatching (regions: Array<{ address: number, size: number }>): Promise<void> {
+    if (!this.connected || !this.ws) {
       throw new Error('Not connected to mGBA WebSocket server')
     }
 
-    // Use provided regions or fall back to preload regions
-    const regionsToWatch = regions ?? this.sharedBufferConfig.preloadRegions
-
-    if (regionsToWatch.length === 0) {
-      throw new Error('No regions to watch. Configure preloadRegions or provide regions parameter.')
+    if (!regions || regions.length === 0) {
+      throw new Error('No regions to watch')
     }
 
-    this.watchedRegions = [...regionsToWatch]
-
-    // Create simple message format: watch\naddress,size\naddress,size\n...
-    const regionLines = regionsToWatch.map(region => `${region.address},${region.size}`)
-    const simpleMessage = this.createSimpleMessage('watch', regionLines)
-
-    this.ws!.send(simpleMessage)
-    console.log(`🔍 Started watching ${regionsToWatch.length} memory regions using simple format`)
+    this.watchedRegions = [...regions]
+    const regionLines = regions.map(r => `${r.address},${r.size}`)
+    const message = ['watch', ...regionLines].join('\n')
+    
+    this.ws.send(message)
+    this.isWatching = true
   }
 
   /**
    * Stop watching memory regions
    */
   async stopWatching (): Promise<void> {
-    this.watchedRegions = []
+    if (this.isWatching && this.ws) {
+      this.ws.send('watch\n') // Send empty watch list to stop
+    }
     this.isWatching = false
-    // Note: We could send a stopWatch message to the server, but it's not necessary
-    // as the server will clean up on disconnect
+    this.watchedRegions = []
+    this.watchedMemoryData.clear()
   }
 
   /**
-   * Add a listener for memory changes
+   * Execute Lua code via eval
+   */
+  async eval (code: string): Promise<{ result?: string, error?: string }> {
+    if (!this.connected || !this.ws) {
+      throw new Error('Not connected to WebSocket server')
+    }
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Eval request timed out'))
+      }, 5000)
+
+      const handler = (message: SimpleMessage): boolean => {
+        if (message.command === 'eval') {
+          clearTimeout(timeout)
+          
+          if (message.status === 'error') {
+            resolve({ error: message.data.join('\n') })
+          } else {
+            const resultData = message.data.join('\n')
+            // Try to parse JSON result, otherwise return as string
+            try {
+              const parsed = JSON.parse(resultData)
+              resolve({ result: JSON.stringify(parsed) })
+            } catch {
+              resolve({ result: resultData })
+            }
+          }
+          return true
+        }
+        return false
+      }
+
+      this.pendingEvalHandlers.push(handler)
+      const message = ['eval', code].join('\n')
+      this.ws!.send(message)
+    })
+  }
+
+  /**
+   * Read bytes from memory - uses cached data if available, otherwise eval
+   */
+  async readBytes (address: number, size: number): Promise<Uint8Array> {
+    // Check if we have this data cached from watching
+    const cacheKey = `${address}-${size}`
+    const cachedData = this.watchedMemoryData.get(cacheKey)
+    if (cachedData) {
+      return new Uint8Array(cachedData)
+    }
+
+    // Fall back to direct eval read
+    const code = `local data = emu:readRange(${address}, ${size}) local bytes = {} for i = 1, #data do bytes[i] = string.byte(data, i) end return bytes`
+    const result = await this.eval(code)
+    
+    if (result.error) {
+      throw new Error(`Failed to read memory: ${result.error}`)
+    }
+
+    try {
+      const bytes = JSON.parse(result.result || '[]')
+      return new Uint8Array(bytes)
+    } catch (error) {
+      throw new Error(`Failed to parse memory data: ${error}`)
+    }
+  }
+
+  /**
+   * Write bytes to memory
+   */
+  async writeBytes (address: number, data: Uint8Array): Promise<void> {
+    const bytes = Array.from(data).join(',')
+    const code = `local data = {${bytes}} for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end`
+    const result = await this.eval(code)
+    
+    if (result.error) {
+      throw new Error(`Failed to write memory: ${result.error}`)
+    }
+  }
+
+  /**
+   * Add memory change listener
    */
   addMemoryChangeListener (listener: MemoryChangeListener): void {
-    if (this.memoryChangeListeners.length >= MEMORY_CONSTANTS.MAX_LISTENERS) {
-      throw new Error(`Maximum number of listeners (${MEMORY_CONSTANTS.MAX_LISTENERS}) exceeded`)
+    if (this.memoryChangeListeners.length >= 100) {
+      throw new Error('Maximum number of listeners reached')
     }
     this.memoryChangeListeners.push(listener)
   }
 
   /**
-   * Remove a memory change listener
+   * Remove memory change listener
    */
   removeMemoryChangeListener (listener: MemoryChangeListener): void {
     const index = this.memoryChangeListeners.indexOf(listener)
-    if (index !== -1) {
+    if (index >= 0) {
       this.memoryChangeListeners.splice(index, 1)
     }
   }
 
   /**
-   * Check if currently watching memory regions
+   * Check if currently watching memory
    */
   isWatchingMemory (): boolean {
-    return this.isWatching && this.watchedRegions.length > 0
+    return this.isWatching
   }
 
   /**
@@ -305,183 +348,112 @@ export class MgbaWebSocketClient {
     return [...this.watchedRegions]
   }
 
-  isConnected (): boolean {
-    return this.connected && this.ws?.readyState === WebSocket.OPEN
-  }
-
   /**
-   * Execute Lua code on the mGBA emulator
+   * Disconnect from WebSocket
    */
-  async eval (code: string): Promise<{ result?: string, error?: string }> {
-    if (!this.isConnected()) {
-      throw new Error('Not connected to mGBA WebSocket server')
+  disconnect (): void {
+    if (this.ws) {
+      this.ws.close()
+      this.ws = null
     }
-
-    return new Promise((resolve, reject) => {
-      if (!this.ws) {
-        reject(new Error('WebSocket is null'))
-        return
-      }
-
-      // Create a handler that can process eval responses
-      const messageHandler = (message: SimpleMessage): boolean => {
-        if (message.command !== 'eval') {
-          return false // Not for us
-        }
-
-        if (message.status === 'success') {
-          resolve({ result: message.data.join('\n') })
-        } else if (message.status === 'error') {
-          resolve({ error: message.data.join('\n') })
-        }
-        return true // Consumed the message
-      }
-
-      // Add handler to the list of pending eval handlers
-      this.pendingEvalHandlers.push(messageHandler)
-
-      // Send the code using simple format
-      const simpleMessage = this.createSimpleMessage('eval', [code])
-      this.ws.send(simpleMessage)
-
-      // Timeout after configured time
-      setTimeout(() => {
-        // Remove the handler from pending list
-        const index = this.pendingEvalHandlers.indexOf(messageHandler)
-        if (index !== -1) {
-          this.pendingEvalHandlers.splice(index, 1)
-        }
-        reject(new Error('Eval request timed out'))
-      }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
-    })
+    this.connected = false
+    this.isWatching = false
+    this.watchedRegions = []
+    this.watchedMemoryData.clear()
+    this.pendingEvalHandlers.length = 0
   }
 
+  // Backward compatibility methods (simplified implementations)
+
   /**
-   * Read a byte from memory
+   * Configure preload regions for backward compatibility
    */
-  async readByte (address: number): Promise<number> {
-    const response = await this.eval(`emu:read8(${address})`)
-    if (response.error) {
-      throw new Error(`Failed to read byte at 0x${address.toString(16)}: ${response.error}`)
-    }
-    return parseInt(response.result ?? '0', 10)
+  configureSharedBuffer (config: SharedBufferConfig): void {
+    this.preloadRegions = [...config.preloadRegions]
   }
 
   /**
-   * Read a 16-bit value from memory (little-endian)
-   */
-  async readWord (address: number): Promise<number> {
-    const response = await this.eval(`emu:read16(${address})`)
-    if (response.error) {
-      throw new Error(`Failed to read word at 0x${address.toString(16)}: ${response.error}`)
-    }
-    return parseInt(response.result ?? '0', 10)
-  }
-
-  /**
-   * Read a 32-bit value from memory (little-endian)
-   */
-  async readDWord (address: number): Promise<number> {
-    const response = await this.eval(`emu:read32(${address})`)
-    if (response.error) {
-      throw new Error(`Failed to read dword at 0x${address.toString(16)}: ${response.error}`)
-    }
-    return parseInt(response.result ?? '0', 10)
-  }
-
-  /**
-   * Read multiple bytes from memory using bulk Lua operations
-   */
-  async readBytes (address: number, length: number): Promise<Uint8Array> {
-    // Check if we have this data from memory watching first
-    const cacheKey = `${address}-${length}`
-    const cachedData = this.latestMemoryData.get(cacheKey)
-    if (cachedData) {
-      return new Uint8Array(cachedData)
-    }
-
-    // Fall back to reading via eval
-    const luaCode = `(function() 
-      local r = {} 
-      for i = 0, ${length - 1} do 
-        r[i+1] = emu:read8(${address} + i) 
-      end 
-      return table.concat(r, ",")
-    end)()`
-
-    const response = await this.eval(luaCode)
-    if (response.error) {
-      throw new Error(`Failed to read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
-    }
-
-    const bytes = (response.result ?? '').split(',').map(b => parseInt(b.trim(), 10)).filter(b => !isNaN(b))
-    return new Uint8Array(bytes)
-  }
-
-  /**
-   * Write a byte to memory
-   */
-  async writeByte (address: number, value: number): Promise<void> {
-    const response = await this.eval(`emu:write8(${address}, ${value & 0xFF})`)
-    if (response.error) {
-      throw new Error(`Failed to write byte at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Write multiple bytes to memory using bulk Lua operations
-   */
-  async writeBytes (address: number, data: Uint8Array): Promise<void> {
-    const bytes = Array.from(data).join(', ')
-    const luaCode = `(function() local data = {${bytes}} for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end end)()`
-
-    const response = await this.eval(luaCode)
-    if (response.error) {
-      throw new Error(`Failed to write ${data.length} bytes at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Get the current game title to check compatibility
-   */
-  async getGameTitle (): Promise<string> {
-    const response = await this.eval('emu:getGameTitle()')
-    if (response.error) {
-      throw new Error(`Failed to get game title: ${response.error}`)
-    }
-    return response.result ?? ''
-  }
-
-  /**
-   * Configure shared buffer settings
-   */
-  configureSharedBuffer (config: Partial<SharedBufferConfig>): void {
-    this.sharedBufferConfig = { ...this.sharedBufferConfig, ...config }
-  }
-
-  /**
-   * Start watching the preload regions for memory changes
+   * Start watching preload regions for backward compatibility
    */
   async startWatchingPreloadRegions (): Promise<void> {
-    if (this.sharedBufferConfig.preloadRegions.length === 0) {
-      throw new Error('No preload regions configured. Set preloadRegions in sharedBufferConfig.')
+    if (this.preloadRegions.length === 0) {
+      throw new Error('No preload regions configured. Set preloadRegions in SharedBufferConfig.')
     }
-
-    await this.startWatching(this.sharedBufferConfig.preloadRegions)
+    await this.startWatching(this.preloadRegions)
   }
 
   /**
-   * Get data from memory, preferring cached data from watch updates
+   * Get shared buffer (cached memory data) for backward compatibility
    */
   async getSharedBuffer (address: number, size: number): Promise<Uint8Array> {
-    // First check if we have this data from memory watching
-    const cacheKey = `${address}-${size}`
-    const cachedData = this.latestMemoryData.get(cacheKey)
-    if (cachedData) {
-      return new Uint8Array(cachedData)
+    return this.readBytes(address, size)
+  }
+
+  /**
+   * Check if connected for backward compatibility
+   */
+  isConnected (): boolean {
+    return this.connected
+  }
+
+  /**
+   * Get game title for backward compatibility
+   */
+  async getGameTitle (): Promise<string> {
+    const result = await this.eval('return emu:getGameTitle()')
+    if (result.error) {
+      throw new Error(`Failed to get game title: ${result.error}`)
+    }
+    return result.result?.replace(/"/g, '') || 'Unknown Game'
+  }
+
+  /**
+   * Parse watch regions for backward compatibility (used in tests)
+   */
+  parseWatchRegions (data: string[]): Array<{ address: number, size: number }> {
+    return data.map(line => {
+      const parts = line.split(',')
+      return {
+        address: parseInt(parts[0] || '0', 10),
+        size: parseInt(parts[1] || '0', 10)
+      }
+    }).filter(region => !isNaN(region.address) && !isNaN(region.size) && region.address > 0 && region.size > 0)
+  }
+
+  /**
+   * Create simple message format string (for tests)
+   */
+  createSimpleMessage (command: 'watch' | 'eval', data: string[]): string {
+    return [command, ...data].join('\n')
+  }
+
+  /**
+   * Parse simple message (for tests) - public version of parseSimpleMessage
+   */
+  parseSimpleMessage (message: string): SimpleMessage | null {
+    const lines = message.trim().split('\n').map(line => line.trim()).filter(line => line !== '')
+    if (lines.length < 1) return null
+
+    const command = lines[0]?.toLowerCase()
+    if (command !== 'watch' && command !== 'eval') return null
+
+    // Check for response format (command + status + data)
+    if (lines.length >= 2) {
+      const status = lines[1]?.toLowerCase()
+      if (status === 'success' || status === 'error' || status === 'update') {
+        return {
+          command: command as 'watch' | 'eval',
+          status: status as 'success' | 'error' | 'update',
+          data: lines.slice(2),
+        }
+      }
     }
 
-    // Fall back to reading directly
-    return this.readBytes(address, size)
+    // Handle request format (command + data) - for tests and client usage
+    return {
+      command: command as 'watch' | 'eval',
+      status: 'success',
+      data: lines.slice(1),
+    }
   }
 }
