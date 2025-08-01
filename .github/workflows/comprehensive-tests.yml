@@ -31,17 +31,12 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup environment
+        uses: ./.github/workflows/copilot-setup-steps.yml
         with:
           node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
+          setup-docker: true
+          install-playwright: false
 
       - name: Run linting
         if: >-
@@ -131,11 +126,14 @@ jobs:
               github.event.inputs.test_type == null ||
               github.event.inputs.test_type == '' }}
         run: |
-          echo "Starting mGBA container..."
+          echo "Starting mGBA container with proper volume mounts..."
           docker run -d --name mgba-test \
             -p 7102:7102 \
             -e DISPLAY=:99 \
             -e QT_QPA_PLATFORM=xcb \
+            -e GAME=emerald \
+            -v "$(pwd)/src/lib/parser/__tests__/test_data:/app/data:rw" \
+            -v "$(pwd)/scripts/mgba-lua/http-server.lua:/app/scripts/mgba_http_server.lua:ro" \
             mgba-test-env:latest
 
           # Wait for container to be ready
