@@ -270,6 +270,7 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
     onPartyChange: (partyPokemon) => {
       clearScreen()
       displayPartyPokemon(partyPokemon, 'MEMORY')
+      if (options.debug) displayPartyPokemonRaw(partyPokemon)
     },
     onError: (error) => {
       console.error('❌ Error processing memory change:', error.message)

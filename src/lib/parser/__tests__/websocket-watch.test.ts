@@ -26,7 +26,6 @@ describe('WebSocket Watch Mode Regression Tests', () => {
 
   test('should properly format hex addresses to prevent Lua syntax errors', () => {
     // Test the specific address that caused the original issue
-    const problematicAddress = 33703145 // 0x20244e9 in decimal
     const configAddresses = [
       { input: 33703145, expected: '0x20244e9', name: 'party count (original issue)' },
       { input: 0x20244ec, expected: '0x20244ec', name: 'party data' },
@@ -50,10 +49,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     const address = 33703145 // The problematic address from the error
     const size = 7
 
-    // The old problematic format (what caused the error)
-    const oldFormat = `emu:read8(${address} + i)` // "emu:read8(33703145 + i)"
-    
-    // The new fixed format (what we use now)
+    // The new fixed format (what we use now) 
     const hexAddress = `0x${address.toString(16)}`
     const newFormat = `local addr = ${hexAddress}; emu:read8(addr + i)` // "local addr = 0x20244e9; emu:read8(addr + i)"
     
@@ -153,10 +149,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     const problematicAddress = 33703145
     const size = 7
     
-    // The problematic code that caused the syntax error
-    const problematicCode = `for i = 0, ${size - 1} do bytes[i + 1] = emu:read8(${problematicAddress} + i) end`
-    
-    // The fixed code that prevents the syntax error
+    // The fixed code that prevents the syntax error  
     const hexAddress = `0x${problematicAddress.toString(16)}`
     const fixedCode = `local addr = ${hexAddress}; for i = 0, ${size - 1} do bytes[i + 1] = emu:read8(addr + i) end`
     
