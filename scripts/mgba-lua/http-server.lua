@@ -678,7 +678,7 @@ app:websocket("/ws", function(ws)
             -- All messages must be in simple format now
             local simpleMessage = parseSimpleMessage(message)
             if not simpleMessage then
-                ws:send("eval\nerror\nInvalid message format. Use simple format: command\\ndata\\ndata...")
+                ws:send(HttpServer.jsonStringify({error = "Invalid message format. Use simple format: command\\ndata\\ndata..."}))
                 return
             end
                 if simpleMessage.command == "watch" then
@@ -698,11 +698,19 @@ app:websocket("/ws", function(ws)
                             end
                         end
                         
-                        -- Send unified response format: watch\nsuccess\nMessage
-                        ws:send("watch\nsuccess\nMemory watching started for " .. #regions .. " regions")
+                        -- Send JSON success response
+                        ws:send(HttpServer.jsonStringify({
+                            command = "watch",
+                            status = "success", 
+                            message = "Memory watching started for " .. #regions .. " regions"
+                        }))
                     else
-                        -- Send unified error format: watch\nerror\nMessage  
-                        ws:send("watch\nerror\nInvalid watch regions format")
+                        -- Send JSON error response  
+                        ws:send(HttpServer.jsonStringify({
+                            command = "watch",
+                            status = "error",
+                            message = "Invalid watch regions format"
+                        }))
                     end
                     return
                 elseif simpleMessage.command == "eval" then
@@ -724,31 +732,55 @@ app:websocket("/ws", function(ws)
                         
                         local fn, err = load(chunk, "websocket-eval")
                         if not fn then
-                            -- Send unified error format: eval\nerror\nMessage
-                            ws:send("eval\nerror\n" .. (err or "Invalid code"))
+                            -- Send JSON error response
+                            ws:send(HttpServer.jsonStringify({
+                                command = "eval",
+                                status = "error",
+                                error = err or "Invalid code"
+                            }))
                             return
                         end
                         local ok, result = pcall(fn)
                         if ok then
                             -- Send JSON response for eval success
-                            ws:send(HttpServer.jsonStringify({result = result}))
+                            ws:send(HttpServer.jsonStringify({
+                                command = "eval",
+                                status = "success",
+                                result = result
+                            }))
                         else
                             -- Send JSON response for eval error
-                            ws:send(HttpServer.jsonStringify({error = tostring(result)}))
+                            ws:send(HttpServer.jsonStringify({
+                                command = "eval",
+                                status = "error",
+                                error = tostring(result)
+                            }))
                         end
                     else
                         -- Send JSON error response
-                        ws:send(HttpServer.jsonStringify({error = "No code provided for eval"}))
+                        ws:send(HttpServer.jsonStringify({
+                            command = "eval",
+                            status = "error",
+                            error = "No code provided for eval"
+                        }))
                     end
                     return
                 end
             else
-                ws:send(HttpServer.jsonStringify({error = "Unknown command. Use 'watch' or 'eval'"}))
+                ws:send(HttpServer.jsonStringify({
+                    command = "unknown",
+                    status = "error",
+                    error = "Unknown command. Use 'watch' or 'eval'"
+                }))
             end
         end
         local ok, err = pcall(safe_handler)
         if not ok then
-            ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
+            ws:send(HttpServer.jsonStringify({
+                command = "system",
+                status = "error",
+                error = "Internal server error: " .. tostring(err)
+            }))
             console:error("[WebSocket Handler Error] " .. tostring(err))
         end
     end
@@ -759,7 +791,11 @@ app:websocket("/ws", function(ws)
         memoryWatchers[ws.id] = nil
     end
 
-    ws:send("Welcome to WebSocket Eval! Send simple commands: watch/eval + data.")
+    ws:send(HttpServer.jsonStringify({
+        command = "welcome",
+        status = "success",
+        message = "WebSocket connected. Send commands: watch/eval with data."
+    }))
 end)
 
 -- Frame callback for memory change detection
@@ -793,15 +829,22 @@ local function checkMemoryChanges()
                 end
             end
             
-            -- Send memory update if any regions changed using simple format
+            -- Send memory update if any regions changed using JSON format
             if #changedRegions > 0 then
-                local updateLines = {"watch", "update"}
+                local updates = {}
                 for _, region in ipairs(changedRegions) do
-                    -- Format: address,size,data_as_comma_separated_bytes
-                    local dataStr = table.concat(region.data, ",")
-                    table.insert(updateLines, region.address .. "," .. region.size .. "," .. dataStr)
+                    table.insert(updates, {
+                        address = region.address,
+                        size = region.size,
+                        data = region.data
+                    })
                 end
-                ws:send(table.concat(updateLines, "\n"))
+                
+                ws:send(HttpServer.jsonStringify({
+                    command = "watch",
+                    status = "update",
+                    updates = updates
+                }))
             end
         end
     end

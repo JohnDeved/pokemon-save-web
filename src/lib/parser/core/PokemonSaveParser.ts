@@ -658,22 +658,14 @@ export class PokemonSaveParser {
     const partyRegions = this.config.memoryAddresses.preloadRegions
 
     try {
-      // Configure and start watching
-      this.webSocketClient.configureSharedBuffer({
-        preloadRegions: partyRegions,
-      })
-
-      await this.webSocketClient.startWatchingPreloadRegions()
+      // Start watching memory regions directly
+      await this.webSocketClient.startWatching(partyRegions)
 
       // Set up memory change listener
-      const partyAddresses = new Set(partyRegions.map(region => region.address))
       const memoryChangeListener = async (address: number, size: number, data: Uint8Array) => {
         try {
-          // Only process changes to party-related memory regions
-          if (partyAddresses.has(address)) {
-            // Use the provided data directly instead of making additional calls
-            await this.handlePartyDataChangeWithData(address, size, data)
-          }
+          // Use the provided data directly instead of making additional calls
+          await this.handlePartyDataChangeWithData(address, size, data)
         } catch (error) {
           if (options.onError) {
             options.onError(error instanceof Error ? error : new Error(String(error)))
@@ -753,23 +745,6 @@ export class PokemonSaveParser {
       this.watchListeners.length = 0
     } catch (error) {
       console.error('Error stopping watch mode:', error)
-    }
-  }
-
-  /**
-   * Add a listener for party changes (can be called multiple times)
-   */
-  addWatchListener (listener: (partyPokemon: PokemonBase[]) => void): void {
-    this.watchListeners.push(listener)
-  }
-
-  /**
-   * Remove a watch listener
-   */
-  removeWatchListener (listener: (partyPokemon: PokemonBase[]) => void): void {
-    const index = this.watchListeners.indexOf(listener)
-    if (index >= 0) {
-      this.watchListeners.splice(index, 1)
     }
   }
 

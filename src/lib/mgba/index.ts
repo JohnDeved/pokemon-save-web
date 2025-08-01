@@ -18,4 +18,4 @@ export type {
   SharedBufferConfig,
   MemoryChangeListener,
   SimpleMessage,
-} from './websocket-client'
+} from './types'

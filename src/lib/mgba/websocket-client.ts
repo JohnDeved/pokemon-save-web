@@ -4,27 +4,7 @@
  */
 
 import WebSocket from 'isomorphic-ws'
-
-export interface SimpleMessage {
-  command: 'watch' | 'eval'
-  status: 'success' | 'error' | 'update'
-  data: string[]
-}
-
-// Kept for backward compatibility
-export interface MemoryRegion {
-  address: number
-  size: number
-  data: Uint8Array
-  lastUpdated: number
-}
-
-// Kept for backward compatibility
-export interface SharedBufferConfig {
-  preloadRegions: Array<{ address: number, size: number }>
-}
-
-export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void | Promise<void>
+import type { SimpleMessage, MemoryRegion, SharedBufferConfig, MemoryChangeListener } from './types'
 
 export class MgbaWebSocketClient {
   private ws: WebSocket | null = null
@@ -47,35 +27,7 @@ export class MgbaWebSocketClient {
   constructor (private readonly url = 'ws://localhost:7102/ws') {
   }
 
-  /**
-   * Parse simple message format from server (internal)
-   */
-  private parseSimpleMessageInternal (message: string): SimpleMessage | null {
-    const lines = message.trim().split('\n').map(line => line.trim()).filter(line => line !== '')
-    if (lines.length < 1) return null
 
-    const command = lines[0]?.toLowerCase()
-    if (command !== 'watch' && command !== 'eval') return null
-
-    // Check for response format (command + status + data)
-    if (lines.length >= 2) {
-      const status = lines[1]?.toLowerCase()
-      if (status === 'success' || status === 'error' || status === 'update') {
-        return {
-          command: command as 'watch' | 'eval',
-          status: status as 'success' | 'error' | 'update',
-          data: lines.slice(2),
-        }
-      }
-    }
-
-    // Handle request format (command + data) - for tests and client usage
-    return {
-      command: command as 'watch' | 'eval',
-      status: 'success',
-      data: lines.slice(1),
-    }
-  }
 
   /**
    * Connect to WebSocket server
@@ -116,72 +68,59 @@ export class MgbaWebSocketClient {
    * Handle incoming WebSocket messages
    */
   private handleMessage (data: string): void {
-    // Try parsing as JSON first (preferred format from server)
+    // All server responses are now in JSON format
     try {
       const parsed = JSON.parse(data)
-      if (parsed.result !== undefined || parsed.error !== undefined) {
-        // Handle JSON eval response
-        const message: SimpleMessage = {
-          command: 'eval',
-          status: parsed.error ? 'error' : 'success',
-          data: parsed.error ? [parsed.error] : [JSON.stringify(parsed.result)],
-        }
-        this.handleSimpleMessage(message)
-        return
-      }
-    } catch {
-      // Not JSON, continue to other formats
-    }
-
-    // Try parsing as simple message format (used for watch updates)
-    const simpleMessage = this.parseSimpleMessageInternal(data)
-    if (simpleMessage) {
-      this.handleSimpleMessage(simpleMessage)
-      return
-    }
-
-    // Handle plain text responses (like watch confirmations)
-    if (data.includes('Memory watching started') || data.includes('Welcome to WebSocket')) {
-      // Confirmation messages, ignore for simplicity
+      this.handleJsonMessage(parsed)
+    } catch (error) {
+      console.warn('Failed to parse WebSocket message as JSON:', error)
     }
   }
 
   /**
-   * Handle parsed simple messages
+   * Handle parsed JSON messages from server
    */
-  private handleSimpleMessage (message: SimpleMessage): void {
-    if (message.command === 'watch' && message.status === 'update') {
+  private handleJsonMessage (message: any): void {
+    const command = message.command
+    const status = message.status
+
+    if (command === 'eval') {
+      this.handleEvalResponse({
+        command: 'eval',
+        status: status as 'success' | 'error',
+        data: status === 'error' ? [message.error] : [JSON.stringify(message.result)],
+      })
+    } else if (command === 'watch' && status === 'update') {
       this.handleMemoryUpdate(message)
-      return
-    }
-
-    if (message.command === 'eval') {
-      this.handleEvalResponse(message)
+    } else if (command === 'watch' && (status === 'success' || status === 'error')) {
+      // Watch setup confirmation - could be used for logging or callbacks
     }
   }
 
   /**
-   * Handle memory update messages from watching
+   * Handle memory update messages from watching (JSON format)
    */
-  private handleMemoryUpdate (message: SimpleMessage): void {
-    for (const dataLine of message.data) {
-      const parts = dataLine.split(',')
-      if (parts.length >= 3 && parts[0] && parts[1]) {
-        const address = parseInt(parts[0], 10)
-        const size = parseInt(parts[1], 10)
-        const dataBytes = parts.slice(2).map(b => parseInt(b, 10))
-        const data = new Uint8Array(dataBytes)
+  private handleMemoryUpdate (message: any): void {
+    if (message.updates && Array.isArray(message.updates)) {
+      for (const update of message.updates) {
+        const address = update.address
+        const size = update.size
+        const dataArray = update.data
+        
+        if (typeof address === 'number' && typeof size === 'number' && Array.isArray(dataArray)) {
+          const data = new Uint8Array(dataArray)
 
-        // Cache the data
-        const cacheKey = `${address}-${size}`
-        this.watchedMemoryData.set(cacheKey, data)
+          // Cache the data
+          const cacheKey = `${address}-${size}`
+          this.watchedMemoryData.set(cacheKey, data)
 
-        // Notify listeners
-        for (const listener of this.memoryChangeListeners) {
-          try {
-            listener(address, size, data)
-          } catch (error) {
-            console.error('Memory change listener error:', error)
+          // Notify listeners
+          for (const listener of this.memoryChangeListeners) {
+            try {
+              listener(address, size, data)
+            } catch (error) {
+              console.error('Memory change listener error:', error)
+            }
           }
         }
       }
@@ -407,53 +346,4 @@ export class MgbaWebSocketClient {
     return result.result?.replace(/"/g, '') ?? 'Unknown Game'
   }
 
-  /**
-   * Parse watch regions for backward compatibility (used in tests)
-   */
-  parseWatchRegions (data: string[]): Array<{ address: number, size: number }> {
-    return data.map(line => {
-      const parts = line.split(',')
-      return {
-        address: parseInt(parts[0] ?? '0', 10),
-        size: parseInt(parts[1] ?? '0', 10),
-      }
-    }).filter(region => !isNaN(region.address) && !isNaN(region.size) && region.address > 0 && region.size > 0)
-  }
-
-  /**
-   * Create simple message format string (for tests)
-   */
-  createSimpleMessage (command: 'watch' | 'eval', data: string[]): string {
-    return [command, ...data].join('\n')
-  }
-
-  /**
-   * Parse simple message (for tests) - public version of parseSimpleMessage
-   */
-  parseSimpleMessage (message: string): SimpleMessage | null {
-    const lines = message.trim().split('\n').map(line => line.trim()).filter(line => line !== '')
-    if (lines.length < 1) return null
-
-    const command = lines[0]?.toLowerCase()
-    if (command !== 'watch' && command !== 'eval') return null
-
-    // Check for response format (command + status + data)
-    if (lines.length >= 2) {
-      const status = lines[1]?.toLowerCase()
-      if (status === 'success' || status === 'error' || status === 'update') {
-        return {
-          command: command as 'watch' | 'eval',
-          status: status as 'success' | 'error' | 'update',
-          data: lines.slice(2),
-        }
-      }
-    }
-
-    // Handle request format (command + data) - for tests and client usage
-    return {
-      command: command as 'watch' | 'eval',
-      status: 'success',
-      data: lines.slice(1),
-    }
-  }
 }
