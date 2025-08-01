@@ -101,61 +101,9 @@ export class MgbaWebSocketClient {
     }
   }
 
-  /**
-   * Handle parsed JSON messages from server
-   */
-  private handleJsonMessage (message: any): void {
-    switch (`${message.command}-${message.status}`) {
-      case 'eval-success':
-        this.handleEvalResponse({
-          command: 'eval',
-          status: 'success',
-          data: [JSON.stringify(message.result)],
-        })
-        break
-      case 'eval-error':
-        this.handleEvalResponse({
-          command: 'eval',
-          status: 'error',
-          data: [message.error],
-        })
-        break
-      case 'watch-update':
-        this.handleMemoryUpdate(message)
-        break
-      // Ignore watch success/error confirmations
-    }
-  }
 
-  /**
-   * Handle memory update messages from watching (JSON format)
-   */
-  private handleMemoryUpdate (message: any): void {
-    if (message.updates && Array.isArray(message.updates)) {
-      for (const update of message.updates) {
-        const address = update.address
-        const size = update.size
-        const dataArray = update.data
 
-        if (typeof address === 'number' && typeof size === 'number' && Array.isArray(dataArray)) {
-          const data = new Uint8Array(dataArray)
 
-          // Cache the data
-          const cacheKey = `${address}-${size}`
-          this.watchedMemoryData.set(cacheKey, data)
-
-          // Notify listeners
-          for (const listener of this.memoryChangeListeners) {
-            try {
-              listener(address, size, data)
-            } catch (error) {
-              console.error('Memory change listener error:', error)
-            }
-          }
-        }
-      }
-    }
-  }
 
   /**
    * Handle eval response messages
@@ -238,7 +186,7 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Read bytes from memory - uses cached data if available, otherwise eval
+   * Read bytes from memory - uses cached data if available, otherwise eval with read8
    */
   async readBytes (address: number, size: number): Promise<Uint8Array> {
     // Check if we can satisfy this read from any watched memory region
@@ -247,12 +195,11 @@ export class MgbaWebSocketClient {
       return cachedData
     }
 
-    // Fall back to direct eval read
+    // Fall back to direct eval read using read8 (simplest method)
     const code = `
-      local data = emu:readRange(${address}, ${size})
       local bytes = {}
-      for i = 1, #data do
-        bytes[i] = string.byte(data, i)
+      for i = 0, ${size - 1} do
+        bytes[i + 1] = emu:read8(${address} + i)
       end
       return bytes
     `.trim()
@@ -275,7 +222,14 @@ export class MgbaWebSocketClient {
    */
   private getFromWatchedMemory (address: number, size: number): Uint8Array | null {
     for (const [cacheKey, watchedData] of this.watchedMemoryData.entries()) {
-      const [watchedAddress, watchedSize] = cacheKey.split('-').map(Number)
+      const parts = cacheKey.split('-')
+      if (parts.length !== 2 || !parts[0] || !parts[1]) continue
+      
+      const watchedAddress = parseInt(parts[0], 10)
+      const watchedSize = parseInt(parts[1], 10)
+
+      // Ensure both parts are valid numbers
+      if (isNaN(watchedAddress) || isNaN(watchedSize)) continue
 
       // Check if the requested range is within the watched region
       if (address >= watchedAddress && (address + size) <= (watchedAddress + watchedSize)) {
