@@ -30,6 +30,23 @@
 local HttpServer = {}
 HttpServer.__index = HttpServer
 
+-- Simple XOR function for masking (mGBA Lua compatibility)
+local function simple_xor(a, b)
+    local result = 0
+    local bitval = 1
+    while a > 0 or b > 0 do
+        local a_bit = a % 2
+        local b_bit = b % 2
+        if a_bit ~= b_bit then
+            result = result + bitval
+        end
+        bitval = bitval * 2
+        a = math.floor(a / 2)
+        b = math.floor(b / 2)
+    end
+    return result
+end
+
 --------------------------------------------------------------------------------
 -- "Static" Methods
 --------------------------------------------------------------------------------
@@ -158,9 +175,11 @@ function HttpServer.createWebSocketFrame(data)
     if len < 126 then
         frame = frame .. string.char(len)
     elseif len < 65536 then
-        frame = frame .. string.char(126) .. string.char(len >> 8) .. string.char(len & 0xFF)
+        -- Use math operations instead of bitwise for better compatibility
+        frame = frame .. string.char(126) .. string.char(math.floor(len / 256)) .. string.char(len % 256)
     else
-        frame = frame .. string.char(127) .. string.rep("\0", 6) .. string.char(len >> 8) .. string.char(len & 0xFF)
+        -- For very long messages, use simpler approach
+        frame = frame .. string.char(127) .. string.rep("\0", 6) .. string.char(math.floor(len / 256)) .. string.char(len % 256)
     end
     
     return frame .. data
@@ -172,40 +191,56 @@ end
 function HttpServer.parseWebSocketFrame(data)
     if #data < 2 then return nil, 0 end
     local b1, b2 = string.byte(data, 1, 2)
-    local fin = (b1 & 0x80) ~= 0
-    local opcode = b1 & 0x0F
-    local masked = (b2 & 0x80) ~= 0
-    local len = b2 & 0x7F
+    
+    -- Use math operations instead of bitwise for better compatibility
+    local fin = b1 >= 128  -- Check if FIN bit is set
+    local opcode = b1 % 16  -- Get opcode (last 4 bits)
+    local masked = b2 >= 128  -- Check if MASK bit is set
+    local len = b2 % 128  -- Get payload length (last 7 bits)
+    
     local offset = 2
     local mask = nil
+    
+    -- Handle extended payload length
     if len == 126 then
         if #data < 4 then return nil, 0 end
-        len = (string.byte(data, 3) << 8) + string.byte(data, 4)
+        len = string.byte(data, 3) * 256 + string.byte(data, 4)
         offset = 4
     elseif len == 127 then
         if #data < 10 then return nil, 0 end
-        len = (string.byte(data, 9) << 8) + string.byte(data, 10)
+        -- Simplified: only handle reasonable message sizes
+        len = string.byte(data, 9) * 256 + string.byte(data, 10)
         offset = 10
     end
+    
+    -- Handle mask (if present)
     if masked then
         if #data < offset + 4 then return nil, 0 end
-        mask = {data:byte(offset+1, offset+4)}
+        mask = {string.byte(data, offset+1, offset+4)}
         offset = offset + 4
     end
+    
+    -- Check if we have enough data
     if #data < offset + len then return nil, 0 end
-    if opcode == 0x8 then -- Close frame
+    
+    -- Handle different frame types
+    if opcode == 8 then -- Close frame
         return nil, -1
-    elseif opcode == 0x1 or opcode == 0x2 then -- Text or binary
+    elseif opcode == 1 or opcode == 2 then -- Text or binary
         local payload = data:sub(offset + 1, offset + len)
         if masked and mask then
+            -- Unmask payload using simple XOR function
             local unmasked = {}
             for i = 1, #payload do
-                unmasked[i] = string.char(payload:byte(i) ~ mask[((i-1)%4)+1])
+                local char_code = string.byte(payload, i)
+                local mask_byte = mask[((i - 1) % 4) + 1]
+                unmasked[i] = string.char(simple_xor(char_code, mask_byte))
             end
             payload = table.concat(unmasked)
         end
         return payload, offset + len
     end
+    
     return "", offset + len
 end
 
@@ -580,6 +615,8 @@ end
 
 local app = HttpServer:new()
 
+console:log("🔧 HTTP Server initialization starting...")
+
 -- Global middleware
 app:use(function(req, res)
     console:log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
@@ -596,6 +633,43 @@ end)
 
 app:post("/echo", function(req, res)
     res:send("200 OK", req.body, req.headers['content-type'])
+end)
+
+-- Simple eval endpoint for debugging
+app:post("/eval", function(req, res)
+    console:log("📨 HTTP eval request: " .. tostring(req.body))
+    local code = req.body
+    
+    local function safe_eval()
+        local chunk = code
+        
+        -- Enhanced support for non-self-executing function inputs
+        if not code:match("^%s*return ") and not code:match("^%s*(local|function|for|while|if|do|repeat|goto|break|::|end)") then
+            chunk = "return " .. code
+        end
+        
+        local fn, err = load(chunk, "http-eval")
+        if not fn then
+            return {error = err or "Invalid code"}
+        end
+        
+        local ok, result = pcall(fn)
+        if ok then
+            console:log("✅ HTTP eval success: " .. tostring(result))
+            return {result = result}
+        else
+            console:log("❌ HTTP eval error: " .. tostring(result))
+            return {error = tostring(result)}
+        end
+    end
+    
+    local ok, response = pcall(safe_eval)
+    if not ok then
+        console:log("💥 HTTP eval handler error: " .. tostring(response))
+        response = {error = "Internal server error: " .. tostring(response)}
+    end
+    
+    res:send("200 OK", response)
 end)
 
 -- WebSocket route

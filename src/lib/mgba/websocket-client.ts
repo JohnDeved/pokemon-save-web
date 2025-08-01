@@ -76,14 +76,18 @@ export class MgbaWebSocketClient {
         }
         
         this.ws.onmessage = (event: any) => {
+          const data = event.data as string
+          console.log('📨 WebSocket received:', data.substring(0, 200))
+          
           try {
-            const message = JSON.parse(event.data as string) as WebSocketMessage
+            const message = JSON.parse(data) as WebSocketMessage
             
             if (message.type === 'memoryUpdate' && this.memoryUpdateListener) {
               this.memoryUpdateListener(message.regions)
             }
           } catch (error) {
-            // Ignore parse errors for non-JSON messages
+            // Handle non-JSON messages (like welcome messages)
+            console.log('📝 Non-JSON message received:', data.substring(0, 100))
           }
         }
       } catch (error) {
@@ -112,24 +116,54 @@ export class MgbaWebSocketClient {
     console.log('🔧 Sending eval:', code.substring(0, 100) + (code.length > 100 ? '...' : ''))
 
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        console.log('❌ Eval timeout after 5s')
-        reject(new Error('Eval timeout'))
+      const timeout = setTimeout(async () => {
+        console.log('❌ WebSocket eval timeout, trying HTTP fallback...')
+        
+        try {
+          // Fallback to HTTP POST /eval
+          const response = await fetch('http://localhost:7102/eval', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: code
+          })
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+          
+          const result = await response.json()
+          console.log('✅ HTTP eval fallback succeeded')
+          resolve(result)
+        } catch (error) {
+          console.log('❌ HTTP eval fallback failed:', error)
+          reject(new Error('Eval timeout and HTTP fallback failed'))
+        }
       }, 5000)
 
       const handleResponse = (event: any) => {
+        const data = event.data as string
+        console.log('📨 Received message:', data.substring(0, 200))
+        
+        // Skip welcome messages
+        if (data.includes('Welcome to WebSocket Eval')) {
+          console.log('📝 Skipping welcome message')
+          return
+        }
+        
         try {
-          console.log('📨 Received message:', event.data.substring(0, 200))
-          const response = JSON.parse(event.data as string)
+          const response = JSON.parse(data)
           if (response.result !== undefined || response.error !== undefined) {
-            console.log('✅ Valid response received')
+            console.log('✅ Valid JSON response received')
             clearTimeout(timeout)
             this.ws?.removeEventListener('message', handleResponse)
             resolve(response)
           }
         } catch (error) {
-          console.log('⚠️ Failed to parse response as JSON:', error)
-          // Ignore parse errors
+          console.log('⚠️ Failed to parse response as JSON, treating as result:', data)
+          // Treat non-JSON response as a string result
+          clearTimeout(timeout)
+          this.ws?.removeEventListener('message', handleResponse)
+          resolve({ result: data })
         }
       }
 
