@@ -82,19 +82,25 @@ export class MgbaWebSocketClient {
    * Handle parsed JSON messages from server
    */
   private handleJsonMessage (message: any): void {
-    const command = message.command
-    const status = message.status
-
-    if (command === 'eval') {
-      this.handleEvalResponse({
-        command: 'eval',
-        status: status as 'success' | 'error',
-        data: status === 'error' ? [message.error] : [JSON.stringify(message.result)],
-      })
-    } else if (command === 'watch' && status === 'update') {
-      this.handleMemoryUpdate(message)
-    } else if (command === 'watch' && (status === 'success' || status === 'error')) {
-      // Watch setup confirmation - could be used for logging or callbacks
+    switch (`${message.command}-${message.status}`) {
+      case 'eval-success':
+        this.handleEvalResponse({
+          command: 'eval',
+          status: 'success',
+          data: [JSON.stringify(message.result)],
+        })
+        break
+      case 'eval-error':
+        this.handleEvalResponse({
+          command: 'eval',
+          status: 'error',
+          data: [message.error],
+        })
+        break
+      case 'watch-update':
+        this.handleMemoryUpdate(message)
+        break
+      // Ignore watch success/error confirmations
     }
   }
 
@@ -218,15 +224,21 @@ export class MgbaWebSocketClient {
    * Read bytes from memory - uses cached data if available, otherwise eval
    */
   async readBytes (address: number, size: number): Promise<Uint8Array> {
-    // Check if we have this data cached from watching
-    const cacheKey = `${address}-${size}`
-    const cachedData = this.watchedMemoryData.get(cacheKey)
+    // Check if we can satisfy this read from any watched memory region
+    const cachedData = this.getFromWatchedMemory(address, size)
     if (cachedData) {
-      return new Uint8Array(cachedData)
+      return cachedData
     }
 
     // Fall back to direct eval read
-    const code = `local data = emu:readRange(${address}, ${size}) local bytes = {} for i = 1, #data do bytes[i] = string.byte(data, i) end return bytes`
+    const code = `
+      local data = emu:readRange(${address}, ${size})
+      local bytes = {}
+      for i = 1, #data do
+        bytes[i] = string.byte(data, i)
+      end
+      return bytes
+    `.trim()
     const result = await this.eval(code)
 
     if (result.error) {
@@ -242,11 +254,33 @@ export class MgbaWebSocketClient {
   }
 
   /**
+   * Check if we can read the requested data from any watched memory region
+   */
+  private getFromWatchedMemory (address: number, size: number): Uint8Array | null {
+    for (const [cacheKey, watchedData] of this.watchedMemoryData.entries()) {
+      const [watchedAddress, watchedSize] = cacheKey.split('-').map(Number)
+
+      // Check if the requested range is within the watched region
+      if (address >= watchedAddress && (address + size) <= (watchedAddress + watchedSize)) {
+        const startOffset = address - watchedAddress
+        const endOffset = startOffset + size
+        return new Uint8Array(watchedData.slice(startOffset, endOffset))
+      }
+    }
+    return null
+  }
+
+  /**
    * Write bytes to memory
    */
   async writeBytes (address: number, data: Uint8Array): Promise<void> {
     const bytes = Array.from(data).join(',')
-    const code = `local data = {${bytes}} for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end`
+    const code = `
+      local data = {${bytes}}
+      for i = 1, #data do
+        emu:write8(${address} + i - 1, data[i])
+      end
+    `.trim()
     const result = await this.eval(code)
 
     if (result.error) {
