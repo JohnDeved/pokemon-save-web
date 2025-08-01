@@ -659,10 +659,7 @@ export class PokemonSaveParser {
     const partyRegions = this.config.memoryAddresses.preloadRegions
 
     try {
-      // Start watching memory regions directly
-      await this.webSocketClient.startWatching([...partyRegions])
-
-      // Set up memory change listener
+      // Set up memory change listener first
       const memoryChangeListener = async (address: number, size: number, data: Uint8Array) => {
         try {
           // Use the provided data directly instead of making additional calls
@@ -677,18 +674,8 @@ export class PokemonSaveParser {
       this.webSocketClient.addMemoryChangeListener(memoryChangeListener)
       this.isWatching = true
 
-      // Load initial memory data to establish baseline
-      await this.initializeMemoryBuffer()
-      const initialPartyPokemon = await this.parsePartyPokemonFromCurrentMemory()
-
-      // Notify listeners with initial data
-      for (const listener of this.watchListeners) {
-        try {
-          listener(initialPartyPokemon)
-        } catch (error) {
-          console.error('Watch listener error:', error)
-        }
-      }
+      // Start watching memory regions - this will trigger initial data load via memory updates
+      await this.webSocketClient.startWatching([...partyRegions])
     } catch (error) {
       if (options.onError) {
         options.onError(error instanceof Error ? error : new Error(String(error)))
@@ -705,8 +692,15 @@ export class PokemonSaveParser {
     if (!this.webSocketClient || !this.config?.memoryAddresses) return
 
     try {
-      // Update memory buffer with new data
+      // Update memory buffer with new data (initialize if needed)
       this.updateMemoryBuffer(address, data)
+
+      // Check if we have enough data to parse party Pokemon
+      const hasRequiredData = this.hasRequiredMemoryData()
+      if (!hasRequiredData) {
+        // Not enough data yet, wait for more updates
+        return
+      }
 
       // Parse fresh Pokemon objects from updated memory
       const updatedPartyPokemon = await this.parsePartyPokemonFromCurrentMemory()
@@ -722,6 +716,16 @@ export class PokemonSaveParser {
     } catch (error) {
       console.error('Error handling party data change:', error)
     }
+  }
+
+  /**
+   * Check if we have all required memory data to parse party Pokemon
+   */
+  private hasRequiredMemoryData (): boolean {
+    if (!this.config?.memoryAddresses) return false
+    
+    const { partyData, partyCount } = this.config.memoryAddresses
+    return this.memoryBuffer.has(partyData) && this.memoryBuffer.has(partyCount)
   }
 
   /**
@@ -761,11 +765,15 @@ export class PokemonSaveParser {
 
     // Update party data if in range
     if (address >= partyData && address < partyData + (6 * pokemonSize)) {
-      const existingBuffer = this.memoryBuffer.get(partyData)
-      if (existingBuffer) {
-        const relativeOffset = address - partyData
-        existingBuffer.set(newData, relativeOffset)
+      let existingBuffer = this.memoryBuffer.get(partyData)
+      if (!existingBuffer) {
+        // Initialize the full party data buffer if it doesn't exist
+        existingBuffer = new Uint8Array(6 * pokemonSize)
+        this.memoryBuffer.set(partyData, existingBuffer)
       }
+      
+      const relativeOffset = address - partyData
+      existingBuffer.set(newData, relativeOffset)
     }
   }
 

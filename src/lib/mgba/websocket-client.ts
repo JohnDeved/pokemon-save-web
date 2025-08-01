@@ -86,7 +86,9 @@ export class MgbaWebSocketClient {
    * Handle JSON responses from original server format
    */
   private handleOriginalJsonResponse (response: any): void {
-    if ('result' in response) {
+    if (response.command === 'watch') {
+      this.handleWatchResponse(response)
+    } else if ('result' in response) {
       this.handleEvalResponse({
         command: 'eval',
         status: 'success',
@@ -98,6 +100,32 @@ export class MgbaWebSocketClient {
         status: 'error',
         data: [response.error],
       })
+    }
+  }
+
+  /**
+   * Handle watch response messages
+   */
+  private handleWatchResponse (response: any): void {
+    if (response.status === 'update' && response.updates) {
+      // Handle memory updates
+      for (const update of response.updates) {
+        const { address, size, data } = update
+        if (address && size && data) {
+          // Cache the updated memory data
+          const cacheKey = `${address}-${size}`
+          this.watchedMemoryData.set(cacheKey, new Uint8Array(data))
+          
+          // Notify listeners about memory changes
+          for (const listener of this.memoryChangeListeners) {
+            try {
+              listener(address, size, new Uint8Array(data))
+            } catch (error) {
+              console.error('Memory change listener error:', error)
+            }
+          }
+        }
+      }
     }
   }
 
@@ -196,10 +224,13 @@ export class MgbaWebSocketClient {
     }
 
     // Fall back to direct eval read using read8 (simplest method)
+    // Convert address to hex to avoid issues with large decimal numbers in Lua
+    const hexAddress = `0x${address.toString(16)}`
     const code = `
       local bytes = {}
+      local addr = ${hexAddress}
       for i = 0, ${size - 1} do
-        bytes[i + 1] = emu:read8(${address} + i)
+        bytes[i + 1] = emu:read8(addr + i)
       end
       return bytes
     `.trim()
@@ -246,10 +277,13 @@ export class MgbaWebSocketClient {
    */
   async writeBytes (address: number, data: Uint8Array): Promise<void> {
     const bytes = Array.from(data).join(',')
+    // Convert address to hex to avoid issues with large decimal numbers in Lua
+    const hexAddress = `0x${address.toString(16)}`
     const code = `
       local data = {${bytes}}
+      local addr = ${hexAddress}
       for i = 1, #data do
-        emu:write8(${address} + i - 1, data[i])
+        emu:write8(addr + i - 1, data[i])
       end
     `.trim()
     const result = await this.eval(code)

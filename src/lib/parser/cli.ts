@@ -266,35 +266,16 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
   await parser.loadInputData(client)
 
   // Set up watching with the new parser API
-  try {
-    await parser.watch({
-      onPartyChange: (partyPokemon) => {
-        clearScreen()
-        displayPartyPokemon(partyPokemon, 'MEMORY')
-      },
-      onError: (error) => {
-        console.error('❌ Error processing memory change:', error.message)
-      },
-    })
-    console.log('✅ Memory watching started')
-  } catch (error) {
-    console.warn('⚠️ Memory watching failed, falling back to polling mode')
-    console.warn('Error:', error instanceof Error ? error.message : 'Unknown error')
-
-    // Fallback to polling for compatibility
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    while (true) {
-      try {
-        const result = await parser.parse(client)
-        clearScreen()
-        displayPartyPokemon(result.party_pokemon, 'MEMORY')
-      } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
-      }
-
-      await new Promise(resolve => setTimeout(resolve, options.interval))
-    }
-  }
+  await parser.watch({
+    onPartyChange: (partyPokemon) => {
+      clearScreen()
+      displayPartyPokemon(partyPokemon, 'MEMORY')
+    },
+    onError: (error) => {
+      console.error('❌ Error processing memory change:', error.message)
+    },
+  })
+  console.log('✅ Memory watching started')
 
   // Keep the process alive and handle cleanup
   return new Promise<void>((resolve) => {

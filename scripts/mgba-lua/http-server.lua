@@ -621,31 +621,147 @@ end)
 -- WebSocket route
 app:websocket("/ws", function(ws)
     log("WebSocket connected: " .. ws.path)
+    
+    -- Memory watching state
+    local watchedRegions = {}
+    local lastData = {}
+    local watchCallback = nil
+    
+    local function parseWatchMessage(message)
+        local lines = {}
+        for line in message:gmatch("[^\n]+") do
+            table.insert(lines, line)
+        end
+        
+        if #lines == 0 or lines[1] ~= "watch" then
+            return nil
+        end
+        
+        local regions = {}
+        for i = 2, #lines do
+            local parts = {}
+            for part in lines[i]:gmatch("[^,]+") do
+                table.insert(parts, part)
+            end
+            if #parts == 2 then
+                local address = tonumber(parts[1])
+                local size = tonumber(parts[2])
+                if address and size then
+                    table.insert(regions, {address = address, size = size})
+                end
+            end
+        end
+        
+        return regions
+    end
+    
+    local function checkMemoryChanges()
+        for _, region in ipairs(watchedRegions) do
+            local key = region.address .. "_" .. region.size
+            local newData = {}
+            
+            -- Read memory data
+            for i = 0, region.size - 1 do
+                newData[i + 1] = emu:read8(region.address + i)
+            end
+            
+            -- Check if data changed
+            local changed = false
+            local oldData = lastData[key]
+            if not oldData then
+                changed = true
+            else
+                for i = 1, #newData do
+                    if newData[i] ~= oldData[i] then
+                        changed = true
+                        break
+                    end
+                end
+            end
+            
+            if changed then
+                lastData[key] = newData
+                -- Send update to client
+                local updateMessage = {
+                    command = "watch",
+                    status = "update",
+                    updates = {{
+                        address = region.address,
+                        size = region.size,
+                        data = newData
+                    }}
+                }
+                ws:send(HttpServer.jsonStringify(updateMessage))
+            end
+        end
+    end
 
-    ws.onMessage = function(code)
+    ws.onMessage = function(message)
+        log("WebSocket message: " .. tostring(message))
+        
+        -- Check if this is a watch command
+        local regions = parseWatchMessage(message)
+        if regions then
+            watchedRegions = regions
+            lastData = {}
+            
+            if #regions > 0 then
+                log("Starting memory watching for " .. #regions .. " regions")
+                
+                -- Set up memory watching callback
+                if watchCallback then
+                    callbacks:remove(watchCallback)
+                end
+                
+                watchCallback = callbacks:add("frame", checkMemoryChanges)
+                
+                local response = {
+                    command = "watch",
+                    status = "success",
+                    message = "Watching " .. #regions .. " memory regions"
+                }
+                ws:send(HttpServer.jsonStringify(response))
+            else
+                log("Stopping memory watching")
+                if watchCallback then
+                    callbacks:remove(watchCallback)
+                    watchCallback = nil
+                end
+                
+                local response = {
+                    command = "watch", 
+                    status = "success",
+                    message = "Memory watching stopped"
+                }
+                ws:send(HttpServer.jsonStringify(response))
+            end
+            return
+        end
+        
+        -- Handle eval requests
         local function safe_eval()
-            log("WebSocket eval request: " .. tostring(code))
-            local chunk = code
+            log("WebSocket eval request: " .. tostring(message))
+            local chunk = message
             
             -- Enhanced support for non-self-executing function inputs
             -- Check if it's already a complete statement or needs a return prefix
-            local is_statement = code:match("^%s*return%s") or
-                                code:match("^%s*local%s") or
-                                code:match("^%s*function%s") or
-                                code:match("^%s*for%s") or
-                                code:match("^%s*while%s") or
-                                code:match("^%s*if%s") or
-                                code:match("^%s*do%s") or
-                                code:match("^%s*repeat%s") or
-                                code:match("^%s*goto%s") or
-                                code:match("^%s*break%s") or
-                                code:match("^%s*::") or
-                                code:match("^%s*end%s") or
-                                code:match("^%s*%(function") or
-                                code:find("\n") -- If multiline, treat as statement
+            local is_statement = message:match("^%s*return%s") or
+                                message:match("^%s*local%s") or
+                                message:match("^%s*function%s") or
+                                message:match("^%s*for%s") or
+                                message:match("^%s*while%s") or
+                                message:match("^%s*if%s") or
+                                message:match("^%s*do%s") or
+                                message:match("^%s*repeat%s") or
+                                message:match("^%s*goto%s") or
+                                message:match("^%s*break%s") or
+                                message:match("^%s*::") or
+                                message:match("^%s*end%s") or
+                                message:match("^%s*%(function") or
+                                message:find("\n") -- If multiline, treat as statement
             
             if not is_statement then
-                chunk = "return " .. code
+                chunk = "return " .. message
             end
             
             local fn, err = load(chunk, "websocket-eval")
@@ -670,6 +786,9 @@ app:websocket("/ws", function(ws)
 
     ws.onClose = function()
         log("WebSocket disconnected: " .. ws.path)
+        if watchCallback then
+            callbacks:remove(watchCallback)
+        end
     end
 
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
