@@ -620,15 +620,6 @@ end)
 -- Memory watching state for WebSocket connections
 local memoryWatchers = {}
 
--- Simple JSON parser for WebSocket messages
-local function parseJSON(str)
-    local chunk, err = load("return " .. str)
-    if not chunk then return nil, err end
-    local ok, result = pcall(chunk)
-    if not ok then return nil, result end
-    return result
-end
-
 -- Parse simple message format (command\ndata\ndata\n...)
 local function parseSimpleMessage(message)
     local lines = {}
@@ -768,7 +759,7 @@ app:websocket("/ws", function(ws)
         memoryWatchers[ws.id] = nil
     end
 
-    ws:send("Welcome to WebSocket Eval! Send simple commands (watch/eval + data) or JSON messages for memory watching.")
+    ws:send("Welcome to WebSocket Eval! Send simple commands: watch/eval + data.")
 end)
 
 -- Frame callback for memory change detection

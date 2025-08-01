@@ -515,7 +515,7 @@ export class PokemonSaveParser {
    * Parse input data and return structured data
    * Supports both file and memory input via WebSocket
    */
-  async parseSaveFile (input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<SaveData> {
+  async parse (input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<SaveData> {
     await this.loadInputData(input)
 
     // Memory mode: read directly from emulator memory

@@ -26,7 +26,7 @@ vi.mock('../../mgba/websocket-client', () => ({
 const mockParseSaveFile = vi.fn()
 vi.mock('../core/PokemonSaveParser', () => ({
   PokemonSaveParser: vi.fn().mockImplementation(() => ({
-    parseSaveFile: mockParseSaveFile,
+    parse: mockParseSaveFile,
   })),
 }))
 
