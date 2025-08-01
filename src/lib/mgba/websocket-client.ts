@@ -78,8 +78,11 @@ export class MgbaWebSocketClient {
 
   // Memory watching system
   private watchedRegions: Array<{ address: number, size: number }> = []
-  private memoryChangeListeners: MemoryChangeListener[] = []
+  private readonly memoryChangeListeners: MemoryChangeListener[] = []
   private isWatching = false
+
+  // Eval request handling
+  private readonly pendingEvalHandlers: Array<(message: string) => boolean> = []
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
   }
@@ -87,37 +90,37 @@ export class MgbaWebSocketClient {
   /**
    * Parse simple message format (command\ndata\ndata\n...)
    */
-  private parseSimpleMessage(message: string): SimpleMessage | null {
+  private parseSimpleMessage (message: string): SimpleMessage | null {
     const lines = message.trim().split('\n')
       .map(line => line.trim())
       .filter(line => line !== '')
-    
+
     if (lines.length === 0) return null
-    
+
     const command = lines[0]?.trim().toLowerCase()
     if (command !== 'watch' && command !== 'eval') return null
-    
+
     return {
       command: command as 'watch' | 'eval',
-      data: lines.slice(1)
+      data: lines.slice(1),
     }
   }
 
   /**
    * Create simple message format string
    */
-  private createSimpleMessage(command: 'watch' | 'eval', data: string[]): string {
+  private createSimpleMessage (command: 'watch' | 'eval', data: string[]): string {
     return [command, ...data].join('\n')
   }
 
   /**
    * Parse watch regions from simple format (address,size per line)
    */
-  parseWatchRegions(data: string[]): Array<{ address: number, size: number }> {
+  parseWatchRegions (data: string[]): Array<{ address: number, size: number }> {
     return data.map(line => {
       const [addressStr, sizeStr] = line.split(',').map(s => s.trim())
-      const address = parseInt(addressStr || '0', 10)
-      const size = parseInt(sizeStr || '0', 10)
+      const address = parseInt(addressStr ?? '0', 10)
+      const size = parseInt(sizeStr ?? '0', 10)
       return { address, size }
     }).filter(region => region.address > 0 && region.size > 0)
   }
@@ -184,6 +187,16 @@ export class MgbaWebSocketClient {
     }
 
     try {
+      // First check if any pending eval handlers can process this message
+      for (let i = this.pendingEvalHandlers.length - 1; i >= 0; i--) {
+        const handler = this.pendingEvalHandlers[i]
+        if (handler && handler(data)) {
+          // Handler processed the message, remove it and return
+          this.pendingEvalHandlers.splice(i, 1)
+          return
+        }
+      }
+
       // First try to parse as simple message format
       const simpleMessage = this.parseSimpleMessage(data)
       if (simpleMessage) {
@@ -209,6 +222,19 @@ export class MgbaWebSocketClient {
               console.warn('Unknown WebSocket message type:', message.type)
           }
         }
+        return
+      }
+
+      // Handle plain text responses from server (e.g., watch confirmations)
+      if (data.includes('Memory watching started')) {
+        console.log('Memory watching confirmed:', data)
+        this.isWatching = true
+        return
+      }
+
+      // Handle other plain text server messages (like welcome messages)
+      if (data.includes('Welcome to WebSocket')) {
+        console.log('Server welcome:', data)
       }
     } catch (error) {
       console.warn('Failed to parse WebSocket message:', error)
@@ -218,14 +244,14 @@ export class MgbaWebSocketClient {
   /**
    * Handle simple format messages
    */
-  private handleSimpleMessage(message: SimpleMessage): void {
+  private handleSimpleMessage (message: SimpleMessage): void {
     switch (message.command) {
       case 'watch':
         // This would be a response from server, not typically expected
         console.log('Received watch command from server (unexpected)')
         break
       case 'eval':
-        // This would be a response from server, not typically expected  
+        // This would be a response from server, not typically expected
         console.log('Received eval command from server (unexpected)')
         break
     }
@@ -237,7 +263,7 @@ export class MgbaWebSocketClient {
   private handleMemoryUpdate (message: MemoryUpdateMessage): void {
     for (const region of message.regions) {
       const data = new Uint8Array(region.data)
-      
+
       // Update cache
       const cacheKey = `${region.address}-${region.size}`
       this.memoryCache.set(cacheKey, {
@@ -268,8 +294,8 @@ export class MgbaWebSocketClient {
     }
 
     // Use provided regions or fall back to preload regions
-    const regionsToWatch = regions || this.sharedBufferConfig.preloadRegions
-    
+    const regionsToWatch = regions ?? this.sharedBufferConfig.preloadRegions
+
     if (regionsToWatch.length === 0) {
       throw new Error('No regions to watch. Configure preloadRegions or provide regions parameter.')
     }
@@ -327,6 +353,7 @@ export class MgbaWebSocketClient {
   getWatchedRegions (): Array<{ address: number, size: number }> {
     return [...this.watchedRegions]
   }
+
   isConnected (): boolean {
     return this.connected && this.ws?.readyState === WebSocket.OPEN
   }
@@ -345,26 +372,25 @@ export class MgbaWebSocketClient {
         return
       }
 
-      // Set up one-time message handler for this eval
-      const messageHandler = (event: { data: unknown }) => {
-        const message = typeof event.data === 'string' ? event.data : String(event.data)
-
+      // Create a handler that can process eval responses
+      const messageHandler = (message: string): boolean => {
         // Skip welcome messages and other non-JSON/non-result responses
         if (!message.startsWith('{') && !message.includes('result') && !message.includes('error')) {
-          return // Don't resolve/reject, wait for actual response
+          return false // Don't consume this message
         }
 
         try {
           const response = JSON.parse(message) as MgbaEvalResponse
-          this.ws?.removeEventListener('message', messageHandler)
           resolve(response)
+          return true // Consumed the message
         } catch (error) {
-          this.ws?.removeEventListener('message', messageHandler)
           reject(new Error(`Failed to parse eval response: ${String(error)}`))
+          return true // Consumed the message (even though it failed)
         }
       }
 
-      this.ws.addEventListener('message', messageHandler)
+      // Add handler to the list of pending eval handlers
+      this.pendingEvalHandlers.push(messageHandler)
 
       // Send the code using the appropriate format
       if (useSimpleFormat) {
@@ -377,7 +403,11 @@ export class MgbaWebSocketClient {
 
       // Timeout after configured time
       setTimeout(() => {
-        this.ws?.removeEventListener('message', messageHandler)
+        // Remove the handler from pending list
+        const index = this.pendingEvalHandlers.indexOf(messageHandler)
+        if (index !== -1) {
+          this.pendingEvalHandlers.splice(index, 1)
+        }
         reject(new Error('Eval request timed out'))
       }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
     })
@@ -576,7 +606,7 @@ export class MgbaWebSocketClient {
     if (this.sharedBufferConfig.preloadRegions.length === 0) {
       throw new Error('No preload regions configured. Set preloadRegions in sharedBufferConfig.')
     }
-    
+
     await this.startWatching(this.sharedBufferConfig.preloadRegions)
   }
 
@@ -591,17 +621,17 @@ export class MgbaWebSocketClient {
 
     // If this region is being watched, prefer cached data (much longer timeout)
     const isWatchedRegion = this.isWatching && this.watchedRegions.some(
-      region => region.address === address && region.size === size
+      region => region.address === address && region.size === size,
     )
 
     // Check cache first
     if (useCache) {
       const cached = this.memoryCache.get(cacheKey)
       if (cached && !cached.dirty) {
-        const timeout = isWatchedRegion 
+        const timeout = isWatchedRegion
           ? this.sharedBufferConfig.cacheTimeout * 1000 // Much longer timeout for watched regions
           : this.sharedBufferConfig.cacheTimeout
-        
+
         if ((now - cached.lastUpdated) < timeout) {
           return cached.data
         }

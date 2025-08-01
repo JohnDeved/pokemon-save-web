@@ -18,36 +18,36 @@ vi.mock('../../mgba/websocket-client', () => ({
     removeMemoryChangeListener: mockRemoveMemoryChangeListener,
     configureSharedBuffer: mockConfigureSharedBuffer,
     startWatchingPreloadRegions: mockStartWatchingPreloadRegions,
-    disconnect: mockDisconnect
-  }))
+    disconnect: mockDisconnect,
+  })),
 }))
 
 // Mock the PokemonSaveParser
 const mockParseSaveFile = vi.fn()
 vi.mock('../core/PokemonSaveParser', () => ({
   PokemonSaveParser: vi.fn().mockImplementation(() => ({
-    parseSaveFile: mockParseSaveFile
-  }))
+    parseSaveFile: mockParseSaveFile,
+  })),
 }))
 
 // Mock console methods to avoid test output pollution
 vi.mock('console', () => ({
   log: vi.fn(),
   warn: vi.fn(),
-  error: vi.fn()
+  error: vi.fn(),
 }))
 
 // Mock process methods
 const mockProcessOn = vi.fn()
 Object.defineProperty(process, 'on', {
   value: mockProcessOn,
-  writable: true
+  writable: true,
 })
 
 describe('CLI Event-Driven Functionality', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     // Reset default mock behaviors
     mockStartWatchingPreloadRegions.mockResolvedValue(undefined)
     mockParseSaveFile.mockResolvedValue({
@@ -56,9 +56,9 @@ describe('CLI Event-Driven Functionality', () => {
           speciesId: 25,
           level: 50,
           currentHp: 100,
-          nickname: 'PIKACHU'
-        }
-      ]
+          nickname: 'PIKACHU',
+        },
+      ],
     })
   })
 
@@ -70,9 +70,9 @@ describe('CLI Event-Driven Functionality', () => {
     // Simulate calling the configuration methods that should be called in event-driven mode
     client.configureSharedBuffer({
       preloadRegions: [
-        { address: 0x20244e9, size: 7 },   // Party count + context
-        { address: 0x20244ec, size: 600 }  // Full party data
-      ]
+        { address: 0x20244e9, size: 7 }, // Party count + context
+        { address: 0x20244ec, size: 600 }, // Full party data
+      ],
     })
 
     await client.startWatchingPreloadRegions()
@@ -81,8 +81,8 @@ describe('CLI Event-Driven Functionality', () => {
     expect(mockConfigureSharedBuffer).toHaveBeenCalledWith({
       preloadRegions: [
         { address: 0x20244e9, size: 7 },
-        { address: 0x20244ec, size: 600 }
-      ]
+        { address: 0x20244ec, size: 600 },
+      ],
     })
     expect(mockStartWatchingPreloadRegions).toHaveBeenCalled()
   })
@@ -133,7 +133,7 @@ describe('CLI Event-Driven Functionality', () => {
 
     const testListener: MemoryChangeListener = vi.fn()
     client.addMemoryChangeListener(testListener)
-    
+
     // Simulate cleanup
     client.removeMemoryChangeListener(testListener)
 

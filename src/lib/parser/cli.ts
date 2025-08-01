@@ -268,19 +268,22 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
   // Configure preload regions for party data
   client.configureSharedBuffer({
     preloadRegions: [
-      { address: 0x20244e9, size: 7 },   // Party count + context
-      { address: 0x20244ec, size: 600 }  // Full party data (6 * 100 bytes)
-    ]
+      { address: 0x20244e9, size: 7 }, // Party count + context
+      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
+    ],
   })
 
   // Start watching the preload regions
   try {
     await client.startWatchingPreloadRegions()
     console.log('✅ Memory watching started - will update display when party data changes')
+
+    // Give a moment for the watch setup to complete and messages to settle
+    await new Promise(resolve => setTimeout(resolve, 100))
   } catch (error) {
     console.warn('⚠️ Memory watching failed, falling back to polling mode')
     console.warn('Error:', error instanceof Error ? error.message : 'Unknown error')
-    
+
     // Fallback to polling for compatibility
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     while (true) {
@@ -307,7 +310,6 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
 
       await new Promise(resolve => setTimeout(resolve, options.interval))
     }
-    return
   }
 
   // Set up memory change listener for real-time updates
