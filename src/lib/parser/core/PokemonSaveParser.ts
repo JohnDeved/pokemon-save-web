@@ -74,6 +74,11 @@ export class PokemonSaveParser {
   private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
 
+  // Watching properties
+  private isWatching = false
+  private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
+  private lastDataHash = ''
+
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
     this.config = gameConfig ?? null
@@ -622,6 +627,150 @@ export class PokemonSaveParser {
    */
   getWebSocketClient (): MgbaWebSocketClient | null {
     return this.webSocketClient
+  }
+
+  /**
+   * Start watching for Pokemon party changes in memory mode
+   * This will automatically set up memory watching for the party data regions
+   * and call the provided callback when changes are detected
+   */
+  async watch (options: {
+    onPartyChange?: (partyPokemon: PokemonBase[]) => void,
+    onError?: (error: Error) => void
+  } = {}): Promise<void> {
+    if (!this.isMemoryMode || !this.webSocketClient) {
+      throw new Error('Watch mode only available in memory mode (WebSocket connection)')
+    }
+
+    if (this.isWatching) {
+      throw new Error('Already watching memory. Call stopWatching() first.')
+    }
+
+    // Add callback to listeners if provided
+    if (options.onPartyChange) {
+      this.watchListeners.push(options.onPartyChange)
+    }
+
+    // Set up memory watching for party data regions
+    const partyRegions = [
+      { address: 0x20244e9, size: 7 }, // Party count + context  
+      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
+    ]
+
+    try {
+      // Configure and start watching
+      this.webSocketClient.configureSharedBuffer({
+        preloadRegions: partyRegions
+      })
+      
+      await this.webSocketClient.startWatchingPreloadRegions()
+
+      // Set up memory change listener
+      const memoryChangeListener = async (address: number, _size: number, _data: Uint8Array) => {
+        try {
+          // Only process changes to party-related memory regions
+          if (address === 0x20244e9 || address === 0x20244ec) {
+            await this.handlePartyDataChange()
+          }
+        } catch (error) {
+          if (options.onError) {
+            options.onError(error instanceof Error ? error : new Error(String(error)))
+          }
+        }
+      }
+
+      this.webSocketClient.addMemoryChangeListener(memoryChangeListener)
+      this.isWatching = true
+
+      // Load initial data to establish baseline
+      await this.handlePartyDataChange()
+
+    } catch (error) {
+      if (options.onError) {
+        options.onError(error instanceof Error ? error : new Error(String(error)))
+      } else {
+        throw error
+      }
+    }
+  }
+
+  /**
+   * Handle party data changes and notify listeners
+   */
+  private async handlePartyDataChange (): Promise<void> {
+    if (!this.webSocketClient) return
+
+    try {
+      const partyPokemon = await this.parsePartyPokemon()
+      
+      // Create a hash of the party data to detect actual changes
+      const dataHash = JSON.stringify(
+        partyPokemon.map(p => ({
+          species: p.speciesId,
+          level: p.level,
+          hp: p.currentHp,
+          nickname: p.nickname,
+        }))
+      )
+
+      // Only notify listeners if party data actually changed
+      if (dataHash !== this.lastDataHash) {
+        this.lastDataHash = dataHash
+        
+        // Notify all listeners
+        for (const listener of this.watchListeners) {
+          try {
+            listener(partyPokemon)
+          } catch (error) {
+            console.error('Watch listener error:', error)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error handling party data change:', error)
+    }
+  }
+
+  /**
+   * Stop watching for memory changes
+   */
+  async stopWatching (): Promise<void> {
+    if (!this.isWatching || !this.webSocketClient) {
+      return
+    }
+
+    try {
+      await this.webSocketClient.stopWatching()
+      this.isWatching = false
+      this.watchListeners.length = 0
+      this.lastDataHash = ''
+    } catch (error) {
+      console.error('Error stopping watch mode:', error)
+    }
+  }
+
+  /**
+   * Add a listener for party changes (can be called multiple times)
+   */
+  addWatchListener (listener: (partyPokemon: PokemonBase[]) => void): void {
+    this.watchListeners.push(listener)
+  }
+
+  /**
+   * Remove a watch listener
+   */
+  removeWatchListener (listener: (partyPokemon: PokemonBase[]) => void): void {
+    const index = this.watchListeners.indexOf(listener)
+    if (index >= 0) {
+      this.watchListeners.splice(index, 1)
+    }
+  }
+
+  /**
+   * Check if currently watching for changes
+   */
+  isWatchingMemory (): boolean {
+    return this.isWatching
   }
 }
 
