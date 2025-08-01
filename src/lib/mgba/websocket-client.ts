@@ -16,15 +16,15 @@ export class MgbaWebSocketClient {
   // Memory watching
   private watchedRegions: Array<{ address: number, size: number }> = []
   private readonly memoryChangeListeners: MemoryChangeListener[] = []
-  private isWatching = false
+  private watchingMemory = false
 
-  // Simple memory cache for watched regions
-  private readonly watchedMemoryData = new Map<string, Uint8Array>()
+  // Memory cache for watched regions
+  private readonly memoryCache = new Map<string, Uint8Array>()
 
-  // Simple preload regions config for backward compatibility
+  // Preload regions config for backward compatibility
   private preloadRegions: Array<{ address: number, size: number }> = []
 
-  // Eval handling
+  // Eval request handling
   private readonly pendingEvalHandlers: Array<(message: SimpleMessage) => boolean> = []
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {
@@ -52,7 +52,7 @@ export class MgbaWebSocketClient {
 
         this.ws.onclose = () => {
           this.connected = false
-          this.isWatching = false
+          this.watchingMemory = false
           this.watchedRegions = []
         }
 
@@ -114,7 +114,7 @@ export class MgbaWebSocketClient {
         if (address && size && data) {
           // Cache the updated memory data
           const cacheKey = `${address}-${size}`
-          this.watchedMemoryData.set(cacheKey, new Uint8Array(data))
+          this.memoryCache.set(cacheKey, new Uint8Array(data))
           
           // Notify listeners about memory changes
           for (const listener of this.memoryChangeListeners) {
@@ -128,10 +128,6 @@ export class MgbaWebSocketClient {
       }
     }
   }
-
-
-
-
 
   /**
    * Handle eval response messages
@@ -164,19 +160,19 @@ export class MgbaWebSocketClient {
     const message = ['watch', ...regionLines].join('\n')
 
     this.ws.send(message)
-    this.isWatching = true
+    this.watchingMemory = true
   }
 
   /**
    * Stop watching memory regions
    */
   async stopWatching (): Promise<void> {
-    if (this.isWatching && this.ws) {
+    if (this.watchingMemory && this.ws) {
       this.ws.send('watch\n') // Send empty watch list to stop
     }
-    this.isWatching = false
+    this.watchingMemory = false
     this.watchedRegions = []
-    this.watchedMemoryData.clear()
+    this.memoryCache.clear()
   }
 
   /**
@@ -218,7 +214,7 @@ export class MgbaWebSocketClient {
    */
   async readBytes (address: number, size: number): Promise<Uint8Array> {
     // Check if we can satisfy this read from any watched memory region
-    const cachedData = this.getFromWatchedMemory(address, size)
+    const cachedData = this.getCachedMemory(address, size)
     if (cachedData) {
       return cachedData
     }
@@ -249,10 +245,10 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Check if we can read the requested data from any watched memory region
+   * Check if we can read the requested data from cached memory regions
    */
-  private getFromWatchedMemory (address: number, size: number): Uint8Array | null {
-    for (const [cacheKey, watchedData] of this.watchedMemoryData.entries()) {
+  private getCachedMemory (address: number, size: number): Uint8Array | null {
+    for (const [cacheKey, watchedData] of this.memoryCache.entries()) {
       const parts = cacheKey.split('-')
       if (parts.length !== 2 || !parts[0] || !parts[1]) continue
       
@@ -316,8 +312,8 @@ export class MgbaWebSocketClient {
   /**
    * Check if currently watching memory
    */
-  isWatchingMemory (): boolean {
-    return this.isWatching
+  isWatching (): boolean {
+    return this.watchingMemory
   }
 
   /**
@@ -336,9 +332,9 @@ export class MgbaWebSocketClient {
       this.ws = null
     }
     this.connected = false
-    this.isWatching = false
+    this.watchingMemory = false
     this.watchedRegions = []
-    this.watchedMemoryData.clear()
+    this.memoryCache.clear()
     this.pendingEvalHandlers.length = 0
   }
 

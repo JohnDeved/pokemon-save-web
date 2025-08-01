@@ -75,7 +75,7 @@ export class PokemonSaveParser {
   private isMemoryMode = false
 
   // Watching properties
-  private isWatching = false
+  private watchingChanges = false
   private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
   private readonly memoryBuffer = new Map<number, Uint8Array>()
 
@@ -642,7 +642,7 @@ export class PokemonSaveParser {
       throw new Error('Watch mode only available in memory mode (WebSocket connection)')
     }
 
-    if (this.isWatching) {
+    if (this.watchingChanges) {
       throw new Error('Already watching memory. Call stopWatching() first.')
     }
 
@@ -672,7 +672,7 @@ export class PokemonSaveParser {
       }
 
       this.webSocketClient.addMemoryChangeListener(memoryChangeListener)
-      this.isWatching = true
+      this.watchingChanges = true
 
       // Start watching memory regions - this will trigger initial data load via memory updates
       await this.webSocketClient.startWatching([...partyRegions])
@@ -834,7 +834,7 @@ export class PokemonSaveParser {
 
     try {
       await this.webSocketClient.stopWatching()
-      this.isWatching = false
+      this.watchingChanges = false
       this.watchListeners.length = 0
       this.memoryBuffer.clear()
     } catch (error) {
@@ -845,8 +845,8 @@ export class PokemonSaveParser {
   /**
    * Check if currently watching for changes
    */
-  isWatchingMemory (): boolean {
-    return this.isWatching
+  isWatching (): boolean {
+    return this.watchingChanges
   }
 }
 

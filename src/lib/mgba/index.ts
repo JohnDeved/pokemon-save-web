@@ -14,7 +14,6 @@
 
 export { MgbaWebSocketClient } from './websocket-client'
 export type {
-  MemoryRegion,
   SharedBufferConfig,
   MemoryChangeListener,
   SimpleMessage,

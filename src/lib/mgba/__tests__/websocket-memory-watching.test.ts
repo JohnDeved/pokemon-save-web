@@ -49,7 +49,7 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
     })
 
     it('should track watching state', () => {
-      expect(client.isWatchingMemory()).toBe(false)
+      expect(client.isWatching()).toBe(false)
       expect(client.getWatchedRegions()).toHaveLength(0)
     })
   })
@@ -120,7 +120,7 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
     })
 
     it('should provide watching status', () => {
-      expect(typeof client.isWatchingMemory()).toBe('boolean')
+      expect(typeof client.isWatching()).toBe('boolean')
     })
 
     it('should return watched regions list', () => {

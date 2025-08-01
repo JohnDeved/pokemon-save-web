@@ -8,13 +8,6 @@ export interface SimpleMessage {
   data: string[]
 }
 
-export interface MemoryRegion {
-  address: number
-  size: number
-  data: Uint8Array
-  lastUpdated: number
-}
-
 export interface SharedBufferConfig {
   preloadRegions: Array<{ address: number, size: number }>
 }

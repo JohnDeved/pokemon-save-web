@@ -788,7 +788,11 @@ app:websocket("/ws", function(ws)
         log("WebSocket disconnected: " .. ws.path)
         if watchCallback then
             callbacks:remove(watchCallback)
+            watchCallback = nil
         end
+        -- Clear watched regions and state on disconnect
+        watchedRegions = {}
+        lastData = {}
     end
 
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
