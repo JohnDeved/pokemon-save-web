@@ -725,6 +725,7 @@ export class PokemonSaveParser {
 
     const { partyData, partyCount } = this.config.memoryAddresses
     const pokemonSize = this.config.saveLayout.pokemonSize!
+    const maxPartySize = this.config.saveLayout.maxPartySize!
 
     // Update party count if changed
     if (address === partyCount) {
@@ -733,11 +734,11 @@ export class PokemonSaveParser {
     }
 
     // Update party data if in range
-    if (address >= partyData && address < partyData + (6 * pokemonSize)) {
+    if (address >= partyData && address < partyData + (maxPartySize * pokemonSize)) {
       let existingBuffer = this.memoryBuffer.get(partyData)
       if (!existingBuffer) {
         // Initialize the full party data buffer if it doesn't exist
-        existingBuffer = new Uint8Array(6 * pokemonSize)
+        existingBuffer = new Uint8Array(maxPartySize * pokemonSize)
         this.memoryBuffer.set(partyData, existingBuffer)
       }
 
