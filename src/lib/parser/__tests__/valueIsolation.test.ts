@@ -43,7 +43,7 @@ describe('Value Isolation Tests', () => {
 
   describe('Quetzal Value Isolation', () => {
     it('should modify only the target EV when writing individual EVs', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -79,7 +79,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should modify only the target IV when writing individual IVs', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -117,7 +117,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should modify only targeted stats when using array assignment', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -146,7 +146,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should persist changes correctly across save/reload cycles', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -162,7 +162,7 @@ describe('Value Isolation Tests', () => {
         const reconstructed = quetzalParser.reconstructSaveFile(parsedData.party_pokemon)
 
         // Parse reconstructed save
-        const reparsed = await quetzalParser.parseSaveFile(reconstructed)
+        const reparsed = await quetzalParser.parse(reconstructed)
         const reparsedPokemon = reparsed.party_pokemon[0]!
 
         // Verify only the intended changes persisted
@@ -179,7 +179,7 @@ describe('Value Isolation Tests', () => {
 
   describe('Vanilla Value Isolation', () => {
     it('should modify only the target EV when writing individual EVs (encrypted)', async () => {
-      const parsedData = await vanillaParser.parseSaveFile(vanillaSaveData)
+      const parsedData = await vanillaParser.parse(vanillaSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -217,7 +217,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should modify only the target IV when writing individual IVs (encrypted)', async () => {
-      const parsedData = await vanillaParser.parseSaveFile(vanillaSaveData)
+      const parsedData = await vanillaParser.parse(vanillaSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -255,7 +255,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should maintain encryption integrity during EV/IV modifications', async () => {
-      const parsedData = await vanillaParser.parseSaveFile(vanillaSaveData)
+      const parsedData = await vanillaParser.parse(vanillaSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -270,7 +270,7 @@ describe('Value Isolation Tests', () => {
         const reconstructed = vanillaParser.reconstructSaveFile(parsedData.party_pokemon)
 
         // Parse reconstructed save
-        const reparsed = await vanillaParser.parseSaveFile(reconstructed)
+        const reparsed = await vanillaParser.parse(reconstructed)
         const reparsedPokemon = reparsed.party_pokemon[0]!
 
         // Verify changes persisted correctly
@@ -292,7 +292,7 @@ describe('Value Isolation Tests', () => {
 
   describe('Cross-Pokemon Isolation', () => {
     it('should modify only the target Pokemon when multiple Pokemon exist', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 1) {
         // Capture initial states of all Pokemon
@@ -330,7 +330,7 @@ describe('Value Isolation Tests', () => {
 
   describe('Nature Writing Isolation', () => {
     it('should modify only the nature when writing nature values (Quetzal)', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -372,7 +372,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should modify only the nature when writing nature values (Vanilla)', async () => {
-      const parsedData = await vanillaParser.parseSaveFile(vanillaSaveData)
+      const parsedData = await vanillaParser.parse(vanillaSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -414,7 +414,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should persist nature changes correctly across save/reload cycles', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -431,7 +431,7 @@ describe('Value Isolation Tests', () => {
         const reconstructed = quetzalParser.reconstructSaveFile(parsedData.party_pokemon)
 
         // Parse reconstructed save
-        const reparsed = await quetzalParser.parseSaveFile(reconstructed)
+        const reparsed = await quetzalParser.parse(reconstructed)
         const reparsedPokemon = reparsed.party_pokemon[0]!
 
         // Verify nature persisted correctly
@@ -446,7 +446,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should handle nature changes on shiny Pokemon without affecting shininess', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         // Find a shiny Pokemon or make one shiny for testing
@@ -476,7 +476,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should handle edge cases for nature values', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -496,7 +496,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should not change nature when setting to same nature', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -517,7 +517,7 @@ describe('Value Isolation Tests', () => {
     })
 
     it('should modify only target Pokemon nature when multiple Pokemon exist', async () => {
-      const parsedData = await quetzalParser.parseSaveFile(quetzalSaveData)
+      const parsedData = await quetzalParser.parse(quetzalSaveData)
 
       if (parsedData.party_pokemon.length > 1) {
         // Capture initial states of all Pokemon

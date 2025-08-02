@@ -18,6 +18,9 @@ import { createMapping } from '../../core/utils'
 export class VanillaConfig extends GameConfigBase implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
 
+  readonly pokemonSize = 100
+  readonly maxPartySize = 6
+
   // Use default save layout with no overrides
   readonly saveLayout = VANILLA_SAVE_LAYOUT
 
@@ -30,14 +33,28 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
 
   // Memory addresses for Pokémon Emerald (USA) in mGBA (from official pokemon.lua script)
   readonly memoryAddresses = {
-    partyData: 0x20244ec, // _party address from pokemon.lua
-    partyCount: 0x20244e9, // _partyCount address from pokemon.lua
+    partyData: 0x20244ec,
+    partyCount: 0x20244e9,
+    enemyParty: 0x2024744,
+    get enemyPartyCount () {
+      return this.partyCount + 0x8
+    },
     // TODO: Add player name and play time addresses when implemented
-    preloadRegions: [
-      { address: 0x20244e9, size: 7 }, // Party count + context
-      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
-    ],
   } as const
+
+  get preloadRegions () {
+    return [
+      {
+        address: this.memoryAddresses.partyData,
+        // Full party data (6 * 100 bytes)
+        size: this.pokemonSize * this.maxPartySize,
+      },
+      {
+        address: this.memoryAddresses.partyCount,
+        size: 7, // Party count + context
+      },
+    ]
+  }
 
   /**
    * Check if this config can handle the given save file
@@ -52,6 +69,6 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
    * Supports Pokémon Emerald variants
    */
   canHandleMemory (gameTitle: string): boolean {
-    return gameTitle.includes('EMERALD') || gameTitle.includes('Emerald') || gameTitle.includes('EMER')
+    return gameTitle.toUpperCase().includes('POKEMON EMER')
   }
 }

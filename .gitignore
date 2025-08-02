@@ -33,9 +33,14 @@ __MACOSX/
 .env
 .env.local
 .env.production
+.env.secrets
 
 # Docker files and volumes
 docker-compose.override.yml
 .docker/
+
+# nektos/act local testing files
+.input
+.vars
 
 

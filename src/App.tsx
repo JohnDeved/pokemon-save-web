@@ -50,7 +50,7 @@ export const App: React.FC = () => {
       <Toaster richColors position="bottom-center"/>
       <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
         <SaveFileDropzone
-          onFileLoad={saveFileParser.parseSaveFile}
+          onFileLoad={saveFileParser.parse}
           error={saveFileParser.error}
           showDropzone={shouldShowDropzone}
           onOpenFilePicker={fn => { filePickerRef.current = fn }}

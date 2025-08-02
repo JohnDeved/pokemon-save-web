@@ -76,7 +76,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
       // Auto-detection should work correctly
       const autoParser = new PokemonSaveParser()
-      const autoResult = await autoParser.parseSaveFile(testSaveData)
+      const autoResult = await autoParser.parse(testSaveData)
       expect(autoResult.party_pokemon.length).toBe(1)
       expect(autoResult.party_pokemon[0]?.speciesId).toBe(252) // Treecko
       expect(autoResult.party_pokemon[0]?.nature).toBe('Hasty')
@@ -98,12 +98,12 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
       // Auto-detection should pick the right config for each save type
       const vanillaParser = new PokemonSaveParser()
-      await vanillaParser.parseSaveFile(testSaveData)
+      await vanillaParser.parse(testSaveData)
       expect(vanillaParser.gameConfig?.name).toBe('Pokemon Emerald (Vanilla)')
 
       const quetzalParser = new PokemonSaveParser()
       const quetzalArrayBuffer = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
-      const quetzalResult = await quetzalParser.parseSaveFile(quetzalArrayBuffer)
+      const quetzalResult = await quetzalParser.parse(quetzalArrayBuffer)
       expect(quetzalParser.gameConfig?.name).toBe('Pokemon Quetzal')
       expect(quetzalResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon
     })
@@ -113,7 +113,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     let parsedData: SaveData
 
     beforeAll(async () => {
-      parsedData = await parser.parseSaveFile(testSaveData)
+      parsedData = await parser.parse(testSaveData)
     })
 
     it('should parse player information correctly', () => {
@@ -190,7 +190,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
   describe('EV Writing and Persistence', () => {
     it('should allow writing and reading EVs back correctly', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -206,7 +206,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         const reconstructed = parser.reconstructSaveFile(parsedData.party_pokemon)
 
         // Parse the reconstructed save file
-        const reparsed = await parser.parseSaveFile(reconstructed)
+        const reparsed = await parser.parse(reconstructed)
 
         // Verify EVs persisted correctly
         expect(reparsed.party_pokemon).toHaveLength(1)
@@ -221,7 +221,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     })
 
     it('should handle individual EV modifications', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -245,7 +245,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
   describe('IV Writing and Persistence', () => {
     it('should allow writing and reading IVs back correctly', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -261,7 +261,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         const reconstructed = parser.reconstructSaveFile(parsedData.party_pokemon)
 
         // Parse the reconstructed save file
-        const reparsed = await parser.parseSaveFile(reconstructed)
+        const reparsed = await parser.parse(reconstructed)
 
         // Verify IVs persisted correctly
         expect(reparsed.party_pokemon).toHaveLength(1)
@@ -276,7 +276,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     })
 
     it('should handle individual IV modifications', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -295,7 +295,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
   describe('Nature Calculation', () => {
     it('should calculate nature correctly using vanilla Gen 3 formula', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -320,7 +320,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
   describe('Shiny Detection', () => {
     it('should correctly identify non-shiny Pokémon in vanilla saves', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]! // Treecko from test data
@@ -336,7 +336,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     })
 
     it('should use correct vanilla shiny logic (shinyNumber < 8)', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -359,7 +359,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     })
 
     it('should handle isRadiant property for vanilla saves', async () => {
-      const parsedData = await parser.parseSaveFile(testSaveData)
+      const parsedData = await parser.parse(testSaveData)
 
       if (parsedData.party_pokemon.length > 0) {
         const pokemon = parsedData.party_pokemon[0]!
@@ -372,7 +372,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
   describe('Save File Reconstruction', () => {
     it('should produce identical save file when reconstructing with unchanged party', async () => {
-      const parsed = await parser.parseSaveFile(testSaveData)
+      const parsed = await parser.parse(testSaveData)
       const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon.slice())
 
       // Create hash function for comparison
@@ -388,7 +388,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     })
 
     it('should maintain data integrity when modifying Pokemon stats', async () => {
-      const parsed = await parser.parseSaveFile(testSaveData)
+      const parsed = await parser.parse(testSaveData)
 
       if (parsed.party_pokemon.length > 0) {
         const pokemon = parsed.party_pokemon[0]!
@@ -402,7 +402,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
         // Reconstruct and reparse
         const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon)
-        const reparsed = await parser.parseSaveFile(reconstructed)
+        const reparsed = await parser.parse(reconstructed)
 
         // Verify changes persisted
         const reparsedPokemon = reparsed.party_pokemon[0]!
@@ -417,7 +417,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     })
 
     it('should handle encrypted data correctly during reconstruction', async () => {
-      const parsed = await parser.parseSaveFile(testSaveData)
+      const parsed = await parser.parse(testSaveData)
 
       if (parsed.party_pokemon.length > 0) {
         const pokemon = parsed.party_pokemon[0]!
@@ -430,7 +430,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
         // Reconstruct and reparse
         const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon)
-        const reparsed = await parser.parseSaveFile(reconstructed)
+        const reparsed = await parser.parse(reconstructed)
 
         // Verify encrypted data persisted correctly
         const reparsedPokemon = reparsed.party_pokemon[0]!

@@ -1,7 +1,40 @@
 name: Copilot Environment Setup
 
 on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version'
+        required: false
+        default: '20'
+        type: string
+      setup-docker:
+        description: 'Whether to setup Docker'
+        required: false
+        default: true
+        type: boolean
+      install-playwright:
+        description: 'Whether to install Playwright'
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
+    inputs:
+      node-version:
+        description: 'Node.js version'
+        required: false
+        default: '20'
+        type: string
+      setup-docker:
+        description: 'Whether to setup Docker'
+        required: false
+        default: true
+        type: boolean
+      install-playwright:
+        description: 'Whether to install Playwright'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   copilot-setup-steps:
@@ -16,13 +49,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ inputs.node-version || '20' }}
           cache: 'npm'
       
       - name: Install Node.js dependencies
         run: npm ci
 
       - name: Set up Docker Buildx
+        if: ${{ inputs.setup-docker == true }}
         uses: docker/setup-buildx-action@v3
 
       - name: Install Lua and development tools
@@ -37,6 +71,7 @@ jobs:
           echo "Lua setup completed"
 
       - name: Cache Playwright browsers
+        if: ${{ inputs.install-playwright == true }}
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
@@ -45,6 +80,7 @@ jobs:
             ${{ runner.os }}-playwright-cache-v1-
       
       - name: Install Playwright
+        if: ${{ inputs.install-playwright == true }}
         run: npx playwright install chromium --only-shell
       
       - name: Verify environment setup
@@ -54,7 +90,9 @@ jobs:
           echo "✅ Lua version: $(lua -v 2>&1 || echo 'Lua not available')"
           echo "✅ Lua 5.4 version: $(lua5.4 -v 2>&1 || echo 'Lua 5.4 not available')"
           echo "✅ Docker version: $(docker --version)"
-          echo "✅ Playwright browsers installed"
+          if [ "${{ inputs.install-playwright }}" == "true" ]; then
+            echo "✅ Playwright browsers installed"
+          fi
           echo "✅ Build tools available: $(gcc --version | head -1)"
           echo "✅ Environment ready for npm run test:all"
           

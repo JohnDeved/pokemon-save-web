@@ -152,3 +152,26 @@ export interface PokemonDetails {
   moves: MoveWithDetails[]
   baseStats: number[]
 }
+
+// --- WebSocket message schemas ---
+export const WebSocketMemoryUpdateSchema = z.object({
+  address: z.number(),
+  size: z.number(),
+  data: z.array(z.number()),
+})
+export type WebSocketMemoryUpdate = z.infer<typeof WebSocketMemoryUpdateSchema>
+
+export const WebSocketResponseSchema = z.object({
+  command: z.string().optional(),
+  status: z.enum(['success', 'error', 'update']).optional(),
+  result: z.unknown().optional(),
+  error: z.string().optional(),
+  updates: z.array(WebSocketMemoryUpdateSchema).optional(),
+})
+export type WebSocketResponse = z.infer<typeof WebSocketResponseSchema>
+
+export const WebSocketEvalResultSchema = z.object({
+  result: z.string().optional(),
+  error: z.string().optional(),
+})
+export type WebSocketEvalResult = z.infer<typeof WebSocketEvalResultSchema>
