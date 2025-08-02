@@ -22,7 +22,7 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
   readonly saveLayout = VANILLA_SAVE_LAYOUT
 
   // Load mapping data for translating internal IDs to external IDs using utility function
-  readonly mappings: GameConfig['mappings'] = {
+  readonly mappings = {
     pokemon: createMapping<PokemonMapping>(pokemonMapData as Record<string, unknown>),
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
     items: createMapping<ItemMapping>(itemMapData as Record<string, unknown>),
