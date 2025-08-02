@@ -30,8 +30,9 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
 
   // Memory addresses for Pokémon Emerald (USA) in mGBA (from official pokemon.lua script)
   readonly memoryAddresses = {
-    partyData: 0x20244ec, // _party address from pokemon.lua
-    partyCount: 0x20244e9, // _partyCount address from pokemon.lua
+    partyData: 0x20244ec,
+    partyCount: 0x20244e9,
+    enemyParty: 0x2024744,
     // TODO: Add player name and play time addresses when implemented
     preloadRegions: [
       { address: 0x20244e9, size: 7 }, // Party count + context
