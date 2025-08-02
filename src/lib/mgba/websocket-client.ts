@@ -24,8 +24,7 @@ export class MgbaWebSocketClient {
   // Eval request handling
   private readonly pendingEvalHandlers: Array<(message: SimpleMessage) => boolean> = []
 
-  constructor (private readonly url = 'ws://localhost:7102/ws') {
-  }
+  constructor (private readonly url = 'ws://localhost:7102/ws') {}
 
   /**
    * Connect to WebSocket server
@@ -135,13 +134,10 @@ export class MgbaWebSocketClient {
    * Handle eval response messages
    */
   private handleEvalResponse (message: SimpleMessage): void {
-    // Find pending handler for this response
-    for (let i = this.pendingEvalHandlers.length - 1; i >= 0; i--) {
-      const handler = this.pendingEvalHandlers[i]
-      if (handler && handler(message)) {
-        this.pendingEvalHandlers.splice(i, 1)
-        break
-      }
+    // Find and remove the first handler that returns true
+    const idx = this.pendingEvalHandlers.findIndex(handler => handler(message))
+    if (idx !== -1) {
+      this.pendingEvalHandlers.splice(idx, 1)
     }
   }
 
@@ -251,21 +247,19 @@ export class MgbaWebSocketClient {
    */
   private getCachedMemory (address: number, size: number): Uint8Array | null {
     for (const [cacheKey, watchedData] of this.memoryCache.entries()) {
-      const parts = cacheKey.split('-')
-      if (parts.length !== 2 || !parts[0] || !parts[1]) continue
-
-      const watchedAddress = parseInt(parts[0], 10)
-      const watchedSize = parseInt(parts[1], 10)
-
-      // Ensure both parts are valid numbers
-      if (isNaN(watchedAddress) || isNaN(watchedSize)) continue
-
-      // Check if the requested range is within the watched region
-      if (address >= watchedAddress && (address + size) <= (watchedAddress + watchedSize)) {
-        const startOffset = address - watchedAddress
-        const endOffset = startOffset + size
-        return new Uint8Array(watchedData.slice(startOffset, endOffset))
+      const [watchedAddressStr, watchedSizeStr] = cacheKey.split('-')
+      const watchedAddress = Number(watchedAddressStr)
+      const watchedSize = Number(watchedSizeStr)
+      if (
+        Number.isNaN(watchedAddress) ||
+        Number.isNaN(watchedSize) ||
+        address < watchedAddress ||
+        address + size > watchedAddress + watchedSize
+      ) {
+        continue
       }
+      const start = address - watchedAddress
+      return watchedData.slice(start, start + size)
     }
     return null
   }
@@ -351,10 +345,10 @@ export class MgbaWebSocketClient {
    * Get game title
    */
   async getGameTitle (): Promise<string> {
-    const result = await this.eval('return emu:getGameTitle()')
+    const result = await this.eval('emu:getGameTitle()')
     if (result.error) {
       throw new Error(`Failed to get game title: ${result.error}`)
     }
-    return result.result?.replace(/"/g, '') ?? 'Unknown Game'
+    return result.result ?? 'Unknown Game'
   }
 }
