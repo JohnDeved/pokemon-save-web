@@ -27,7 +27,7 @@ export class PokemonBase {
     // Merge config overrides with vanilla defaults
     this.offsets = { ...VANILLA_POKEMON_OFFSETS, ...config.offsetOverrides }
     this.saveLayout = { ...VANILLA_SAVE_LAYOUT, ...config.saveLayoutOverrides }
-    const pokemonSize = config.pokemonSize ?? VANILLA_SAVE_LAYOUT.pokemonSize
+    const pokemonSize = config.pokemonSize ?? 6
 
     if (data.length < pokemonSize) {
       throw new Error(`Insufficient data for Pokemon: ${data.length} bytes`)

@@ -118,11 +118,10 @@ export const VANILLA_SAVE_LAYOUT = {
   saveBlockSize: 3968 * 4,
   partyOffset: 0x238,
   partyCountOffset: 0x234,
-  pokemonSize: 100,
-  maxPartySize: 6,
   playTimeHours: 0x0E,
   playTimeMinutes: 0x10,
   playTimeSeconds: 0x11,
+  playTimeMilliseconds: 0x12,
 }
 
 /**
@@ -153,7 +152,10 @@ export interface GameConfig {
   readonly signature?: number
 
   /** Pokemon size in bytes (defaults to 100 for vanilla) */
-  readonly pokemonSize?: number
+  readonly pokemonSize: number
+
+  /** Maximum party size (defaults to 6 for vanilla) */
+  readonly maxPartySize: number
 
   /** Offset overrides for games with different data layouts */
   readonly offsetOverrides?: PokemonOffsetsOverride
@@ -162,7 +164,7 @@ export interface GameConfig {
   readonly saveLayoutOverrides?: SaveLayoutOverride
 
   /** Final merged save layout for easy access */
-  readonly saveLayout: Record<string, number>
+  readonly saveLayout: typeof VANILLA_SAVE_LAYOUT & SaveLayoutOverride
 
   /** ID mapping data for translating internal IDs to external IDs */
   readonly mappings?: {

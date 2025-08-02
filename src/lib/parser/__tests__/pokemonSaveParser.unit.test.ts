@@ -85,8 +85,8 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       expect(quetzalConfig.saveLayout.sectorDataSize).toBeDefined()
       expect(quetzalConfig.saveLayout.sectorDataSize).toBeGreaterThan(0)
 
-      expect(quetzalConfig.saveLayout.maxPartySize).toBeDefined()
-      expect(quetzalConfig.saveLayout.maxPartySize).toBe(6)
+      expect(quetzalConfig.maxPartySize).toBeDefined()
+      expect(quetzalConfig.maxPartySize).toBe(6)
 
       expect(quetzalConfig.pokemonSize).toBeDefined()
       expect(quetzalConfig.pokemonSize).toBeGreaterThan(0)
@@ -99,11 +99,11 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       expect(vanillaConfig.saveLayout.sectorDataSize).toBeDefined()
       expect(vanillaConfig.saveLayout.sectorDataSize).toBeGreaterThan(0)
 
-      expect(vanillaConfig.saveLayout.maxPartySize).toBeDefined()
-      expect(vanillaConfig.saveLayout.maxPartySize).toBe(6)
+      expect(vanillaConfig.maxPartySize).toBeDefined()
+      expect(vanillaConfig.maxPartySize).toBe(6)
 
-      expect(vanillaConfig.saveLayout.pokemonSize).toBeDefined()
-      expect(vanillaConfig.saveLayout.pokemonSize).toBeGreaterThan(0)
+      expect(vanillaConfig.pokemonSize).toBeDefined()
+      expect(vanillaConfig.pokemonSize).toBeGreaterThan(0)
     })
   })
 

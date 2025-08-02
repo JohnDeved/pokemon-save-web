@@ -16,6 +16,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   // Override Pokemon size for Quetzal
   readonly pokemonSize = 104
+  readonly maxPartySize = 6
 
   // Override offsets for Quetzal's unencrypted structure
   readonly offsetOverrides: PokemonOffsetsOverride = {
@@ -34,10 +35,10 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   readonly saveLayoutOverrides: SaveLayoutOverride = {
     partyOffset: 0x6A8,
     partyCountOffset: 0x6A4,
-    pokemonSize: 104,
     playTimeHours: 0x10,
     playTimeMinutes: 0x14,
     playTimeSeconds: 0x15,
+    playTimeMilliseconds: 0x16,
   }
 
   // Merged save layout for easy access
@@ -69,7 +70,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     return [
       {
         address: this.memoryAddresses.partyData,
-        size: this.pokemonSize * this.saveLayout.maxPartySize,
+        size: this.pokemonSize * this.maxPartySize,
       },
       {
         address: this.memoryAddresses.partyCount,

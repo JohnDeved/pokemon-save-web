@@ -18,6 +18,9 @@ import { createMapping } from '../../core/utils'
 export class VanillaConfig extends GameConfigBase implements GameConfig {
   readonly name = 'Pokemon Emerald (Vanilla)'
 
+  readonly pokemonSize = 100
+  readonly maxPartySize = 6
+
   // Use default save layout with no overrides
   readonly saveLayout = VANILLA_SAVE_LAYOUT
 
@@ -44,7 +47,7 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
       {
         address: this.memoryAddresses.partyData,
         // Full party data (6 * 100 bytes)
-        size: this.saveLayout.pokemonSize * this.saveLayout.maxPartySize,
+        size: this.pokemonSize * this.maxPartySize,
       },
       {
         address: this.memoryAddresses.partyCount,
@@ -66,6 +69,6 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
    * Supports Pokémon Emerald variants
    */
   canHandleMemory (gameTitle: string): boolean {
-    return gameTitle.includes('EMERALD') || gameTitle.includes('Emerald') || gameTitle.includes('EMER')
+    return gameTitle.toUpperCase().includes('POKEMON EMER')
   }
 }
