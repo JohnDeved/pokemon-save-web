@@ -22,7 +22,7 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
   readonly saveLayout = VANILLA_SAVE_LAYOUT
 
   // Load mapping data for translating internal IDs to external IDs using utility function
-  readonly mappings = {
+  readonly mappings: GameConfig['mappings'] = {
     pokemon: createMapping<PokemonMapping>(pokemonMapData as Record<string, unknown>),
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
     items: createMapping<ItemMapping>(itemMapData as Record<string, unknown>),
@@ -33,12 +33,21 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
     partyData: 0x20244ec,
     partyCount: 0x20244e9,
     enemyParty: 0x2024744,
+    get enemyPartyCount () {
+      return this.partyCount + 0x8
+    },
     // TODO: Add player name and play time addresses when implemented
-    preloadRegions: [
-      { address: 0x20244e9, size: 7 }, // Party count + context
-      { address: 0x20244ec, size: 600 }, // Full party data (6 * 100 bytes)
-    ],
   } as const
+
+  get preloadRegions () {
+    return [
+      {
+        address: this.memoryAddresses.partyData,
+        // Full party data (6 * 100 bytes)
+        size: this.saveLayout.pokemonSize * this.saveLayout.maxPartySize,
+      },
+    ]
+  }
 
   /**
    * Check if this config can handle the given save file

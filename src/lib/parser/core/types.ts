@@ -181,10 +181,13 @@ export interface GameConfig {
   readonly memoryAddresses?: {
     readonly partyData: number
     readonly partyCount: number
+    readonly enemyParty: number
+    readonly enemyPartyCount: number
     readonly playerName?: number
     readonly playTime?: number
-    readonly preloadRegions?: ReadonlyArray<{ address: number, size: number }>
   }
+
+  readonly preloadRegions?: ReadonlyArray<{ address: number, size: number }>
 
   // Optional behavioral overrides for game-specific mechanics
   calculateNature?(personality: number): string

@@ -639,7 +639,7 @@ export class PokemonSaveParser {
       throw new Error('Already watching memory. Call stopWatching() first.')
     }
 
-    if (!this.config?.memoryAddresses?.preloadRegions) {
+    if (!this.config?.preloadRegions) {
       throw new Error('No memory addresses configured for watching')
     }
 
@@ -668,7 +668,7 @@ export class PokemonSaveParser {
       })
 
       this.watchingChanges = true
-      await this.webSocketClient.startWatching([...this.config.memoryAddresses.preloadRegions])
+      await this.webSocketClient.startWatching([...this.config.preloadRegions])
     } catch (error) {
       handleError(error)
     }
