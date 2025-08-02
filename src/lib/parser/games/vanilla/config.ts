@@ -46,6 +46,10 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
         // Full party data (6 * 100 bytes)
         size: this.saveLayout.pokemonSize * this.saveLayout.maxPartySize,
       },
+      {
+        address: this.memoryAddresses.partyCount,
+        size: 7, // Party count + context
+      },
     ]
   }
 

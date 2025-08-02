@@ -71,6 +71,10 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
         address: this.memoryAddresses.partyData,
         size: this.pokemonSize * this.saveLayout.maxPartySize,
       },
+      {
+        address: this.memoryAddresses.partyCount,
+        size: 7, // Party count + context
+      },
     ]
   }
 
