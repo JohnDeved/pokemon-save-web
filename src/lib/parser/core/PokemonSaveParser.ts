@@ -639,42 +639,38 @@ export class PokemonSaveParser {
       throw new Error('Already watching memory. Call stopWatching() first.')
     }
 
-    // Add callback to listeners if provided
-    if (options.onPartyChange) {
-      this.watchListeners.push(options.onPartyChange)
-    }
-
-    // Set up memory watching for party data regions
     if (!this.config?.memoryAddresses?.preloadRegions) {
       throw new Error('No memory addresses configured for watching')
     }
 
-    const partyRegions = this.config.memoryAddresses.preloadRegions
+    const handleError = (error: unknown) => {
+      const err = error instanceof Error ? error : new Error(String(error))
+      if (options.onError) {
+        options.onError(err)
+      } else {
+        throw err
+      }
+    }
 
     try {
-      // Set up memory change listener first
-      const memoryChangeListener = async (address: number, size: number, data: Uint8Array) => {
+      // Add callback to listeners if provided
+      if (options.onPartyChange) {
+        this.watchListeners.push(options.onPartyChange)
+      }
+
+      // Set up memory change listener
+      this.webSocketClient.addMemoryChangeListener(async (address, size, data) => {
         try {
-          // Use the provided data directly instead of making additional calls
           await this.handleMemoryChange(address, size, data)
         } catch (error) {
-          if (options.onError) {
-            options.onError(error instanceof Error ? error : new Error(String(error)))
-          }
+          handleError(error)
         }
-      }
+      })
 
-      this.webSocketClient.addMemoryChangeListener(memoryChangeListener)
       this.watchingChanges = true
-
-      // Start watching memory regions - this will trigger initial data load via memory updates
-      await this.webSocketClient.startWatching([...partyRegions])
+      await this.webSocketClient.startWatching([...this.config.memoryAddresses.preloadRegions])
     } catch (error) {
-      if (options.onError) {
-        options.onError(error instanceof Error ? error : new Error(String(error)))
-      } else {
-        throw error
-      }
+      handleError(error)
     }
   }
 

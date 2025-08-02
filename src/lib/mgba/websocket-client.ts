@@ -5,6 +5,7 @@
 
 import WebSocket from 'isomorphic-ws'
 import type { SimpleMessage, MemoryChangeListener } from './types'
+import { WebSocketResponseSchema, type WebSocketResponse, type WebSocketEvalResult } from '../../types'
 
 // Re-export types for consumers
 export type { MemoryChangeListener } from './types'
@@ -71,10 +72,8 @@ export class MgbaWebSocketClient {
     }
 
     try {
-      const parsed: unknown = JSON.parse(data)
-      if (typeof parsed === 'object' && parsed !== null) {
-        this.handleOriginalJsonResponse(parsed as { command?: string, status?: string, result?: unknown, error?: string, updates?: unknown[] })
-      }
+      const parsed = WebSocketResponseSchema.parse(JSON.parse(data))
+      this.handleOriginalJsonResponse(parsed)
     } catch (error) {
       console.warn('Failed to parse WebSocket message as JSON:', error)
     }
@@ -83,12 +82,9 @@ export class MgbaWebSocketClient {
   /**
    * Handle JSON responses from original server format
    */
-  private handleOriginalJsonResponse (response: { command?: string, status?: string, result?: unknown, error?: string, updates?: unknown[] }): void {
+  private handleOriginalJsonResponse (response: WebSocketResponse): void {
     if (response.command === 'watch') {
-      this.handleWatchResponse({
-        status: response.status,
-        updates: Array.isArray(response.updates) ? response.updates as Array<{ address?: number, size?: number, data?: number[] }> : undefined,
-      })
+      this.handleWatchResponse(response)
     } else if ('result' in response) {
       this.handleEvalResponse({
         command: 'eval',
@@ -107,23 +103,21 @@ export class MgbaWebSocketClient {
   /**
    * Handle watch response messages
    */
-  private handleWatchResponse (response: { status?: string, updates?: Array<{ address?: number, size?: number, data?: number[] }> }): void {
+  private handleWatchResponse (response: WebSocketResponse): void {
     if (response.status === 'update' && response.updates) {
       // Handle memory updates
       for (const update of response.updates) {
         const { address, size, data } = update
-        if (address !== undefined && size !== undefined && data) {
-          // Cache the updated memory data
-          const cacheKey = `${address}-${size}`
-          this.memoryCache.set(cacheKey, new Uint8Array(data))
+        // Cache the updated memory data
+        const cacheKey = `${address}-${size}`
+        this.memoryCache.set(cacheKey, new Uint8Array(data))
 
-          // Notify listeners about memory changes
-          for (const listener of this.memoryChangeListeners) {
-            try {
-              listener(address, size, new Uint8Array(data))
-            } catch (error) {
-              console.error('Memory change listener error:', error)
-            }
+        // Notify listeners about memory changes
+        for (const listener of this.memoryChangeListeners) {
+          try {
+            listener(address, size, new Uint8Array(data))
+          } catch (error) {
+            console.error('Memory change listener error:', error)
           }
         }
       }
@@ -176,7 +170,7 @@ export class MgbaWebSocketClient {
   /**
    * Execute Lua code via eval
    */
-  async eval (code: string): Promise<{ result?: string, error?: string }> {
+  async eval (code: string): Promise<WebSocketEvalResult> {
     if (!this.connected || !this.ws) {
       throw new Error('Not connected to WebSocket server')
     }
@@ -235,7 +229,8 @@ export class MgbaWebSocketClient {
     }
 
     try {
-      const bytes = JSON.parse(result.result ?? '[]')
+      const resultString = result.result ?? '[]'
+      const bytes = JSON.parse(resultString)
       return new Uint8Array(bytes)
     } catch (error) {
       throw new Error(`Failed to parse memory data: ${String(error)}`)
