@@ -4,8 +4,8 @@
  */
 
 import WebSocket from 'isomorphic-ws'
-import type { SimpleMessage, MemoryChangeListener } from './types'
-import { WebSocketResponseSchema, type WebSocketResponse, type WebSocketEvalResult } from '../../types'
+import { WebSocketResponseSchema } from './types'
+import type { SimpleMessage, MemoryChangeListener, WebSocketResponse, WebSocketEvalResult } from './types'
 
 // Re-export types for consumers
 export type { MemoryChangeListener } from './types'
@@ -229,8 +229,7 @@ export class MgbaWebSocketClient {
     }
 
     try {
-      const resultString = result.result ?? '[]'
-      const bytes = JSON.parse(resultString)
+      const bytes = JSON.parse(result.result ?? '[]')
       return new Uint8Array(bytes)
     } catch (error) {
       throw new Error(`Failed to parse memory data: ${String(error)}`)
