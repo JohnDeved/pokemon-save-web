@@ -28,7 +28,7 @@ export class PokemonBase {
     this.offsets = { ...VANILLA_POKEMON_OFFSETS, ...config.offsetOverrides }
     this.saveLayout = { ...VANILLA_SAVE_LAYOUT, ...config.saveLayoutOverrides }
     // Use a safe fallback when pokemonSize is not provided in config
-    const pokemonSize = (typeof config.pokemonSize === 'number') ? config.pokemonSize : 6
+    const pokemonSize = (typeof config.pokemonSize === 'number') ? config.pokemonSize : 100
 
     if (data.length < pokemonSize) {
       throw new Error(`Insufficient data for Pokemon: ${data.length} bytes`)
