@@ -558,7 +558,7 @@ export class PokemonSaveParser {
 
     // Helper to write a sector and update its checksum
     const writeSector = (sectorId: number, data: Uint8Array) => {
-      if (!this.config) throw new Error('Config not loaded #2')
+      if (!this.config) throw new Error('Game configuration not loaded during sector reconstruction')
 
       if (!this.sectorMap.has(sectorId)) return
       const sectorIdx = this.sectorMap.get(sectorId)!
