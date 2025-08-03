@@ -27,7 +27,8 @@ export class PokemonBase {
     // Merge config overrides with vanilla defaults
     this.offsets = { ...VANILLA_POKEMON_OFFSETS, ...config.offsetOverrides }
     this.saveLayout = { ...VANILLA_SAVE_LAYOUT, ...config.saveLayoutOverrides }
-    const pokemonSize = config.pokemonSize ?? 6
+    // Use a safe fallback when pokemonSize is not provided in config
+    const pokemonSize = (typeof config.pokemonSize === 'number') ? config.pokemonSize : 6
 
     if (data.length < pokemonSize) {
       throw new Error(`Insufficient data for Pokemon: ${data.length} bytes`)
@@ -148,7 +149,8 @@ export class PokemonBase {
     const substruct0 = this.getDecryptedSubstruct(this.data, 0)
     const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
     const rawSpecies = subView.getUint16(0, true)
-    return this.config.mappings?.pokemon?.get(rawSpecies)?.id_name ?? undefined
+    // Access optional mapping safely; return undefined if not present
+    return this.config.mappings?.pokemon?.get(rawSpecies)?.id_name
   }
 
   get item () {
