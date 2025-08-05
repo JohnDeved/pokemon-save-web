@@ -112,7 +112,7 @@ async function dumpMemoryCommand(options: CliOptions): Promise<void> {
     const dumps = await dumper.quickMemoryDump(options.variant, join(outputDir, options.variant))
     
     console.log(`✅ Memory dump complete. Files:`)
-    dumps.forEach(file => console.log(`  - ${file}`))
+    dumps.forEach((file: string) => console.log(`  - ${file}`))
   } else {
     // Dump both variants with full analysis
     const results = await orchestrator.analyzePartyDataMemory(outputDir)

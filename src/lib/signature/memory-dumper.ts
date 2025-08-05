@@ -245,6 +245,24 @@ export class DockerMemoryDumper {
     }
   }
 
+  /**
+   * Quick memory dump for testing signatures
+   */
+  async quickMemoryDump(_variant: 'emerald' | 'quetzal', outputDir: string): Promise<string[]> {
+    if (!existsSync(outputDir)) {
+      mkdirSync(outputDir, { recursive: true })
+    }
+
+    const config: MemoryDumpConfig = {
+      regions: [
+        { address: 0x02000000, size: 0x10000, description: 'EWRAM (64KB)' }, // Smaller region for quick testing
+      ],
+      format: 'raw',
+    }
+    
+    return await this.dumpMemoryWithLua(config, outputDir)
+  }
+
   private generateMemoryDumpScript(regions: readonly MemoryRegion[]): string {
     const dumpCommands = regions.map((region, index) => `
   -- Dump ${region.description}
@@ -352,26 +370,5 @@ export class MemoryAnalysisOrchestrator {
     }
 
     return results
-  }
-
-  /**
-   * Quick memory dump for testing signatures
-   */
-  async quickMemoryDump(variant: 'emerald' | 'quetzal', outputDir: string): Promise<string[]> {
-    await this.dumper.startContainer(variant)
-    
-    try {
-      const config: MemoryDumpConfig = {
-        regions: [
-          { address: 0x02000000, size: 0x10000, description: 'EWRAM (64KB)' }, // Smaller region for quick testing
-        ],
-        format: 'raw',
-      }
-      
-      return await this.dumper.dumpMemoryWithLua(config, outputDir)
-      
-    } finally {
-      this.dumper.stopContainer()
-    }
   }
 }
