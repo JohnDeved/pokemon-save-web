@@ -618,8 +618,8 @@ app:post("/echo", function(req, res)
     res:send("200 OK", req.body, req.headers['content-type'])
 end)
 
--- WebSocket route
-app:websocket("/ws", function(ws)
+-- WebSocket handler function
+local function handleWebSocketConnection(ws)
     log("WebSocket connected: " .. ws.path)
     
     -- Memory watching state
@@ -796,7 +796,10 @@ app:websocket("/ws", function(ws)
     end
 
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
-end)
+end
+
+-- WebSocket route
+app:websocket("/ws", handleWebSocketConnection)
 
 -- Start server
 app:listen(7102, function(port)

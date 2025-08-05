@@ -60,7 +60,6 @@ export class PokemonSaveParser {
   // Watching properties
   private watchingChanges = false
   private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
-  private readonly memoryBuffer = new Map<number, Uint8Array>()
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
@@ -647,23 +646,32 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Handle memory changes and notify listeners
+   * Handle memory changes from WebSocket (simplified without buffer management)
    */
-  private async handleMemoryChange (address: number, _size: number, data: Uint8Array): Promise<void> {
+  private async handleMemoryChange (address: number, _size: number, _data: Uint8Array): Promise<void> {
     if (!this.webSocketClient || !this.config?.memoryAddresses) return
 
     try {
-      // Update memory buffer with new data (initialize if needed)
-      this.updateMemoryBuffer(address, data)
+      // Check if this address is relevant to our party data
+      const { partyData, partyCount } = this.config.memoryAddresses
+      const pokemonSize = this.config.pokemonSize
+      const maxPartySize = this.config.maxPartySize
+
+      const isRelevantAddress = address === partyCount ||
+        (address >= partyData && address < partyData + (maxPartySize * pokemonSize))
+
+      if (!isRelevantAddress) {
+        return
+      }
 
       // Check if we have enough data to parse party Pokemon
-      const hasRequiredData = this.hasMemoryData()
+      const hasRequiredData = await this.hasMemoryData()
       if (!hasRequiredData) {
         // Not enough data yet, wait for more updates
         return
       }
 
-      // Parse fresh Pokemon objects from updated memory
+      // Parse fresh Pokemon objects from WebSocket cache
       const updatedPartyPokemon = await this.parsePartyFromMemory()
 
       // Notify all listeners (no need for change detection as server only sends when changed)
@@ -680,61 +688,35 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Check if we have required memory data
+   * Check if we have required memory data by attempting to read from WebSocket cache
    */
-  private hasMemoryData (): boolean {
-    if (!this.config?.memoryAddresses) return false
+  private async hasMemoryData (): Promise<boolean> {
+    if (!this.config?.memoryAddresses || !this.webSocketClient) return false
 
     const { partyData, partyCount } = this.config.memoryAddresses
-    return this.memoryBuffer.has(partyData) && this.memoryBuffer.has(partyCount)
-  }
-
-  /**
-   * Update memory buffer with new data
-   */
-  private updateMemoryBuffer (address: number, newData: Uint8Array): void {
-    if (!this.config?.memoryAddresses) return
-
-    const { partyData, partyCount } = this.config.memoryAddresses
-    const pokemonSize = this.config.pokemonSize
-    const maxPartySize = this.config.maxPartySize
-
-    // Update party count if changed
-    if (address === partyCount) {
-      this.memoryBuffer.set(partyCount, new Uint8Array(newData))
-      return
-    }
-
-    // Update party data if in range
-    if (address >= partyData && address < partyData + (maxPartySize * pokemonSize)) {
-      let existingBuffer = this.memoryBuffer.get(partyData)
-      if (!existingBuffer) {
-        // Initialize the full party data buffer if it doesn't exist
-        existingBuffer = new Uint8Array(maxPartySize * pokemonSize)
-        this.memoryBuffer.set(partyData, existingBuffer)
-      }
-
-      const relativeOffset = address - partyData
-      existingBuffer.set(newData, relativeOffset)
+    try {
+      // Try to read party count (1 byte) and party data (first pokemon) from cache
+      await this.webSocketClient.readBytes(partyCount, 1)
+      await this.webSocketClient.readBytes(partyData, this.config.pokemonSize)
+      return true
+    } catch {
+      return false
     }
   }
 
   /**
-   * Parse party Pokemon from current memory buffer state
+   * Parse party Pokemon from WebSocket memory cache
    */
   private async parsePartyFromMemory (): Promise<PokemonBase[]> {
-    if (!this.config?.memoryAddresses) {
-      throw new Error('No memory addresses configured')
+    if (!this.config?.memoryAddresses || !this.webSocketClient) {
+      throw new Error('Memory addresses not configured or WebSocket not available')
     }
 
     const { partyData, partyCount } = this.config.memoryAddresses
     const pokemonSize = this.config.pokemonSize
 
-    // Get party count from buffer
-    const partyCountBuffer = this.memoryBuffer.get(partyCount)
-    if (!partyCountBuffer) {
-      throw new Error('Party count not loaded in memory buffer')
-    }
+    // Get party count from WebSocket cache
+    const partyCountBuffer = await this.webSocketClient.readBytes(partyCount, 1)
     const partyCountValue = partyCountBuffer[0] ?? 0
 
     const maxPartySize = this.config.maxPartySize
@@ -742,17 +724,14 @@ export class PokemonSaveParser {
       throw new Error(`Invalid party count: ${partyCountValue}. Expected 0-${maxPartySize}.`)
     }
 
-    // Get party data from buffer
-    const partyDataBuffer = this.memoryBuffer.get(partyData)
-    if (!partyDataBuffer) {
-      throw new Error('Party data not loaded in memory buffer')
-    }
+    // Get party data from WebSocket cache
+    const partyDataBuffer = await this.webSocketClient.readBytes(partyData, maxPartySize * pokemonSize)
 
     const pokemon: PokemonBase[] = []
 
     for (let i = 0; i < partyCountValue; i++) {
       const pokemonOffset = i * pokemonSize
-      const pokemonBytes = partyDataBuffer.slice(pokemonOffset, pokemonOffset + pokemonSize)
+      const pokemonBytes = partyDataBuffer.slice(pokemonOffset, pokemonOffset + pokemonSize) as Uint8Array
       const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
 
       // Stop at empty slots (species ID = 0)
@@ -778,7 +757,6 @@ export class PokemonSaveParser {
       await this.webSocketClient.stopWatching()
       this.watchingChanges = false
       this.watchListeners.length = 0
-      this.memoryBuffer.clear()
     } catch (error) {
       console.error('Error stopping watch mode:', error)
     }
