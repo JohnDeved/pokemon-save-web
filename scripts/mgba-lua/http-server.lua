@@ -676,7 +676,9 @@ local function handleWebSocketConnection(ws)
         end
     end
 
-    ws.onMessage = function(message)
+    ws.onMessage = function(message)        
+        log("WebSocket request: " .. tostring(message))
+
         -- Check if this is a watch command
         local regions = parseWatchMessage(message)
         if regions then
@@ -718,7 +720,6 @@ local function handleWebSocketConnection(ws)
         
         -- Handle eval requests
         local function safe_eval()
-            log("WebSocket eval request: " .. tostring(message))
             local chunk = message
             
             -- Enhanced support for non-self-executing function inputs
