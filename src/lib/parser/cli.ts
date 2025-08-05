@@ -265,6 +265,11 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
   // Load the WebSocket client into memory mode
   await parser.loadInputData(client)
 
+  // Get and display initial data
+  const initialData = await parser.getCurrentSaveData()
+  displayPartyPokemon(initialData.party_pokemon, 'MEMORY')
+  if (options.debug) displayPartyPokemonRaw(initialData.party_pokemon)
+
   // Set up watching with the new parser API
   await parser.watch({
     onPartyChange: (partyPokemon) => {

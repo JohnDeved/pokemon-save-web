@@ -321,7 +321,39 @@ export class PokemonSaveParser {
 
     // Memory mode: read directly from emulator memory
     if (this.isMemoryMode && this.webSocketClient) {
-      return await this.parsePartyPokemonFromMemory()
+      const { memoryAddresses } = this.config
+      if (!memoryAddresses) {
+        throw new Error(`Config "${this.config.name}" does not define memory addresses for memory parsing`)
+      }
+
+      // Get party count from WebSocket cache
+      const partyCountBuffer = await this.webSocketClient.readBytes(memoryAddresses.partyCount, 1)
+      const partyCountValue = partyCountBuffer[0] ?? 0
+
+      const maxPartySize = this.config.maxPartySize
+      if (partyCountValue < 0 || partyCountValue > maxPartySize) {
+        throw new Error(`Invalid party count: ${partyCountValue}. Expected 0-${maxPartySize}.`)
+      }
+
+      // Get party data from WebSocket cache (read all at once for efficiency)
+      const partyDataBuffer = await this.webSocketClient.readBytes(memoryAddresses.partyData, maxPartySize * this.config.pokemonSize)
+
+      const pokemon: PokemonBase[] = []
+
+      for (let i = 0; i < partyCountValue; i++) {
+        const pokemonOffset = i * this.config.pokemonSize
+        const pokemonBytes = partyDataBuffer.slice(pokemonOffset, pokemonOffset + this.config.pokemonSize) as Uint8Array
+        const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
+
+        // Stop at empty slots (species ID = 0)
+        if (pokemonInstance.speciesId === 0) {
+          break
+        }
+
+        pokemon.push(pokemonInstance)
+      }
+
+      return pokemon
     }
 
     // File mode: parse from SaveBlock1 data
@@ -352,50 +384,6 @@ export class PokemonSaveParser {
     }
 
     return partyPokemon
-  }
-
-  /**
-   * Parse party Pokemon directly from emulator memory
-   * Uses addresses from config's memoryAddresses
-   */
-  private async parsePartyPokemonFromMemory (): Promise<PokemonBase[]> {
-    if (!this.webSocketClient || !this.config) {
-      throw new Error('Memory mode not properly initialized')
-    }
-
-    const { memoryAddresses } = this.config
-    if (!memoryAddresses) {
-      throw new Error(`Config "${this.config.name}" does not define memory addresses for memory parsing`)
-    }
-
-    // Get party count from memory
-    const partyCountBuffer = await this.webSocketClient.readBytes(memoryAddresses.partyCount, 1)
-    const partyCount = partyCountBuffer[0] ?? 0
-
-    const maxPartySize = this.config.maxPartySize
-    const pokemonSize = this.config.pokemonSize
-    if (partyCount < 0 || partyCount > maxPartySize) {
-      throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-${maxPartySize}.`)
-    }
-
-    const pokemon: PokemonBase[] = []
-
-    for (let i = 0; i < partyCount; i++) {
-      const pokemonAddress = memoryAddresses.partyData + (i * pokemonSize)
-
-      // Read the full Pokemon structure from memory
-      const pokemonBytes = await this.webSocketClient.readBytes(pokemonAddress, pokemonSize)
-      const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
-
-      // Stop at empty slots (species ID = 0)
-      if (pokemonInstance.speciesId === 0) {
-        break
-      }
-
-      pokemon.push(pokemonInstance)
-    }
-
-    return pokemon
   }
 
   /**
@@ -672,7 +660,7 @@ export class PokemonSaveParser {
       }
 
       // Parse fresh Pokemon objects from WebSocket cache
-      const updatedPartyPokemon = await this.parsePartyFromMemory()
+      const updatedPartyPokemon = await this.parsePartyPokemon()
 
       // Notify all listeners (no need for change detection as server only sends when changed)
       for (const listener of this.watchListeners) {
@@ -705,47 +693,6 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Parse party Pokemon from WebSocket memory cache
-   */
-  private async parsePartyFromMemory (): Promise<PokemonBase[]> {
-    if (!this.config?.memoryAddresses || !this.webSocketClient) {
-      throw new Error('Memory addresses not configured or WebSocket not available')
-    }
-
-    const { partyData, partyCount } = this.config.memoryAddresses
-    const pokemonSize = this.config.pokemonSize
-
-    // Get party count from WebSocket cache
-    const partyCountBuffer = await this.webSocketClient.readBytes(partyCount, 1)
-    const partyCountValue = partyCountBuffer[0] ?? 0
-
-    const maxPartySize = this.config.maxPartySize
-    if (partyCountValue < 0 || partyCountValue > maxPartySize) {
-      throw new Error(`Invalid party count: ${partyCountValue}. Expected 0-${maxPartySize}.`)
-    }
-
-    // Get party data from WebSocket cache
-    const partyDataBuffer = await this.webSocketClient.readBytes(partyData, maxPartySize * pokemonSize)
-
-    const pokemon: PokemonBase[] = []
-
-    for (let i = 0; i < partyCountValue; i++) {
-      const pokemonOffset = i * pokemonSize
-      const pokemonBytes = partyDataBuffer.slice(pokemonOffset, pokemonOffset + pokemonSize) as Uint8Array
-      const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
-
-      // Stop at empty slots (species ID = 0)
-      if (pokemonInstance.speciesId === 0) {
-        break
-      }
-
-      pokemon.push(pokemonInstance)
-    }
-
-    return pokemon
-  }
-
-  /**
    * Stop watching for memory changes
    */
   async stopWatching (): Promise<void> {
@@ -767,6 +714,25 @@ export class PokemonSaveParser {
    */
   isWatching (): boolean {
     return this.watchingChanges
+  }
+
+  /**
+   * Get current save data without re-initializing WebSocket connection
+   * Useful for getting data after memory mode initialization but before watch setup
+   */
+  async getCurrentSaveData (): Promise<SaveData> {
+    if (!this.isMemoryMode || !this.webSocketClient) {
+      throw new Error('getCurrentSaveData only available in memory mode')
+    }
+
+    const partyPokemon = await this.parsePartyPokemon()
+
+    return {
+      party_pokemon: partyPokemon,
+      player_name: 'MEMORY',
+      play_time: { hours: 0, minutes: 0, seconds: 0 },
+      active_slot: 0,
+    }
   }
 }
 
