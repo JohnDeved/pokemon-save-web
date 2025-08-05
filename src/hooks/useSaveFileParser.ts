@@ -57,11 +57,11 @@ export const useSaveFileParser = () => {
 
   const parserRef = useRef<PokemonSaveParser | null>(null)
 
-  async function parseSaveFile (file: File) {
+  async function parse (file: File) {
     dispatch({ type: 'PARSE_START' })
     try {
       const parser = new PokemonSaveParser()
-      const saveData = await parser.parseSaveFile(file)
+      const saveData = await parser.parse(file)
       parserRef.current = parser
       dispatch({ type: 'PARSE_SUCCESS', saveData })
       return saveData
@@ -133,7 +133,7 @@ export const useSaveFileParser = () => {
 
   return {
     ...state,
-    parseSaveFile,
+    parse,
     clearSaveFile,
     reconstructAndDownload,
     parser: parserRef.current,

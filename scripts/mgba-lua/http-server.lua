@@ -31,6 +31,26 @@ local HttpServer = {}
 HttpServer.__index = HttpServer
 
 --------------------------------------------------------------------------------
+-- Logging wrappers that output to both mGBA console and stdout/stderr for Docker
+--------------------------------------------------------------------------------
+
+--- Log wrapper function that outputs to both console and stdout for Docker visibility
+---@param message string
+local function log(message)
+    console:log(message)
+    io.stdout:write("[mGBA] " .. message .. "\n")
+    io.stdout:flush()
+end
+
+--- Error wrapper function that outputs to both console and stderr for Docker visibility  
+---@param message string
+local function error(message)
+    console:error(message)
+    io.stderr:write("[mGBA ERROR] " .. message .. "\n")
+    io.stderr:flush()
+end
+
+--------------------------------------------------------------------------------
 -- "Static" Methods
 --------------------------------------------------------------------------------
 
@@ -292,7 +312,7 @@ function HttpServer:_create_response(client, clientId)
             local ok, err = client:send(response_str)
             
             if not ok then
-                console:log("[ERROR] Send failed for client " .. clientId .. ": " .. tostring(err))
+                error("Send failed for client " .. clientId .. ": " .. tostring(err))
             end
             
             self.finished = true
@@ -401,7 +421,7 @@ function HttpServer:_handle_websocket_upgrade(clientId, req)
     
     local ok, err = client:send(response)
     if not ok then
-        console:log("[ERROR] WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
+        error("WebSocket handshake failed for client " .. clientId .. ": " .. tostring(err))
         self:_cleanup_client(clientId)
         return
     end
@@ -537,7 +557,7 @@ function HttpServer:listen(port, callback)
             if err == socket.ERRORS.ADDRESS_IN_USE then
                 port = port + 1
             elseif err then
-                console:log("Error binding server: " .. tostring(err))
+                error("Error binding server: " .. tostring(err))
                 return
             end
         until server
@@ -546,7 +566,7 @@ function HttpServer:listen(port, callback)
         local ok, listen_err = server:listen()
         if listen_err then
             server:close()
-            console:log("Error listening: " .. tostring(listen_err))
+            error("Error listening: " .. tostring(listen_err))
             return
         end
 
@@ -561,11 +581,11 @@ function HttpServer:listen(port, callback)
         start_server()
     else
         -- ROM not loaded, register callback to start server later
-        console:log("🕹️ mGBA HTTP Server is initializing. Waiting for ROM to be loaded in the emulator...")
+        log("🕹️ mGBA HTTP Server is initializing. Waiting for ROM to be loaded in the emulator...")
         local cbid
         cbid = callbacks:add("start", function()
             if not emu or not emu.romSize or emu:romSize() == 0 then
-                console:error("[ERROR] No ROM loaded. HTTP server will not start.")
+                error("No ROM loaded. HTTP server will not start.")
                 return
             end
             start_server()
@@ -575,14 +595,197 @@ function HttpServer:listen(port, callback)
 end
 
 --------------------------------------------------------------------------------
--- Example Usage
+-- Handlers
+--------------------------------------------------------------------------------
+
+-- WebSocket handler function
+local function handleWebSocketConnection(ws)
+    log("WebSocket connected: " .. ws.path)
+    
+    -- Memory watching state
+    local watchedRegions = {}
+    local lastData = {}
+    local watchCallback = nil
+    
+    local function parseWatchMessage(message)
+        local lines = {}
+        for line in message:gmatch("[^\n]+") do
+            table.insert(lines, line)
+        end
+        
+        if #lines == 0 or lines[1] ~= "watch" then
+            return nil
+        end
+        
+        local regions = {}
+        for i = 2, #lines do
+            local parts = {}
+            for part in lines[i]:gmatch("[^,]+") do
+                table.insert(parts, part)
+            end
+            if #parts == 2 then
+                local address = tonumber(parts[1])
+                local size = tonumber(parts[2])
+                if address and size then
+                    table.insert(regions, {address = address, size = size})
+                end
+            end
+        end
+        
+        return regions
+    end
+    
+    local function checkMemoryChanges()
+        for _, region in ipairs(watchedRegions) do
+            local key = region.address .. "_" .. region.size
+            local newData = {}
+            
+            -- Read memory data
+            for i = 0, region.size - 1 do
+                newData[i + 1] = emu:read8(region.address + i)
+            end
+            
+            -- Check if data changed
+            local changed = false
+            local oldData = lastData[key]
+            if not oldData then
+                changed = true
+            else
+                for i = 1, #newData do
+                    if newData[i] ~= oldData[i] then
+                        changed = true
+                        break
+                    end
+                end
+            end
+            
+            if changed then
+                lastData[key] = newData
+                -- Send update to client
+                local updateMessage = {
+                    command = "watch",
+                    status = "update",
+                    updates = {{
+                        address = region.address,
+                        size = region.size,
+                        data = newData
+                    }}
+                }
+                ws:send(HttpServer.jsonStringify(updateMessage))
+            end
+        end
+    end
+
+    ws.onMessage = function(message)        
+        log("WebSocket request: " .. tostring(message))
+
+        -- Check if this is a watch command
+        local regions = parseWatchMessage(message)
+        if regions then
+            watchedRegions = regions
+            lastData = {}
+            
+            if #regions > 0 then
+                log("Starting memory watching for " .. #regions .. " regions")
+                
+                -- Set up memory watching callback
+                if watchCallback then
+                    callbacks:remove(watchCallback)
+                end
+                
+                watchCallback = callbacks:add("frame", checkMemoryChanges)
+                
+                local response = {
+                    command = "watch",
+                    status = "success",
+                    message = "Watching " .. #regions .. " memory regions"
+                }
+                ws:send(HttpServer.jsonStringify(response))
+            else
+                log("Stopping memory watching")
+                if watchCallback then
+                    callbacks:remove(watchCallback)
+                    watchCallback = nil
+                end
+                
+                local response = {
+                    command = "watch", 
+                    status = "success",
+                    message = "Memory watching stopped"
+                }
+                ws:send(HttpServer.jsonStringify(response))
+            end
+            return
+        end
+        
+        -- Handle eval requests
+        local function safe_eval()
+            local chunk = message
+            
+            -- Enhanced support for non-self-executing function inputs
+            -- Check if it's already a complete statement or needs a return prefix
+            local is_statement = message:match("^%s*return%s") or
+                                message:match("^%s*local%s") or
+                                message:match("^%s*function%s") or
+                                message:match("^%s*for%s") or
+                                message:match("^%s*while%s") or
+                                message:match("^%s*if%s") or
+                                message:match("^%s*do%s") or
+                                message:match("^%s*repeat%s") or
+                                message:match("^%s*goto%s") or
+                                message:match("^%s*break%s") or
+                                message:match("^%s*::") or
+                                message:match("^%s*end%s") or
+                                message:match("^%s*%(function") or
+                                message:find("\n") -- If multiline, treat as statement
+            
+            if not is_statement then
+                chunk = "return " .. message
+            end
+            
+            local fn, err = load(chunk, "websocket-eval")
+            if not fn then
+                ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
+                return
+            end
+            local ok, result = pcall(fn)
+            if ok then
+                ws:send(HttpServer.jsonStringify({result = result}))
+            else
+                ws:send(HttpServer.jsonStringify({error = tostring(result)}))
+                error("WebSocket Eval Error: " .. tostring(result))
+            end
+        end
+        local ok, err = pcall(safe_eval)
+        if not ok then
+            ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
+            error("WebSocket Handler Error: " .. tostring(err))
+        end
+    end
+
+    ws.onClose = function()
+        log("WebSocket disconnected: " .. ws.path)
+        if watchCallback then
+            callbacks:remove(watchCallback)
+            watchCallback = nil
+        end
+        -- Clear watched regions and state on disconnect
+        watchedRegions = {}
+        lastData = {}
+    end
+
+    ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
+end
+
+--------------------------------------------------------------------------------
+-- Routes
 --------------------------------------------------------------------------------
 
 local app = HttpServer:new()
 
 -- Global middleware
 app:use(function(req, res)
-    console:log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
+    log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
 end)
 
 -- Routes
@@ -599,48 +802,9 @@ app:post("/echo", function(req, res)
 end)
 
 -- WebSocket route
-app:websocket("/ws", function(ws)
-    console:log("WebSocket connected: " .. ws.path)
-
-    ws.onMessage = function(code)
-        local function safe_eval()
-            console:log("WebSocket eval request: " .. tostring(code))
-            local chunk = code
-            
-            -- Enhanced support for non-self-executing function inputs
-            -- Check if it's already a complete statement or needs a return prefix
-            if not code:match("^%s*(return|local|function|for|while|if|do|repeat|goto|break|::|end|%(function)") then
-                chunk = "return " .. code
-            end
-            
-            local fn, err = load(chunk, "websocket-eval")
-            if not fn then
-                ws:send(HttpServer.jsonStringify({error = err or "Invalid code"}))
-                return
-            end
-            local ok, result = pcall(fn)
-            if ok then
-                ws:send(HttpServer.jsonStringify({result = result}))
-            else
-                ws:send(HttpServer.jsonStringify({error = tostring(result)}))
-                console:error("[WebSocket Eval Error] " .. tostring(result))
-            end
-        end
-        local ok, err = pcall(safe_eval)
-        if not ok then
-            ws:send(HttpServer.jsonStringify({error = "Internal server error: " .. tostring(err)}))
-            console:error("[WebSocket Handler Error] " .. tostring(err))
-        end
-    end
-
-    ws.onClose = function()
-        console:log("WebSocket disconnected: " .. ws.path)
-    end
-
-    ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
-end)
+app:websocket("/ws", handleWebSocketConnection)
 
 -- Start server
 app:listen(7102, function(port)
-    console:log("🚀 mGBA HTTP Server started on port " .. port)
+    log("🚀 mGBA HTTP Server started on port " .. port)
 end)

@@ -85,8 +85,8 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       expect(quetzalConfig.saveLayout.sectorDataSize).toBeDefined()
       expect(quetzalConfig.saveLayout.sectorDataSize).toBeGreaterThan(0)
 
-      expect(quetzalConfig.saveLayout.maxPartySize).toBeDefined()
-      expect(quetzalConfig.saveLayout.maxPartySize).toBe(6)
+      expect(quetzalConfig.maxPartySize).toBeDefined()
+      expect(quetzalConfig.maxPartySize).toBe(6)
 
       expect(quetzalConfig.pokemonSize).toBeDefined()
       expect(quetzalConfig.pokemonSize).toBeGreaterThan(0)
@@ -99,11 +99,11 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       expect(vanillaConfig.saveLayout.sectorDataSize).toBeDefined()
       expect(vanillaConfig.saveLayout.sectorDataSize).toBeGreaterThan(0)
 
-      expect(vanillaConfig.saveLayout.maxPartySize).toBeDefined()
-      expect(vanillaConfig.saveLayout.maxPartySize).toBe(6)
+      expect(vanillaConfig.maxPartySize).toBeDefined()
+      expect(vanillaConfig.maxPartySize).toBe(6)
 
-      expect(vanillaConfig.saveLayout.pokemonSize).toBeDefined()
-      expect(vanillaConfig.saveLayout.pokemonSize).toBeGreaterThan(0)
+      expect(vanillaConfig.pokemonSize).toBeDefined()
+      expect(vanillaConfig.pokemonSize).toBeGreaterThan(0)
     })
   })
 
@@ -111,13 +111,13 @@ describe('Pokemon Save Parser - Unit Tests', () => {
     it('should throw error when parsing without loaded data', async () => {
       const freshParser = new PokemonSaveParser(undefined, quetzalConfig)
       const buffer = new ArrayBuffer(1024) // Small buffer that will fail validation
-      await expect(freshParser.parseSaveFile(buffer)).rejects.toThrow()
+      await expect(freshParser.parse(buffer)).rejects.toThrow()
     })
 
     it('should handle corrupted sector data gracefully', async () => {
       const parser = new PokemonSaveParser(undefined, quetzalConfig)
       const corruptedBuffer = new ArrayBuffer(quetzalConfig.saveLayout.sectorSize * 32)
-      await expect(parser.parseSaveFile(corruptedBuffer)).rejects.toThrow()
+      await expect(parser.parse(corruptedBuffer)).rejects.toThrow()
     })
   })
 
@@ -128,7 +128,7 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       const mockBuffer = new ArrayBuffer(quetzalConfig.saveLayout.sectorSize * 32)
 
       try {
-        const result = await slot1Parser.parseSaveFile(mockBuffer)
+        const result = await slot1Parser.parse(mockBuffer)
         expect(result.active_slot).toBe(0) // Slot 1 starts at index 0
       } catch (error) {
         // Expected to fail with mock data, but the slot logic should be tested
@@ -141,7 +141,7 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       const mockBuffer = new ArrayBuffer(quetzalConfig.saveLayout.sectorSize * 32)
 
       try {
-        const result = await slot2Parser.parseSaveFile(mockBuffer)
+        const result = await slot2Parser.parse(mockBuffer)
         expect(result.active_slot).toBe(14) // Slot 2 starts at index 14
       } catch (error) {
         // Expected to fail with mock data, but the slot logic should be tested

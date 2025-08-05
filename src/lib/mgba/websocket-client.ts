@@ -1,83 +1,61 @@
 /**
- * WebSocket client for connecting to mGBA's eval API
- * Handles communication with the mGBA Lua HTTP server's WebSocket endpoint
+ * Simplified WebSocket client for connecting to mGBA's eval API
+ * Focuses on core functionality: direct reads/writes, memory watching, and simple shared buffer
  */
 
 import WebSocket from 'isomorphic-ws'
+import { WebSocketResponseSchema } from './types'
+import type { SimpleMessage, MemoryChangeListener, WebSocketResponse, WebSocketEvalResult } from './types'
 
-export interface MgbaEvalResponse {
-  result?: unknown
-  error?: string
-}
-
-export interface MemoryRegion {
-  address: number
-  size: number
-  data: Uint8Array
-  lastUpdated: number
-  dirty: boolean
-}
-
-export interface SharedBufferConfig {
-  maxCacheSize: number
-  cacheTimeout: number // in milliseconds
-  preloadRegions: Array<{ address: number, size: number }>
-}
-
-// Constants for memory operations
-const MEMORY_CONSTANTS = {
-  DEFAULT_CHUNK_SIZE: 100,
-  SMALL_READ_THRESHOLD: 10,
-  EVAL_TIMEOUT_MS: 5000,
-  MAX_LISTENERS: 100,
-  CACHE_TIMEOUT_MS: 100, // Near real-time for game state sync
-  MAX_CACHE_SIZE: 50,
-} as const
+// Re-export types for consumers
+export type { MemoryChangeListener } from './types'
 
 export class MgbaWebSocketClient {
   private ws: WebSocket | null = null
   private connected = false
 
-  // Real-time shared buffer system for memory caching
-  private readonly memoryCache = new Map<string, MemoryRegion>()
-  private cacheAccessCount = 0
-  private sharedBufferConfig: SharedBufferConfig = {
-    maxCacheSize: MEMORY_CONSTANTS.MAX_CACHE_SIZE,
-    cacheTimeout: MEMORY_CONSTANTS.CACHE_TIMEOUT_MS,
-    preloadRegions: [], // Will be set from config
-  }
+  // Memory watching
+  private watchedRegions: Array<{ address: number, size: number }> = []
+  private readonly memoryChangeListeners: MemoryChangeListener[] = []
+  private watchingMemory = false
 
-  constructor (private readonly url = 'ws://localhost:7102/ws') {
-  }
+  // Memory cache for watched regions
+  private readonly memoryCache = new Map<string, Uint8Array>()
+
+  // Eval request handling
+  private readonly pendingEvalHandlers: Array<(message: SimpleMessage) => boolean> = []
+
+  constructor (private readonly url = 'ws://localhost:7102/ws') {}
 
   /**
-   * Connect to the mGBA WebSocket server
+   * Connect to WebSocket server
    */
   async connect (): Promise<void> {
+    if (this.connected) return
+
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.url)
 
-        const onOpen = () => {
-          console.log('Connected to mGBA WebSocket server')
+        this.ws.onopen = () => {
           this.connected = true
           resolve()
         }
 
-        const onError = (error: ErrorEvent | Event | unknown) => {
-          console.error('WebSocket error:', error)
-          this.connected = false
-          reject(error instanceof Error ? error : new Error(String(error)))
+        this.ws.onmessage = (event) => {
+          const data = event.data as string
+          this.handleMessage(data)
         }
 
-        const onClose = () => {
-          console.log('WebSocket connection closed')
+        this.ws.onclose = () => {
           this.connected = false
+          this.watchingMemory = false
+          this.watchedRegions = []
         }
 
-        this.ws.addEventListener('open', onOpen)
-        this.ws.addEventListener('error', onError)
-        this.ws.addEventListener('close', onClose)
+        this.ws.onerror = (error) => {
+          reject(new Error(`WebSocket connection failed: ${String(error)}`))
+        }
       } catch (error) {
         reject(error)
       }
@@ -85,7 +63,258 @@ export class MgbaWebSocketClient {
   }
 
   /**
-   * Disconnect from the WebSocket server
+   * Handle incoming WebSocket messages
+   */
+  private handleMessage (data: string): void {
+    // The original server sends a welcome message first, then JSON responses
+    if (data.startsWith('Welcome to WebSocket')) {
+      return // Ignore welcome message
+    }
+
+    try {
+      const parsed = WebSocketResponseSchema.parse(JSON.parse(data))
+      this.handleOriginalJsonResponse(parsed)
+    } catch (error) {
+      console.warn('Failed to parse WebSocket message as JSON:', error)
+    }
+  }
+
+  /**
+   * Handle JSON responses from original server format
+   */
+  private handleOriginalJsonResponse (response: WebSocketResponse): void {
+    if (response.command === 'watch') {
+      this.handleWatchResponse(response)
+    } else if ('result' in response) {
+      this.handleEvalResponse({
+        command: 'eval',
+        status: 'success',
+        data: [JSON.stringify(response.result)],
+      })
+    } else if ('error' in response) {
+      this.handleEvalResponse({
+        command: 'eval',
+        status: 'error',
+        data: [response.error ?? 'Unknown error'],
+      })
+    }
+  }
+
+  /**
+   * Handle watch response messages
+   */
+  private handleWatchResponse (response: WebSocketResponse): void {
+    if (response.status === 'update' && response.updates) {
+      // Handle memory updates
+      for (const update of response.updates) {
+        const { address, size, data } = update
+        // Cache the updated memory data
+        const cacheKey = `${address}-${size}`
+        this.memoryCache.set(cacheKey, new Uint8Array(data))
+
+        // Notify listeners about memory changes
+        for (const listener of this.memoryChangeListeners) {
+          try {
+            listener(address, size, new Uint8Array(data))
+          } catch (error) {
+            console.error('Memory change listener error:', error)
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Handle eval response messages
+   */
+  private handleEvalResponse (message: SimpleMessage): void {
+    // Find and remove the first handler that returns true
+    const idx = this.pendingEvalHandlers.findIndex(handler => handler(message))
+    if (idx !== -1) {
+      this.pendingEvalHandlers.splice(idx, 1)
+    }
+  }
+
+  /**
+   * Start watching memory regions
+   */
+  async startWatching (regions: Array<{ address: number, size: number }>): Promise<void> {
+    if (!this.connected || !this.ws) {
+      throw new Error('Not connected to mGBA WebSocket server')
+    }
+
+    if (regions.length === 0) {
+      throw new Error('No regions to watch')
+    }
+
+    this.watchedRegions = [...regions]
+    const regionLines = regions.map(r => `${r.address},${r.size}`)
+    const message = ['watch', ...regionLines].join('\n')
+
+    this.ws.send(message)
+    this.watchingMemory = true
+  }
+
+  /**
+   * Stop watching memory regions
+   */
+  async stopWatching (): Promise<void> {
+    if (this.watchingMemory && this.ws) {
+      this.ws.send('watch\n') // Send empty watch list to stop
+    }
+    this.watchingMemory = false
+    this.watchedRegions = []
+    this.memoryCache.clear()
+  }
+
+  /**
+   * Execute Lua code via eval
+   */
+  async eval (code: string): Promise<WebSocketEvalResult> {
+    if (!this.connected || !this.ws) {
+      throw new Error('Not connected to WebSocket server')
+    }
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Eval request timed out'))
+      }, 5000)
+
+      const handler = (message: SimpleMessage): boolean => {
+        if (message.command === 'eval') {
+          clearTimeout(timeout)
+
+          if (message.status === 'error') {
+            resolve({ error: message.data.join('\n') })
+          } else {
+            const resultData = message.data.join('\n')
+            resolve({ result: resultData })
+          }
+          return true
+        }
+        return false
+      }
+
+      this.pendingEvalHandlers.push(handler)
+      // Send plain text Lua code for original server
+      this.ws!.send(code)
+    })
+  }
+
+  /**
+   * Read bytes from memory - uses cached data if available, otherwise eval with read8
+   */
+  async readBytes (address: number, size: number): Promise<Uint8Array> {
+    // Check if we can satisfy this read from any watched memory region
+    const cachedData = this.getCachedMemory(address, size)
+    if (cachedData) {
+      return cachedData
+    }
+
+    // Fall back to direct eval read using read8 (simplest method)
+    // Convert address to hex to avoid issues with large decimal numbers in Lua
+    const hexAddress = `0x${address.toString(16)}`
+    const code = `
+      local bytes = {}
+      local addr = ${hexAddress}
+      for i = 0, ${size - 1} do
+        bytes[i + 1] = emu:read8(addr + i)
+      end
+      return bytes
+    `.trim()
+    const result = await this.eval(code)
+
+    if (result.error) {
+      throw new Error(`Failed to read memory: ${result.error}`)
+    }
+
+    try {
+      const bytes = JSON.parse(result.result ?? '[]')
+      return new Uint8Array(bytes)
+    } catch (error) {
+      throw new Error(`Failed to parse memory data: ${String(error)}`)
+    }
+  }
+
+  /**
+   * Check if we can read the requested data from cached memory regions
+   */
+  private getCachedMemory (address: number, size: number): Uint8Array | null {
+    for (const [cacheKey, watchedData] of this.memoryCache.entries()) {
+      const [watchedAddressStr, watchedSizeStr] = cacheKey.split('-')
+      const watchedAddress = Number(watchedAddressStr)
+      const watchedSize = Number(watchedSizeStr)
+      if (
+        Number.isNaN(watchedAddress) ||
+        Number.isNaN(watchedSize) ||
+        address < watchedAddress ||
+        address + size > watchedAddress + watchedSize
+      ) {
+        continue
+      }
+      const start = address - watchedAddress
+      return watchedData.slice(start, start + size)
+    }
+    return null
+  }
+
+  /**
+   * Write bytes to memory
+   */
+  async writeBytes (address: number, data: Uint8Array): Promise<void> {
+    const bytes = Array.from(data).join(',')
+    // Convert address to hex to avoid issues with large decimal numbers in Lua
+    const hexAddress = `0x${address.toString(16)}`
+    const code = `
+      local data = {${bytes}}
+      local addr = ${hexAddress}
+      for i = 1, #data do
+        emu:write8(addr + i - 1, data[i])
+      end
+    `.trim()
+    const result = await this.eval(code)
+
+    if (result.error) {
+      throw new Error(`Failed to write memory: ${result.error}`)
+    }
+  }
+
+  /**
+   * Add memory change listener
+   */
+  addMemoryChangeListener (listener: MemoryChangeListener): void {
+    if (this.memoryChangeListeners.length >= 100) {
+      throw new Error('Maximum number of listeners reached')
+    }
+    this.memoryChangeListeners.push(listener)
+  }
+
+  /**
+   * Remove memory change listener
+   */
+  removeMemoryChangeListener (listener: MemoryChangeListener): void {
+    const index = this.memoryChangeListeners.indexOf(listener)
+    if (index >= 0) {
+      this.memoryChangeListeners.splice(index, 1)
+    }
+  }
+
+  /**
+   * Check if currently watching memory
+   */
+  isWatching (): boolean {
+    return this.watchingMemory
+  }
+
+  /**
+   * Get currently watched regions
+   */
+  getWatchedRegions (): Array<{ address: number, size: number }> {
+    return [...this.watchedRegions]
+  }
+
+  /**
+   * Disconnect from WebSocket
    */
   disconnect (): void {
     if (this.ws) {
@@ -93,360 +322,27 @@ export class MgbaWebSocketClient {
       this.ws = null
     }
     this.connected = false
+    this.watchingMemory = false
+    this.watchedRegions = []
+    this.memoryCache.clear()
+    this.pendingEvalHandlers.length = 0
   }
 
   /**
-   * Check if currently connected
+   * Check if connected
    */
   isConnected (): boolean {
-    return this.connected && this.ws?.readyState === WebSocket.OPEN
+    return this.connected
   }
 
   /**
-   * Execute Lua code on the mGBA emulator
-   */
-  async eval (code: string): Promise<MgbaEvalResponse> {
-    if (!this.isConnected()) {
-      throw new Error('Not connected to mGBA WebSocket server')
-    }
-
-    return new Promise((resolve, reject) => {
-      if (!this.ws) {
-        reject(new Error('WebSocket is null'))
-        return
-      }
-
-      // Set up one-time message handler for this eval
-      const messageHandler = (event: { data: unknown }) => {
-        const message = typeof event.data === 'string' ? event.data : String(event.data)
-
-        // Skip welcome messages and other non-JSON responses
-        if (!message.startsWith('{')) {
-          return // Don't resolve/reject, wait for actual response
-        }
-
-        try {
-          const response = JSON.parse(message) as MgbaEvalResponse
-          this.ws?.removeEventListener('message', messageHandler)
-          resolve(response)
-        } catch (error) {
-          this.ws?.removeEventListener('message', messageHandler)
-          reject(new Error(`Failed to parse eval response: ${String(error)}`))
-        }
-      }
-
-      this.ws.addEventListener('message', messageHandler)
-
-      // Send the code to evaluate
-      this.ws.send(code)
-
-      // Timeout after configured time
-      setTimeout(() => {
-        this.ws?.removeEventListener('message', messageHandler)
-        reject(new Error('Eval request timed out'))
-      }, MEMORY_CONSTANTS.EVAL_TIMEOUT_MS)
-    })
-  }
-
-  /**
-   * Read a byte from memory
-   */
-  async readByte (address: number): Promise<number> {
-    const response = await this.eval(`emu:read8(${address})`)
-    if (response.error) {
-      throw new Error(`Failed to read byte at 0x${address.toString(16)}: ${response.error}`)
-    }
-    return response.result as number
-  }
-
-  /**
-   * Read a 16-bit value from memory (little-endian)
-   */
-  async readWord (address: number): Promise<number> {
-    const response = await this.eval(`emu:read16(${address})`)
-    if (response.error) {
-      throw new Error(`Failed to read word at 0x${address.toString(16)}: ${response.error}`)
-    }
-    return response.result as number
-  }
-
-  /**
-   * Read a 32-bit value from memory (little-endian)
-   */
-  async readDWord (address: number): Promise<number> {
-    const response = await this.eval(`emu:read32(${address})`)
-    if (response.error) {
-      throw new Error(`Failed to read dword at 0x${address.toString(16)}: ${response.error}`)
-    }
-    return response.result as number
-  }
-
-  /**
-   * Read multiple bytes from memory using the most appropriate method
-   * Automatically chooses between readRange API and bulk Lua operations
-   */
-  async readBytes (address: number, length: number): Promise<Uint8Array> {
-    // For very small reads, use bulk Lua which is more reliable
-    if (length <= MEMORY_CONSTANTS.SMALL_READ_THRESHOLD) {
-      return this.readBytesBulk(address, length)
-    }
-
-    try {
-      // Try using readRange API - fastest for larger reads
-      const luaCode = `(function()
-        local data = emu:readRange(${address}, ${length})
-        local bytes = {}
-        for i = 1, #data do
-          bytes[i] = string.byte(data, i)
-        end
-        return bytes
-      end)()`
-
-      const response = await this.eval(luaCode)
-      if (response.error) {
-        throw new Error(`Failed to read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
-      }
-
-      return new Uint8Array(response.result as number[])
-    } catch (error) {
-      // Fallback to bulk read if readRange fails
-      console.warn(`readRange failed, falling back to bulk read: ${String(error)}`)
-      return this.readBytesBulk(address, length)
-    }
-  }
-
-  /**
-   * Read multiple bytes using optimized bulk Lua operations (FAST)
-   * This is 100x+ faster than individual byte reads
-   */
-  async readBytesBulk (address: number, length: number): Promise<Uint8Array> {
-    const luaCode = `(function() 
-      local r = {} 
-      for i = 0, ${length - 1} do 
-        r[i+1] = emu:read8(${address} + i) 
-      end 
-      return r 
-    end)()`
-
-    const response = await this.eval(luaCode)
-    if (response.error) {
-      throw new Error(`Failed to bulk read ${length} bytes at 0x${address.toString(16)}: ${response.error}`)
-    }
-
-    return new Uint8Array(response.result as number[])
-  }
-
-  /**
-   * Write a byte to memory
-   */
-  async writeByte (address: number, value: number): Promise<void> {
-    const response = await this.eval(`emu:write8(${address}, ${value & 0xFF})`)
-    if (response.error) {
-      throw new Error(`Failed to write byte at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Write a 16-bit value to memory (little-endian)
-   */
-  async writeWord (address: number, value: number): Promise<void> {
-    const response = await this.eval(`emu:write16(${address}, ${value & 0xFFFF})`)
-    if (response.error) {
-      throw new Error(`Failed to write word at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Write a 32-bit value to memory (little-endian)
-   */
-  async writeDWord (address: number, value: number): Promise<void> {
-    const response = await this.eval(`emu:write32(${address}, ${value})`)
-    if (response.error) {
-      throw new Error(`Failed to write dword at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Write multiple bytes to memory using the most appropriate method
-   */
-  async writeBytes (address: number, data: Uint8Array): Promise<void> {
-    // For small writes, use individual byte writes for reliability
-    if (data.length <= MEMORY_CONSTANTS.SMALL_READ_THRESHOLD) {
-      return this.writeBytesBulk(address, data)
-    }
-
-    // For larger writes, use chunked approach
-    return this.writeBytesChunked(address, data, MEMORY_CONSTANTS.DEFAULT_CHUNK_SIZE)
-  }
-
-  /**
-   * Write multiple bytes using optimized bulk Lua operations (FAST)
-   */
-  async writeBytesBulk (address: number, data: Uint8Array): Promise<void> {
-    const bytes = Array.from(data).join(', ')
-    const luaCode = `(function() local data = {${bytes}} for i = 1, #data do emu:write8(${address} + i - 1, data[i]) end end)()`
-
-    const response = await this.eval(luaCode)
-    if (response.error) {
-      throw new Error(`Failed to bulk write ${data.length} bytes at 0x${address.toString(16)}: ${response.error}`)
-    }
-  }
-
-  /**
-   * Write multiple bytes using chunked approach for very large writes
-   */
-  async writeBytesChunked (address: number, data: Uint8Array, chunkSize = MEMORY_CONSTANTS.DEFAULT_CHUNK_SIZE): Promise<void> {
-    for (let offset = 0; offset < data.length; offset += chunkSize) {
-      const chunkEnd = Math.min(offset + chunkSize, data.length)
-      const chunk = data.slice(offset, chunkEnd)
-      await this.writeBytesBulk(address + offset, chunk)
-    }
-  }
-
-  /**
-   * Get the current game title to check compatibility
+   * Get game title
    */
   async getGameTitle (): Promise<string> {
-    const response = await this.eval('emu:getGameTitle()')
-    if (response.error) {
-      throw new Error(`Failed to get game title: ${response.error}`)
+    const result = await this.eval('emu:getGameTitle()')
+    if (result.error) {
+      throw new Error(`Failed to get game title: ${result.error}`)
     }
-    return response.result as string
-  }
-
-  /**
-   * Configure shared buffer settings
-   */
-  configureSharedBuffer (config: Partial<SharedBufferConfig>): void {
-    this.sharedBufferConfig = { ...this.sharedBufferConfig, ...config }
-  }
-
-  /**
-   * Preload commonly used memory regions into cache
-   */
-  async preloadSharedBuffers (): Promise<void> {
-    for (const region of this.sharedBufferConfig.preloadRegions) {
-      try {
-        await this.getSharedBuffer(region.address, region.size)
-      } catch (error) {
-        console.warn(`⚠️  Failed to preload region 0x${region.address.toString(16)}: ${String(error)}`)
-      }
-    }
-  }
-
-  /**
-   * Get data from shared buffer (with caching)
-   * This method provides ultra-fast access to frequently used memory regions
-   */
-  async getSharedBuffer (address: number, size: number, useCache = true): Promise<Uint8Array> {
-    const cacheKey = `${address}-${size}`
-    const now = Date.now()
-
-    // Check cache first
-    if (useCache) {
-      const cached = this.memoryCache.get(cacheKey)
-      if (cached && !cached.dirty && (now - cached.lastUpdated) < this.sharedBufferConfig.cacheTimeout) {
-        return cached.data
-      }
-    }
-
-    // Read from memory using optimized method
-    const data = await this.readBytes(address, size)
-
-    // Cache the result
-    if (useCache) {
-      this.memoryCache.set(cacheKey, {
-        address,
-        size,
-        data: new Uint8Array(data), // Make a copy
-        lastUpdated: now,
-        dirty: false,
-      })
-
-      // Cleanup cache periodically (every 10 accesses) to avoid overhead
-      this.cacheAccessCount++
-      if (this.cacheAccessCount % 10 === 0) {
-        this.cleanupCache()
-      }
-    }
-
-    return data
-  }
-
-  /**
-   * Write data to shared buffer and mark cache as dirty
-   */
-  async setSharedBuffer (address: number, data: Uint8Array): Promise<void> {
-    // Write to memory
-    await this.writeBytes(address, data)
-
-    // Mark related cache entries as dirty
-    for (const [, region] of this.memoryCache.entries()) {
-      const regionEnd = region.address + region.size
-      const writeEnd = address + data.length
-
-      // Check if write overlaps with cached region
-      if (address < regionEnd && writeEnd > region.address) {
-        region.dirty = true
-      }
-    }
-  }
-
-  /**
-   * Invalidate specific cache entry
-   */
-  invalidateCache (address: number, size: number): void {
-    const cacheKey = `${address}-${size}`
-    this.memoryCache.delete(cacheKey)
-  }
-
-  /**
-   * Clear all cached memory
-   */
-  clearCache (): void {
-    this.memoryCache.clear()
-  }
-
-  /**
-   * Clean up old cache entries
-   */
-  private cleanupCache (): void {
-    const now = Date.now()
-    const entries = Array.from(this.memoryCache.entries())
-
-    // Remove expired entries
-    for (const [key, region] of entries) {
-      if ((now - region.lastUpdated) > this.sharedBufferConfig.cacheTimeout) {
-        this.memoryCache.delete(key)
-      }
-    }
-
-    // Remove oldest entries if cache is too large
-    if (this.memoryCache.size > this.sharedBufferConfig.maxCacheSize) {
-      const sortedEntries = entries.sort((a, b) => a[1].lastUpdated - b[1].lastUpdated)
-      const toRemove = this.memoryCache.size - this.sharedBufferConfig.maxCacheSize
-
-      for (let i = 0; i < toRemove; i++) {
-        const entry = sortedEntries[i]
-        if (entry) {
-          this.memoryCache.delete(entry[0])
-        }
-      }
-    }
-  }
-
-  /**
-   * Get cache statistics
-   */
-  getCacheStats (): { size: number, regions: Array<{ address: string, size: number, age: number, dirty: boolean }> } {
-    const now = Date.now()
-    const regions = Array.from(this.memoryCache.entries()).map(([, region]) => ({
-      address: `0x${region.address.toString(16)}`,
-      size: region.size,
-      age: now - region.lastUpdated,
-      dirty: region.dirty,
-    }))
-
-    return { size: this.memoryCache.size, regions }
+    return result.result ?? 'Unknown Game'
   }
 }

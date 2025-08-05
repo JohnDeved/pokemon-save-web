@@ -4,36 +4,19 @@
  */
 
 import type {
+  GameConfig,
   PlayTimeData,
   SaveData,
   SectorInfo,
-  GameConfig,
 } from './types'
 
-import { VANILLA_EMERALD_SIGNATURE, VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from './types'
-import { PokemonBase } from './PokemonBase'
-import { GameConfigRegistry } from '../games'
 import { MgbaWebSocketClient } from '../../mgba/websocket-client'
+import { GameConfigRegistry } from '../games'
+import { PokemonBase } from './PokemonBase'
+import { VANILLA_EMERALD_SIGNATURE } from './types'
 
 // Import character map for decoding text
 import charMap from '../data/pokemon_charmap.json'
-
-/**
- * Effective configuration for the parser with defaults merged with config overrides
- */
-interface EffectiveConfig {
-  offsets: typeof VANILLA_POKEMON_OFFSETS
-  saveLayout: typeof VANILLA_SAVE_LAYOUT
-  pokemonSize: number
-}
-
-function createEffectiveConfig (config: GameConfig): EffectiveConfig {
-  return {
-    offsets: { ...VANILLA_POKEMON_OFFSETS, ...config.offsetOverrides },
-    saveLayout: { ...VANILLA_SAVE_LAYOUT, ...config.saveLayoutOverrides },
-    pokemonSize: config.pokemonSize ?? VANILLA_SAVE_LAYOUT.pokemonSize,
-  }
-}
 
 /**
  * Decode Pokemon character-encoded text to string
@@ -73,6 +56,10 @@ export class PokemonSaveParser {
   // Memory mode properties
   private webSocketClient: MgbaWebSocketClient | null = null
   private isMemoryMode = false
+
+  // Watching properties
+  private watchingChanges = false
+  private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
@@ -171,14 +158,6 @@ export class PokemonSaveParser {
     }
 
     console.log(`Memory mode initialized for ${gameTitle} using config: ${this.config.name}`)
-
-    // Configure and preload memory regions if defined in config
-    if (this.config.memoryAddresses?.preloadRegions) {
-      client.configureSharedBuffer({
-        preloadRegions: [...this.config.memoryAddresses.preloadRegions],
-      })
-      await client.preloadSharedBuffers()
-    }
   }
 
   /**
@@ -189,8 +168,7 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
-    const effectiveConfig = createEffectiveConfig(this.config)
-    const footerOffset = (sectorIndex * effectiveConfig.saveLayout.sectorSize) + effectiveConfig.saveLayout.sectorSize - 12
+    const footerOffset = (sectorIndex * this.config.saveLayout.sectorSize) + this.config.saveLayout.sectorSize - 12
 
     if (footerOffset + 12 > this.saveData.length) {
       return { id: -1, checksum: 0, counter: 0, valid: false }
@@ -212,8 +190,8 @@ export class PokemonSaveParser {
         return { id: sectorId, checksum, counter, valid: false }
       }
 
-      const sectorStart = sectorIndex * effectiveConfig.saveLayout.sectorSize
-      const sectorData = this.saveData.slice(sectorStart, sectorStart + effectiveConfig.saveLayout.sectorDataSize)
+      const sectorStart = sectorIndex * this.config.saveLayout.sectorSize
+      const sectorData = this.saveData.slice(sectorStart, sectorStart + this.config.saveLayout.sectorDataSize)
 
       const calculatedChecksum = this.calculateSectorChecksum(sectorData)
       const valid = calculatedChecksum === checksum
@@ -293,24 +271,22 @@ export class PokemonSaveParser {
     if (!this.saveData || !this.config) {
       throw new Error('Save data and config not loaded')
     }
-
-    const effectiveConfig = createEffectiveConfig(this.config)
     const saveblock1Sectors = [1, 2, 3, 4].filter(id => this.sectorMap.has(id))
     if (saveblock1Sectors.length === 0) {
       // Instead of throwing, return a zero-filled buffer to allow parsing to continue gracefully
-      return new Uint8Array(effectiveConfig.saveLayout.saveBlockSize)
+      return new Uint8Array(this.config.saveLayout.saveBlockSize)
     }
 
-    const saveblock1Data = new Uint8Array(effectiveConfig.saveLayout.saveBlockSize)
+    const saveblock1Data = new Uint8Array(this.config.saveLayout.saveBlockSize)
 
     for (const sectorId of saveblock1Sectors) {
       const sectorIdx = this.sectorMap.get(sectorId)!
-      const startOffset = sectorIdx * effectiveConfig.saveLayout.sectorSize
-      const sectorData = this.saveData.slice(startOffset, startOffset + effectiveConfig.saveLayout.sectorDataSize)
-      const chunkOffset = (sectorId - 1) * effectiveConfig.saveLayout.sectorDataSize
+      const startOffset = sectorIdx * this.config.saveLayout.sectorSize
+      const sectorData = this.saveData.slice(startOffset, startOffset + this.config.saveLayout.sectorDataSize)
+      const chunkOffset = (sectorId - 1) * this.config.saveLayout.sectorDataSize
 
       saveblock1Data.set(
-        sectorData.slice(0, effectiveConfig.saveLayout.sectorDataSize),
+        sectorData.slice(0, this.config.saveLayout.sectorDataSize),
         chunkOffset,
       )
     }
@@ -326,15 +302,13 @@ export class PokemonSaveParser {
       throw new Error('Save data and config not loaded')
     }
 
-    const effectiveConfig = createEffectiveConfig(this.config)
-
     if (!this.sectorMap.has(0)) {
       throw new Error('SaveBlock2 sector (ID 0) not found')
     }
 
     const sectorIdx = this.sectorMap.get(0)!
-    const startOffset = sectorIdx * effectiveConfig.saveLayout.sectorSize
-    return this.saveData.slice(startOffset, startOffset + effectiveConfig.saveLayout.sectorDataSize)
+    const startOffset = sectorIdx * this.config.saveLayout.sectorSize
+    return this.saveData.slice(startOffset, startOffset + this.config.saveLayout.sectorDataSize)
   }
 
   /**
@@ -347,22 +321,52 @@ export class PokemonSaveParser {
 
     // Memory mode: read directly from emulator memory
     if (this.isMemoryMode && this.webSocketClient) {
-      return await this.parsePartyPokemonFromMemory()
+      const { memoryAddresses } = this.config
+      if (!memoryAddresses) {
+        throw new Error(`Config "${this.config.name}" does not define memory addresses for memory parsing`)
+      }
+
+      // Get party count from WebSocket cache
+      const partyCountBuffer = await this.webSocketClient.readBytes(memoryAddresses.partyCount, 1)
+      const partyCountValue = partyCountBuffer[0] ?? 0
+
+      const maxPartySize = this.config.maxPartySize
+      if (partyCountValue < 0 || partyCountValue > maxPartySize) {
+        throw new Error(`Invalid party count: ${partyCountValue}. Expected 0-${maxPartySize}.`)
+      }
+
+      // Get party data from WebSocket cache (read all at once for efficiency)
+      const partyDataBuffer = await this.webSocketClient.readBytes(memoryAddresses.partyData, maxPartySize * this.config.pokemonSize)
+
+      const pokemon: PokemonBase[] = []
+
+      for (let i = 0; i < partyCountValue; i++) {
+        const pokemonOffset = i * this.config.pokemonSize
+        const pokemonBytes = partyDataBuffer.slice(pokemonOffset, pokemonOffset + this.config.pokemonSize) as Uint8Array
+        const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
+
+        // Stop at empty slots (species ID = 0)
+        if (pokemonInstance.speciesId === 0) {
+          break
+        }
+
+        pokemon.push(pokemonInstance)
+      }
+
+      return pokemon
     }
 
     // File mode: parse from SaveBlock1 data
     if (!saveblock1Data) {
       throw new Error('SaveBlock1 data required for file mode')
     }
-
-    const effectiveConfig = createEffectiveConfig(this.config)
     const partyPokemon: PokemonBase[] = []
 
-    for (let slot = 0; slot < effectiveConfig.saveLayout.maxPartySize; slot++) {
-      const offset = effectiveConfig.saveLayout.partyOffset + slot * effectiveConfig.pokemonSize
-      const data = saveblock1Data.slice(offset, offset + effectiveConfig.pokemonSize)
+    for (let slot = 0; slot < this.config.maxPartySize; slot++) {
+      const offset = this.config.saveLayout.partyOffset + slot * this.config.pokemonSize
+      const data = saveblock1Data.slice(offset, offset + this.config.pokemonSize)
 
-      if (data.length < effectiveConfig.pokemonSize) {
+      if (data.length < this.config.pokemonSize) {
         break
       }
 
@@ -383,50 +387,6 @@ export class PokemonSaveParser {
   }
 
   /**
-   * Parse party Pokemon directly from emulator memory
-   * Uses addresses from config's memoryAddresses
-   */
-  private async parsePartyPokemonFromMemory (): Promise<PokemonBase[]> {
-    if (!this.webSocketClient || !this.config) {
-      throw new Error('Memory mode not properly initialized')
-    }
-
-    const { memoryAddresses } = this.config
-    if (!memoryAddresses) {
-      throw new Error(`Config "${this.config.name}" does not define memory addresses for memory parsing`)
-    }
-
-    // Get party count from memory
-    const partyCountBuffer = await this.webSocketClient.getSharedBuffer(memoryAddresses.partyCount, 1)
-    const partyCount = partyCountBuffer[0] ?? 0
-
-    const maxPartySize = this.config.saveLayout.maxPartySize!
-    const pokemonSize = this.config.saveLayout.pokemonSize!
-    if (partyCount < 0 || partyCount > maxPartySize) {
-      throw new Error(`Invalid party count read from memory: ${partyCount}. Expected 0-${maxPartySize}.`)
-    }
-
-    const pokemon: PokemonBase[] = []
-
-    for (let i = 0; i < partyCount; i++) {
-      const pokemonAddress = memoryAddresses.partyData + (i * pokemonSize)
-
-      // Read the full Pokemon structure from memory
-      const pokemonBytes = await this.webSocketClient.getSharedBuffer(pokemonAddress, pokemonSize)
-      const pokemonInstance = new PokemonBase(pokemonBytes, this.config)
-
-      // Stop at empty slots (species ID = 0)
-      if (pokemonInstance.speciesId === 0) {
-        break
-      }
-
-      pokemon.push(pokemonInstance)
-    }
-
-    return pokemon
-  }
-
-  /**
    * Parse player name from SaveBlock2 data
    */
   private parsePlayerName (saveblock2Data: Uint8Array): string {
@@ -442,13 +402,12 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    const effectiveConfig = createEffectiveConfig(this.config)
     const view = new DataView(saveblock2Data.buffer, saveblock2Data.byteOffset)
 
     return {
-      hours: view.getUint16(effectiveConfig.saveLayout.playTimeHours, true), // u16 playTimeHours
-      minutes: view.getUint8(effectiveConfig.saveLayout.playTimeMinutes), // u8 playTimeMinutes
-      seconds: view.getUint8(effectiveConfig.saveLayout.playTimeSeconds), // u8 playTimeSeconds
+      hours: view.getUint16(this.config.saveLayout.playTimeHours, true), // u16 playTimeHours
+      minutes: view.getUint8(this.config.saveLayout.playTimeMinutes), // u8 playTimeMinutes
+      seconds: view.getUint8(this.config.saveLayout.playTimeSeconds), // u8 playTimeSeconds
     }
   }
 
@@ -460,16 +419,14 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    const effectiveConfig = createEffectiveConfig(this.config)
-
-    if (sectorData.length < effectiveConfig.saveLayout.sectorDataSize) {
+    if (sectorData.length < this.config.saveLayout.sectorDataSize) {
       return 0
     }
 
     let checksum = 0
     const view = new DataView(sectorData.buffer, sectorData.byteOffset)
 
-    for (let i = 0; i < effectiveConfig.saveLayout.sectorDataSize; i += 4) {
+    for (let i = 0; i < this.config.saveLayout.sectorDataSize; i += 4) {
       if (i + 4 <= sectorData.length) {
         try {
           const value = view.getUint32(i, true)
@@ -494,18 +451,16 @@ export class PokemonSaveParser {
       throw new Error('Config not loaded')
     }
 
-    const effectiveConfig = createEffectiveConfig(this.config)
-
-    if (saveblock1.length < effectiveConfig.saveLayout.saveBlockSize) {
-      throw new Error(`SaveBlock1 must be at least ${effectiveConfig.saveLayout.saveBlockSize} bytes`)
+    if (saveblock1.length < this.config.saveLayout.saveBlockSize) {
+      throw new Error(`SaveBlock1 must be at least ${this.config.saveLayout.saveBlockSize} bytes`)
     }
-    if (party.length > effectiveConfig.saveLayout.maxPartySize) {
-      throw new Error(`Party size cannot exceed ${effectiveConfig.saveLayout.maxPartySize}`)
+    if (party.length > this.config.maxPartySize) {
+      throw new Error(`Party size cannot exceed ${this.config.maxPartySize}`)
     }
 
     const updated = new Uint8Array(saveblock1)
     for (let i = 0; i < party.length; i++) {
-      const offset = effectiveConfig.saveLayout.partyOffset + i * effectiveConfig.pokemonSize
+      const offset = this.config.saveLayout.partyOffset + i * this.config.pokemonSize
       // Use the most up-to-date raw data for each Pokemon
       updated.set(party[i]!.rawBytes, offset)
     }
@@ -516,7 +471,7 @@ export class PokemonSaveParser {
    * Parse input data and return structured data
    * Supports both file and memory input via WebSocket
    */
-  async parseSaveFile (input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<SaveData> {
+  async parse (input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<SaveData> {
     await this.loadInputData(input)
 
     // Memory mode: read directly from emulator memory
@@ -584,28 +539,29 @@ export class PokemonSaveParser {
   reconstructSaveFile (partyPokemon: readonly PokemonBase[]): Uint8Array {
     if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
 
-    const effectiveConfig = createEffectiveConfig(this.config)
     const baseSaveblock1 = this.extractSaveblock1()
     const updatedSaveblock1 = this.updatePartyInSaveblock1(baseSaveblock1, partyPokemon)
     const newSave = new Uint8Array(this.saveData)
 
     // Helper to write a sector and update its checksum
     const writeSector = (sectorId: number, data: Uint8Array) => {
+      if (!this.config) throw new Error('Game configuration not loaded during sector reconstruction')
+
       if (!this.sectorMap.has(sectorId)) return
       const sectorIdx = this.sectorMap.get(sectorId)!
-      const startOffset = sectorIdx * effectiveConfig.saveLayout.sectorSize
+      const startOffset = sectorIdx * this.config.saveLayout.sectorSize
       newSave.set(data, startOffset)
       // Recalculate checksum for this sector
       const checksum = this.calculateSectorChecksum(data)
-      const footerOffset = startOffset + effectiveConfig.saveLayout.sectorSize - 12
+      const footerOffset = startOffset + this.config.saveLayout.sectorSize - 12
       const view = new DataView(newSave.buffer, newSave.byteOffset + footerOffset, 12)
       view.setUint16(2, checksum, true)
     }
 
     // Write SaveBlock1 (sectors 1-4)
     for (let sectorId = 1; sectorId <= 4; sectorId++) {
-      const chunkOffset = (sectorId - 1) * effectiveConfig.saveLayout.sectorDataSize
-      const chunk = updatedSaveblock1.slice(chunkOffset, chunkOffset + effectiveConfig.saveLayout.sectorDataSize)
+      const chunkOffset = (sectorId - 1) * this.config.saveLayout.sectorDataSize
+      const chunk = updatedSaveblock1.slice(chunkOffset, chunkOffset + this.config.saveLayout.sectorDataSize)
       writeSector(sectorId, chunk)
     }
     return newSave
@@ -623,6 +579,160 @@ export class PokemonSaveParser {
    */
   getWebSocketClient (): MgbaWebSocketClient | null {
     return this.webSocketClient
+  }
+
+  /**
+   * Start watching for Pokemon party changes in memory mode
+   * This will automatically set up memory watching for the party data regions
+   * and call the provided callback when changes are detected
+   */
+  async watch (options: {
+    onPartyChange?: (partyPokemon: PokemonBase[]) => void
+    onError?: (error: Error) => void
+  } = {}): Promise<void> {
+    if (!this.isMemoryMode || !this.webSocketClient) {
+      throw new Error('Watch mode only available in memory mode (WebSocket connection)')
+    }
+
+    if (this.watchingChanges) {
+      throw new Error('Already watching memory. Call stopWatching() first.')
+    }
+
+    if (!this.config?.preloadRegions) {
+      throw new Error('No memory addresses configured for watching')
+    }
+
+    const handleError = (error: unknown) => {
+      const err = error instanceof Error ? error : new Error(String(error))
+      if (options.onError) {
+        options.onError(err)
+      } else {
+        throw err
+      }
+    }
+
+    try {
+      // Add callback to listeners if provided
+      if (options.onPartyChange) {
+        this.watchListeners.push(options.onPartyChange)
+      }
+
+      // Set up memory change listener
+      this.webSocketClient.addMemoryChangeListener(async (address, size, data) => {
+        try {
+          await this.handleMemoryChange(address, size, data)
+        } catch (error) {
+          handleError(error)
+        }
+      })
+
+      this.watchingChanges = true
+      await this.webSocketClient.startWatching([...this.config.preloadRegions])
+    } catch (error) {
+      handleError(error)
+    }
+  }
+
+  /**
+   * Handle memory changes from WebSocket (simplified without buffer management)
+   */
+  private async handleMemoryChange (address: number, _size: number, _data: Uint8Array): Promise<void> {
+    if (!this.webSocketClient || !this.config?.memoryAddresses) return
+
+    try {
+      // Check if this address is relevant to our party data
+      const { partyData, partyCount } = this.config.memoryAddresses
+      const pokemonSize = this.config.pokemonSize
+      const maxPartySize = this.config.maxPartySize
+
+      const isRelevantAddress = address === partyCount ||
+        (address >= partyData && address < partyData + (maxPartySize * pokemonSize))
+
+      if (!isRelevantAddress) {
+        return
+      }
+
+      // Check if we have enough data to parse party Pokemon
+      const hasRequiredData = await this.hasMemoryData()
+      if (!hasRequiredData) {
+        // Not enough data yet, wait for more updates
+        return
+      }
+
+      // Parse fresh Pokemon objects from WebSocket cache
+      const updatedPartyPokemon = await this.parsePartyPokemon()
+
+      // Notify all listeners (no need for change detection as server only sends when changed)
+      for (const listener of this.watchListeners) {
+        try {
+          listener(updatedPartyPokemon)
+        } catch (error) {
+          console.error('Watch listener error:', error)
+        }
+      }
+    } catch (error) {
+      console.error('Error handling party data change:', error)
+    }
+  }
+
+  /**
+   * Check if we have required memory data by attempting to read from WebSocket cache
+   */
+  private async hasMemoryData (): Promise<boolean> {
+    if (!this.config?.memoryAddresses || !this.webSocketClient) return false
+
+    const { partyData, partyCount } = this.config.memoryAddresses
+    try {
+      // Try to read party count (1 byte) and party data (first pokemon) from cache
+      await this.webSocketClient.readBytes(partyCount, 1)
+      await this.webSocketClient.readBytes(partyData, this.config.pokemonSize)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Stop watching for memory changes
+   */
+  async stopWatching (): Promise<void> {
+    if (!this.webSocketClient) {
+      return
+    }
+
+    try {
+      await this.webSocketClient.stopWatching()
+      this.watchingChanges = false
+      this.watchListeners.length = 0
+    } catch (error) {
+      console.error('Error stopping watch mode:', error)
+    }
+  }
+
+  /**
+   * Check if currently watching for changes
+   */
+  isWatching (): boolean {
+    return this.watchingChanges
+  }
+
+  /**
+   * Get current save data without re-initializing WebSocket connection
+   * Useful for getting data after memory mode initialization but before watch setup
+   */
+  async getCurrentSaveData (): Promise<SaveData> {
+    if (!this.isMemoryMode || !this.webSocketClient) {
+      throw new Error('getCurrentSaveData only available in memory mode')
+    }
+
+    const partyPokemon = await this.parsePartyPokemon()
+
+    return {
+      party_pokemon: partyPokemon,
+      player_name: 'MEMORY',
+      play_time: { hours: 0, minutes: 0, seconds: 0 },
+      active_slot: 0,
+    }
   }
 }
 

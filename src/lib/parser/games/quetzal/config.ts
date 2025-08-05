@@ -16,6 +16,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   // Override Pokemon size for Quetzal
   readonly pokemonSize = 104
+  readonly maxPartySize = 6
 
   // Override offsets for Quetzal's unencrypted structure
   readonly offsetOverrides: PokemonOffsetsOverride = {
@@ -34,10 +35,10 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   readonly saveLayoutOverrides: SaveLayoutOverride = {
     partyOffset: 0x6A8,
     partyCountOffset: 0x6A4,
-    pokemonSize: 104,
     playTimeHours: 0x10,
     playTimeMinutes: 0x14,
     playTimeSeconds: 0x15,
+    playTimeMilliseconds: 0x16,
   }
 
   // Merged save layout for easy access
@@ -50,13 +51,32 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
-  // Memory addresses for Quetzal ROM hack (if different from vanilla)
-  // TODO: Update these if Quetzal has different memory layout
+  // Memory addresses for Quetzal ROM hack
   readonly memoryAddresses = {
-    partyData: 0x20244ec, // Same as vanilla for now
-    partyCount: 0x20244e9, // Same as vanilla for now
+    partyData: 0x20235b8,
+    partyCount: 0x20235b5,
+    enemyParty: 0x2023a98,
+    get enemyPartyCount () {
+      return this.partyCount + 0x8
+    },
     // TODO: Add player name and play time addresses when implemented
   } as const
+
+  /**
+   * Preload regions for Quetzal memory parsing
+   */
+  get preloadRegions () {
+    return [
+      {
+        address: this.memoryAddresses.partyData,
+        size: this.pokemonSize * this.maxPartySize,
+      },
+      {
+        address: this.memoryAddresses.partyCount,
+        size: 7, // Party count + context
+      },
+    ]
+  }
 
   // Quetzal-specific offsets for unencrypted data
   private readonly quetzalOffsets = {
@@ -230,8 +250,8 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
    * Check if this config can handle memory parsing for the given game title
    * Currently not supported for Quetzal
    */
-  canHandleMemory (_gameTitle: string): boolean {
+  canHandleMemory (gameTitle: string): boolean {
     // Return false for now until we implement Quetzal memory support
-    return false
+    return gameTitle.toLowerCase().includes('quetzal')
   }
 }

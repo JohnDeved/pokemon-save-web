@@ -153,14 +153,14 @@ async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { 
     mode = 'FILE'
     const absPath = path.resolve(input)
     const buffer = fs.readFileSync(absPath)
-    result = await parser.parseSaveFile(buffer)
+    result = await parser.parse(buffer)
     if (!options.skipDisplay) {
       console.log(`📁 Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
     }
   } else {
     // WebSocket mode
     mode = 'MEMORY'
-    result = await parser.parseSaveFile(input)
+    result = await parser.parse(input)
     if (!options.skipDisplay) {
       console.log(`🎮 Connected to: ${parser.gameConfig?.name ?? 'unknown'} (via mGBA WebSocket)`)
     }
@@ -197,7 +197,20 @@ function clearScreen () {
  * Watch mode - continuously monitor and update display
  */
 async function watchMode (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
-  console.log(`🔄 Starting watch mode (updating every ${options.interval}ms)...`)
+  if (typeof input === 'string') {
+    // File-based watch mode - use polling since files don't support push notifications
+    return watchModeFile(input, options)
+  } else {
+    // WebSocket-based watch mode - use event-driven updates
+    return watchModeWebSocket(input, options)
+  }
+}
+
+/**
+ * File-based watch mode - polling approach for file changes
+ */
+async function watchModeFile (filePath: string, options: { debug: boolean, graph: boolean, interval: number }) {
+  console.log(`🔄 Starting file watch mode (updating every ${options.interval}ms)...`)
   console.log('Press Ctrl+C to exit')
 
   // Create parser once and reuse it
@@ -208,15 +221,10 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     try {
-      // Parse save data without re-initializing parser or reconnecting
-      let result: SaveData
-      if (typeof input === 'string') {
-        const absPath = path.resolve(input)
-        const buffer = fs.readFileSync(absPath)
-        result = await parser.parseSaveFile(buffer)
-      } else {
-        result = await parser.parseSaveFile(input)
-      }
+      // Parse save data without re-initializing parser
+      const absPath = path.resolve(filePath)
+      const buffer = fs.readFileSync(absPath)
+      const result = await parser.parse(buffer)
 
       // Create a simple hash of the party data to detect changes
       const dataHash = JSON.stringify(
@@ -231,19 +239,60 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
       // Only update display if party data changed or first run
       if (dataHash !== lastDataHash || isFirstRun) {
         clearScreen()
-        // Only show party summary - no other logs
-        displayPartyPokemon(result.party_pokemon, typeof input === 'string' ? 'FILE' : 'MEMORY')
+        displayPartyPokemon(result.party_pokemon, 'FILE')
 
         lastDataHash = dataHash
         isFirstRun = false
       }
     } catch (error) {
-      // Silent error handling - don't clear screen or show errors unless critical
       console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
     }
 
     await new Promise(resolve => setTimeout(resolve, options.interval))
   }
+}
+
+/**
+ * WebSocket-based watch mode - event-driven approach using parser watch API
+ */
+async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
+  console.log('🔄 Starting event-driven watch mode...')
+  console.log('Press Ctrl+C to exit')
+
+  // Create parser once and reuse it
+  const parser = new PokemonSaveParser()
+
+  // Load the WebSocket client into memory mode
+  await parser.loadInputData(client)
+
+  // Get and display initial data
+  const initialData = await parser.getCurrentSaveData()
+  displayPartyPokemon(initialData.party_pokemon, 'MEMORY')
+  if (options.debug) displayPartyPokemonRaw(initialData.party_pokemon)
+
+  // Set up watching with the new parser API
+  await parser.watch({
+    onPartyChange: (partyPokemon) => {
+      clearScreen()
+      displayPartyPokemon(partyPokemon, 'MEMORY')
+      if (options.debug) displayPartyPokemonRaw(partyPokemon)
+    },
+    onError: (error) => {
+      console.error('❌ Error processing memory change:', error.message)
+    },
+  })
+  console.log('✅ Memory watching started')
+
+  // Keep the process alive and handle cleanup
+  return new Promise<void>((resolve) => {
+    const cleanup = async () => {
+      await parser.stopWatching()
+      resolve()
+    }
+
+    process.on('SIGINT', cleanup)
+    process.on('SIGTERM', cleanup)
+  })
 }
 
 // CLI entry point
@@ -306,7 +355,6 @@ async function main () {
 
       // Setup cleanup on exit
       process.on('SIGINT', () => {
-        console.log('\n🔌 Disconnecting from mGBA...')
         client.disconnect()
         process.exit(0)
       })

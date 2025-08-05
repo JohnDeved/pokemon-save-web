@@ -6,7 +6,7 @@ import type { PokemonSaveParser } from '../../lib/parser/core/PokemonSaveParser'
 import { cn } from '../../lib/utils'
 
 interface SaveFileDropzoneProps {
-  onFileLoad: PokemonSaveParser['parseSaveFile']
+  onFileLoad: PokemonSaveParser['parse']
   error?: string | null
   showDropzone: boolean
   onOpenFilePicker?: (fn: () => void) => void

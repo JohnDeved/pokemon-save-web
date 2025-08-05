@@ -50,6 +50,22 @@ import { MgbaWebSocketClient, EmeraldMemoryParser } from './lib/mgba'
 const client = new MgbaWebSocketClient()
 await client.connect()
 
+// Configure memory regions to watch for real-time updates
+client.configureSharedBuffer({
+  preloadRegions: [
+    { address: 0x20244e9, size: 7 },   // Party count + context
+    { address: 0x20244ec, size: 600 }  // Full party data
+  ]
+})
+
+// Start watching for memory changes (push-based updates)
+await client.startWatchingPreloadRegions()
+
+// Add listener for real-time memory changes
+client.addMemoryChangeListener((address, size, data) => {
+  console.log(`Memory changed at 0x${address.toString(16)}: ${data.length} bytes`)
+})
+
 // Parse save data from memory
 const parser = new EmeraldMemoryParser(client)
 const saveData = await parser.parseFromMemory()
@@ -57,6 +73,15 @@ const saveData = await parser.parseFromMemory()
 console.log(`Player: ${saveData.player_name}`)
 console.log(`Party: ${saveData.party_pokemon.length} Pokémon`)
 ```
+
+### Real-time Memory Synchronization
+
+The WebSocket client now supports **push-based memory updates** instead of constant polling:
+
+- **Memory Watching**: Configure regions to watch and receive updates only when they change
+- **Intelligent Caching**: Watched regions use cached data, dramatically reducing network calls
+- **Real-time Notifications**: React to memory changes as they happen in the emulator
+- **Backward Compatibility**: All existing eval-based functionality remains unchanged
 
 For detailed documentation, see [src/lib/mgba/README.md](./src/lib/mgba/README.md).
 
@@ -114,8 +139,37 @@ npx github:JohnDeved/pokemon-save-web save.sav --graph
 **CLI Options:**
 - `--debug` - Show raw bytes for each party Pokemon after the summary table
 - `--graph` - Show colored hex/field graph for each party Pokemon
+- `--watch` - Continuously monitor for changes and update display
+- `--websocket` - Connect to mGBA via WebSocket instead of reading a file
+- `--ws-url=URL` - WebSocket URL (default: ws://localhost:7102/ws)
+- `--interval=MS` - Update interval in milliseconds for file watch mode (default: 1000)
 - `--toBytes=STRING` - Convert a string to GBA byte encoding
 - `--toString=HEX` - Convert space/comma-separated hex bytes to a decoded GBA string
+
+**Event-Driven Watch Mode:**
+
+For real-time Pokemon data monitoring, use WebSocket mode with watch:
+
+```bash
+# Event-driven real-time monitoring (push-based)
+npx github:JohnDeved/pokemon-save-web --websocket --watch
+
+# Traditional file watching (polling-based) 
+npx github:JohnDeved/pokemon-save-web save.sav --watch --interval=2000
+```
+
+**WebSocket Watch Mode Features:**
+- **Push-based Updates**: Instant notifications when party data changes (no polling!)
+- **Memory Region Watching**: Monitors specific memory addresses for Pokemon party data
+- **Real-time Display**: Updates immediately when Pokemon HP, level, or party composition changes
+- **Zero Network Overhead**: Only receives data when memory actually changes
+- **Intelligent Caching**: Uses cached data for watched regions, reducing emulator load
+
+The WebSocket watch mode automatically configures memory watching for:
+- Party count and context data (address 0x20244e9, 7 bytes)
+- Full party Pokemon data (address 0x20244ec, 600 bytes)
+
+When connected to mGBA emulator, the CLI will display live updates as you play!
 
 ## Adding Game Support
 
