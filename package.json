@@ -5,7 +5,8 @@
   "type": "module",
   "bin": {
     "pokemon-save-parser": "bin/pokemon-save-parser",
-    "mgba-docker": "node bin/mgba-docker"
+    "mgba-docker": "node bin/mgba-docker",
+    "memory-pattern-analyzer": "bin/memory-pattern-analyzer"
   },
   "files": [
     "bin/",
@@ -28,7 +29,8 @@
     "parse": "tsx src/lib/parser/cli.ts",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
-    "mgba": "tsx docker/mgba-docker.ts"
+    "mgba": "tsx docker/mgba-docker.ts",
+    "memory-analyze": "tsx bin/memory-pattern-analyzer"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",

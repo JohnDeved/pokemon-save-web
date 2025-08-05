@@ -1,0 +1,221 @@
+#!/usr/bin/env tsx
+/**
+ * CLI tool for analyzing memory patterns to find partyData addresses
+ */
+
+import { MgbaWebSocketClient } from '../src/lib/mgba/websocket-client'
+import { MemoryAnalyzer } from '../src/lib/memory-analysis/memory-analyzer'
+import { mkdirSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+// Known addresses for pattern analysis
+const KNOWN_ADDRESSES = {
+  vanilla: 0x20244ec,  // Vanilla Emerald
+  quetzal: 0x20235b8   // 1uetzal (Quetzal)
+} as const
+
+async function printHelp() {
+  console.log('\n\x1b[1mPokémon Save Web: Memory Pattern Analyzer\x1b[0m\n')
+  console.log('Usage: tsx bin/memory-pattern-analyzer <command> [options]\n')
+  console.log('Commands:')
+  console.log('  \x1b[36manalyze\x1b[0m          Perform full memory analysis to find partyData patterns')
+  console.log('  \x1b[36mquick <address>\x1b[0m  Quick analysis around a specific address (hex)')
+  console.log('  \x1b[36mdump\x1b[0m             Dump EWRAM and IWRAM to disk for manual analysis')
+  console.log('  \x1b[36mhelp\x1b[0m             Show this help message')
+  console.log('\nOptions:')
+  console.log('  --ws-url <url>       WebSocket URL (default: ws://localhost:7102/ws)')
+  console.log('  --output-dir <dir>   Output directory (default: /tmp/memory-analysis)')
+  console.log('\nExamples:')
+  console.log('  tsx bin/memory-pattern-analyzer analyze')
+  console.log('  tsx bin/memory-pattern-analyzer quick 20244ec')
+  console.log('  tsx bin/memory-pattern-analyzer dump --output-dir ./analysis')
+  console.log('')
+}
+
+async function connectToMgba(wsUrl: string): Promise<MgbaWebSocketClient> {
+  console.log(`Connecting to mGBA at ${wsUrl}...`)
+  
+  const client = new MgbaWebSocketClient(wsUrl)
+  
+  try {
+    await client.connect()
+    console.log('✅ Connected to mGBA WebSocket server')
+    
+    // Test connection by getting game title
+    const gameTitle = await client.getGameTitle()
+    console.log(`🎮 Game: ${gameTitle}`)
+    
+    return client
+  } catch (error) {
+    console.error('❌ Failed to connect to mGBA:', error)
+    console.log('\n💡 Make sure mGBA Docker container is running:')
+    console.log('   npm run mgba -- start --game emerald')
+    console.log('   # or')
+    console.log('   npm run mgba -- start --game quetzal')
+    process.exit(1)
+  }
+}
+
+async function runFullAnalysis(client: MgbaWebSocketClient, outputDir: string): Promise<void> {
+  console.log('\n🔍 Starting comprehensive memory pattern analysis...')
+  
+  const analyzer = new MemoryAnalyzer(client)
+  
+  try {
+    const result = await analyzer.analyzePartyDataPatterns(KNOWN_ADDRESSES, outputDir)
+    
+    console.log('\n📊 Analysis Results:')
+    console.log(`   ROM: ${result.romName}`)
+    console.log(`   Detected Address: ${result.detectedPartyDataAddress ? '0x' + result.detectedPartyDataAddress.toString(16) : 'Not detected'}`)
+    console.log(`   Confidence: ${(result.confidence * 100).toFixed(1)}%`)
+    console.log(`   Pattern Matches: ${result.patterns.length}`)
+    console.log(`   Suggested Patterns: ${result.suggestedPatterns.length}`)
+    
+    if (result.patterns.length > 0) {
+      console.log('\n🎯 Top Pattern Matches:')
+      for (const match of result.patterns.slice(0, 5)) {
+        console.log(`   • ${match.pattern.name} at 0x${match.address.toString(16)} (${(match.confidence * 100).toFixed(1)}% confidence)`)
+        if (match.context?.referencedAddress) {
+          console.log(`     References: 0x${match.context.referencedAddress.toString(16)}`)
+        }
+      }
+    }
+    
+    console.log(`\n💾 Analysis reports saved to: ${outputDir}`)
+    console.log('   • analysis_report.json (detailed)')
+    console.log('   • analysis_report.txt (human-readable)')
+    console.log('   • ewram_dump.bin (EWRAM memory dump)')
+    console.log('   • iwram_dump.bin (IWRAM memory dump)')
+    
+  } catch (error) {
+    console.error('❌ Analysis failed:', error)
+    process.exit(1)
+  }
+}
+
+async function runQuickAnalysis(client: MgbaWebSocketClient, addressStr: string, outputDir: string): Promise<void> {
+  const address = parseInt(addressStr, 16)
+  
+  if (isNaN(address)) {
+    console.error('❌ Invalid address format. Use hex format (e.g., 20244ec)')
+    process.exit(1)
+  }
+  
+  console.log(`\n🔍 Quick analysis around address 0x${address.toString(16)}...`)
+  
+  const analyzer = new MemoryAnalyzer(client)
+  
+  try {
+    const matches = await analyzer.quickAddressAnalysis(address, outputDir)
+    
+    console.log(`\n📊 Found ${matches.length} potential references:`)
+    
+    for (const match of matches.slice(0, 10)) {
+      console.log(`   • 0x${match.address.toString(16)}: ${Array.from(match.matchedBytes).map(b => b.toString(16).padStart(2, '0')).join(' ')} (${(match.confidence * 100).toFixed(1)}%)`)
+      if (match.context?.referencedAddress) {
+        console.log(`     -> 0x${match.context.referencedAddress.toString(16)}`)
+      }
+    }
+    
+    console.log(`\n💾 Quick analysis saved to: ${outputDir}/quick_analysis_${address.toString(16)}.json`)
+    
+  } catch (error) {
+    console.error('❌ Quick analysis failed:', error)
+    process.exit(1)
+  }
+}
+
+async function runMemoryDump(client: MgbaWebSocketClient, outputDir: string): Promise<void> {
+  console.log('\n💾 Dumping memory regions to disk...')
+  
+  const analyzer = new MemoryAnalyzer(client)
+  
+  try {
+    // Access the dumper through the analyzer
+    const dumper = (analyzer as any).dumper
+    
+    console.log('   Dumping EWRAM...')
+    await dumper.dumpEWRAM(`${outputDir}/ewram_dump.bin`)
+    
+    console.log('   Dumping IWRAM...')
+    await dumper.dumpIWRAM(`${outputDir}/iwram_dump.bin`)
+    
+    console.log(`\n✅ Memory dumps saved to: ${outputDir}`)
+    console.log('   • ewram_dump.bin (256KB EWRAM)')
+    console.log('   • iwram_dump.bin (32KB IWRAM)')
+    console.log('\n💡 You can now analyze these dumps with hex editors or other tools')
+    
+  } catch (error) {
+    console.error('❌ Memory dump failed:', error)
+    process.exit(1)
+  }
+}
+
+async function main(): Promise<void> {
+  const args = process.argv.slice(2)
+  
+  if (args.length === 0 || args.includes('help') || args.includes('--help')) {
+    await printHelp()
+    process.exit(0)
+  }
+  
+  const command = args[0]
+  let wsUrl = 'ws://localhost:7102/ws'
+  let outputDir = '/tmp/memory-analysis'
+  
+  // Parse options
+  for (let i = 1; i < args.length; i++) {
+    if (args[i] === '--ws-url' && args[i + 1]) {
+      wsUrl = args[i + 1]
+      i++
+    } else if (args[i] === '--output-dir' && args[i + 1]) {
+      outputDir = resolve(args[i + 1])
+      i++
+    }
+  }
+  
+  // Ensure output directory exists
+  mkdirSync(outputDir, { recursive: true })
+  console.log(`📁 Output directory: ${outputDir}`)
+  
+  // Connect to mGBA
+  const client = await connectToMgba(wsUrl)
+  
+  try {
+    switch (command) {
+      case 'analyze':
+        await runFullAnalysis(client, outputDir)
+        break
+        
+      case 'quick':
+        if (!args[1]) {
+          console.error('❌ Quick analysis requires an address argument')
+          console.log('Usage: tsx bin/memory-pattern-analyzer quick <address>')
+          process.exit(1)
+        }
+        await runQuickAnalysis(client, args[1], outputDir)
+        break
+        
+      case 'dump':
+        await runMemoryDump(client, outputDir)
+        break
+        
+      default:
+        console.error(`❌ Unknown command: ${command}`)
+        await printHelp()
+        process.exit(1)
+    }
+  } finally {
+    client.disconnect()
+  }
+  
+  console.log('\n✅ Analysis complete!')
+}
+
+// Run CLI
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('💥 Unexpected error:', error)
+    process.exit(1)
+  })
+}
