@@ -51,12 +51,11 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     moves: createMapping<MoveMapping>(moveMapData as Record<string, unknown>),
   } as const
 
-  // Memory addresses for Quetzal ROM hack (if different from vanilla)
-  // TODO: Update these if Quetzal has different memory layout
+  // Memory addresses for Quetzal ROM hack
   readonly memoryAddresses = {
-    partyData: 0x20235b8, // Same as vanilla for now
-    partyCount: 0x20235b5, // Same as vanilla for now
-    enemyParty: 0x2023a98, // Same as vanilla for now
+    partyData: 0x20235b8,
+    partyCount: 0x20235b5,
+    enemyParty: 0x2023a98,
     get enemyPartyCount () {
       return this.partyCount + 0x8
     },
