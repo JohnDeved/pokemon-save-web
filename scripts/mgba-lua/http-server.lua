@@ -677,8 +677,6 @@ local function handleWebSocketConnection(ws)
     end
 
     ws.onMessage = function(message)
-        log("WebSocket message: " .. tostring(message))
-        
         -- Check if this is a watch command
         local regions = parseWatchMessage(message)
         if regions then
