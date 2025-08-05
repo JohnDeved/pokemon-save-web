@@ -595,28 +595,8 @@ function HttpServer:listen(port, callback)
 end
 
 --------------------------------------------------------------------------------
--- Example Usage
+-- Handlers
 --------------------------------------------------------------------------------
-
-local app = HttpServer:new()
-
--- Global middleware
-app:use(function(req, res)
-    log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
-end)
-
--- Routes
-app:get("/", function(req, res)
-    res:send("200 OK", "Welcome to mGBA HTTP Server! Playing " .. emu:getGameTitle())
-end)
-
-app:get("/json", HttpServer.cors(), function(req, res)
-    res:send("200 OK", {message = "Hello, JSON!", timestamp = os.time()})
-end)
-
-app:post("/echo", function(req, res)
-    res:send("200 OK", req.body, req.headers['content-type'])
-end)
 
 -- WebSocket handler function
 local function handleWebSocketConnection(ws)
@@ -797,6 +777,30 @@ local function handleWebSocketConnection(ws)
 
     ws:send("Welcome to WebSocket Eval! Send Lua code to execute.")
 end
+
+--------------------------------------------------------------------------------
+-- Routes
+--------------------------------------------------------------------------------
+
+local app = HttpServer:new()
+
+-- Global middleware
+app:use(function(req, res)
+    log(req.method .. " " .. req.path .. " - Headers: " .. HttpServer.jsonStringify(req.headers))
+end)
+
+-- Routes
+app:get("/", function(req, res)
+    res:send("200 OK", "Welcome to mGBA HTTP Server! Playing " .. emu:getGameTitle())
+end)
+
+app:get("/json", HttpServer.cors(), function(req, res)
+    res:send("200 OK", {message = "Hello, JSON!", timestamp = os.time()})
+end)
+
+app:post("/echo", function(req, res)
+    res:send("200 OK", req.body, req.headers['content-type'])
+end)
 
 -- WebSocket route
 app:websocket("/ws", handleWebSocketConnection)
