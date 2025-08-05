@@ -18,8 +18,8 @@ async function printHelp() {
   console.log('\n\x1b[1mPokémon Save Web: Memory Pattern Analyzer\x1b[0m\n')
   console.log('Usage: tsx bin/memory-pattern-analyzer <command> [options]\n')
   console.log('Commands:')
-  console.log('  \x1b[36manalyze\x1b[0m          Perform full memory analysis to find partyData patterns')
-  console.log('  \x1b[36mquick <address>\x1b[0m  Quick analysis around a specific address (hex)')
+  console.log('  \x1b[36manalyze\x1b[0m          Perform dynamic analysis to find partyData addresses using IDA-style patterns')
+  console.log('  \x1b[36mquick [address]\x1b[0m  Quick analysis to find party data addresses (optionally around specific address)')
   console.log('  \x1b[36mdump\x1b[0m             Dump EWRAM and IWRAM to disk for manual analysis')
   console.log('  \x1b[36mhelp\x1b[0m             Show this help message')
   console.log('\nOptions:')
@@ -27,8 +27,14 @@ async function printHelp() {
   console.log('  --output-dir <dir>   Output directory (default: /tmp/memory-analysis)')
   console.log('\nExamples:')
   console.log('  tsx bin/memory-pattern-analyzer analyze')
+  console.log('  tsx bin/memory-pattern-analyzer quick')
   console.log('  tsx bin/memory-pattern-analyzer quick 20244ec')
   console.log('  tsx bin/memory-pattern-analyzer dump --output-dir ./analysis')
+  console.log('\nNew Dynamic Approach:')
+  console.log('  This tool now uses IDA-style byte patterns to dynamically detect party data')
+  console.log('  addresses by finding assembly instructions that reference them, rather than')
+  console.log('  relying on hardcoded addresses. This enables support for ROM updates and new')
+  console.log('  Pokemon ROM hacks automatically.')
   console.log('')
 }
 
@@ -57,7 +63,8 @@ async function connectToMgba(wsUrl) {
 }
 
 async function runFullAnalysis(client, outputDir) {
-  console.log('\n🔍 Starting comprehensive memory pattern analysis...')
+  console.log('\n🔍 Starting dynamic memory pattern analysis...')
+  console.log('   Using IDA-style patterns to find assembly instructions that reference party data')
   
   const analyzer = new MemoryAnalyzer(client)
   
@@ -69,7 +76,7 @@ async function runFullAnalysis(client, outputDir) {
     console.log(`   Detected Address: ${result.detectedPartyDataAddress ? '0x' + result.detectedPartyDataAddress.toString(16) : 'Not detected'}`)
     console.log(`   Confidence: ${(result.confidence * 100).toFixed(1)}%`)
     console.log(`   Pattern Matches: ${result.patterns.length}`)
-    console.log(`   Suggested Patterns: ${result.suggestedPatterns.length}`)
+    console.log(`   Suggested IDA Patterns: ${result.suggestedPatterns.length}`)
     
     if (result.patterns.length > 0) {
       console.log('\n🎯 Top Pattern Matches:')
@@ -78,6 +85,17 @@ async function runFullAnalysis(client, outputDir) {
         if (match.context?.referencedAddress) {
           console.log(`     References: 0x${match.context.referencedAddress.toString(16)}`)
         }
+      }
+    }
+    
+    if (result.suggestedPatterns.length > 0) {
+      console.log('\n🔧 Generated IDA-Style Patterns:')
+      for (const pattern of result.suggestedPatterns.slice(0, 3)) {
+        const patternStr = Array.from(pattern.pattern).map(b => b.toString(16).padStart(2, '0')).join(' ')
+        const maskStr = pattern.mask ? 
+          ` (mask: ${Array.from(pattern.mask).map(b => b.toString(16).padStart(2, '0')).join(' ')})` : ''
+        console.log(`   • ${pattern.name}: ${patternStr}${maskStr}`)
+        console.log(`     ${pattern.description}`)
       }
     }
     
@@ -94,14 +112,18 @@ async function runFullAnalysis(client, outputDir) {
 }
 
 async function runQuickAnalysis(client, addressStr, outputDir) {
-  const address = parseInt(addressStr, 16)
+  let address = null
   
-  if (isNaN(address)) {
-    console.error('❌ Invalid address format. Use hex format (e.g., 20244ec)')
-    process.exit(1)
+  if (addressStr) {
+    address = parseInt(addressStr, 16)
+    if (isNaN(address)) {
+      console.error('❌ Invalid address format. Use hex format (e.g., 20244ec)')
+      process.exit(1)
+    }
+    console.log(`\n🔍 Quick analysis around address 0x${address.toString(16)}...`)
+  } else {
+    console.log('\n🔍 Quick analysis for dynamic party data address detection...')
   }
-  
-  console.log(`\n🔍 Quick analysis around address 0x${address.toString(16)}...`)
   
   const analyzer = new MemoryAnalyzer(client)
   
@@ -111,13 +133,18 @@ async function runQuickAnalysis(client, addressStr, outputDir) {
     console.log(`\n📊 Found ${matches.length} potential references:`)
     
     for (const match of matches.slice(0, 10)) {
-      console.log(`   • 0x${match.address.toString(16)}: ${Array.from(match.matchedBytes).map(b => b.toString(16).padStart(2, '0')).join(' ')} (${(match.confidence * 100).toFixed(1)}%)`)
+      const patternBytes = Array.from(match.matchedBytes).map(b => b.toString(16).padStart(2, '0')).join(' ')
+      console.log(`   • 0x${match.address.toString(16)}: ${patternBytes} (${(match.confidence * 100).toFixed(1)}%)`)
+      console.log(`     Pattern: ${match.pattern.name}`)
       if (match.context?.referencedAddress) {
-        console.log(`     -> 0x${match.context.referencedAddress.toString(16)}`)
+        console.log(`     -> References: 0x${match.context.referencedAddress.toString(16)}`)
       }
     }
     
-    console.log(`\n💾 Quick analysis saved to: ${outputDir}/quick_analysis_${address.toString(16)}.json`)
+    const outputFile = address ? 
+      `quick_analysis_${address.toString(16)}.json` :
+      'quick_analysis_auto.json'
+    console.log(`\n💾 Quick analysis saved to: ${outputDir}/${outputFile}`)
     
   } catch (error) {
     console.error('❌ Quick analysis failed:', error)
@@ -188,12 +215,9 @@ async function main() {
         break
         
       case 'quick':
-        if (!args[1]) {
-          console.error('❌ Quick analysis requires an address argument')
-          console.log('Usage: tsx bin/memory-pattern-analyzer quick <address>')
-          process.exit(1)
-        }
-        await runQuickAnalysis(client, args[1], outputDir)
+        // Address argument is now optional
+        const targetAddress = args[1]
+        await runQuickAnalysis(client, targetAddress, outputDir)
         break
         
       case 'dump':
