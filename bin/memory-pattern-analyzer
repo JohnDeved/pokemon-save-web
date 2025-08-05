@@ -12,7 +12,7 @@ import { resolve } from 'node:path'
 const KNOWN_ADDRESSES = {
   vanilla: 0x20244ec,  // Vanilla Emerald
   quetzal: 0x20235b8   // 1uetzal (Quetzal)
-} as const
+}
 
 async function printHelp() {
   console.log('\n\x1b[1mPokémon Save Web: Memory Pattern Analyzer\x1b[0m\n')
@@ -32,7 +32,7 @@ async function printHelp() {
   console.log('')
 }
 
-async function connectToMgba(wsUrl: string): Promise<MgbaWebSocketClient> {
+async function connectToMgba(wsUrl) {
   console.log(`Connecting to mGBA at ${wsUrl}...`)
   
   const client = new MgbaWebSocketClient(wsUrl)
@@ -56,7 +56,7 @@ async function connectToMgba(wsUrl: string): Promise<MgbaWebSocketClient> {
   }
 }
 
-async function runFullAnalysis(client: MgbaWebSocketClient, outputDir: string): Promise<void> {
+async function runFullAnalysis(client, outputDir) {
   console.log('\n🔍 Starting comprehensive memory pattern analysis...')
   
   const analyzer = new MemoryAnalyzer(client)
@@ -93,7 +93,7 @@ async function runFullAnalysis(client: MgbaWebSocketClient, outputDir: string): 
   }
 }
 
-async function runQuickAnalysis(client: MgbaWebSocketClient, addressStr: string, outputDir: string): Promise<void> {
+async function runQuickAnalysis(client, addressStr, outputDir) {
   const address = parseInt(addressStr, 16)
   
   if (isNaN(address)) {
@@ -125,14 +125,14 @@ async function runQuickAnalysis(client: MgbaWebSocketClient, addressStr: string,
   }
 }
 
-async function runMemoryDump(client: MgbaWebSocketClient, outputDir: string): Promise<void> {
+async function runMemoryDump(client, outputDir) {
   console.log('\n💾 Dumping memory regions to disk...')
   
   const analyzer = new MemoryAnalyzer(client)
   
   try {
     // Access the dumper through the analyzer
-    const dumper = (analyzer as any).dumper
+    const dumper = analyzer.getMemoryDumper()
     
     console.log('   Dumping EWRAM...')
     await dumper.dumpEWRAM(`${outputDir}/ewram_dump.bin`)
@@ -151,7 +151,7 @@ async function runMemoryDump(client: MgbaWebSocketClient, outputDir: string): Pr
   }
 }
 
-async function main(): Promise<void> {
+async function main() {
   const args = process.argv.slice(2)
   
   if (args.length === 0 || args.includes('help') || args.includes('--help')) {
@@ -213,9 +213,7 @@ async function main(): Promise<void> {
 }
 
 // Run CLI
-if (require.main === module) {
-  main().catch((error) => {
-    console.error('💥 Unexpected error:', error)
-    process.exit(1)
-  })
-}
+main().catch((error) => {
+  console.error('💥 Unexpected error:', error)
+  process.exit(1)
+})

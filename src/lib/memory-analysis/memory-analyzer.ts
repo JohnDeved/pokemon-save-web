@@ -18,6 +18,13 @@ export class MemoryAnalyzer {
   }
 
   /**
+   * Get the memory dumper instance for direct access
+   */
+  getMemoryDumper(): MemoryDumper {
+    return this.dumper
+  }
+
+  /**
    * Perform comprehensive analysis to find partyData address patterns
    */
   async analyzePartyDataPatterns(
