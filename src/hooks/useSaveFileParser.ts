@@ -1,7 +1,9 @@
 import { saveAs } from 'file-saver'
 import { useReducer, useRef } from 'react'
 import { toast } from 'sonner'
-import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
+import { createParser } from '../lib/adapters/parser-factory'
+import type { UnifiedParserInterface } from '../lib/unified-parser'
+import { ParserType } from '../lib/unified-parser'
 import type { SaveData } from '../lib/parser/core/types'
 
 export interface SaveFileParserState {
@@ -55,12 +57,18 @@ export const useSaveFileParser = () => {
 
   const [state, dispatch] = useReducer(reducer, initialState)
 
-  const parserRef = useRef<PokemonSaveParser | null>(null)
+  const parserRef = useRef<UnifiedParserInterface | null>(null)
 
   async function parse (file: File) {
     dispatch({ type: 'PARSE_START' })
     try {
-      const parser = new PokemonSaveParser()
+      // Create parser using factory (will auto-select best available)
+      const parser = await createParser({
+        type: ParserType.AUTO,
+        wasmPath: '/parser.wasm',
+        fallbackToTypeScript: true
+      })
+      
       const saveData = await parser.parse(file)
       parserRef.current = parser
       dispatch({ type: 'PARSE_SUCCESS', saveData })

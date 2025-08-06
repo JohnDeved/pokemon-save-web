@@ -28,6 +28,7 @@
     "test:all": "npm run test:website && npm run build",
     "parse": "tsx src/lib/parser/cli.ts",
     "parse:go": "./bin/parser-go",
+    "parse:hybrid": "tsx src/cli-hybrid.ts",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
     "mgba": "tsx docker/mgba-docker.ts"
