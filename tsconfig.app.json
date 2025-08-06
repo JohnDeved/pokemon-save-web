@@ -34,5 +34,5 @@
     }
   },
   "include": ["src", "docker/mgba-docker.ts"],
-  "exclude": ["src/__tests__"]
+  "exclude": ["src/__tests__", "**/__tests__", "**/*.test.ts", "**/*.test.tsx"]
 }
