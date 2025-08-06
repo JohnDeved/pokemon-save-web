@@ -1,0 +1,7 @@
+{
+  "is_main": false,
+  "target": {
+    "wasm": {},
+    "wasm-gc": {}
+  }
+}
