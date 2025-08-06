@@ -1,11 +1,12 @@
 # Pokemon Save Web
 
-A web-based Pokemon save file editor, CLI tool, and TypeScript parser core with PWA support.
+A web-based Pokemon save file editor, CLI tool, and dual parser core (TypeScript + Go/WASM) with PWA support.
 
 ## 🚀 Features
 
 - **Progressive Web App (PWA)**: Install for offline use and app-like experience
 - **Multi-Game Support**: Works with various Pokemon games and ROM hacks
+- **Dual Parser Engine**: High-performance Go/WASM parser with TypeScript fallback
 - **Real-time Editing**: Interactive Pokemon data visualization and editing
 - **File System Integration**: Modern browser file API support
 - **Cross-Platform**: Web, CLI, and library usage
@@ -27,8 +28,14 @@ Open your browser and drag & drop a Pokemon save file to get started.
 
 ### Command Line
 ```bash
-# Parse a save file
+# Parse a save file (auto-selects best parser engine)
 npx github:JohnDeved/pokemon-save-web save.sav
+
+# Use Go WASM engine explicitly
+npx github:JohnDeved/pokemon-save-web save.sav --engine=go-wasm --debug
+
+# Pure Go parser (fastest)
+npx github:JohnDeved/pokemon-save-web save.sav --engine=go
 
 # With debug output
 npx github:JohnDeved/pokemon-save-web save.sav --debug
@@ -36,42 +43,32 @@ npx github:JohnDeved/pokemon-save-web save.sav --debug
 
 ### As a Library
 ```typescript
+// Auto-select best available parser (Go WASM → TypeScript fallback)
+import { createParser } from './lib/adapters/parser-factory'
+
+const parser = await createParser()
+const saveData = await parser.parse(file)
+console.log(`Player: ${saveData.player_name}`)
+```
+
+```typescript
+// Force specific parser engine
+import { createParser, ParserType } from './lib/adapters/parser-factory'
+
+// Use TypeScript parser
+const tsParser = await createParser({ type: ParserType.TYPESCRIPT })
+
+// Use Go WASM parser
+const goParser = await createParser({ type: ParserType.GO_WASM })
+```
+
+```typescript
+// Legacy TypeScript parser (still fully supported)
 import { PokemonSaveParser } from './lib/parser'
 
 const parser = new PokemonSaveParser()
 const saveData = await parser.parseSaveFile(file)
 console.log(`Player: ${saveData.player_name}`)
-```
-
-```typescript
-import { MgbaWebSocketClient, EmeraldMemoryParser } from './lib/mgba'
-
-// Connect to mGBA emulator
-const client = new MgbaWebSocketClient()
-await client.connect()
-
-// Configure memory regions to watch for real-time updates
-client.configureSharedBuffer({
-  preloadRegions: [
-    { address: 0x20244e9, size: 7 },   // Party count + context
-    { address: 0x20244ec, size: 600 }  // Full party data
-  ]
-})
-
-// Start watching for memory changes (push-based updates)
-await client.startWatchingPreloadRegions()
-
-// Add listener for real-time memory changes
-client.addMemoryChangeListener((address, size, data) => {
-  console.log(`Memory changed at 0x${address.toString(16)}: ${data.length} bytes`)
-})
-
-// Parse save data from memory
-const parser = new EmeraldMemoryParser(client)
-const saveData = await parser.parseFromMemory()
-
-console.log(`Player: ${saveData.player_name}`)
-console.log(`Party: ${saveData.party_pokemon.length} Pokémon`)
 ```
 
 ### Real-time Memory Synchronization
@@ -93,6 +90,7 @@ The main web application provides a user-friendly interface for uploading and an
 
 ```bash
 npm install
+npm run build:wasm  # Build Go WASM parser
 npm run dev    # Start development server
 npm run build  # Build for production (includes PWA)
 npm run preview # Preview PWA build locally
@@ -105,6 +103,7 @@ npm run preview # Preview PWA build locally
 - File System Access API support for modern browsers
 - **PWA Support**: Install as native app with offline functionality
 - **Optimized Performance**: Code splitting and smart caching
+- **Dual Parser Engine**: Automatic Go WASM/TypeScript selection
 
 ### 2. JavaScript/TypeScript Library
 
@@ -129,8 +128,14 @@ const parser = new PokemonSaveParser(undefined, config)
 Parse save files from the command line with multiple output formats.
 
 ```bash
-# Local usage
+# Local usage (TypeScript)
 npm run parse save.sav --debug
+
+# Local usage (Go WASM with engine selection)
+npm run parse:hybrid save.sav --engine=auto --debug
+
+# Pure Go CLI (fastest)
+npm run parse:go save.sav --debug
 
 # NPX usage (direct from GitHub)  
 npx github:JohnDeved/pokemon-save-web save.sav --graph
@@ -193,6 +198,29 @@ export class MyGameConfig implements GameConfig {
 ```
 
 For detailed instructions, see [src/lib/parser/README.md](./src/lib/parser/README.md#adding-game-support).
+
+## Dual Parser System
+
+This project features a unique dual parser architecture for maximum performance and compatibility:
+
+### 🔥 Go/WASM Parser
+- **High Performance**: Compiled Go code running as WebAssembly
+- **Modern Architecture**: Clean, type-safe Go implementation  
+- **Browser Native**: Runs directly in browser with near-native speed
+- **Size**: 2.9MB WASM module (includes full Go runtime)
+
+### 📜 TypeScript Parser  
+- **Universal Compatibility**: Works everywhere JavaScript runs
+- **Feature Complete**: Full support for all game types and ROM hacks
+- **Lightweight**: Smaller bundle size for simple use cases
+- **Mature**: Battle-tested with comprehensive game support
+
+### 🤖 Automatic Selection
+The system automatically chooses the best parser:
+1. **Go WASM** (if WebAssembly supported and module loads successfully)  
+2. **TypeScript** (automatic fallback, guaranteed compatibility)
+
+No configuration required - it just works! See [GO_WASM_IMPLEMENTATION.md](./GO_WASM_IMPLEMENTATION.md) for technical details.
 
 ## PWA (Progressive Web App)
 

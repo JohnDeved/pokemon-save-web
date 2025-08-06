@@ -23,7 +23,7 @@ export class TypeScriptParserAdapter implements UnifiedParserInterface {
   }
 
   async parseSaveFile(): Promise<SaveData> {
-    return await this.parser.parseSaveFile()
+    return await this.parser.getCurrentSaveData()
   }
 
   reconstructSaveFile(partyPokemon: PokemonBase[]): Uint8Array {

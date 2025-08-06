@@ -17,10 +17,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'safari-pinned-tab.svg'],
+      workbox: {
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB for WASM module
+      },
       manifest: {
         name: 'Pokemon Save Editor',
         short_name: 'PokeSave',
-        description: 'A powerful web-based Pokemon save file editor for various Pokemon games and ROM hacks',
+        description: 'A powerful web-based Pokemon save file editor with Go/WASM parser for high performance',
         theme_color: '#1e293b',
         background_color: '#000000',
         display: 'standalone',

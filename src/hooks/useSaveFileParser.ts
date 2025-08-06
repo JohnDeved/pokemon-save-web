@@ -90,7 +90,7 @@ export const useSaveFileParser = () => {
       throw new Error('No save data loaded')
     }
     // Use the same parser instance
-    const newSave = parserRef.current.reconstructSaveFile(state.saveData.party_pokemon)
+    const newSave = parserRef.current.reconstructSaveFile([...state.saveData.party_pokemon])
     const blob = new Blob([newSave], { type: 'application/octet-stream' })
     const defaultFileName = parserRef.current.saveFileName ?? 'pokemon_save.sav'
 

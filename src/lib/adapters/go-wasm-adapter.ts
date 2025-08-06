@@ -4,6 +4,7 @@
  */
 
 import type { SaveData, PokemonBase, UnifiedParserInterface } from '../unified-parser'
+// @ts-ignore - JS file import
 import { GoWASMParser } from '../parser/wasm-wrapper.js'
 
 export class GoWASMParserAdapter implements UnifiedParserInterface {
@@ -15,7 +16,7 @@ export class GoWASMParserAdapter implements UnifiedParserInterface {
   constructor(wasmPath = '/parser.wasm') {
     this.wasmParser = new GoWASMParser()
     // Initialize WASM module in the background
-    this.wasmParser.initialize(wasmPath).catch(error => {
+    this.wasmParser.initialize(wasmPath).catch((error: any) => {
       console.warn('Failed to initialize Go WASM parser:', error)
     })
   }
@@ -51,7 +52,7 @@ export class GoWASMParserAdapter implements UnifiedParserInterface {
     return this.lastSaveData
   }
 
-  reconstructSaveFile(partyPokemon: PokemonBase[]): Uint8Array {
+  reconstructSaveFile(_partyPokemon: PokemonBase[]): Uint8Array {
     // For now, return the original raw save data since we don't have reconstruction logic in Go yet
     // This would need to be implemented in the Go parser and exposed via WASM
     if (this.lastSaveData?.rawSaveData) {

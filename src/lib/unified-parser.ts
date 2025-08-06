@@ -3,8 +3,8 @@
  * Provides a common interface for both TypeScript and Go WASM parsers
  */
 
-import type { SaveData } from '../parser/core/types'
-import type { PokemonBase } from '../parser/core/PokemonBase'
+import type { SaveData } from './parser/core/types'
+import type { PokemonBase } from './parser/core/PokemonBase'
 
 // Re-export existing types
 export type { SaveData, PokemonBase }

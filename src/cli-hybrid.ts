@@ -46,9 +46,9 @@ for (const arg of args) {
   } else if (arg === '--debug') {
     debug = true
   } else if (arg.startsWith('--toBytes=')) {
-    toBytes = arg.split('=')[1]
+    toBytes = arg.split('=')[1] || ''
   } else if (arg.startsWith('--toString=')) {
-    toString = arg.split('=')[1]
+    toString = arg.split('=')[1] || ''
   } else if (!arg.startsWith('--')) {
     filename = arg
   }
@@ -69,7 +69,7 @@ async function main() {
       if ('encodeText' in parser && typeof parser.encodeText === 'function') {
         console.log(`Encoding text: "${toBytes}"`)
         const encoded = await (parser as any).encodeText(toBytes)
-        console.log('Result:', Array.from(encoded).map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' '))
+        console.log('Result:', Array.from(encoded as Uint8Array).map((b: number) => b.toString(16).toUpperCase().padStart(2, '0')).join(' '))
       } else {
         console.log('Text encoding not available with this parser engine')
       }
