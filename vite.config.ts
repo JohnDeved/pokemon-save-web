@@ -47,6 +47,8 @@ export default defineConfig({
       }
     })
   ],
+  // Include WASM files as static assets
+  assetsInclude: ['**/*.wasm'],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

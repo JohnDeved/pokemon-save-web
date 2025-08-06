@@ -167,6 +167,7 @@ export class PokemonSaveParser {
 
     try {
       // Load WASM module
+      /* @vite-ignore */
       const wasmPath = new URL('./wasm/pokemon-parser.wasm', import.meta.url)
       const wasmModule = await WebAssembly.instantiateStreaming(fetch(wasmPath))
       
