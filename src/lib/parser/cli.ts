@@ -1,7 +1,7 @@
 #!/usr/bin/env -S npx tsx
 import fs from 'fs'
 import path from 'path'
-import { PokemonSaveParser } from './core/PokemonSaveParser'
+import { PokemonSaveParser } from './core/PokemonSaveParser.wasm'
 import type { PokemonBase } from './core/PokemonBase'
 import type { SaveData } from './core/types'
 import { bytesToGbaString, gbaStringToBytes } from './core/utils'
