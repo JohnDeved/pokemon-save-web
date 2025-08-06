@@ -15,6 +15,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:wasm": "./scripts/build-wasm.sh",
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
     "test": "vitest run",
     "test:run": "vitest run",
@@ -26,6 +27,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:all": "npm run test:website && npm run build",
     "parse": "tsx src/lib/parser/cli.ts",
+    "parse:go": "./bin/parser-go",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
     "mgba": "tsx docker/mgba-docker.ts"
