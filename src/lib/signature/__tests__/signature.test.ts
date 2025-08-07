@@ -162,12 +162,12 @@ describe('SignatureScanner', () => {
       expect(PARTY_DATA_SIGNATURES).toHaveLength(6)
       
       const signatureNames = PARTY_DATA_SIGNATURES.map(s => s.name)
-      expect(signatureNames).toContain('partyData_arm_ldr_literal')
-      expect(signatureNames).toContain('partyData_thumb_ldr_literal')
-      expect(signatureNames).toContain('partyCount_access')
-      expect(signatureNames).toContain('pokemon_struct_access')
-      expect(signatureNames).toContain('quetzal_pokemon_struct_access')
-      expect(signatureNames).toContain('partyData_direct_reference')
+      expect(signatureNames).toContain('emerald_party_loop')
+      expect(signatureNames).toContain('emerald_party_count_check')
+      expect(signatureNames).toContain('emerald_pokemon_size_calc')
+      expect(signatureNames).toContain('quetzal_party_access')
+      expect(signatureNames).toContain('thumb_party_load')
+      expect(signatureNames).toContain('party_vs_wild_comparison')
     })
 
     it('should have valid patterns for all signatures', () => {
@@ -183,20 +183,77 @@ describe('SignatureScanner', () => {
 })
 
 describe('Address Resolvers', () => {
-  describe('armLdrLiteralResolver', () => {
-    it('should resolve ARM LDR literal instruction', () => {
-      // Create a mock ARM LDR literal: E59F0004 (LDR r0, [PC, #4])  
-      // Followed by the target address at PC+8+4 = PC+12
+  describe('real pattern resolvers', () => {
+    it('should resolve Emerald party loop pattern', () => {
+      // Create a pattern that matches EMERALD_PARTY_LOOP_PATTERN: 'E5 9F ? ? E3 A0 ? 00 E1 A0 ? 00 E1 50 ? 06'
       const mockBytes = new Uint8Array([
-        0x04, 0x00, 0x9F, 0xE5, // LDR r0, [PC, #4] (little-endian) - THIS is the LDR literal
+        0x04, 0x00, 0x9F, 0xE5, // LDR r0, [PC, #4] - matches E5 9F ? ?
+        0x00, 0x02, 0xA0, 0xE3, // MOV r2, #0x02000000 - matches E3 A0 ? 00  
+        0x00, 0x10, 0xA0, 0xE1, // MOV r1, r0 - matches E1 A0 ? 00
+        0x06, 0x00, 0x50, 0xE1, // CMP r0, #6 - matches E1 50 ? 06
+        0xEC, 0x44, 0x02, 0x02, // target address 0x020244EC at PC+8+4=16
+      ])
+      
+      const signature = PARTY_DATA_SIGNATURES.find(s => s.name === 'emerald_party_loop')!
+      const match = {
+        offset: 0,
+        signature,
+        matchedBytes: mockBytes.slice(0, 16),
+      }
+      
+      const resolvedAddress = signature.resolver.resolve(match, mockBytes)
+      expect(resolvedAddress).toBe(0x020244EC)
+    })
+
+    it('should resolve party count check with offset', () => {
+      // Test the party count pattern that adds 3 to get partyData
+      const mockBytes = new Uint8Array([
+        0x04, 0x00, 0x9F, 0xE5, // LDR r0, [PC, #4] 
+        0x00, 0x00, 0xD0, 0xE5, // LDRB r0, [r0]
+        0x06, 0x00, 0x50, 0xE3, // CMP r0, #6
+        0x00, 0x00, 0x00, 0x00, // padding
+        0xE9, 0x44, 0x02, 0x02, // party count address 0x020244E9
+      ])
+      
+      const signature = PARTY_DATA_SIGNATURES.find(s => s.name === 'emerald_party_count_check')!
+      const match = {
+        offset: 0,
+        signature,
+        matchedBytes: mockBytes.slice(0, 16),
+      }
+      
+      const resolvedAddress = signature.resolver.resolve(match, mockBytes)
+      expect(resolvedAddress).toBe(0x020244EC) // count + 3 = 0x020244E9 + 3 = 0x020244EC
+    })
+
+    it('should handle resolver errors gracefully', () => {
+      const mockBytes = new Uint8Array([0x00, 0x00, 0x00, 0x00]) // Invalid data
+      
+      const signature = PARTY_DATA_SIGNATURES[0]!
+      const match = {
+        offset: 0,
+        signature,
+        matchedBytes: mockBytes,
+      }
+      
+      expect(() => signature.resolver.resolve(match, mockBytes))
+        .toThrow('Could not resolve ARM LDR literal')
+    })
+  })
+
+  describe('legacy armLdrLiteralResolver', () => {
+    it('should resolve ARM LDR literal instruction', () => {
+      // Test the legacy resolver directly
+      const mockBytes = new Uint8Array([
+        0x04, 0x00, 0x9F, 0xE5, // LDR r0, [PC, #4] (little-endian)
         0x00, 0x00, 0x00, 0x00, // padding 
         0xEC, 0x44, 0x02, 0x02, // target address 0x020244EC (little-endian)
       ])
       
       const match = {
         offset: 0,
-        signature: PARTY_DATA_SIGNATURES[0]!, // ARM LDR signature
-        matchedBytes: mockBytes.slice(0, 12), // Include the whole context
+        signature: PARTY_DATA_SIGNATURES[0]!,
+        matchedBytes: mockBytes.slice(0, 12),
       }
       
       const resolvedAddress = armLdrLiteralResolver.resolve(match, mockBytes)
@@ -204,7 +261,7 @@ describe('Address Resolvers', () => {
     })
 
     it('should throw error when no LDR literal found', () => {
-      const mockBytes = new Uint8Array([0x00, 0x00, 0x00, 0x00]) // Not an LDR literal
+      const mockBytes = new Uint8Array([0x00, 0x00, 0x00, 0x00])
       
       const match = {
         offset: 0,
@@ -218,13 +275,13 @@ describe('Address Resolvers', () => {
 
     it('should throw error when literal address is out of bounds', () => {
       const mockBytes = new Uint8Array([
-        0x04, 0x00, 0x9F, 0xE5, // LDR r0, [PC, #4] - valid LDR literal
+        0xFF, 0x0F, 0x9F, 0xE5, // LDR r0, [PC, #4095] - large offset  
       ])
       
       const match = {
         offset: 0,
         signature: PARTY_DATA_SIGNATURES[0]!,
-        matchedBytes: mockBytes, // But buffer is too small for the literal read
+        matchedBytes: mockBytes,
       }
       
       expect(() => armLdrLiteralResolver.resolve(match, mockBytes))
