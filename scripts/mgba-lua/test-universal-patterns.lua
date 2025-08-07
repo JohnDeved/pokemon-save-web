@@ -93,41 +93,57 @@ end
 
 -- Extract address from THUMB LDR literal instruction
 local function extractThumbAddress(matchAddr)
-    local instruction = emu:read8(matchAddr + 1) -- Get the ?? from 48??
-    local immediate = instruction -- For THUMB LDR, the immediate is the full byte
+    -- THUMB LDR immediate: 48 XX where XX = immediate byte
+    local instructionByte = emu:read8(matchAddr + 1) -- Get the ?? from 48??
+    local immediate = instructionByte -- Use full byte as immediate
     
     -- Calculate PC (THUMB PC = current instruction + 4, word-aligned)
-    local pc = ((matchAddr) & ~1) + 4
-    local literalAddr = (pc & ~3) + (immediate * 4)
+    local pc = (matchAddr + 4) & 0xFFFFFFFC
+    local literalAddr = pc + (immediate * 4)
     
-    log(string.format("  THUMB extraction: instruction=0x%02X, PC=0x%08X, literalAddr=0x%08X", instruction, pc, literalAddr))
+    log(string.format("  THUMB extraction: instruction=0x%02X, PC=0x%08X, literalAddr=0x%08X", instructionByte, pc, literalAddr))
     
-    -- Read the 32-bit address from the literal pool (little-endian)
     -- Check if the literal address is within valid ROM bounds
     if literalAddr >= 0x08000000 and literalAddr < 0x08000000 + emu:romSize() then
-        -- Use readRange for efficient 4-byte read
-        local success, data = pcall(function()
-            return emu:readRange(literalAddr, 4)
+        -- Use read32 for efficient reading if available, otherwise readRange
+        local address
+        local success, result = pcall(function()
+            return emu:read32(literalAddr)
         end)
         
-        if success and data and #data >= 4 then
-            local b1 = string.byte(data, 1)
-            local b2 = string.byte(data, 2)
-            local b3 = string.byte(data, 3)
-            local b4 = string.byte(data, 4)
-            local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
+        if success and result then
+            address = result
+        else
+            -- Fallback to readRange for 4-byte read
+            local success2, data = pcall(function()
+                return emu:readRange(literalAddr, 4)
+            end)
+            
+            if success2 and data and #data >= 4 then
+                local b1 = string.byte(data, 1)
+                local b2 = string.byte(data, 2)
+                local b3 = string.byte(data, 3)
+                local b4 = string.byte(data, 4)
+                address = b1 | (b2 << 8) | (b3 << 16) | (b4 << 24)
+            else
+                -- Final fallback to individual reads
+                local b1 = emu:read8(literalAddr)
+                local b2 = emu:read8(literalAddr + 1)
+                local b3 = emu:read8(literalAddr + 2)
+                local b4 = emu:read8(literalAddr + 3)
+                address = b1 | (b2 << 8) | (b3 << 16) | (b4 << 24)
+            end
+        end
+        
+        -- Validate this is a reasonable address (in RAM range)
+        if address and address >= 0x02000000 and address < 0x04000000 then
             log(string.format("  THUMB result: 0x%08X", address))
             return address
         else
-            -- Fallback to individual reads
-            local b1 = emu:read8(literalAddr)
-            local b2 = emu:read8(literalAddr + 1)
-            local b3 = emu:read8(literalAddr + 2)
-            local b4 = emu:read8(literalAddr + 3)
-            local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
-            log(string.format("  THUMB result (fallback): 0x%08X", address))
-            return address
+            log(string.format("  THUMB address out of range: 0x%08X", address or 0))
         end
+    else
+        log(string.format("  THUMB literal address out of ROM bounds: 0x%08X", literalAddr))
     end
     
     return nil
@@ -240,7 +256,7 @@ local function extractARMAddress(matchAddr)
         
         -- Check if this is LDR Rt, [PC, #imm12] (E5 9F pattern)
         if b3 == 0x9F and b4 == 0xE5 then
-            local immediate = b1 + (b2 << 8) -- 12-bit immediate (little-endian)
+            local immediate = b1 | (b2 << 8) -- 12-bit immediate (little-endian)
             local pc = offset + 8 -- ARM PC = current instruction + 8
             local literalAddr = pc + immediate
             
@@ -248,29 +264,45 @@ local function extractARMAddress(matchAddr)
             
             -- Check if literal address is within valid ROM bounds
             if literalAddr >= 0x08000000 and literalAddr < 0x08000000 + emu:romSize() then
-                -- Use readRange for efficient 4-byte read
-                local success, data = pcall(function()
-                    return emu:readRange(literalAddr, 4)
+                -- Use read32 for efficient reading if available
+                local address
+                local success2, result = pcall(function()
+                    return emu:read32(literalAddr)
                 end)
                 
-                if success and data and #data >= 4 then
-                    local b1 = string.byte(data, 1)
-                    local b2 = string.byte(data, 2)
-                    local b3 = string.byte(data, 3)
-                    local b4 = string.byte(data, 4)
-                    local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
+                if success2 and result then
+                    address = result
+                else
+                    -- Fallback to readRange for 4-byte read
+                    local success3, data = pcall(function()
+                        return emu:readRange(literalAddr, 4)
+                    end)
+                    
+                    if success3 and data and #data >= 4 then
+                        local b1 = string.byte(data, 1)
+                        local b2 = string.byte(data, 2)
+                        local b3 = string.byte(data, 3)
+                        local b4 = string.byte(data, 4)
+                        address = b1 | (b2 << 8) | (b3 << 16) | (b4 << 24)
+                    else
+                        -- Final fallback to individual reads
+                        local b1 = emu:read8(literalAddr)
+                        local b2 = emu:read8(literalAddr + 1)
+                        local b3 = emu:read8(literalAddr + 2)
+                        local b4 = emu:read8(literalAddr + 3)
+                        address = b1 | (b2 << 8) | (b3 << 16) | (b4 << 24)
+                    end
+                end
+                
+                -- Validate this is a reasonable address (in RAM range)
+                if address and address >= 0x02000000 and address < 0x04000000 then
                     log(string.format("  ARM result: 0x%08X", address))
                     return address
                 else
-                    -- Fallback to individual reads
-                    local b1 = emu:read8(literalAddr)
-                    local b2 = emu:read8(literalAddr + 1)
-                    local b3 = emu:read8(literalAddr + 2)
-                    local b4 = emu:read8(literalAddr + 3)
-                    local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
-                    log(string.format("  ARM result (fallback): 0x%08X", address))
-                    return address
+                    log(string.format("  ARM address out of range: 0x%08X", address or 0))
                 end
+            else
+                log(string.format("  ARM literal address out of ROM bounds: 0x%08X", literalAddr))
             end
         end
     end
