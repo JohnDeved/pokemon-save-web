@@ -28,7 +28,8 @@
     "parse": "tsx src/lib/parser/cli.ts",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
-    "mgba": "tsx docker/mgba-docker.ts"
+    "mgba": "tsx docker/mgba-docker.ts",
+    "validate-patterns": "tsx scripts/validate-universal-patterns.ts"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",
