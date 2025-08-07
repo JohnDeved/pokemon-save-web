@@ -306,7 +306,7 @@ export class PokemonSaveParser {
       return new Uint8Array(this.config.saveLayout.saveBlockSize)
     }
 
-    const saveblock1Data = new Uint8Array(this.config.saveLayout.saveBlockSize)
+    const saveblock1Data = new Uint8Array(4080 * 4) // Use actual data size * 4 sectors
 
     for (const sectorId of saveblock1Sectors) {
       const sectorIdx = this.sectorMap.get(sectorId)!
