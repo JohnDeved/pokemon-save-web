@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest'
 describe('Pokemon Save Web - Core Functionality', () => {
   describe('Parser Integration', () => {
     it('should load PokemonSaveParser without errors', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       expect(PokemonSaveParser).toBeDefined()
       expect(typeof PokemonSaveParser).toBe('function')
@@ -19,7 +19,7 @@ describe('Pokemon Save Web - Core Functionality', () => {
     })
 
     it('should detect WebSocket client input correctly', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       // Test that PokemonSaveParser can be instantiated
       expect(() => new PokemonSaveParser()).not.toThrow()
@@ -41,7 +41,7 @@ describe('Pokemon Save Web - Core Functionality', () => {
 
   describe('Save File Processing', () => {
     it('should handle ArrayBuffer input', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       // Test basic instantiation
       new PokemonSaveParser()

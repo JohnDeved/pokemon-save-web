@@ -24,7 +24,7 @@ describe('Pokemon Save Web - Website Integration Tests', () => {
       expect(appModule.App).toBeDefined()
 
       // Test that parser modules are available
-      const parserModule = await import('../lib/parser/core/PokemonSaveParser')
+      const parserModule = await import('../lib/parser/core/PokemonSaveParser.wasm')
       expect(parserModule.PokemonSaveParser).toBeDefined()
     })
   })

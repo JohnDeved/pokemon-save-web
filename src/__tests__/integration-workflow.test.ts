@@ -13,7 +13,7 @@ const testDataPath = path.join(__dirname, '../lib/parser/__tests__/test_data/eme
 describe('Pokemon Save Web - Integration Workflow', () => {
   describe('Save File Loading Workflow', () => {
     it('should load and parse emerald.sav test file', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       // Load test save file
       const saveData = fs.readFileSync(testDataPath)
@@ -39,7 +39,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
     })
 
     it('should handle Pokemon stat editing workflow', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       // Load and parse save file
       const saveData = fs.readFileSync(testDataPath)
@@ -59,7 +59,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
     })
 
     it('should handle save file reconstruction', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       // Load and parse save file
       const saveData = fs.readFileSync(testDataPath)
@@ -90,7 +90,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
     })
 
     it('should handle memory mode parser initialization', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
       const { MgbaWebSocketClient } = await import('../lib/mgba/websocket-client')
 
       // Test basic instantiation
@@ -109,7 +109,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
 
   describe('Error Handling Workflow', () => {
     it('should handle invalid save file data gracefully', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       const parser = new PokemonSaveParser()
       const invalidData = new ArrayBuffer(100) // Too small for valid save
@@ -119,7 +119,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
     })
 
     it('should handle empty or corrupted data', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       const parser = new PokemonSaveParser()
       const emptyData = new ArrayBuffer(0)
@@ -159,7 +159,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
 
   describe('File Processing Performance', () => {
     it('should process save file in reasonable time', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       const saveData = fs.readFileSync(testDataPath)
       const parser = new PokemonSaveParser()
@@ -176,7 +176,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
 
   describe('Data Integrity Workflow', () => {
     it('should maintain data consistency through edit cycle', async () => {
-      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
+      const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser.wasm')
 
       // Load original
       const saveData = fs.readFileSync(testDataPath)

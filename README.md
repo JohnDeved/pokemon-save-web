@@ -1,14 +1,15 @@
 # Pokemon Save Web
 
-A web-based Pokemon save file editor, CLI tool, and TypeScript parser core with PWA support.
+A web-based Pokemon save file editor, CLI tool, and high-performance parser core with PWA support. Now powered by MoonBit WebAssembly for enhanced performance and reliability.
 
 ## 🚀 Features
 
 - **Progressive Web App (PWA)**: Install for offline use and app-like experience
-- **Multi-Game Support**: Works with various Pokemon games and ROM hacks
+- **Multi-Game Support**: Works with various Pokemon games and ROM hacks  
 - **Real-time Editing**: Interactive Pokemon data visualization and editing
 - **File System Integration**: Modern browser file API support
 - **Cross-Platform**: Web, CLI, and library usage
+- **🌙 MoonBit WASM Core**: High-performance WebAssembly parser compiled from MoonBit
 
 ## Quick Start
 

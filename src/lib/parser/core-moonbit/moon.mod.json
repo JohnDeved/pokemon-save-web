@@ -1,0 +1,10 @@
+{
+  "name": "pokemon-save-web/core",
+  "version": "0.1.0",
+  "readme": "README.md",
+  "repository": "https://github.com/JohnDeved/pokemon-save-web",
+  "license": "Apache-2.0",
+  "keywords": ["pokemon", "save", "parser", "wasm"],
+  "description": "MoonBit WebAssembly core for Pokemon save file parsing",
+  "source": "src"
+}
