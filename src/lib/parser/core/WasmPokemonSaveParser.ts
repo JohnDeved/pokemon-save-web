@@ -7,6 +7,10 @@ import type { SaveData, GameConfig } from './types'
 import { PokemonBase } from './PokemonBase'
 import { MgbaWebSocketClient } from '../../mgba/websocket-client'
 import { VanillaConfig } from '../games/vanilla/config'
+import { GameConfigRegistry } from '../games/index'
+
+// Import the original TypeScript parser for fallback
+import { PokemonSaveParser as TypeScriptParser } from './PokemonSaveParser'
 
 // Import WASM module
 import wasmInit, { 
@@ -46,14 +50,14 @@ async function initWasm() {
 
 /**
  * Adapter to convert WASM Pokemon to TypeScript PokemonBase interface
- * Uses a dummy game config to satisfy the PokemonBase constructor
+ * Uses the detected game config to satisfy the PokemonBase constructor
  */
 class WasmPokemonAdapter extends PokemonBase {
   private wasmPokemon: WasmPokemon
   
-  constructor(wasmPokemon: WasmPokemon) {
-    // Use VanillaConfig for proper GameConfig
-    const config = new VanillaConfig()
+  constructor(wasmPokemon: WasmPokemon, gameConfig?: GameConfig) {
+    // Use the provided game config or fallback to VanillaConfig
+    const config = gameConfig || new VanillaConfig()
     
     super(wasmPokemon.get_raw_bytes(), config)
     this.wasmPokemon = wasmPokemon
@@ -113,6 +117,9 @@ export class PokemonSaveParser {
   private wasmParser: WasmSaveParser | null = null
   private _saveFileName: string | null = null
   private _fileHandle: FileSystemFileHandle | null = null
+  private _saveDataBuffer: Uint8Array | null = null
+  private fallbackParser: TypeScriptParser | null = null
+  private useFallback = false
 
   constructor(_forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.config = gameConfig ?? null
@@ -155,6 +162,7 @@ export class PokemonSaveParser {
     // Initialize WASM parser and load data
     this.wasmParser = new WasmSaveParser()
     const uint8Array = new Uint8Array(arrayBuffer)
+    this._saveDataBuffer = uint8Array
     this.wasmParser.load_save_data(uint8Array)
   }
 
@@ -168,79 +176,159 @@ export class PokemonSaveParser {
       throw new Error('WASM parser not initialized')
     }
 
-    // Parse using WASM
-    const wasmSaveData = this.wasmParser.parse()
-    const wasmPartyPokemon = this.wasmParser.get_party_pokemon()
-
-    // Convert WASM Pokemon to TypeScript-compatible format
-    const partyPokemon = wasmPartyPokemon.map(wasmPokemon => 
-      new WasmPokemonAdapter(wasmPokemon)
-    )
-
-    // Convert WASM save data to TypeScript format
-    const saveData: SaveData = {
-      player_name: wasmSaveData.player_name,
-      active_slot: wasmSaveData.active_slot,
-      play_time: {
-        hours: wasmSaveData.play_time.hours,
-        minutes: wasmSaveData.play_time.minutes,
-        seconds: wasmSaveData.play_time.seconds,
-      },
-      party_pokemon: partyPokemon,
-      sector_map: new Map(), // WASM doesn't expose detailed sector map yet
+    // Auto-detect game configuration if not set and we have save data
+    if (!this.config && this._saveDataBuffer) {
+      this.config = GameConfigRegistry.detectGameConfig(this._saveDataBuffer)
     }
 
-    return saveData
+    // Check if we should use WASM or fallback to TypeScript
+    // WASM only supports vanilla Emerald properly, so fallback for other configs
+    if (this.config && this.config.name !== 'Pokemon Emerald (Vanilla)') {
+      this.useFallback = true
+      // Initialize fallback parser if needed
+      if (!this.fallbackParser) {
+        this.fallbackParser = new TypeScriptParser(undefined, this.config || undefined)
+      }
+      // Use TypeScript parser for non-vanilla games
+      return this.fallbackParser.parse(input)
+    }
+
+    // Use WASM for vanilla Emerald
+    try {
+      // Parse using WASM
+      const wasmSaveData = this.wasmParser.parse()
+      const wasmPartyPokemon = this.wasmParser.get_party_pokemon()
+
+      // Convert WASM Pokemon to TypeScript-compatible format using detected config
+      const partyPokemon = wasmPartyPokemon.map(wasmPokemon => 
+        new WasmPokemonAdapter(wasmPokemon, this.config || undefined)
+      )
+
+      // Convert WASM save data to TypeScript format
+      const saveData: SaveData = {
+        player_name: wasmSaveData.player_name,
+        active_slot: wasmSaveData.active_slot,
+        play_time: {
+          hours: wasmSaveData.play_time.hours,
+          minutes: wasmSaveData.play_time.minutes,
+          seconds: wasmSaveData.play_time.seconds,
+        },
+        party_pokemon: partyPokemon,
+        sector_map: new Map(), // WASM doesn't expose detailed sector map yet
+      }
+
+      return saveData
+    } catch (error) {
+      // If WASM fails, fallback to TypeScript
+      console.warn('WASM parser failed, falling back to TypeScript:', error)
+      this.useFallback = true
+      if (!this.fallbackParser) {
+        this.fallbackParser = new TypeScriptParser(undefined, this.config || undefined)
+      }
+      return this.fallbackParser.parse(input)
+    }
   }
 
   getGameConfig(): GameConfig | null {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.getGameConfig()
+    }
     return this.config
   }
 
   setGameConfig(config: GameConfig): void {
     this.config = config
+    if (this.useFallback && this.fallbackParser) {
+      this.fallbackParser.setGameConfig(config)
+    }
   }
 
   get gameConfig(): GameConfig | null {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.gameConfig
+    }
     return this.config
   }
 
   reconstructSaveFile(_partyPokemon: readonly PokemonBase[]): Uint8Array {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.reconstructSaveFile(_partyPokemon)
+    }
     throw new Error('reconstructSaveFile not yet implemented in WASM version')
   }
 
   isInMemoryMode(): boolean {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.isInMemoryMode()
+    }
     return this.isMemoryMode
   }
 
   getWebSocketClient(): MgbaWebSocketClient | null {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.getWebSocketClient()
+    }
     return this.webSocketClient
   }
 
-  async watch(_options: {
+  async watch(options: {
     onPartyChange?: (partyPokemon: PokemonBase[]) => void
     onError?: (error: Error) => void
   } = {}): Promise<void> {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.watch(options)
+    }
     throw new Error('Watch mode not yet implemented in WASM version')
   }
 
   async stopWatching(): Promise<void> {
-    // No-op
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.stopWatching()
+    }
+    // No-op for WASM
   }
 
   isWatching(): boolean {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.isWatching()
+    }
     return false
   }
 
   async getCurrentSaveData(): Promise<SaveData> {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.getCurrentSaveData()
+    }
     throw new Error('Memory mode not yet implemented in WASM version')
   }
 
+  /**
+   * Get information about the current backend being used
+   */
+  getBackendInfo(): { backend: 'wasm' | 'typescript', wasmAvailable: boolean } {
+    if (this.useFallback) {
+      return {
+        backend: 'typescript',
+        wasmAvailable: true
+      }
+    }
+    return {
+      backend: 'wasm',
+      wasmAvailable: true
+    }
+  }
+
   get saveFileName(): string | null {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.saveFileName
+    }
     return this._saveFileName
   }
 
   get fileHandle(): FileSystemFileHandle | null {
+    if (this.useFallback && this.fallbackParser) {
+      return this.fallbackParser.fileHandle
+    }
     return this._fileHandle
   }
 }

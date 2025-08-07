@@ -110,11 +110,8 @@ export class PokemonSaveParser {
   /**
    * Get information about the current backend being used
    */
-  getBackendInfo(): { backend: 'wasm', wasmAvailable: boolean } {
-    return {
-      backend: 'wasm',
-      wasmAvailable: true
-    }
+  getBackendInfo(): { backend: 'wasm' | 'typescript', wasmAvailable: boolean } {
+    return this.wasmParser.getBackendInfo()
   }
 
   /**
