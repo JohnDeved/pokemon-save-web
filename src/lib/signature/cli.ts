@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { MemoryAnalysisOrchestrator, DockerMemoryDumper } from '../signature/memory-dumper'
 import { createPartyDataScanner, PARTY_DATA_SIGNATURES } from '../signature/patterns'
 import { SignatureExtractor } from '../signature/extractor'
+import { testUniversalPatterns } from '../signature/universal-patterns'
 import type { MemoryAccessContext } from '../signature/types'
 
 interface CliOptions {
@@ -65,6 +66,7 @@ USAGE:
 COMMANDS:
     dump-memory      Dump memory from mGBA for signature analysis
     test-signatures  Test pre-defined signatures against memory dumps  
+    scan-universal   Test universal patterns that work in both games
     extract-patterns Extract new patterns from memory access contexts
     scan-dump       Scan a memory dump file for signatures
     validate        Validate signatures work across both variants
@@ -81,6 +83,9 @@ EXAMPLES:
     # Dump memory from both variants for analysis
     signature-tool dump-memory --output=./dumps
 
+    # Test universal patterns (recommended for both games)
+    signature-tool scan-universal --input=./memory.bin --verbose
+
     # Test signatures against Emerald memory dump
     signature-tool test-signatures --variant=emerald --input=./dumps/emerald/memory_2000000_40000.bin
 
@@ -91,10 +96,11 @@ EXAMPLES:
     signature-tool validate --input=./dumps
 
 WORKFLOW:
-    1. dump-memory    → Capture memory dumps from both ROM variants
-    2. test-signatures → Test pre-defined patterns against dumps  
-    3. extract-patterns → Create new patterns from access contexts
-    4. validate       → Ensure patterns work across variants
+    1. dump-memory      → Capture memory dumps from both ROM variants
+    2. scan-universal   → Use universal patterns that work in both games (recommended)
+    3. test-signatures  → Test pre-defined patterns against dumps  
+    4. extract-patterns → Create new patterns from access contexts
+    5. validate         → Ensure patterns work across variants
 `)
 }
 
@@ -202,6 +208,22 @@ async function testSignaturesCommand(options: CliOptions): Promise<void> {
       console.log(`Found addresses: ${foundAddresses.map(a => `0x${a.toString(16)}`).join(', ')}`)
     }
   }
+}
+
+async function scanUniversalCommand(options: CliOptions): Promise<void> {
+  const inputFile = options.input
+  
+  if (!inputFile || !existsSync(inputFile)) {
+    console.error('❌ Input file required and must exist. Use --input=path/to/memory.bin')
+    return
+  }
+
+  console.log(`🔍 Testing universal patterns against: ${inputFile}`)
+  
+  const memoryData = readFileSync(inputFile)
+  const buffer = new Uint8Array(memoryData)
+  
+  testUniversalPatterns(buffer)
 }
 
 async function scanDumpCommand(options: CliOptions): Promise<void> {
@@ -428,6 +450,9 @@ async function main(): Promise<void> {
         break
       case 'test-signatures':
         await testSignaturesCommand(options)
+        break
+      case 'scan-universal':
+        await scanUniversalCommand(options)
         break
       case 'scan-dump':
         await scanDumpCommand(options) 
