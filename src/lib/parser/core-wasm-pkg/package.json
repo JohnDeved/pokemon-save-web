@@ -1,0 +1,15 @@
+{
+  "name": "pokemon-save-parser",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "pokemon_save_parser_bg.wasm",
+    "pokemon_save_parser.js",
+    "pokemon_save_parser.d.ts"
+  ],
+  "main": "pokemon_save_parser.js",
+  "types": "pokemon_save_parser.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
