@@ -172,7 +172,6 @@ export class PokemonSaveParser {
       // Based on the actual data: [checksum:4][sectorId:2][checksum2:2][signature:4][counter:4]
       const checksum = this.readU32(this.saveData, footerOffset)
       const sectorId = this.readU16(this.saveData, footerOffset + 4)
-      const checksum2 = this.readU16(this.saveData, footerOffset + 6)
       const signature = this.readU32(this.saveData, footerOffset + 8)
       const counter = this.readU32(this.saveData, footerOffset + 12)
 
@@ -180,10 +179,10 @@ export class PokemonSaveParser {
       const expectedSignature = this.config.signature ?? VANILLA_EMERALD_SIGNATURE
       const signatureValid = signature === expectedSignature
 
-      // Calculate checksum for validation (use 4080 bytes of data)
-      const sectorData = this.saveData.slice(startOffset, startOffset + 4080)
-      const calculatedChecksum = this.calculateChecksum(sectorData)
-      const checksumValid = (checksum === calculatedChecksum)
+      // Calculate checksum for validation (use 4080 bytes of data) - disabled for now
+      // const sectorData = this.saveData.slice(startOffset, startOffset + 4080)
+      // const calculatedChecksum = this.calculateChecksum(sectorData)
+      // const checksumValid = (checksum === calculatedChecksum) // Temporarily disabled
 
       // Debug logging disabled for now
       // if (sectorIndex < 32) {
@@ -361,7 +360,7 @@ export class PokemonSaveParser {
       let partyCount = 6
       if (memoryAddresses.partyCount) {
         try {
-          const countData = await this.webSocketClient.readMemory(memoryAddresses.partyCount, 1)
+          const countData = await this.webSocketClient.readBytes(memoryAddresses.partyCount, 1)
           partyCount = Math.min(countData[0] ?? 0, this.config.maxPartySize)
         } catch (error) {
           console.warn('Failed to read party count from memory:', error)
@@ -371,13 +370,13 @@ export class PokemonSaveParser {
       // Read each Pokemon from memory
       for (let i = 0; i < partyCount; i++) {
         try {
-          const pokemonAddress = memoryAddresses.partyStart + (i * this.config.pokemonSize)
-          const pokemonData = await this.webSocketClient.readMemory(pokemonAddress, this.config.pokemonSize)
+          const pokemonAddress = memoryAddresses.partyData + (i * this.config.pokemonSize)
+          const pokemonData = await this.webSocketClient.readBytes(pokemonAddress, this.config.pokemonSize)
 
           // Check if Pokemon exists (species ID > 0)
           const speciesId = this.readU16(pokemonData, 0x20) // Encrypted species at 0x20
           if (speciesId > 0) {
-            const pokemon = new PokemonBaseImpl(pokemonData, i, this.config)
+            const pokemon = new PokemonBaseImpl(pokemonData, this.config)
             partyPokemon.push(pokemon)
           }
         } catch (error) {
@@ -417,7 +416,7 @@ export class PokemonSaveParser {
         const pokemonData = saveblock1Data.slice(pokemonOffset, pokemonOffset + this.config.pokemonSize)
         
         // Check if Pokemon exists (species ID > 0 after decryption)
-        const pokemon = new PokemonBaseImpl(pokemonData, i, this.config)
+        const pokemon = new PokemonBaseImpl(pokemonData, this.config)
         if (pokemon.speciesId > 0) {
           partyPokemon.push(pokemon)
         } else {
