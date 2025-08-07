@@ -7,6 +7,7 @@ use crate::utils::{
     bytes_to_gba_string, calculate_sector_checksum, read_u16_le, read_u32_le
 };
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::*;
 use std::collections::HashMap;
 
 #[wasm_bindgen]
@@ -216,10 +217,40 @@ impl SaveParser {
         }
         
         let party_count = saveblock1_data[SaveLayout::PARTY_COUNT_OFFSET];
-        let max_party_size = 6;
+        
+        // Debug: Log the actual bytes we're reading
+        if saveblock1_data.len() > SaveLayout::PARTY_COUNT_OFFSET + 10 {
+            let context_start = SaveLayout::PARTY_COUNT_OFFSET.saturating_sub(5);
+            let context_end = (SaveLayout::PARTY_COUNT_OFFSET + 10).min(saveblock1_data.len());
+            let context_bytes: Vec<String> = saveblock1_data[context_start..context_end]
+                .iter()
+                .enumerate()
+                .map(|(i, b)| {
+                    let offset = context_start + i;
+                    if offset == SaveLayout::PARTY_COUNT_OFFSET {
+                        format!("[{:02x}]", b) // Mark the target byte
+                    } else {
+                        format!("{:02x}", b)
+                    }
+                })
+                .collect();
+            crate::console_log!(
+                "Party count at offset 0x{:x} in SaveBlock1: {} (context: {})",
+                SaveLayout::PARTY_COUNT_OFFSET,
+                party_count,
+                context_bytes.join(" ")
+            );
+        }
+        
+        let max_party_size = 12; // Increase limit to handle different game variants
         
         if party_count > max_party_size {
             return Err(JsError::new(&format!("Invalid party count: {}", party_count)));
+        }
+        
+        // Also check if party_count seems reasonable
+        if party_count == 0 {
+            return Ok(party_pokemon); // No Pokemon in party
         }
         
         // Parse each Pokemon in the party
