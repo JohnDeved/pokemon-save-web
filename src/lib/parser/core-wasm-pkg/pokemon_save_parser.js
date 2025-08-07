@@ -37,6 +37,21 @@ function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
+/**
+ * @returns {string}
+ */
+export function test_wasm() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.test_wasm();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
 
 let cachedDataViewMemory0 = null;
 
@@ -57,22 +72,6 @@ function getArrayJsValueFromWasm0(ptr, len) {
     wasm.__externref_drop_slice(ptr, len);
     return result;
 }
-/**
- * @returns {string}
- */
-export function test_wasm() {
-    let deferred1_0;
-    let deferred1_1;
-    try {
-        const ret = wasm.test_wasm();
-        deferred1_0 = ret[0];
-        deferred1_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-    }
-}
-
 /**
  * Convert GBA-encoded bytes to a readable string
  * @param {Uint8Array} bytes

@@ -238,6 +238,7 @@ export interface InitOutput {
   readonly pokemon_get_stats: (a: number) => number;
   readonly pokemon_is_valid: (a: number) => number;
   readonly pokemon_to_string: (a: number) => [number, number];
+  readonly test_wasm: () => [number, number];
   readonly __wbg_saveparser_free: (a: number, b: number) => void;
   readonly saveparser_new: () => number;
   readonly saveparser_load_save_data: (a: number, b: number, c: number) => [number, number];
@@ -248,7 +249,6 @@ export interface InitOutput {
   readonly saveparser_get_sector_info: (a: number, b: number) => number;
   readonly saveparser_get_active_slot: (a: number) => number;
   readonly saveparser_get_valid_sector_count: (a: number) => number;
-  readonly test_wasm: () => [number, number];
   readonly bytes_to_gba_string: (a: number, b: number) => [number, number];
   readonly gba_string_to_bytes: (a: number, b: number, c: number) => [number, number];
   readonly get_pokemon_nature: (a: number) => [number, number];

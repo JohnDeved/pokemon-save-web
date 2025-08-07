@@ -11,8 +11,8 @@ describe('WASM Architecture Integration', () => {
     const backendInfo = parser.getBackendInfo()
     
     expect(backendInfo).toEqual({
-      backend: 'typescript',
-      wasmAvailable: false
+      backend: 'wasm',
+      wasmAvailable: true
     })
   })
 
@@ -104,9 +104,8 @@ describe('WASM Architecture Integration', () => {
     // 4. API compatibility maintained ✅
     
     expect(parser).toBeDefined()
-    expect(parser.getBackendInfo().backend).toBe('typescript')
+    expect(parser.getBackendInfo().backend).toBe('wasm')
     
-    // When WASM is ready, this test will show 'wasm' backend
-    // The architecture is prepared for that transition
+    // WASM backend is now active and working
   })
 })

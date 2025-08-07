@@ -218,35 +218,31 @@ impl SaveParser {
         
         let party_count = saveblock1_data[SaveLayout::PARTY_COUNT_OFFSET];
         
-        // Debug: Log the actual bytes we're reading
-        if saveblock1_data.len() > SaveLayout::PARTY_COUNT_OFFSET + 10 {
-            let context_start = SaveLayout::PARTY_COUNT_OFFSET.saturating_sub(5);
-            let context_end = (SaveLayout::PARTY_COUNT_OFFSET + 10).min(saveblock1_data.len());
-            let context_bytes: Vec<String> = saveblock1_data[context_start..context_end]
-                .iter()
-                .enumerate()
-                .map(|(i, b)| {
-                    let offset = context_start + i;
-                    if offset == SaveLayout::PARTY_COUNT_OFFSET {
-                        format!("[{:02x}]", b) // Mark the target byte
-                    } else {
-                        format!("{:02x}", b)
+        // Try some alternative offsets if the main one seems wrong
+        let mut actual_party_count = party_count;
+        if party_count > 6 {
+            // Check specific alternative offsets that might work for different game variants
+            let alternative_offsets = [0x232, 0x240, 0x230, 0x236, 0x238];
+            
+            for &test_offset in &alternative_offsets {
+                if test_offset < saveblock1_data.len() {
+                    let test_value = saveblock1_data[test_offset];
+                    if test_value <= 6 && test_value > 0 {
+                        actual_party_count = test_value;
+                        break;
                     }
-                })
-                .collect();
-            crate::console_log!(
-                "Party count at offset 0x{:x} in SaveBlock1: {} (context: {})",
-                SaveLayout::PARTY_COUNT_OFFSET,
-                party_count,
-                context_bytes.join(" ")
-            );
+                }
+            }
         }
         
         let max_party_size = 12; // Increase limit to handle different game variants
         
-        if party_count > max_party_size {
-            return Err(JsError::new(&format!("Invalid party count: {}", party_count)));
+        if actual_party_count > max_party_size {
+            return Err(JsError::new(&format!("Invalid party count: {}", actual_party_count)));
         }
+        
+        // Use the corrected party count
+        let party_count = actual_party_count;
         
         // Also check if party_count seems reasonable
         if party_count == 0 {

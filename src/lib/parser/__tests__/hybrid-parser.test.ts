@@ -16,7 +16,7 @@ describe('Hybrid Pokemon Save Parser', () => {
     
     expect(info).toHaveProperty('backend')
     expect(info).toHaveProperty('wasmAvailable')
-    expect(info.backend).toBe('typescript') // Should fallback to TypeScript initially
+    expect(info.backend).toBe('wasm') // Should use WASM backend exclusively
     expect(typeof info.wasmAvailable).toBe('boolean')
   })
 
