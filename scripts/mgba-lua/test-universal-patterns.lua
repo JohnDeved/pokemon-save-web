@@ -25,7 +25,7 @@ local EXPECTED_ADDRESSES = {
 local function findThumbPattern(startAddr, endAddr)
     log("🔍 Searching for THUMB pattern: 48 ?? 68 ?? 30 ??")
     local matches = {}
-    local progressStep = math.floor((endAddr - startAddr) / 100) -- Report every 1%
+    local progressStep = math.floor((endAddr - startAddr) / 10) -- Report every 10%
     local lastProgress = 0
     
     for addr = startAddr, endAddr - 5 do
@@ -88,7 +88,7 @@ local function findARMSizePattern(startAddr, endAddr, pokemonSize)
     local sizeStr = pokemonSize == 0x64 and "Emerald (100 bytes)" or "Quetzal (104 bytes)"
     log(string.format("🔍 Searching for ARM size pattern: %s", sizeStr))
     local matches = {}
-    local progressStep = math.floor((endAddr - startAddr) / 100) -- Report every 1%
+    local progressStep = math.floor((endAddr - startAddr) / 10) -- Report every 10%
     local lastProgress = 0
     
     for addr = startAddr, endAddr - 11 do
@@ -196,9 +196,9 @@ local function runUniversalPatternTest()
     end
     
     -- Define search range (optimize for faster execution)
-    -- Search only first 8MB of ROM where code is most likely to be
+    -- Search only first 2MB of ROM where code is most likely to be
     local startAddr = 0x08000000
-    local maxSearchSize = math.min(8 * 1024 * 1024, emu:romSize()) -- Limit to 8MB or ROM size
+    local maxSearchSize = math.min(2 * 1024 * 1024, emu:romSize()) -- Limit to 2MB or ROM size for speed
     local endAddr = startAddr + maxSearchSize
     log(string.format("🔍 Search Range: 0x%08X - 0x%08X (%d bytes)", startAddr, endAddr, maxSearchSize))
     
