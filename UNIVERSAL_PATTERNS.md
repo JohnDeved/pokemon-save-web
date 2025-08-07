@@ -19,13 +19,6 @@ Quetzal: E0 ?? ?? 68 E5 9F ?? ?? E0 8? ?? ??
 ```
 *Note: The only difference is `64` (100 bytes) vs `68` (104 bytes)*
 
-### Pattern 3: Direct Address Search
-```
-Search for these 32-bit values directly in memory:
-- 0x020244EC (little-endian: EC 44 02 02)
-- 0x020235B8 (little-endian: B8 35 02 02)
-```
-
 ## How to Use These Patterns
 
 ### Method 1: Simple Programming Approach
@@ -50,14 +43,7 @@ if (result.foundAddress) {
 
 ### Method 2: Manual Hex Editor Search
 
-**Step 1: Search for Direct References (Easiest)**
-1. Open your ROM file in a hex editor
-2. Search for these byte sequences:
-   - `EC 44 02 02` (Emerald partyData address)
-   - `B8 35 02 02` (Quetzal partyData address)
-3. If found, you've located direct references to the partyData
-
-**Step 2: Search for THUMB Pattern (Universal)**
+**Step 1: Search for THUMB Pattern (Universal)**
 1. Search for: `48 ?? 68 ?? 30 ??` (where ?? = any byte)
 2. When you find a match, extract the address:
    - Look at the 2nd byte of the pattern (the ?? after 48)
@@ -66,7 +52,7 @@ if (result.foundAddress) {
    - Literal address = PC + (immediate * 4)
    - Read 4 bytes from literal address (little-endian)
 
-**Step 3: Search for ARM Pattern**
+**Step 2: Search for ARM Pattern**
 1. For Emerald, search: `E0 ?? ?? 64 E5 9F ?? ?? E0 8? ?? ??`
 2. For Quetzal, search: `E0 ?? ?? 68 E5 9F ?? ?? E0 8? ?? ??`
 3. When found, look for the `E5 9F` instruction:
@@ -166,10 +152,6 @@ When patterns work correctly, you should see:
    - `E5 9F ?? ??` = LDR from literal pool (loads partyData base)
    - `E0 8? ?? ??` = ADD to calculate final address
    - This calculates individual Pokemon slot addresses
-
-3. **Direct References:**
-   - The addresses are stored as immediate 32-bit values
-   - Found in lookup tables and function literals
 
 ## Troubleshooting
 

@@ -20,12 +20,6 @@ local EXPECTED_ADDRESSES = {
     quetzal = 0x020235B8
 }
 
--- Direct address search patterns (little-endian)
-local DIRECT_PATTERNS = {
-    emerald = {0xEC, 0x44, 0x02, 0x02}, -- 0x020244EC
-    quetzal = {0xB8, 0x35, 0x02, 0x02}  -- 0x020235B8
-}
-
 -- Universal Pattern 1: THUMB Party Load
 -- Pattern: 48 ?? 68 ?? 30 ??
 local function findThumbPattern(startAddr, endAddr)
@@ -161,48 +155,7 @@ local function extractARMAddress(matchAddr)
     return nil
 end
 
--- Universal Pattern 3: Direct Address Search
-local function findDirectReferences(startAddr, endAddr)
-    log("🔍 Searching for direct address references")
-    local results = {}
-    local progressStep = math.floor((endAddr - startAddr) / 100) -- Report every 1%
-    local lastProgress = 0
-    
-    for variant, pattern in pairs(DIRECT_PATTERNS) do
-        log(string.format("  Searching for %s pattern: %02X %02X %02X %02X", variant, pattern[1], pattern[2], pattern[3], pattern[4]))
-        local matches = {}
-        
-        for addr = startAddr, endAddr - 3 do
-            -- Progress reporting
-            if addr - startAddr >= lastProgress + progressStep then
-                local percent = math.floor(((addr - startAddr) / (endAddr - startAddr)) * 100)
-                log(string.format("  Progress: %d%% (0x%08X)", percent, addr))
-                lastProgress = addr - startAddr
-            end
-            
-            local b1 = emu:read8(addr)
-            local b2 = emu:read8(addr + 1)
-            local b3 = emu:read8(addr + 2)
-            local b4 = emu:read8(addr + 3)
-            
-            if b1 == pattern[1] and b2 == pattern[2] and b3 == pattern[3] and b4 == pattern[4] then
-                local address = EXPECTED_ADDRESSES[variant]
-                log(string.format("  Found %s direct reference at 0x%08X -> 0x%08X", variant, addr, address))
-                table.insert(matches, {addr = addr, target = address})
-                
-                -- Limit matches to avoid excessive processing
-                if #matches >= 10 then
-                    log("  Limiting direct matches to first 10 found")
-                    break
-                end
-            end
-        end
-        
-        results[variant] = matches
-    end
-    
-    return results
-end
+
 
 -- Determine game variant based on ROM title
 local function getGameVariant()
@@ -255,25 +208,8 @@ local function runUniversalPatternTest()
         methods = {}
     }
     
-    -- Test Method 1: Direct References (highest confidence)
-    log("\n📍 Method 1: Direct Address References")
-    local directResults = findDirectReferences(startAddr, endAddr)
-    results.methods.direct = directResults
-    
-    local foundDirect = false
-    for v, matches in pairs(directResults) do
-        if #matches > 0 then
-            foundDirect = true
-            log(string.format("✅ Direct reference success for %s: %d matches", v, #matches))
-        end
-    end
-    
-    if not foundDirect then
-        log("❌ No direct references found")
-    end
-    
-    -- Test Method 2: THUMB Pattern (medium confidence)  
-    log("\n👍 Method 2: THUMB Pattern")
+    -- Test Method 1: THUMB Pattern (medium confidence)  
+    log("\n👍 Method 1: THUMB Pattern")
     local thumbMatches = findThumbPattern(startAddr, endAddr)
     results.methods.thumb = {matches = thumbMatches, addresses = {}}
     
@@ -294,8 +230,8 @@ local function runUniversalPatternTest()
         log("❌ No THUMB patterns found")
     end
     
-    -- Test Method 3: ARM Size Patterns (medium confidence)
-    log("\n💪 Method 3: ARM Size Patterns")
+    -- Test Method 2: ARM Size Patterns (medium confidence)
+    log("\n💪 Method 2: ARM Size Patterns")
     results.methods.arm = {}
     
     -- Test Emerald pattern (100-byte Pokemon)
@@ -349,49 +285,40 @@ local function runUniversalPatternTest()
     local method = "none"
     local foundAddress = nil
     
-    -- Check direct references first (highest confidence)
-    if variant ~= "unknown" and directResults[variant] and #directResults[variant] > 0 then
-        success = true
-        confidence = "high"
-        method = "direct_reference"
-        foundAddress = expectedAddr
-        log("✅ SUCCESS: Direct reference found (highest confidence)")
-    else
-        -- Check THUMB pattern
-        for _, addr in ipairs(results.methods.thumb.addresses) do
-            if addr == expectedAddr then
-                success = true
-                confidence = "medium"
-                method = "thumb_pattern"
-                foundAddress = addr
-                log("✅ SUCCESS: THUMB pattern found correct address (medium confidence)")
-                break
-            end
+    -- Check THUMB pattern first
+    for _, addr in ipairs(results.methods.thumb.addresses) do
+        if addr == expectedAddr then
+            success = true
+            confidence = "medium"
+            method = "thumb_pattern"
+            foundAddress = addr
+            log("✅ SUCCESS: THUMB pattern found correct address (medium confidence)")
+            break
         end
-        
-        -- Check ARM patterns if not found yet
-        if not success then
-            if variant == "emerald" then
-                for _, addr in ipairs(results.methods.arm.emerald.addresses) do
-                    if addr == EXPECTED_ADDRESSES.emerald then
-                        success = true
-                        confidence = "medium"
-                        method = "arm_size_pattern"
-                        foundAddress = addr
-                        log("✅ SUCCESS: ARM Emerald pattern found correct address (medium confidence)")
-                        break
-                    end
+    end
+    
+    -- Check ARM patterns if not found yet
+    if not success then
+        if variant == "emerald" then
+            for _, addr in ipairs(results.methods.arm.emerald.addresses) do
+                if addr == EXPECTED_ADDRESSES.emerald then
+                    success = true
+                    confidence = "medium"
+                    method = "arm_size_pattern"
+                    foundAddress = addr
+                    log("✅ SUCCESS: ARM Emerald pattern found correct address (medium confidence)")
+                    break
                 end
-            elseif variant == "quetzal" then
-                for _, addr in ipairs(results.methods.arm.quetzal.addresses) do
-                    if addr == EXPECTED_ADDRESSES.quetzal then
-                        success = true
-                        confidence = "medium"
-                        method = "arm_size_pattern"
-                        foundAddress = addr
-                        log("✅ SUCCESS: ARM Quetzal pattern found correct address (medium confidence)")
-                        break
-                    end
+            end
+        elseif variant == "quetzal" then
+            for _, addr in ipairs(results.methods.arm.quetzal.addresses) do
+                if addr == EXPECTED_ADDRESSES.quetzal then
+                    success = true
+                    confidence = "medium"
+                    method = "arm_size_pattern"
+                    foundAddress = addr
+                    log("✅ SUCCESS: ARM Quetzal pattern found correct address (medium confidence)")
+                    break
                 end
             end
         end

@@ -22,7 +22,6 @@ export const UNIVERSAL_THUMB_PATTERN = {
   extractAddress: (buffer: Uint8Array, matchOffset: number): number => {
     // THUMB LDR literal: 48XX = LDR r0-r7, [PC, #imm8*4]
     const instruction = buffer[matchOffset + 1]! // Get the XX from 48XX
-    const register = (instruction >>> 3) & 0x7  // Extract register number
     const immediate = instruction & 0xFF        // Extract immediate value
     
     // Calculate PC (THUMB PC = current instruction + 4, word-aligned)
@@ -77,41 +76,11 @@ export const UNIVERSAL_ARM_SIZE_PATTERN = {
   }
 }
 
-/**
- * UNIVERSAL PATTERN 3: Simple Memory Reference Pattern
- * This looks for direct 32-bit address references to the partyData area
- * Works when the address is stored as immediate data
- */
-export const UNIVERSAL_DIRECT_REFERENCE = {
-  name: 'universal_direct_reference',
-  description: 'Direct 32-bit references to partyData memory area',
-  /**
-   * Find direct address references in the expected memory range
-   * @param buffer - Memory buffer containing the ROM
-   * @returns Array of potential partyData addresses found
-   */
-  findAddresses: (buffer: Uint8Array): number[] => {
-    const addresses: number[] = []
-    const emeraldTarget = 0x020244EC
-    const quetzalTarget = 0x020235B8
-    
-    // Scan for 32-bit little-endian values that match known addresses
-    for (let i = 0; i <= buffer.length - 4; i += 4) {
-      const dataView = new DataView(buffer.buffer, buffer.byteOffset + i, 4)
-      const value = dataView.getUint32(0, true)
-      
-      if (value === emeraldTarget || value === quetzalTarget) {
-        addresses.push(value)
-      }
-    }
-    
-    return [...new Set(addresses)] // Remove duplicates
-  }
-}
+
 
 /**
  * Complete universal scanning function
- * Uses all patterns to find partyData address in both games
+ * Uses THUMB and ARM patterns to find partyData address in both games
  */
 export function findPartyDataAddressUniversal(buffer: Uint8Array): {
   foundAddress?: number
@@ -119,23 +88,7 @@ export function findPartyDataAddressUniversal(buffer: Uint8Array): {
   method: string
   confidence: 'high' | 'medium' | 'low'
 } {
-  // Method 1: Try direct references first (highest confidence)
-  try {
-    const directAddresses = UNIVERSAL_DIRECT_REFERENCE.findAddresses(buffer)
-    if (directAddresses.length > 0) {
-      const address = directAddresses[0]!
-      return {
-        foundAddress: address,
-        variant: address === 0x020244EC ? 'emerald' : 'quetzal',
-        method: 'direct_reference',
-        confidence: 'high'
-      }
-    }
-  } catch (error) {
-    // Continue to next method
-  }
-
-  // Method 2: Try THUMB pattern (medium confidence)
+  // Method 1: Try THUMB pattern (medium confidence)
   try {
     const thumbMatches = findHexPattern(buffer, UNIVERSAL_THUMB_PATTERN.hexPattern)
     for (const match of thumbMatches) {
@@ -157,7 +110,7 @@ export function findPartyDataAddressUniversal(buffer: Uint8Array): {
     // Continue to next method
   }
 
-  // Method 3: Try ARM patterns (medium confidence)
+  // Method 2: Try ARM patterns (medium confidence)
   try {
     // Try Emerald pattern first
     const emeraldMatches = findHexPattern(buffer, UNIVERSAL_ARM_SIZE_PATTERN.emeraldHexPattern)
@@ -286,5 +239,4 @@ export function testUniversalPatterns(memoryBuffer: Uint8Array): void {
   console.log(`1. ${UNIVERSAL_THUMB_PATTERN.name}: ${UNIVERSAL_THUMB_PATTERN.hexPattern}`)
   console.log(`2. ${UNIVERSAL_ARM_SIZE_PATTERN.name} (Emerald): ${UNIVERSAL_ARM_SIZE_PATTERN.emeraldHexPattern}`)
   console.log(`3. ${UNIVERSAL_ARM_SIZE_PATTERN.name} (Quetzal): ${UNIVERSAL_ARM_SIZE_PATTERN.quetzalHexPattern}`)
-  console.log(`4. ${UNIVERSAL_DIRECT_REFERENCE.name}: Direct 32-bit address search`)
 }
