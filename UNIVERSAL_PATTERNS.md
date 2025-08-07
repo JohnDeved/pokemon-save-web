@@ -109,9 +109,23 @@ Step 4: Read address
 
 ## CLI Tool Usage
 
+### Simple Pattern Testing (Recommended)
 ```bash
-# Test universal patterns on your ROM dump
-npx tsx src/lib/signature/test-universal.ts /path/to/memory.bin
+# Test universal patterns on your ROM file directly
+npx tsx src/lib/signature/test-patterns-simple.ts /path/to/emerald.gba
+npx tsx src/lib/signature/test-patterns-simple.ts /path/to/quetzal.gba
+
+# This will show:
+# - Overall detection result
+# - Detailed analysis of each pattern
+# - First 5 matches for each pattern type
+# - Address extraction results
+```
+
+### Advanced Validation (Docker-based)
+```bash
+# Full mGBA Docker validation (requires ROM files in test_data/)
+npm run validate-patterns
 
 # Or use the main CLI tool
 npx tsx src/lib/signature/cli.ts scan-universal --input=/path/to/memory.bin
@@ -121,13 +135,40 @@ npx tsx src/lib/signature/cli.ts scan-universal --input=/path/to/memory.bin
 
 When patterns work correctly, you should see:
 
+**Simple Test Output:**
+```bash
+npx tsx src/lib/signature/test-patterns-simple.ts emerald.gba
+
+🔍 Simple Universal Patterns Test
+============================================================
+ROM: emerald.gba
+📂 Loading ROM file...
+   Size: 16,777,216 bytes
+
+🧪 Testing Universal Pattern Detection...
+✅ SUCCESS: Found partyData address!
+   Address: 0x020244EC
+   Variant: emerald
+   Method: thumb_pattern
+   Confidence: medium
+
+📊 Detailed Pattern Analysis:
+
+1. THUMB Pattern: 48 ?? 68 ?? 30 ??
+   Found 12 matches
+   Testing first 5 matches:
+     Match 1: offset 0x1a4c8 → 0x020244EC
+     Match 2: offset 0x1b2d4 → 0x02024744
+     ...
+```
+
 **For Pokemon Emerald:**
 ```
 ✅ SUCCESS: Found partyData address!
    Address: 0x020244EC
    Variant: emerald
-   Method: direct_reference
-   Confidence: high
+   Method: thumb_pattern
+   Confidence: medium
 ```
 
 **For Pokemon Quetzal:**
@@ -135,7 +176,7 @@ When patterns work correctly, you should see:
 ✅ SUCCESS: Found partyData address!
    Address: 0x020235B8  
    Variant: quetzal
-   Method: thumb_pattern
+   Method: arm_size_pattern
    Confidence: medium
 ```
 
