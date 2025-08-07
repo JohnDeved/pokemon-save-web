@@ -28,27 +28,62 @@ local function findThumbPattern(startAddr, endAddr)
     local progressStep = math.floor((endAddr - startAddr) / 10) -- Report every 10%
     local lastProgress = 0
     
-    for addr = startAddr, endAddr - 5 do
+    -- Use readRange for more efficient memory access
+    local chunkSize = 64 * 1024 -- 64KB chunks for efficiency
+    
+    for chunkStart = startAddr, endAddr - 6, chunkSize do
+        local chunkEnd = math.min(chunkStart + chunkSize, endAddr)
+        local currentChunkSize = chunkEnd - chunkStart
+        
         -- Progress reporting
-        if addr - startAddr >= lastProgress + progressStep then
-            local percent = math.floor(((addr - startAddr) / (endAddr - startAddr)) * 100)
-            log(string.format("  Progress: %d%% (0x%08X)", percent, addr))
-            lastProgress = addr - startAddr
+        if chunkStart - startAddr >= lastProgress + progressStep then
+            local percent = math.floor(((chunkStart - startAddr) / (endAddr - startAddr)) * 100)
+            log(string.format("  Progress: %d%% (0x%08X)", percent, chunkStart))
+            lastProgress = chunkStart - startAddr
         end
         
-        local b1 = emu:read8(addr)
-        local b3 = emu:read8(addr + 2)
-        local b5 = emu:read8(addr + 4)
+        -- Read chunk efficiently
+        local success, data = pcall(function()
+            return emu:readRange(chunkStart, currentChunkSize)
+        end)
         
-        -- Check pattern: 48 ?? 68 ?? 30 ??
-        if b1 == 0x48 and b3 == 0x68 and b5 == 0x30 then
-            log(string.format("  Found THUMB pattern at 0x%08X", addr))
-            table.insert(matches, addr)
-            
-            -- Limit matches to avoid excessive processing
-            if #matches >= 10 then
-                log("  Limiting THUMB matches to first 10 found")
-                break
+        if success and data then
+            -- Search within the chunk
+            for i = 1, #data - 5 do
+                local b1 = string.byte(data, i)
+                local b3 = string.byte(data, i + 2)
+                local b5 = string.byte(data, i + 4)
+                
+                -- Check pattern: 48 ?? 68 ?? 30 ??
+                if b1 == 0x48 and b3 == 0x68 and b5 == 0x30 then
+                    local addr = chunkStart + i - 1 -- Convert to absolute address
+                    log(string.format("  Found THUMB pattern at 0x%08X", addr))
+                    table.insert(matches, addr)
+                    
+                    -- Limit matches to avoid excessive processing
+                    if #matches >= 10 then
+                        log("  Limiting THUMB matches to first 10 found")
+                        return matches
+                    end
+                end
+            end
+        else
+            -- Fallback to individual reads if readRange fails
+            for addr = chunkStart, chunkEnd - 6 do
+                local b1 = emu:read8(addr)
+                local b3 = emu:read8(addr + 2)
+                local b5 = emu:read8(addr + 4)
+                
+                -- Check pattern: 48 ?? 68 ?? 30 ??
+                if b1 == 0x48 and b3 == 0x68 and b5 == 0x30 then
+                    log(string.format("  Found THUMB pattern at 0x%08X", addr))
+                    table.insert(matches, addr)
+                    
+                    if #matches >= 10 then
+                        log("  Limiting THUMB matches to first 10 found")
+                        return matches
+                    end
+                end
             end
         end
     end
@@ -68,14 +103,31 @@ local function extractThumbAddress(matchAddr)
     log(string.format("  THUMB extraction: instruction=0x%02X, PC=0x%08X, literalAddr=0x%08X", instruction, pc, literalAddr))
     
     -- Read the 32-bit address from the literal pool (little-endian)
-    if literalAddr >= 0x02000000 and literalAddr <= 0x02040000 then
-        local b1 = emu:read8(literalAddr)
-        local b2 = emu:read8(literalAddr + 1)
-        local b3 = emu:read8(literalAddr + 2)
-        local b4 = emu:read8(literalAddr + 3)
-        local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
-        log(string.format("  THUMB result: 0x%08X", address))
-        return address
+    -- Check if the literal address is within valid ROM bounds
+    if literalAddr >= 0x08000000 and literalAddr < 0x08000000 + emu:romSize() then
+        -- Use readRange for efficient 4-byte read
+        local success, data = pcall(function()
+            return emu:readRange(literalAddr, 4)
+        end)
+        
+        if success and data and #data >= 4 then
+            local b1 = string.byte(data, 1)
+            local b2 = string.byte(data, 2)
+            local b3 = string.byte(data, 3)
+            local b4 = string.byte(data, 4)
+            local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
+            log(string.format("  THUMB result: 0x%08X", address))
+            return address
+        else
+            -- Fallback to individual reads
+            local b1 = emu:read8(literalAddr)
+            local b2 = emu:read8(literalAddr + 1)
+            local b3 = emu:read8(literalAddr + 2)
+            local b4 = emu:read8(literalAddr + 3)
+            local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
+            log(string.format("  THUMB result (fallback): 0x%08X", address))
+            return address
+        end
     end
     
     return nil
@@ -91,30 +143,68 @@ local function findARMSizePattern(startAddr, endAddr, pokemonSize)
     local progressStep = math.floor((endAddr - startAddr) / 10) -- Report every 10%
     local lastProgress = 0
     
-    for addr = startAddr, endAddr - 11 do
+    -- Use readRange for more efficient memory access
+    local chunkSize = 64 * 1024 -- 64KB chunks for efficiency
+    
+    for chunkStart = startAddr, endAddr - 12, chunkSize do
+        local chunkEnd = math.min(chunkStart + chunkSize, endAddr)
+        local currentChunkSize = chunkEnd - chunkStart
+        
         -- Progress reporting
-        if addr - startAddr >= lastProgress + progressStep then
-            local percent = math.floor(((addr - startAddr) / (endAddr - startAddr)) * 100)
-            log(string.format("  Progress: %d%% (0x%08X)", percent, addr))
-            lastProgress = addr - startAddr
+        if chunkStart - startAddr >= lastProgress + progressStep then
+            local percent = math.floor(((chunkStart - startAddr) / (endAddr - startAddr)) * 100)
+            log(string.format("  Progress: %d%% (0x%08X)", percent, chunkStart))
+            lastProgress = chunkStart - startAddr
         end
         
-        local b1 = emu:read8(addr)
-        local b4 = emu:read8(addr + 3)
-        local b5 = emu:read8(addr + 4)
-        local b6 = emu:read8(addr + 5)
-        local b9 = emu:read8(addr + 8)
-        local b10 = emu:read8(addr + 9)
+        -- Read chunk efficiently
+        local success, data = pcall(function()
+            return emu:readRange(chunkStart, currentChunkSize)
+        end)
         
-        -- Check pattern: E0 ?? ?? 64/68 E5 9F ?? ?? E0 8? ?? ??
-        if b1 == 0xE0 and b4 == pokemonSize and b5 == 0xE5 and b6 == 0x9F and b9 == 0xE0 and (b10 & 0xF0) == 0x80 then
-            log(string.format("  Found ARM size pattern at 0x%08X", addr))
-            table.insert(matches, addr)
-            
-            -- Limit matches to avoid excessive processing
-            if #matches >= 10 then
-                log("  Limiting ARM matches to first 10 found")
-                break
+        if success and data then
+            -- Search within the chunk
+            for i = 1, #data - 11 do
+                local b1 = string.byte(data, i)
+                local b4 = string.byte(data, i + 3)
+                local b5 = string.byte(data, i + 4)
+                local b6 = string.byte(data, i + 5)
+                local b9 = string.byte(data, i + 8)
+                local b10 = string.byte(data, i + 9)
+                
+                -- Check pattern: E0 ?? ?? 64/68 E5 9F ?? ?? E0 8? ?? ??
+                if b1 == 0xE0 and b4 == pokemonSize and b5 == 0xE5 and b6 == 0x9F and b9 == 0xE0 and (b10 & 0xF0) == 0x80 then
+                    local addr = chunkStart + i - 1 -- Convert to absolute address
+                    log(string.format("  Found ARM size pattern at 0x%08X", addr))
+                    table.insert(matches, addr)
+                    
+                    -- Limit matches to avoid excessive processing
+                    if #matches >= 10 then
+                        log("  Limiting ARM matches to first 10 found")
+                        return matches
+                    end
+                end
+            end
+        else
+            -- Fallback to individual reads if readRange fails
+            for addr = chunkStart, chunkEnd - 12 do
+                local b1 = emu:read8(addr)
+                local b4 = emu:read8(addr + 3)
+                local b5 = emu:read8(addr + 4)
+                local b6 = emu:read8(addr + 5)
+                local b9 = emu:read8(addr + 8)
+                local b10 = emu:read8(addr + 9)
+                
+                -- Check pattern: E0 ?? ?? 64/68 E5 9F ?? ?? E0 8? ?? ??
+                if b1 == 0xE0 and b4 == pokemonSize and b5 == 0xE5 and b6 == 0x9F and b9 == 0xE0 and (b10 & 0xF0) == 0x80 then
+                    log(string.format("  Found ARM size pattern at 0x%08X", addr))
+                    table.insert(matches, addr)
+                    
+                    if #matches >= 10 then
+                        log("  Limiting ARM matches to first 10 found")
+                        return matches
+                    end
+                end
             end
         end
     end
@@ -127,10 +217,26 @@ local function extractARMAddress(matchAddr)
     -- Look for the LDR instruction: E5 9F = LDR Rt, [PC, #imm12]
     for i = 0, 8, 4 do -- Check next few instructions (word-aligned)
         local offset = matchAddr + i
-        local b1 = emu:read8(offset)
-        local b2 = emu:read8(offset + 1)
-        local b3 = emu:read8(offset + 2)
-        local b4 = emu:read8(offset + 3)
+        
+        -- Use read32 for more efficient reading
+        local success, instruction = pcall(function()
+            return emu:read32(offset)
+        end)
+        
+        local b1, b2, b3, b4
+        if success and instruction then
+            -- Extract bytes from 32-bit value (little-endian)
+            b1 = instruction & 0xFF
+            b2 = (instruction >> 8) & 0xFF
+            b3 = (instruction >> 16) & 0xFF
+            b4 = (instruction >> 24) & 0xFF
+        else
+            -- Fallback to individual reads
+            b1 = emu:read8(offset)
+            b2 = emu:read8(offset + 1)
+            b3 = emu:read8(offset + 2)
+            b4 = emu:read8(offset + 3)
+        end
         
         -- Check if this is LDR Rt, [PC, #imm12] (E5 9F pattern)
         if b3 == 0x9F and b4 == 0xE5 then
@@ -140,14 +246,31 @@ local function extractARMAddress(matchAddr)
             
             log(string.format("  ARM extraction: offset=0x%08X, immediate=0x%03X, PC=0x%08X, literalAddr=0x%08X", offset, immediate, pc, literalAddr))
             
-            if literalAddr >= 0x02000000 and literalAddr <= 0x02040000 then
-                local b1 = emu:read8(literalAddr)
-                local b2 = emu:read8(literalAddr + 1)
-                local b3 = emu:read8(literalAddr + 2)
-                local b4 = emu:read8(literalAddr + 3)
-                local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
-                log(string.format("  ARM result: 0x%08X", address))
-                return address
+            -- Check if literal address is within valid ROM bounds
+            if literalAddr >= 0x08000000 and literalAddr < 0x08000000 + emu:romSize() then
+                -- Use readRange for efficient 4-byte read
+                local success, data = pcall(function()
+                    return emu:readRange(literalAddr, 4)
+                end)
+                
+                if success and data and #data >= 4 then
+                    local b1 = string.byte(data, 1)
+                    local b2 = string.byte(data, 2)
+                    local b3 = string.byte(data, 3)
+                    local b4 = string.byte(data, 4)
+                    local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
+                    log(string.format("  ARM result: 0x%08X", address))
+                    return address
+                else
+                    -- Fallback to individual reads
+                    local b1 = emu:read8(literalAddr)
+                    local b2 = emu:read8(literalAddr + 1)
+                    local b3 = emu:read8(literalAddr + 2)
+                    local b4 = emu:read8(literalAddr + 3)
+                    local address = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
+                    log(string.format("  ARM result (fallback): 0x%08X", address))
+                    return address
+                end
             end
         end
     end
@@ -163,15 +286,28 @@ local function getGameVariant()
         return "unknown"
     end
     
-    local title = emu:getGameTitle():lower()
+    local title = emu:getGameTitle():upper()
     log("🎮 ROM Title: " .. emu:getGameTitle())
+    log("🎮 ROM Size: " .. emu:romSize() .. " bytes")
     
-    if title:find("emerald") then
+    -- Improved detection logic
+    if title:find("EMERALD") or title:find("POKEMON EMER") then
         return "emerald"
-    elseif title:find("quetzal") then
+    elseif title:find("QUETZAL") or title:find("PKM QUETZAL") then
         return "quetzal"
     else
-        return "unknown"
+        -- Try to detect based on ROM characteristics
+        local romSize = emu:romSize()
+        if romSize == 16777216 then
+            log("🎮 Detected 16MB ROM - likely Emerald")
+            return "emerald"
+        elseif romSize == 33554432 then
+            log("🎮 Detected 32MB ROM - likely Quetzal")
+            return "quetzal"
+        else
+            log("🎮 Unknown ROM characteristics")
+            return "unknown"
+        end
     end
 end
 

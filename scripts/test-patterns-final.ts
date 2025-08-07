@@ -192,128 +192,188 @@ class FinalPatternTester {
     }
     
     try {
-      // Get ROM info
+      // Get ROM info with simpler test first
       console.log('📋 Getting ROM information...')
+      
+      // First try a simple test
+      const simpleTest = await this.executeLua(`return "test"`, 5000)
+      console.log('✅ Simple Lua test result:', simpleTest)
+      
       const romInfo = await this.executeLua(`
+        if not emu then
+          return {error = "emu not available"}
+        end
+        if not emu.getGameTitle then
+          return {error = "getGameTitle not available"}
+        end
+        if not emu.romSize then
+          return {error = "romSize not available"}
+        end
+        
         return {
           title = emu:getGameTitle(),
           size = emu:romSize()
         }
-      `, 10000)
+      `, 30000)
+      
+      if (romInfo.error) {
+        console.log(`❌ ROM info error: ${romInfo.error}`)
+        return {
+          success: false,
+          game,
+          romTitle: 'Error',
+          expectedAddress,
+          error: `ROM info error: ${romInfo.error}`
+        }
+      }
       
       console.log(`✅ ROM: ${romInfo.title} (${romInfo.size} bytes)`)
       
-      // Test direct address search first (fastest method)
-      console.log('\n🎯 Method 1: Direct Address Search')
-      const directResult = await this.executeLua(`
-        local target = ${expectedAddress}
-        local bytes = {
-          target & 0xFF,
-          (target >> 8) & 0xFF,
-          (target >> 16) & 0xFF,
-          (target >> 24) & 0xFF
-        }
-        
-        local matches = {}
-        -- Search first 2MB for speed
-        for addr = 0x08000000, 0x08000000 + 2 * 1024 * 1024 - 4 do
-          local b1, b2, b3, b4 = emu:read8(addr), emu:read8(addr+1), emu:read8(addr+2), emu:read8(addr+3)
-          if b1 == bytes[1] and b2 == bytes[2] and b3 == bytes[3] and b4 == bytes[4] then
-            table.insert(matches, addr)
-            if #matches >= 3 then break end
-          end
+      // Test Universal Patterns using embedded Lua script
+      console.log('\n🔍 Running Universal Pattern Test...')
+      
+      // First test a simple pattern search
+      const simplePatternTest = await this.executeLua(`
+        if not emu or not emu.romSize or emu:romSize() == 0 then
+          return {error = "No ROM loaded"}
         end
         
-        return {
-          target = target,
-          matches = matches
-        }
-      `, 45000)
-      
-      if (directResult.matches && directResult.matches.length > 0) {
-        console.log(`✅ Direct search found ${directResult.matches.length} matches:`)
-        for (let i = 0; i < Math.min(directResult.matches.length, 3); i++) {
-          console.log(`   ${i + 1}. 0x${directResult.matches[i].toString(16).toUpperCase()}`)
-        }
+        local romSize = emu:romSize()
+        local searchSize = math.min(1024 * 1024, romSize) -- 1MB max
+        local matches = 0
         
-        // Success via direct search
-        return {
-          success: true,
-          game,
-          romTitle: romInfo.title,
-          expectedAddress,
-          foundAddress: directResult.target,
-          method: 'direct_search'
-        }
-      } else {
-        console.log('❌ Direct search found no matches')
-      }
-      
-      // Test THUMB pattern
-      console.log('\n👍 Method 2: THUMB Pattern Search')
-      const thumbResult = await this.executeLua(`
-        local matches = {}
-        local targetFound = false
-        local targetAddr = nil
-        
-        -- Search first 1MB
-        for addr = 0x08000000, 0x08000000 + 1024 * 1024 - 6 do
-          local b1, b3, b5 = emu:read8(addr), emu:read8(addr + 2), emu:read8(addr + 4)
+        -- Count THUMB pattern matches: 48 ?? 68 ?? 30 ??
+        for addr = 0x08000000, 0x08000000 + searchSize - 6 do
+          local b1 = emu:read8(addr)
+          local b3 = emu:read8(addr + 2)
+          local b5 = emu:read8(addr + 4)
           
           if b1 == 0x48 and b3 == 0x68 and b5 == 0x30 then
-            -- Try to extract address
-            local instruction = emu:read8(addr + 1)
-            local immediate = instruction
-            local pc = ((addr) & ~1) + 4
-            local literalAddr = (pc & ~3) + (immediate * 4)
-            
-            if literalAddr >= 0x08000000 and literalAddr < 0x08000000 + emu:romSize() then
-              local b1 = emu:read8(literalAddr)
-              local b2 = emu:read8(literalAddr + 1)
-              local b3 = emu:read8(literalAddr + 2)
-              local b4 = emu:read8(literalAddr + 3)
-              local extractedAddr = b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
-              
-              table.insert(matches, {
-                pattern_addr = addr,
-                extracted_addr = extractedAddr
-              })
-              
-              -- Check if this matches our target
-              if extractedAddr == ${expectedAddress} then
-                targetFound = true
-                targetAddr = extractedAddr
-                break
-              end
-            end
-            
-            if #matches >= 10 then break end
+            matches = matches + 1
+            if matches >= 5 then break end -- Stop early for test
           end
         end
         
         return {
-          matches = matches,
-          target_found = targetFound,
-          target_addr = targetAddr
+          searchSize = searchSize,
+          thumbMatches = matches
         }
       `, 60000)
       
-      console.log(`✅ THUMB pattern found ${thumbResult.matches.length} matches`)
+      console.log('🔍 Simple pattern test result:', simplePatternTest)
       
-      if (thumbResult.target_found) {
-        console.log(`🎉 SUCCESS: THUMB pattern found target address!`)
+      if (simplePatternTest.error) {
+        console.log(`❌ Simple pattern test failed: ${simplePatternTest.error}`)
         return {
-          success: true,
+          success: false,
           game,
           romTitle: romInfo.title,
           expectedAddress,
-          foundAddress: thumbResult.target_addr,
-          method: 'thumb_pattern'
+          error: `Simple pattern test failed: ${simplePatternTest.error}`
         }
       }
       
-      // If we get here, no patterns worked
-      console.log('❌ No Universal Patterns found the target address')
+      console.log(`✅ Found ${simplePatternTest.thumbMatches} THUMB pattern matches in first ${simplePatternTest.searchSize} bytes`)
+      
+      // If we get matches, run the full test
+      if (simplePatternTest.thumbMatches > 0) {
+        console.log('🔍 Running full pattern analysis...')
+        
+        const fullPatternResult = await this.executeLua(`
+          local expectedAddr = ${expectedAddress}
+          local results = {
+            matches = {},
+            success = false,
+            foundAddress = nil,
+            method = "thumb_pattern",
+            errors = {}
+          }
+          
+          -- Search first 1MB for THUMB patterns: 48 ?? 68 ?? 30 ??
+          local searchCount = 0
+          for addr = 0x08000000, 0x08000000 + 1024 * 1024 - 6 do
+            local b1 = emu:read8(addr)
+            local b3 = emu:read8(addr + 2)
+            local b5 = emu:read8(addr + 4)
+            
+            if b1 == 0x48 and b3 == 0x68 and b5 == 0x30 then
+              searchCount = searchCount + 1
+              
+              -- Extract address from THUMB pattern
+              local success, extractedAddr = pcall(function()
+                local instruction = emu:read8(addr + 1)
+                local immediate = instruction
+                local pc = ((addr) & ~1) + 4
+                local literalAddr = (pc & ~3) + (immediate * 4)
+                
+                if literalAddr >= 0x08000000 and literalAddr < 0x08000000 + emu:romSize() then
+                  local b1 = emu:read8(literalAddr)
+                  local b2 = emu:read8(literalAddr + 1)
+                  local b3 = emu:read8(literalAddr + 2)
+                  local b4 = emu:read8(literalAddr + 3)
+                  return b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
+                end
+                return nil
+              end)
+              
+              if success and extractedAddr then
+                table.insert(results.matches, {
+                  patternAddr = addr,
+                  extractedAddr = extractedAddr
+                })
+                
+                if extractedAddr == expectedAddr then
+                  results.success = true
+                  results.foundAddress = extractedAddr
+                  break
+                end
+              else
+                table.insert(results.errors, {
+                  patternAddr = addr,
+                  error = "extraction_failed"
+                })
+              end
+              
+              if searchCount >= 10 then break end
+            end
+          end
+          
+          results.totalMatches = #results.matches
+          results.totalErrors = #results.errors
+          return results
+        `, 60000)
+        
+        console.log('🔍 Full pattern result:', fullPatternResult)
+        
+        if (fullPatternResult && fullPatternResult.success) {
+          console.log(`🎉 SUCCESS: Universal Patterns found target address!`)
+          console.log(`   Address: 0x${fullPatternResult.foundAddress.toString(16).toUpperCase()}`)
+          console.log(`   Method: ${fullPatternResult.method}`)
+          
+          return {
+            success: true,
+            game,
+            romTitle: romInfo.title,
+            expectedAddress,
+            foundAddress: fullPatternResult.foundAddress,
+            method: fullPatternResult.method
+          }
+        } else {
+          console.log(`❌ Pattern analysis completed:`)
+          console.log(`   Total matches: ${fullPatternResult?.totalMatches || 0}`)
+          console.log(`   Extraction errors: ${fullPatternResult?.totalErrors || 0}`)
+          
+          if (fullPatternResult?.matches && fullPatternResult.matches.length > 0) {
+            console.log(`   First few extracted addresses:`)
+            for (let i = 0; i < Math.min(3, fullPatternResult.matches.length); i++) {
+              const match = fullPatternResult.matches[i]
+              console.log(`     Pattern at 0x${match.patternAddr.toString(16)} → 0x${match.extractedAddr.toString(16)}`)
+            }
+          }
+        }
+      } else {
+        console.log('❌ No THUMB patterns found in ROM - patterns may not be suitable for this ROM variant')
+      }
       
       return {
         success: false,
