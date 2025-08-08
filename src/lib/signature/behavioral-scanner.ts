@@ -58,7 +58,12 @@ export function scanBehavioralPatterns(buffer: Uint8Array, options: ScanOptions 
     // Scan through the buffer looking for this pattern
     for (let offset = startOffset; offset <= endOffset - parsedPattern.bytes.length; offset++) {
       if (matchesPattern(buffer, offset, parsedPattern)) {
-        // Found a pattern match - try to extract address
+        // Found a pattern match - validate context before extracting address
+        if (!pattern.validateContext(buffer, offset)) {
+          continue; // Skip if context validation fails
+        }
+        
+        // Context is valid - try to extract address
         const address = pattern.extractAddress(buffer, offset);
         
         if (address && !foundAddresses.has(address)) {

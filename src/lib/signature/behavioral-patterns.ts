@@ -4,13 +4,15 @@
  * This system finds partyData addresses by identifying characteristic ARM/THUMB
  * instruction sequences that access party data, WITHOUT knowing target addresses.
  * 
- * Key insight: We look for CODE BEHAVIOR patterns, not address patterns.
+ * Key insight: We look for CODE BEHAVIOR patterns that indicate party data manipulation.
+ * These patterns find actual CPU instructions that work with party data structures.
  */
 
 export interface BehavioralPattern {
   name: string;
   description: string;
   hexPattern: string;
+  validateContext: (buffer: Uint8Array, matchOffset: number) => boolean;
   extractAddress: (buffer: Uint8Array, matchOffset: number) => number | null;
   confidence: 'high' | 'medium' | 'low';
   gameVariant?: 'emerald' | 'quetzal' | 'both';
@@ -19,167 +21,154 @@ export interface BehavioralPattern {
 /**
  * BEHAVIORAL PATTERN 1: Party Size Loop Detection
  * Detects loops that iterate exactly 6 times (party size)
- * Pattern: MOV r?, #6 followed by loop structure
+ * Pattern: MOV r?, #6 - this is a clear indicator of party iteration
  */
 export const PARTY_SIZE_LOOP: BehavioralPattern = {
   name: 'party_size_loop',
-  description: 'Detects code that loops through 6 Pokemon (party size)',
-  hexPattern: '06 20 ?? ?? ?? ?? E5 9F', // MOV r0, #6 + padding + LDR literal
-  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
-    // LDR literal is at matchOffset + 6, immediate is at matchOffset + 8
-    const ldrPos = matchOffset + 6;
-    const immediate = (buffer[ldrPos + 2] ?? 0) | ((buffer[ldrPos + 3] ?? 0) << 8);
-    const pc = ldrPos + 8; // ARM PC calculation
-    const literalAddr = pc + immediate;
-    
-    if (literalAddr + 3 < buffer.length) {
-      const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
-      // Validate this is in GBA RAM range
-      if (address >= 0x02000000 && address <= 0x02040000) {
-        return address;
+  description: 'Detects MOV r?, #6 instructions indicating party size loops',
+  hexPattern: '06 20', // MOV r0, #6 (ARM) - clear party size indicator
+  validateContext: (buffer: Uint8Array, matchOffset: number): boolean => {
+    // Look for loop structure indicators nearby (within 50 bytes)
+    for (let i = 1; i <= 50; i++) {
+      if (matchOffset + i >= buffer.length) break;
+      
+      // Look for conditional branches (ARM: Bcc, THUMB: Bcc)
+      const byte = buffer[matchOffset + i] ?? 0;
+      const nextByte = buffer[matchOffset + i + 1] ?? 0;
+      
+      // ARM conditional branch: ?? ?? ?? ?? (where first nibble is condition)
+      if (i % 4 === 0 && (nextByte & 0x0F) === 0x0A) {
+        return true; // Found conditional branch
+      }
+      
+      // THUMB conditional branch: D? ??
+      if ((byte & 0xF0) === 0xD0 && (byte & 0x0F) !== 0x0F) {
+        return true;
+      }
+      
+      // Look for increment patterns: ADD r?, r?, #1
+      if (byte === 0x01 && nextByte === 0x30) { // THUMB: ADDS r?, #1
+        return true;
       }
     }
-    return null;
+    return false;
   },
-  confidence: 'high',
-  gameVariant: 'both'
-};
-
-/**
- * BEHAVIORAL PATTERN 2: Pokemon Slot Calculation
- * Detects code that calculates individual Pokemon addresses
- * Pattern: Base address + (index * Pokemon_size)
- */
-export const POKEMON_SLOT_CALC: BehavioralPattern = {
-  name: 'pokemon_slot_calculation',
-  description: 'Detects Pokemon slot address calculation (base + index * size)',
-  hexPattern: '64 ?? ?? ?? E5 9F ?? ??', // Multiply by 100 (0x64) + LDR literal  
   extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
-    // The LDR should be right after the multiplication at matchOffset + 4
-    const ldrPos = matchOffset + 4;
-    if (ldrPos + 3 >= buffer.length) return null;
-    
-    // Extract immediate from E5 9F ?? ??
-    const immediate = (buffer[ldrPos + 2] ?? 0) | ((buffer[ldrPos + 3] ?? 0) << 8);
-    const pc = ldrPos + 8;
-    const literalAddr = pc + immediate;
-    
-    if (literalAddr + 3 < buffer.length) {
-      const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
-      if (address >= 0x02000000 && address <= 0x02040000) {
-        return address;
-      }
-    }
-    return null;
-  },
-  confidence: 'high',
-  gameVariant: 'emerald' // Emerald uses 100-byte Pokemon
-};
-
-/**
- * BEHAVIORAL PATTERN 3: Quetzal Pokemon Slot Calculation
- * Same as above but for 104-byte Pokemon (Quetzal)
- */
-export const QUETZAL_SLOT_CALC: BehavioralPattern = {
-  name: 'quetzal_slot_calculation',
-  description: 'Detects Quetzal Pokemon slot calculation (104 bytes)',
-  hexPattern: '68 ?? ?? ?? E5 9F ?? ??', // Multiply by 104 (0x68) + LDR literal
-  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
-    const ldrPos = matchOffset + 4;
-    if (ldrPos + 3 >= buffer.length) return null;
-    
-    // Extract immediate from E5 9F ?? ??
-    const immediate = (buffer[ldrPos + 2] ?? 0) | ((buffer[ldrPos + 3] ?? 0) << 8);
-    const pc = ldrPos + 8;
-    const literalAddr = pc + immediate;
-    
-    if (literalAddr + 3 < buffer.length) {
-      const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
-      if (address >= 0x02000000 && address <= 0x02040000) {
-        return address;
-      }
-    }
-    return null;
-  },
-  confidence: 'high',
-  gameVariant: 'quetzal' // Quetzal uses 104-byte Pokemon
-};
-
-/**
- * BEHAVIORAL PATTERN 4: THUMB Party Base Loading
- * Detects THUMB code that loads party base address
- * Pattern: LDR r?, [PC, #offset] for party data access
- */
-export const THUMB_PARTY_BASE: BehavioralPattern = {
-  name: 'thumb_party_base',
-  description: 'Detects THUMB code loading party base address',
-  hexPattern: '4? ?? 68 ?? ?? 30', // LDR + LDR + ADDS (party access sequence)
-  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
-    // Check if first instruction is THUMB LDR literal (4x ??)
-    const firstInst = buffer[matchOffset] ?? 0;
-    if ((firstInst & 0xF8) !== 0x48) return null; // Must be LDR rX, [PC, #imm]
-    
-    const immediate = buffer[matchOffset + 1] ?? 0;
-    const pc = ((matchOffset + 4) & ~3); // THUMB PC alignment
-    const literalAddr = pc + (immediate * 4);
-    
-    if (literalAddr + 3 < buffer.length) {
-      const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
-      if (address >= 0x02000000 && address <= 0x02040000) {
-        return address;
-      }
-    }
-    return null;
-  },
-  confidence: 'medium',
-  gameVariant: 'both'
-};
-
-/**
- * BEHAVIORAL PATTERN 5: Party Bounds Validation
- * Detects code that validates party slot index (0-5)
- * Pattern: CMP rX, #5 followed by conditional branch
- */
-export const PARTY_BOUNDS_VALIDATION: BehavioralPattern = {
-  name: 'party_bounds_validation',
-  description: 'Detects party slot bounds checking (index <= 5)',
-  hexPattern: '05 28 ?? ?? E5 9F', // CMP #5 + instructions + LDR
-  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
-    // LDR literal is at matchOffset + 4
-    const ldrPos = matchOffset + 4;
-    if (ldrPos + 3 >= buffer.length) return null;
-    
-    // Extract immediate from E5 9F ?? ??
-    const immediate = (buffer[ldrPos + 2] ?? 0) | ((buffer[ldrPos + 3] ?? 0) << 8);
-    const pc = ldrPos + 8;
-    const literalAddr = pc + immediate;
-    
-    if (literalAddr + 3 < buffer.length) {
-      const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
-      if (address >= 0x02000000 && address <= 0x02040000) {
-        return address;
-      }
-    }
-    return null;
-  },
-  confidence: 'medium',
-  gameVariant: 'both'
-};
-
-/**
- * BEHAVIORAL PATTERN 6: Battle Party Access
- * Detects battle system code accessing party Pokemon data
- * Common pattern when battle system reads Pokemon stats
- */
-export const BATTLE_PARTY_ACCESS: BehavioralPattern = {
-  name: 'battle_party_access',
-  description: 'Detects battle system accessing party Pokemon data',
-  hexPattern: '?? ?? 79 ?? 29 ?? D? ?? E5 9F', // Pattern: LDRB + CMP + branch + LDR
-  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
-    // Find the LDR literal in this sequence
-    for (let offset = 6; offset <= 12; offset += 2) {
+    // Look for ARM LDR instructions within the next 100 bytes that load from literal pools
+    for (let offset = 1; offset <= 100; offset += 4) {
       const pos = matchOffset + offset;
       if (pos + 3 >= buffer.length) break;
+      
+      // ARM LDR literal pattern: ?? ?? 9F E5
+      if (buffer[pos + 2] === 0x9F && buffer[pos + 3] === 0xE5) {
+        const immediate = (buffer[pos] ?? 0) | ((buffer[pos + 1] ?? 0) << 8);
+        const pc = pos + 8; // ARM PC calculation
+        const literalAddr = pc + immediate;
+        
+        if (literalAddr + 3 < buffer.length) {
+          const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
+          // Must be in GBA RAM range and word-aligned
+          if (address >= 0x02000000 && address <= 0x02040000 && address % 4 === 0) {
+            return address;
+          }
+        }
+      }
+    }
+    return null;
+  },
+  confidence: 'high',
+  gameVariant: 'both'
+};
+
+/**
+ * BEHAVIORAL PATTERN 2: Pokemon Size Multiplication  
+ * Detects calculations with Pokemon struct size (100 bytes for Emerald)
+ * Pattern: Multiplication or addition with 0x64 (100 decimal)
+ */
+export const POKEMON_SIZE_CALC_EMERALD: BehavioralPattern = {
+  name: 'pokemon_size_calc_emerald',
+  description: 'Detects Pokemon size calculations with 100 bytes (Emerald)',
+  hexPattern: '64 00', // Immediate value 100 (0x64)
+  validateContext: (buffer: Uint8Array, matchOffset: number): boolean => {
+    // Look for multiplication or add instructions around this immediate
+    for (let i = -8; i <= 8; i++) {
+      const pos = matchOffset + i;
+      if (pos < 0 || pos + 3 >= buffer.length) continue;
+      
+      const bytes = [buffer[pos] ?? 0, buffer[pos + 1] ?? 0, buffer[pos + 2] ?? 0, buffer[pos + 3] ?? 0];
+      
+      // ARM MUL pattern: ?? ?? ?? ?? (bits 4-7 should be 9 for MUL)
+      if (i % 4 === 0 && (bytes[3] & 0x0F) === 0x0E && (bytes[2] & 0xF0) === 0x00) {
+        return true; // Found MUL instruction
+      }
+      
+      // ARM ADD with immediate pattern
+      if (i % 4 === 0 && (bytes[3] & 0x0F) === 0xE2 && (bytes[2] & 0xF0) === 0x80) {
+        return true; // Found ADD immediate
+      }
+    }
+    return false;
+  },
+  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
+    // Look for LDR literal instructions that load the base address for this calculation
+    for (let offset = -50; offset <= 50; offset += 4) {
+      const pos = matchOffset + offset;
+      if (pos < 0 || pos + 3 >= buffer.length) continue;
+      
+      // ARM LDR literal: ?? ?? 9F E5
+      if (buffer[pos + 2] === 0x9F && buffer[pos + 3] === 0xE5) {
+        const immediate = (buffer[pos] ?? 0) | ((buffer[pos + 1] ?? 0) << 8);
+        const pc = pos + 8;
+        const literalAddr = pc + immediate;
+        
+        if (literalAddr + 3 < buffer.length) {
+          const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
+          if (address >= 0x02000000 && address <= 0x02040000 && address % 4 === 0) {
+            return address;
+          }
+        }
+      }
+    }
+    return null;
+  },
+  confidence: 'high',
+  gameVariant: 'emerald'
+};
+
+/**
+ * BEHAVIORAL PATTERN 3: Pokemon Size Multiplication for Quetzal
+ * Detects calculations with Pokemon struct size (104 bytes for Quetzal)
+ * Pattern: Multiplication or addition with 0x68 (104 decimal)
+ */
+export const POKEMON_SIZE_CALC_QUETZAL: BehavioralPattern = {
+  name: 'pokemon_size_calc_quetzal',
+  description: 'Detects Pokemon size calculations with 104 bytes (Quetzal)',
+  hexPattern: '68 00', // Immediate value 104 (0x68)
+  validateContext: (buffer: Uint8Array, matchOffset: number): boolean => {
+    // Similar validation as Emerald but for 104 bytes
+    for (let i = -8; i <= 8; i++) {
+      const pos = matchOffset + i;
+      if (pos < 0 || pos + 3 >= buffer.length) continue;
+      
+      const bytes = [buffer[pos] ?? 0, buffer[pos + 1] ?? 0, buffer[pos + 2] ?? 0, buffer[pos + 3] ?? 0];
+      
+      // ARM MUL pattern
+      if (i % 4 === 0 && (bytes[3] & 0x0F) === 0x0E && (bytes[2] & 0xF0) === 0x00) {
+        return true;
+      }
+      
+      // ARM ADD with immediate pattern
+      if (i % 4 === 0 && (bytes[3] & 0x0F) === 0xE2 && (bytes[2] & 0xF0) === 0x80) {
+        return true;
+      }
+    }
+    return false;
+  },
+  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
+    // Same address extraction logic as Emerald
+    for (let offset = -50; offset <= 50; offset += 4) {
+      const pos = matchOffset + offset;
+      if (pos < 0 || pos + 3 >= buffer.length) continue;
       
       if (buffer[pos + 2] === 0x9F && buffer[pos + 3] === 0xE5) {
         const immediate = (buffer[pos] ?? 0) | ((buffer[pos + 1] ?? 0) << 8);
@@ -188,7 +177,7 @@ export const BATTLE_PARTY_ACCESS: BehavioralPattern = {
         
         if (literalAddr + 3 < buffer.length) {
           const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
-          if (address >= 0x02000000 && address <= 0x02040000) {
+          if (address >= 0x02000000 && address <= 0x02040000 && address % 4 === 0) {
             return address;
           }
         }
@@ -196,7 +185,106 @@ export const BATTLE_PARTY_ACCESS: BehavioralPattern = {
     }
     return null;
   },
-  confidence: 'low',
+  confidence: 'high',
+  gameVariant: 'quetzal'
+};
+
+/**
+ * BEHAVIORAL PATTERN 4: THUMB Party Bounds Check
+ * Detects THUMB code that validates party slot index (0-5)
+ * Pattern: CMP r?, #5 (ensuring slot index is valid)
+ */
+export const THUMB_PARTY_BOUNDS: BehavioralPattern = {
+  name: 'thumb_party_bounds',
+  description: 'Detects THUMB party slot bounds checking (CMP r?, #5)',
+  hexPattern: '05 28', // CMP r0, #5 (THUMB immediate)
+  validateContext: (buffer: Uint8Array, matchOffset: number): boolean => {
+    // Look for conditional branch after the CMP
+    for (let i = 1; i <= 10; i++) {
+      if (matchOffset + i >= buffer.length) break;
+      
+      const byte = buffer[matchOffset + i] ?? 0;
+      
+      // THUMB conditional branch: D? ?? (but not unconditional DF ??)
+      if ((byte & 0xF0) === 0xD0 && (byte & 0x0F) !== 0x0F) {
+        return true; // Found conditional branch after CMP
+      }
+    }
+    return false;
+  },
+  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
+    // Look for THUMB LDR PC-relative instructions nearby
+    for (let offset = -20; offset <= 20; offset += 2) {
+      const pos = matchOffset + offset;
+      if (pos < 0 || pos + 1 >= buffer.length) continue;
+      
+      // THUMB LDR literal: 48 ?? (LDR r0-r7, [PC, #imm])
+      const firstByte = buffer[pos] ?? 0;
+      if ((firstByte & 0xF8) === 0x48) {
+        const immediate = buffer[pos + 1] ?? 0;
+        const pc = ((pos + 4) & ~3); // THUMB PC alignment
+        const literalAddr = pc + (immediate * 4);
+        
+        if (literalAddr + 3 < buffer.length) {
+          const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
+          if (address >= 0x02000000 && address <= 0x02040000 && address % 4 === 0) {
+            return address;
+          }
+        }
+      }
+    }
+    return null;
+  },
+  confidence: 'medium',
+  gameVariant: 'both'
+};
+
+/**
+ * BEHAVIORAL PATTERN 5: ARM Party Bounds Check
+ * Detects ARM code that validates party slot index (0-5)
+ * Pattern: CMP r?, #5 (ARM immediate comparison)
+ */
+export const ARM_PARTY_BOUNDS: BehavioralPattern = {
+  name: 'arm_party_bounds',
+  description: 'Detects ARM party slot bounds checking (CMP r?, #5)',
+  hexPattern: '05 00 50 E3', // CMP r0, #5 (ARM immediate)
+  validateContext: (buffer: Uint8Array, matchOffset: number): boolean => {
+    // Look for conditional ARM instructions after the CMP
+    for (let i = 4; i <= 20; i += 4) {
+      if (matchOffset + i + 3 >= buffer.length) break;
+      
+      const conditionByte = buffer[matchOffset + i + 3] ?? 0;
+      
+      // ARM conditional instruction (condition != 0xE for always)
+      if ((conditionByte & 0xF0) !== 0xE0) {
+        return true; // Found conditional instruction after CMP
+      }
+    }
+    return false;
+  },
+  extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
+    // Look for ARM LDR literal instructions nearby
+    for (let offset = -50; offset <= 50; offset += 4) {
+      const pos = matchOffset + offset;
+      if (pos < 0 || pos + 3 >= buffer.length) continue;
+      
+      // ARM LDR literal: ?? ?? 9F E5
+      if (buffer[pos + 2] === 0x9F && buffer[pos + 3] === 0xE5) {
+        const immediate = (buffer[pos] ?? 0) | ((buffer[pos + 1] ?? 0) << 8);
+        const pc = pos + 8;
+        const literalAddr = pc + immediate;
+        
+        if (literalAddr + 3 < buffer.length) {
+          const address = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4).getUint32(0, true);
+          if (address >= 0x02000000 && address <= 0x02040000 && address % 4 === 0) {
+            return address;
+          }
+        }
+      }
+    }
+    return null;
+  },
+  confidence: 'medium',
   gameVariant: 'both'
 };
 
@@ -205,11 +293,10 @@ export const BATTLE_PARTY_ACCESS: BehavioralPattern = {
  */
 export const BEHAVIORAL_PATTERNS: BehavioralPattern[] = [
   PARTY_SIZE_LOOP,
-  POKEMON_SLOT_CALC,
-  QUETZAL_SLOT_CALC,
-  THUMB_PARTY_BASE,
-  PARTY_BOUNDS_VALIDATION,
-  BATTLE_PARTY_ACCESS
+  POKEMON_SIZE_CALC_EMERALD,
+  POKEMON_SIZE_CALC_QUETZAL,
+  THUMB_PARTY_BOUNDS,
+  ARM_PARTY_BOUNDS
 ];
 
 /**
