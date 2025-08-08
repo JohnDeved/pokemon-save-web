@@ -47,6 +47,10 @@
     "debug-step": "tsx scripts/debug-step-by-step.ts",
     "final-verified": "tsx scripts/final-universal-verified.ts",
     "test-behavioral": "tsx scripts/test-behavioral-patterns.ts",
+    "test-real-behavioral": "tsx scripts/test-real-behavioral.ts",
+    "test-true-behavioral": "tsx scripts/test-true-behavioral.ts",
+    "create-mock-roms": "tsx scripts/create-mock-roms.ts",
+    "debug-rom-patterns": "tsx scripts/debug-rom-patterns.ts",
     "behavioral-cli": "tsx scripts/test-behavioral-cli.ts",
     "demo-behavioral": "tsx scripts/demo-behavioral-patterns.ts",
     "debug-patterns": "tsx scripts/debug-pattern-parsing.ts"

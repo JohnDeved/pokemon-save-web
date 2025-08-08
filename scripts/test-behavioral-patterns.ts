@@ -10,7 +10,10 @@
 import { spawn } from 'child_process';
 import WebSocket from 'ws';
 import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 interface TestResult {
   game: string;
@@ -363,6 +366,6 @@ async function main() {
   console.log(`============================================================`);
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }
