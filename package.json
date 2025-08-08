@@ -30,7 +30,14 @@
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
     "mgba": "tsx docker/mgba-docker.ts",
     "validate-patterns": "tsx scripts/validate-universal-patterns.ts",
-    "test-patterns": "tsx scripts/test-patterns-final.ts"
+    "test-patterns": "tsx scripts/test-patterns-final.ts",
+    "test-real-patterns": "tsx scripts/test-real-universal-patterns.ts",
+    "debug-patterns": "tsx scripts/debug-universal-patterns.ts",
+    "simple-test": "tsx scripts/simple-pattern-test.ts",
+    "optimized-search": "tsx scripts/optimized-pattern-search.ts",
+    "ultra-simple": "tsx scripts/ultra-simple-test.ts",
+    "manual-search": "tsx scripts/manual-pattern-search.ts",
+    "extended-search": "tsx scripts/extended-pattern-search.ts"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",
