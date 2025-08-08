@@ -28,12 +28,9 @@ export interface BehavioralPattern {
 export const PARTY_LOOP_PATTERN: BehavioralPattern = {
   name: 'party_loop_counter',
   description: 'Detects loops that iterate through 6 Pokemon in party',
-  hexPattern: '06 20 ?? ?? ?? ?? ?? ?? ?? E5', // MOV r0, #6 + context
+  hexPattern: '06 20', // Just MOV r0, #6 - simpler pattern
   extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
-    // Look for ARM LDR instructions near the loop counter
-    // that load the base party address
-    
-    // Search forward and backward for LDR literal instructions
+    // Look for ARM LDR instructions within 32 bytes of the loop counter
     for (let offset = -32; offset <= 32; offset += 4) {
       const checkOffset = matchOffset + offset;
       if (checkOffset < 0 || checkOffset + 3 >= buffer.length) continue;
@@ -137,23 +134,25 @@ export const PARTY_SLOT_ACCESS_PATTERN: BehavioralPattern = {
 export const PARTY_BOUNDS_CHECK_PATTERN: BehavioralPattern = {
   name: 'party_bounds_check',
   description: 'Detects party slot bounds validation (0-5)',
-  hexPattern: '05 28 ?? D[2-9] E5 9F ?? ??', // CMP #5, conditional branch, LDR
+  hexPattern: '05 28', // Just CMP #5 - simpler pattern
   extractAddress: (buffer: Uint8Array, matchOffset: number): number | null => {
-    // Look for the LDR instruction after the bounds check
-    const ldrOffset = matchOffset + 4;
-    if (ldrOffset + 3 >= buffer.length) return null;
-    
-    if (buffer[ldrOffset + 2] === 0x9F && buffer[ldrOffset + 3] === 0xE5) {
-      const immediate = (buffer[ldrOffset] ?? 0) | ((buffer[ldrOffset + 1] ?? 0) << 8);
-      const pc = ldrOffset + 8;
-      const literalAddr = pc + immediate;
+    // Look for the LDR instruction within 32 bytes after the bounds check
+    for (let offset = 4; offset <= 32; offset += 4) {
+      const ldrOffset = matchOffset + offset;
+      if (ldrOffset + 3 >= buffer.length) continue;
       
-      if (literalAddr + 3 < buffer.length) {
-        const dataView = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4);
-        const address = dataView.getUint32(0, true);
+      if (buffer[ldrOffset + 2] === 0x9F && buffer[ldrOffset + 3] === 0xE5) {
+        const immediate = (buffer[ldrOffset] ?? 0) | ((buffer[ldrOffset + 1] ?? 0) << 8);
+        const pc = ldrOffset + 8;
+        const literalAddr = pc + immediate;
         
-        if (address >= 0x02020000 && address <= 0x02030000) {
-          return address;
+        if (literalAddr + 3 < buffer.length) {
+          const dataView = new DataView(buffer.buffer, buffer.byteOffset + literalAddr, 4);
+          const address = dataView.getUint32(0, true);
+          
+          if (address >= 0x02020000 && address <= 0x02030000) {
+            return address;
+          }
         }
       }
     }
@@ -218,9 +217,20 @@ export function parseHexPattern(hexPattern: string): { bytes: number[], mask: nu
     } else if (part.includes('[') && part.includes(']')) {
       // Range pattern like 6[48] or 0[01-69]
       const baseChar = part.charAt(0);
-      const base = parseInt(baseChar, 16);
-      bytes.push(base);
-      mask.push(0xF0); // Match only upper nibble for range patterns
+      const rangeContent = part.slice(part.indexOf('[') + 1, part.indexOf(']'));
+      
+      if (rangeContent.includes('-')) {
+        // Range like 0[01-69] - for now, just match the base character
+        const base = parseInt(baseChar, 16);
+        bytes.push(base);
+        mask.push(0xF0); // Match only upper nibble
+      } else {
+        // Specific values like 6[48] means match 64 or 68
+        // We'll match the base character (6) in upper nibble
+        const base = parseInt(baseChar, 16);
+        bytes.push(base << 4); // Shift to upper nibble  
+        mask.push(0xF0); // Match only upper nibble
+      }
     } else if (part.includes('?')) {
       // Single wildcard like E? or ?5
       const value = parseInt(part.replace('?', '0'), 16);

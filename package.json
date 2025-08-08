@@ -47,7 +47,9 @@
     "debug-step": "tsx scripts/debug-step-by-step.ts",
     "final-verified": "tsx scripts/final-universal-verified.ts",
     "test-behavioral": "tsx scripts/test-behavioral-patterns.ts",
-    "behavioral-cli": "tsx scripts/test-behavioral-cli.ts"
+    "behavioral-cli": "tsx scripts/test-behavioral-cli.ts",
+    "demo-behavioral": "tsx scripts/demo-behavioral-patterns.ts",
+    "debug-patterns": "tsx scripts/debug-pattern-parsing.ts"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",
