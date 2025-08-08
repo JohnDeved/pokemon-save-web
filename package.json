@@ -39,7 +39,12 @@
     "manual-search": "tsx scripts/manual-pattern-search.ts",
     "extended-search": "tsx scripts/extended-pattern-search.ts",
     "final-patterns": "tsx scripts/final-working-patterns.ts",
-    "verify-final": "tsx scripts/verify-final-patterns.ts"
+    "verify-final": "tsx scripts/verify-final-patterns.ts",
+    "continuous-test": "tsx scripts/continuous-universal-test.ts",
+    "simple-working-test": "tsx scripts/simple-working-test.ts",
+    "advanced-system": "tsx scripts/advanced-universal-system.ts",
+    "rock-solid": "tsx scripts/rock-solid-universal.ts",
+    "debug-step": "tsx scripts/debug-step-by-step.ts"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",
