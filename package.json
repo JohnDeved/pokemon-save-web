@@ -37,7 +37,9 @@
     "optimized-search": "tsx scripts/optimized-pattern-search.ts",
     "ultra-simple": "tsx scripts/ultra-simple-test.ts",
     "manual-search": "tsx scripts/manual-pattern-search.ts",
-    "extended-search": "tsx scripts/extended-pattern-search.ts"
+    "extended-search": "tsx scripts/extended-pattern-search.ts",
+    "final-patterns": "tsx scripts/final-working-patterns.ts",
+    "verify-final": "tsx scripts/verify-final-patterns.ts"
   },
   "dependencies": {
     "@radix-ui/react-menubar": "^1.1.15",

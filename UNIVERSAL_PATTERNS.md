@@ -1,8 +1,8 @@
 # Universal Patterns for Pokemon PartyData Detection
 
-**STATUS: ✅ FULLY IMPLEMENTED - Successfully extracts addresses using THUMB and ARM patterns**
+**STATUS: ✅ FULLY IMPLEMENTED AND VERIFIED - Successfully extracts addresses using working patterns**
 
-This document describes the Universal Pattern system for automatically detecting partyData addresses in Pokemon Emerald and Quetzal ROMs using the optimal mGBA Lua API with reverse lookup from literal pools.
+This document describes the Final Working Universal Pattern system for automatically detecting partyData addresses in Pokemon Emerald and Quetzal ROMs using verified byte patterns and the optimal mGBA Lua API.
 
 ## Overview
 
