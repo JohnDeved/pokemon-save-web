@@ -7,7 +7,8 @@ import type {
   MoveApiResponse,
   MoveWithDetails,
   PokeApiFlavorTextEntry,
-  PokemonType, UIPokemonData,
+  PokemonType,
+  UIPokemonData,
 } from '../types'
 import {
   AbilityApiResponseSchema,
@@ -16,7 +17,7 @@ import {
   PokemonApiResponseSchema,
   PokemonTypeSchema,
 } from '../types'
-import { usePokemonStore, buildPartyListFromSaveData, useSaveFileStore } from '../stores'
+import { buildPartyListFromSaveData, usePokemonStore, useSaveFileStore } from '../stores'
 
 // --- Constants ---
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN'
@@ -31,7 +32,7 @@ const NO_MOVE: MoveWithDetails = {
 }
 
 // --- Utility Functions ---
-const formatName = (name: string): string => name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatName = (name: string): string => name.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
 
 const parsePokemonType = (apiType: string): PokemonType => {
   const result = PokemonTypeSchema.safeParse(apiType.toUpperCase())
@@ -41,7 +42,7 @@ const parsePokemonType = (apiType: string): PokemonType => {
 /**
  * Fetch and validate JSON from a URL using a Zod schema.
  */
-async function fetchAndValidate<T> (url: string, schema: z.ZodType<T>): Promise<T> {
+async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Failed to fetch from ${url}: ${response.statusText}`)
   const data = await response.json()
@@ -53,9 +54,9 @@ async function fetchAndValidate<T> (url: string, schema: z.ZodType<T>): Promise<
 /**
  * Helper to get the best English description from effect_entries or flavor_text_entries.
  */
-function getBestEnglishDescription (apiObj: MoveApiResponse | AbilityApiResponse): string {
+function getBestEnglishDescription(apiObj: MoveApiResponse | AbilityApiResponse): string {
   // Prefer effect_entries in English
-  const effectEntry = apiObj.effect_entries?.find(e => e.language.name === 'en')
+  const effectEntry = apiObj.effect_entries?.find((e) => e.language.name === 'en')
   if (effectEntry?.effect) return effectEntry.effect
 
   // Fallback to latest English flavor_text_entry using Zod schema, but only keep the latest
@@ -80,18 +81,20 @@ function getBestEnglishDescription (apiObj: MoveApiResponse | AbilityApiResponse
 /**
  * Fetches all details for a Pokémon, including moves and abilities.
  */
-async function getPokemonDetails (pokemon: UIPokemonData) {
+async function getPokemonDetails(pokemon: UIPokemonData) {
   const { data } = pokemon
   const pokeData = await fetchAndValidate(
-        `https://pokeapi.co/api/v2/pokemon/${data.speciesId}`,
-        PokemonApiResponseSchema,
+    `https://pokeapi.co/api/v2/pokemon/${data.speciesId}`,
+    PokemonApiResponseSchema,
   )
   const moveSources = [data.moves.move1, data.moves.move2, data.moves.move3, data.moves.move4]
   const moveResults = await Promise.all(
-    moveSources.map(move =>
+    moveSources.map((move) =>
       move.id === 0
         ? null
-        : fetchAndValidate<MoveApiResponse>(`https://pokeapi.co/api/v2/move/${move.id}`, MoveApiResponseSchema).catch(() => null),
+        : fetchAndValidate<MoveApiResponse>(`https://pokeapi.co/api/v2/move/${move.id}`, MoveApiResponseSchema).catch(
+          () => null,
+        )
     ),
   )
   const abilityEntries = pokeData.abilities
@@ -115,7 +118,7 @@ async function getPokemonDetails (pokemon: UIPokemonData) {
   const types = pokeData.types.map((t) => parsePokemonType(t.type.name))
   // Extract base stats in correct order
   const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense']
-    .map(stat => pokeData.stats.find(s => s.stat.name === stat)?.base_stat ?? 0)
+    .map((stat) => pokeData.stats.find((s) => s.stat.name === stat)?.base_stat ?? 0)
   const moves: MoveWithDetails[] = moveSources.map((move, i) => {
     if (move.id === 0) {
       return { ...NO_MOVE }
@@ -166,7 +169,7 @@ export const usePokemonData = () => {
   } = usePokemonStore()
 
   // Get save file state
-  const saveData = useSaveFileStore(state => state.saveData)
+  const saveData = useSaveFileStore((state) => state.saveData)
   const saveFileParser = useSaveFileStore()
 
   const queryClient = useQueryClient()
@@ -204,12 +207,8 @@ export const usePokemonData = () => {
   // Update partyList with detailed data
   useEffect(() => {
     if (!detailedData || activePokemonId < 0) return
-    usePokemonStore.setState(prevState => ({
-      partyList: prevState.partyList.map(p =>
-        p.id === activePokemonId
-          ? { ...p, details: detailedData }
-          : p,
-      ),
+    usePokemonStore.setState((prevState) => ({
+      partyList: prevState.partyList.map((p) => p.id === activePokemonId ? { ...p, details: detailedData } : p),
     }))
   }, [detailedData, activePokemonId])
 

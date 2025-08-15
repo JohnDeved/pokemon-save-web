@@ -19,20 +19,22 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
   const emptySlots = Array.from({ length: Math.max(0, config.maxPartySize - partyList.length) })
 
   return (
-    <section className="flex flex-col gap-4">
-      {partyList.map(pokemon => (
+    <section className='flex flex-col gap-4'>
+      {partyList.map((pokemon) => (
         <div
           key={pokemon.id}
-          onClick={() => { if (!isRenaming) setActivePokemonId(pokemon.id) }}
-          onMouseEnter={() => { if (onPokemonHover) onPokemonHover(pokemon.id) }} // Preload on hover
-          className="cursor-pointer group"
+          onClick={() => {
+            if (!isRenaming) setActivePokemonId(pokemon.id)
+          }}
+          onMouseEnter={() => {
+            if (onPokemonHover) onPokemonHover(pokemon.id)
+          }} // Preload on hover
+          className='cursor-pointer group'
         >
-          <PokemonStatus pokemon={pokemon} isActive={pokemon.id === activePokemonId}/>
+          <PokemonStatus pokemon={pokemon} isActive={pokemon.id === activePokemonId} />
         </div>
       ))}
-      {emptySlots.map((_, index) => (
-        <PokemonStatusPlaceholder key={`placeholder-${index}`}/>
-      ))}
+      {emptySlots.map((_, index) => <PokemonStatusPlaceholder key={`placeholder-${index}`} />)}
     </section>
   )
 }

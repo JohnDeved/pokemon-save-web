@@ -13,7 +13,4 @@
  */
 
 export { MgbaWebSocketClient } from './websocket-client'
-export type {
-  MemoryChangeListener,
-  SimpleMessage,
-} from './types'
+export type { MemoryChangeListener, SimpleMessage } from './types'

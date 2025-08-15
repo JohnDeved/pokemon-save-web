@@ -31,11 +31,17 @@ describe('Value Isolation Tests', () => {
       // Load test save files
       const quetzalPath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const quetzalBuffer = readFileSync(quetzalPath)
-      quetzalSaveData = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
+      quetzalSaveData = quetzalBuffer.buffer.slice(
+        quetzalBuffer.byteOffset,
+        quetzalBuffer.byteOffset + quetzalBuffer.byteLength,
+      )
 
       const vanillaPath = resolve(__dirname, 'test_data', 'emerald.sav')
       const vanillaBuffer = readFileSync(vanillaPath)
-      vanillaSaveData = vanillaBuffer.buffer.slice(vanillaBuffer.byteOffset, vanillaBuffer.byteOffset + vanillaBuffer.byteLength)
+      vanillaSaveData = vanillaBuffer.buffer.slice(
+        vanillaBuffer.byteOffset,
+        vanillaBuffer.byteOffset + vanillaBuffer.byteLength,
+      )
     } catch (error) {
       console.warn('Could not load test data files:', error)
     }
@@ -296,7 +302,7 @@ describe('Value Isolation Tests', () => {
 
       if (parsedData.party_pokemon.length > 1) {
         // Capture initial states of all Pokemon
-        const initialStates = parsedData.party_pokemon.map(p => ({
+        const initialStates = parsedData.party_pokemon.map((p) => ({
           evs: [...p.evs],
           ivs: [...p.ivs],
           speciesId: p.speciesId,
@@ -521,7 +527,7 @@ describe('Value Isolation Tests', () => {
 
       if (parsedData.party_pokemon.length > 1) {
         // Capture initial states of all Pokemon
-        const initialStates = parsedData.party_pokemon.map(p => ({
+        const initialStates = parsedData.party_pokemon.map((p) => ({
           personality: p.personality,
           nature: p.nature,
           natureRaw: p.natureRaw,

@@ -2,7 +2,7 @@
  * Tests for WebSocket watch functionality to prevent regressions
  */
 
-import { describe, test, expect, beforeEach, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { MgbaWebSocketClient } from '../../mgba/websocket-client'
 
 describe('WebSocket Watch Mode Regression Tests', () => {
@@ -144,7 +144,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     // The watch message should use decimal addresses (what server expects)
     const expectedMessage = 'watch\n33703145,7\n33703148,600'
 
-    const regionLines = regions.map(r => `${r.address},${r.size}`)
+    const regionLines = regions.map((r) => `${r.address},${r.size}`)
     const actualMessage = ['watch', ...regionLines].join('\n')
 
     expect(actualMessage).toBe(expectedMessage)

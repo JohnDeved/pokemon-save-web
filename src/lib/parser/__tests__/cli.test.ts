@@ -4,10 +4,10 @@
  */
 
 import { execSync } from 'child_process'
-import { writeFileSync, mkdirSync, rmSync } from 'fs'
+import { mkdirSync, rmSync, writeFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { beforeAll, afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
@@ -42,7 +42,7 @@ describe('Parser CLI Tests', () => {
       try {
         execSync(`tsx "${cliPath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: unknown) {
-        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        const execError = error as Error & { stderr?: string; stdout?: string; status?: number }
         const output = execError.stderr ?? execError.stdout
         expect(output).toContain('Usage: tsx cli.ts [savefile.sav] [options]')
         expect(output).toContain('--debug')
@@ -61,7 +61,7 @@ describe('Parser CLI Tests', () => {
       try {
         execSync(`tsx "${cliPath}" nonexistent.sav`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: unknown) {
-        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        const execError = error as Error & { stderr?: string; stdout?: string; status?: number }
         const output = execError.stderr ?? execError.stdout
         expect(output).toContain('Usage: tsx cli.ts [savefile.sav] [options]')
         expect(execError.status).toBe(1)
@@ -120,7 +120,7 @@ describe('Parser CLI Tests', () => {
       try {
         execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: unknown) {
-        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        const execError = error as Error & { stderr?: string; stdout?: string; status?: number }
         expect(execError.stderr ?? execError.stdout).toContain('❌ Failed to parse save data:')
         expect(execError.status).toBe(1)
       }

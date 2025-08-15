@@ -5,7 +5,7 @@
 
 import WebSocket from 'isomorphic-ws'
 import { WebSocketResponseSchema } from './types'
-import type { SimpleMessage, MemoryChangeListener, WebSocketResponse, WebSocketEvalResult } from './types'
+import type { MemoryChangeListener, SimpleMessage, WebSocketEvalResult, WebSocketResponse } from './types'
 
 // Re-export types for consumers
 export type { MemoryChangeListener } from './types'
@@ -15,7 +15,7 @@ export class MgbaWebSocketClient {
   private connected = false
 
   // Memory watching
-  private watchedRegions: Array<{ address: number, size: number }> = []
+  private watchedRegions: Array<{ address: number; size: number }> = []
   private readonly memoryChangeListeners: MemoryChangeListener[] = []
   private watchingMemory = false
 
@@ -25,12 +25,12 @@ export class MgbaWebSocketClient {
   // Eval request handling
   private readonly pendingEvalHandlers: Array<(message: SimpleMessage) => boolean> = []
 
-  constructor (private readonly url = 'ws://localhost:7102/ws') {}
+  constructor(private readonly url = 'ws://localhost:7102/ws') {}
 
   /**
    * Connect to WebSocket server
    */
-  async connect (): Promise<void> {
+  async connect(): Promise<void> {
     if (this.connected) return
 
     return new Promise((resolve, reject) => {
@@ -65,7 +65,7 @@ export class MgbaWebSocketClient {
   /**
    * Handle incoming WebSocket messages
    */
-  private handleMessage (data: string): void {
+  private handleMessage(data: string): void {
     // The original server sends a welcome message first, then JSON responses
     if (data.startsWith('Welcome to WebSocket')) {
       return // Ignore welcome message
@@ -82,7 +82,7 @@ export class MgbaWebSocketClient {
   /**
    * Handle JSON responses from original server format
    */
-  private handleOriginalJsonResponse (response: WebSocketResponse): void {
+  private handleOriginalJsonResponse(response: WebSocketResponse): void {
     if (response.command === 'watch') {
       this.handleWatchResponse(response)
     } else if ('result' in response) {
@@ -103,7 +103,7 @@ export class MgbaWebSocketClient {
   /**
    * Handle watch response messages
    */
-  private handleWatchResponse (response: WebSocketResponse): void {
+  private handleWatchResponse(response: WebSocketResponse): void {
     if (response.status === 'update' && response.updates) {
       // Handle memory updates
       for (const update of response.updates) {
@@ -127,9 +127,9 @@ export class MgbaWebSocketClient {
   /**
    * Handle eval response messages
    */
-  private handleEvalResponse (message: SimpleMessage): void {
+  private handleEvalResponse(message: SimpleMessage): void {
     // Find and remove the first handler that returns true
-    const idx = this.pendingEvalHandlers.findIndex(handler => handler(message))
+    const idx = this.pendingEvalHandlers.findIndex((handler) => handler(message))
     if (idx !== -1) {
       this.pendingEvalHandlers.splice(idx, 1)
     }
@@ -138,7 +138,7 @@ export class MgbaWebSocketClient {
   /**
    * Start watching memory regions
    */
-  async startWatching (regions: Array<{ address: number, size: number }>): Promise<void> {
+  async startWatching(regions: Array<{ address: number; size: number }>): Promise<void> {
     if (!this.connected || !this.ws) {
       throw new Error('Not connected to mGBA WebSocket server')
     }
@@ -148,7 +148,7 @@ export class MgbaWebSocketClient {
     }
 
     this.watchedRegions = [...regions]
-    const regionLines = regions.map(r => `${r.address},${r.size}`)
+    const regionLines = regions.map((r) => `${r.address},${r.size}`)
     const message = ['watch', ...regionLines].join('\n')
 
     this.ws.send(message)
@@ -158,7 +158,7 @@ export class MgbaWebSocketClient {
   /**
    * Stop watching memory regions
    */
-  async stopWatching (): Promise<void> {
+  async stopWatching(): Promise<void> {
     if (this.watchingMemory && this.ws) {
       this.ws.send('watch\n') // Send empty watch list to stop
     }
@@ -170,7 +170,7 @@ export class MgbaWebSocketClient {
   /**
    * Execute Lua code via eval
    */
-  async eval (code: string): Promise<WebSocketEvalResult> {
+  async eval(code: string): Promise<WebSocketEvalResult> {
     if (!this.connected || !this.ws) {
       throw new Error('Not connected to WebSocket server')
     }
@@ -204,7 +204,7 @@ export class MgbaWebSocketClient {
   /**
    * Read bytes from memory - uses cached data if available, otherwise eval with read8
    */
-  async readBytes (address: number, size: number): Promise<Uint8Array> {
+  async readBytes(address: number, size: number): Promise<Uint8Array> {
     // Check if we can satisfy this read from any watched memory region
     const cachedData = this.getCachedMemory(address, size)
     if (cachedData) {
@@ -239,7 +239,7 @@ export class MgbaWebSocketClient {
   /**
    * Check if we can read the requested data from cached memory regions
    */
-  private getCachedMemory (address: number, size: number): Uint8Array | null {
+  private getCachedMemory(address: number, size: number): Uint8Array | null {
     for (const [cacheKey, watchedData] of this.memoryCache.entries()) {
       const [watchedAddressStr, watchedSizeStr] = cacheKey.split('-')
       const watchedAddress = Number(watchedAddressStr)
@@ -261,7 +261,7 @@ export class MgbaWebSocketClient {
   /**
    * Write bytes to memory
    */
-  async writeBytes (address: number, data: Uint8Array): Promise<void> {
+  async writeBytes(address: number, data: Uint8Array): Promise<void> {
     const bytes = Array.from(data).join(',')
     // Convert address to hex to avoid issues with large decimal numbers in Lua
     const hexAddress = `0x${address.toString(16)}`
@@ -282,7 +282,7 @@ export class MgbaWebSocketClient {
   /**
    * Add memory change listener
    */
-  addMemoryChangeListener (listener: MemoryChangeListener): void {
+  addMemoryChangeListener(listener: MemoryChangeListener): void {
     if (this.memoryChangeListeners.length >= 100) {
       throw new Error('Maximum number of listeners reached')
     }
@@ -292,7 +292,7 @@ export class MgbaWebSocketClient {
   /**
    * Remove memory change listener
    */
-  removeMemoryChangeListener (listener: MemoryChangeListener): void {
+  removeMemoryChangeListener(listener: MemoryChangeListener): void {
     const index = this.memoryChangeListeners.indexOf(listener)
     if (index >= 0) {
       this.memoryChangeListeners.splice(index, 1)
@@ -302,21 +302,21 @@ export class MgbaWebSocketClient {
   /**
    * Check if currently watching memory
    */
-  isWatching (): boolean {
+  isWatching(): boolean {
     return this.watchingMemory
   }
 
   /**
    * Get currently watched regions
    */
-  getWatchedRegions (): Array<{ address: number, size: number }> {
+  getWatchedRegions(): Array<{ address: number; size: number }> {
     return [...this.watchedRegions]
   }
 
   /**
    * Disconnect from WebSocket
    */
-  disconnect (): void {
+  disconnect(): void {
     if (this.ws) {
       this.ws.close()
       this.ws = null
@@ -331,14 +331,14 @@ export class MgbaWebSocketClient {
   /**
    * Check if connected
    */
-  isConnected (): boolean {
+  isConnected(): boolean {
     return this.connected
   }
 
   /**
    * Get game title
    */
-  async getGameTitle (): Promise<string> {
+  async getGameTitle(): Promise<string> {
     const result = await this.eval('emu:getGameTitle()')
     if (result.error) {
       throw new Error(`Failed to get game title: ${result.error}`)

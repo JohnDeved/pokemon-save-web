@@ -2,7 +2,7 @@
  * Test suite for event-driven CLI functionality
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MemoryChangeListener } from '../../mgba/websocket-client'
 
 // Mock the MgbaWebSocketClient

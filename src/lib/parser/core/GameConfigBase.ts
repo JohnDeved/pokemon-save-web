@@ -11,7 +11,10 @@ export abstract class GameConfigBase {
   /**
    * Check if the save data has valid Emerald signature in sector footers
    */
-  protected hasValidEmeraldSignature (saveData: Uint8Array, expectedSignature: number = VANILLA_EMERALD_SIGNATURE): boolean {
+  protected hasValidEmeraldSignature(
+    saveData: Uint8Array,
+    expectedSignature: number = VANILLA_EMERALD_SIGNATURE,
+  ): boolean {
     try {
       const size = saveData.length
       if (size < 131072 || size > 131200) {
@@ -41,7 +44,11 @@ export abstract class GameConfigBase {
   /**
    * Build a map of sector IDs to their physical indices
    */
-  protected buildSectorMap (saveData: Uint8Array, activeSlot: number, expectedSignature: number = VANILLA_EMERALD_SIGNATURE): Map<number, number> {
+  protected buildSectorMap(
+    saveData: Uint8Array,
+    activeSlot: number,
+    expectedSignature: number = VANILLA_EMERALD_SIGNATURE,
+  ): Map<number, number> {
     const sectorMap = new Map<number, number>()
     const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
 
@@ -63,8 +70,8 @@ export abstract class GameConfigBase {
   /**
    * Extract SaveBlock1 data from sectors
    */
-  protected extractSaveBlock1 (saveData: Uint8Array, sectorMap: Map<number, number>): Uint8Array {
-    const saveblock1Sectors = [1, 2, 3, 4].filter(id => sectorMap.has(id))
+  protected extractSaveBlock1(saveData: Uint8Array, sectorMap: Map<number, number>): Uint8Array {
+    const saveblock1Sectors = [1, 2, 3, 4].filter((id) => sectorMap.has(id))
     if (saveblock1Sectors.length === 0) {
       throw new Error('No SaveBlock1 sectors found')
     }
@@ -84,7 +91,7 @@ export abstract class GameConfigBase {
   /**
    * Helper to determine active save slot by comparing sector counters
    */
-  protected getActiveSlot (saveData: Uint8Array, expectedSignature: number = VANILLA_EMERALD_SIGNATURE): number {
+  protected getActiveSlot(saveData: Uint8Array, expectedSignature: number = VANILLA_EMERALD_SIGNATURE): number {
     const getCounterSum = (sectorIndices: number[]): number => {
       let sum = 0
       for (const sectorIndex of sectorIndices) {
@@ -111,14 +118,14 @@ export abstract class GameConfigBase {
   /**
    * Common validation helper for Pokemon data parsing
    */
-  protected validatePokemonData (data: Uint8Array, expectedSize: number): boolean {
+  protected validatePokemonData(data: Uint8Array, expectedSize: number): boolean {
     if (data.length < expectedSize) {
       return false
     }
 
     // Basic sanity check - ensure data is not all zeros or all 0xFF
-    const isAllZeros = data.every(byte => byte === 0)
-    const isAllOnes = data.every(byte => byte === 0xFF)
+    const isAllZeros = data.every((byte) => byte === 0)
+    const isAllOnes = data.every((byte) => byte === 0xFF)
 
     return !isAllZeros && !isAllOnes
   }
@@ -126,7 +133,11 @@ export abstract class GameConfigBase {
   /**
    * Common helper to parse Pokemon using config-specific detection
    */
-  protected parsePokemonForDetection (saveblock1Data: Uint8Array, pokemonSize: number, getSpeciesId: (data: Uint8Array, view: DataView) => number): number {
+  protected parsePokemonForDetection(
+    saveblock1Data: Uint8Array,
+    pokemonSize: number,
+    getSpeciesId: (data: Uint8Array, view: DataView) => number,
+  ): number {
     let pokemonFound = 0
 
     for (let slot = 0; slot < 6; slot++) {

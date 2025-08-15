@@ -76,7 +76,7 @@ const PokemonSprite: React.FC<{
   const handleError = () => setImgSrc(fallbackSrc)
 
   return (
-    <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center relative">
+    <div className='w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center relative'>
       {/* Blurred background image, not upscaled */}
       <img
         src={imgSrc}
@@ -86,7 +86,7 @@ const PokemonSprite: React.FC<{
           'max-w-[96px] max-h-[96px]',
         )}
         onError={handleError}
-        aria-hidden="true"
+        aria-hidden='true'
       />
       {/* Main sprite image, not upscaled */}
       <img
@@ -110,8 +110,8 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
   const hpColor = hpPercentage > HP_THRESHOLDS.HIGH
     ? 'from-green-400 to-emerald-500'
     : hpPercentage > HP_THRESHOLDS.LOW
-      ? 'from-yellow-400 to-amber-500'
-      : 'from-red-500 to-rose-600'
+    ? 'from-yellow-400 to-amber-500'
+    : 'from-red-500 to-rose-600'
 
   const containerClasses = isActive
     ? 'bg-slate-800/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30'
@@ -125,15 +125,18 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
         alt={pokemon.data.nickname}
         paused={!isActive}
       />
-      <div className="flex-grow">
-        <div className="flex justify-between items-center text-sm">
-          <h3 className="text-white">{pokemon.data.nickname}</h3>
-          <span className="text-slate-300">Lv.{pokemon.data.level}</span>
+      <div className='flex-grow'>
+        <div className='flex justify-between items-center text-sm'>
+          <h3 className='text-white'>{pokemon.data.nickname}</h3>
+          <span className='text-slate-300'>Lv.{pokemon.data.level}</span>
         </div>
-        <div className="w-full bg-slate-900/30 border border-slate-700 border-x-2 rounded-sm h-2.5 mt-2 overflow-hidden">
-          <div className={cn('bg-gradient-to-r h-full transition-all duration-500', hpColor)} style={{ width: `${hpPercentage}%` }}/>
+        <div className='w-full bg-slate-900/30 border border-slate-700 border-x-2 rounded-sm h-2.5 mt-2 overflow-hidden'>
+          <div
+            className={cn('bg-gradient-to-r h-full transition-all duration-500', hpColor)}
+            style={{ width: `${hpPercentage}%` }}
+          />
         </div>
-        <p className="text-right text-xs mt-1 text-slate-400">{pokemon.data.currentHp}/{pokemon.data.maxHp}</p>
+        <p className='text-right text-xs mt-1 text-slate-400'>{pokemon.data.currentHp}/{pokemon.data.maxHp}</p>
       </div>
     </Card>
   )

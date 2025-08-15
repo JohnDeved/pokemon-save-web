@@ -15,7 +15,7 @@ for (const [key, value] of Object.entries(charmapData)) {
 /**
  * Get sprite URL for a Pokemon item
  */
-export function getItemSpriteUrl (itemIdName: string): string {
+export function getItemSpriteUrl(itemIdName: string): string {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${itemIdName}.png`
 }
 
@@ -24,7 +24,7 @@ export function getItemSpriteUrl (itemIdName: string): string {
  * Uses the external charmap.json for accurate character conversion
  * See: https://bulbapedia.bulbagarden.net/wiki/Character_encoding_in_Generation_III
  */
-export function bytesToGbaString (bytes: Uint8Array): string {
+export function bytesToGbaString(bytes: Uint8Array): string {
   let result = ''
   const endIndex = findStringEnd(bytes)
 
@@ -45,7 +45,7 @@ export function bytesToGbaString (bytes: Uint8Array): string {
 /**
  * Find the actual end of a Pokemon GBA string by detecting padding patterns
  */
-function findStringEnd (bytes: Uint8Array): number {
+function findStringEnd(bytes: Uint8Array): number {
   // Check for trailing 0xFF padding (more than 2 suggests padding)
   let trailingFFs = 0
   for (let i = bytes.length - 1; i >= 0 && bytes[i] === 0xFF; i--) {
@@ -78,7 +78,7 @@ function findStringEnd (bytes: Uint8Array): number {
  * @param length The fixed length of the output array (default 10)
  * @returns Uint8Array of encoded bytes
  */
-export function gbaStringToBytes (str: string, length = 10): Uint8Array {
+export function gbaStringToBytes(str: string, length = 10): Uint8Array {
   // Build a reverse charmap: char -> byte
   const reverseCharmap: Record<string, number> = {}
   for (const [key, value] of Object.entries(charmap)) {
@@ -103,31 +103,56 @@ export function gbaStringToBytes (str: string, length = 10): Uint8Array {
 /**
  * Format play time as a human-readable string
  */
-export function formatPlayTime (hours: number, minutes: number, seconds: number): string {
+export function formatPlayTime(hours: number, minutes: number, seconds: number): string {
   return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 }
 
 export const statStrings: string[] = [
-  'HP', 'Attack', 'Defense', 'Speed', 'Special Attack', 'Special Defense',
+  'HP',
+  'Attack',
+  'Defense',
+  'Speed',
+  'Special Attack',
+  'Special Defense',
 ]
 
 export const natures = [
-  'Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty',
-  'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax',
-  'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive',
-  'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash',
-  'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky',
+  'Hardy',
+  'Lonely',
+  'Brave',
+  'Adamant',
+  'Naughty',
+  'Bold',
+  'Docile',
+  'Relaxed',
+  'Impish',
+  'Lax',
+  'Timid',
+  'Hasty',
+  'Serious',
+  'Jolly',
+  'Naive',
+  'Modest',
+  'Mild',
+  'Quiet',
+  'Bashful',
+  'Rash',
+  'Calm',
+  'Gentle',
+  'Sassy',
+  'Careful',
+  'Quirky',
 ]
 /**
  * Get Pokemon nature from the first byte of the personality value
  * Pokemon nature is determined by (personality & 0xFF) % 25
  */
-export function getPokemonNature (personality: number): string {
+export function getPokemonNature(personality: number): string {
   // Gen 3 standard formula: full personality value modulo 25
   return natures[personality % 25]!
 }
 
-export function setPokemonNature (pokemon: PokemonBase, nature: string): void {
+export function setPokemonNature(pokemon: PokemonBase, nature: string): void {
   // Find the index of the nature in the natures array
   const natureIndex = natures.indexOf(nature)
   if (natureIndex === -1) {
@@ -138,7 +163,7 @@ export function setPokemonNature (pokemon: PokemonBase, nature: string): void {
   pokemon.setNatureRaw(natureIndex)
 }
 
-export const natureEffects: Record<string, { increased: number, decreased: number }> = {
+export const natureEffects: Record<string, { increased: number; decreased: number }> = {
   Lonely: { increased: 1, decreased: 2 },
   Brave: { increased: 1, decreased: 3 },
   Adamant: { increased: 1, decreased: 4 },
@@ -166,7 +191,7 @@ export const natureEffects: Record<string, { increased: number, decreased: numbe
  * @param statIndex The index of the stat (0: HP, 1: Atk, 2: Def, 3: Spe, 4: SpA, 5: SpD)
  * @returns The stat modifier (1.1, 0.9, or 1.0)
  */
-export function getNatureModifier (nature: string, statIndex: number): number {
+export function getNatureModifier(nature: string, statIndex: number): number {
   const effect = natureEffects[nature]
   if (typeof effect !== 'undefined') {
     if (statIndex === effect.increased) return 1.1
@@ -181,7 +206,7 @@ export function getNatureModifier (nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats (pokemon: PokemonBase, baseStats: readonly number[]): readonly number[] {
+export function calculateTotalStats(pokemon: PokemonBase, baseStats: readonly number[]): readonly number[] {
   // Extract properties with type guards for safety
   const level = Number(pokemon.level)
   const nature = String(pokemon.nature)
@@ -207,7 +232,7 @@ export function calculateTotalStats (pokemon: PokemonBase, baseStats: readonly n
  * @param nature Nature string
  * @returns Array of calculated total stats
  */
-export function calculateTotalStatsDirect (
+export function calculateTotalStatsDirect(
   baseStats: readonly number[],
   ivs: readonly number[],
   evs: readonly number[],
@@ -243,7 +268,7 @@ export function calculateTotalStatsDirect (
  * @param saveblock1Size Expected size of SaveBlock1
  * @param maxPartySize Maximum party size
  */
-export function updatePartyInSaveblock1 (
+export function updatePartyInSaveblock1(
   saveblock1: Uint8Array,
   party: readonly PokemonBase[],
   partyStartOffset: number,
@@ -287,7 +312,7 @@ export interface BaseMappingItem {
  * @param mapData - Raw JSON mapping data
  * @returns Map with numeric keys and validated mapping objects
  */
-export function createMapping<T extends BaseMappingItem> (
+export function createMapping<T extends BaseMappingItem>(
   mapData: Record<string, unknown>,
 ): Map<number, T> {
   return new Map<number, T>(
@@ -302,7 +327,7 @@ export function createMapping<T extends BaseMappingItem> (
  * @param mappingData - Object containing different mapping data sets
  * @returns Object with the same keys but containing Map instances
  */
-export function createMappings<T extends Record<string, Record<string, unknown>>> (
+export function createMappings<T extends Record<string, Record<string, unknown>>>(
   mappingData: T,
 ): { [K in keyof T]: Map<number, BaseMappingItem> } {
   const result: { [K in keyof T]: Map<number, BaseMappingItem> } = Object.create(null)

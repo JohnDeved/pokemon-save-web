@@ -14,7 +14,7 @@ const BASE_URLS = [
 
 const CONCURRENCY = 8
 
-function renderProgressBar (completed: number, total: number, label = '') {
+function renderProgressBar(completed: number, total: number, label = '') {
   const barLength = 30
   const percent = completed / total
   const filled = Math.round(barLength * percent)
@@ -22,7 +22,11 @@ function renderProgressBar (completed: number, total: number, label = '') {
   process.stdout.write(`\r${label}[${bar}] ${completed}/${total} (${(percent * 100).toFixed(1)}%)`)
 }
 
-async function downloadSprite (url: string, destDir: string, progress: { completed: number, total: number, label: string }) {
+async function downloadSprite(
+  url: string,
+  destDir: string,
+  progress: { completed: number; total: number; label: string },
+) {
   const filename = url.split('/').pop()
   if (!filename) return
   const dest = path.join(destDir, filename)
@@ -36,11 +40,11 @@ async function downloadSprite (url: string, destDir: string, progress: { complet
   renderProgressBar(progress.completed, progress.total, progress.label)
 }
 
-async function runParallelDownloads (urls: string[], destDir: string, label: string) {
+async function runParallelDownloads(urls: string[], destDir: string, label: string) {
   let i = 0
   const progress = { completed: 0, total: urls.length, label }
   renderProgressBar(0, urls.length, label)
-  async function next () {
+  async function next() {
     if (i >= urls.length) return
     const url = urls[i++]!
     await downloadSprite(url, destDir, progress)
@@ -61,6 +65,6 @@ for (const { url: baseUrl, folder } of BASE_URLS) {
     .map((_, el) => $(el).attr('href'))
     .get()
     .filter((href): href is string => typeof href === 'string' && !href.endsWith('/'))
-    .map(href => baseUrl + href)
+    .map((href) => baseUrl + href)
   await runParallelDownloads(urls, destDir, folder)
 }

@@ -36,13 +36,13 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
     partyData: 0x20244ec,
     partyCount: 0x20244e9,
     enemyParty: 0x2024744,
-    get enemyPartyCount () {
+    get enemyPartyCount() {
       return this.partyCount + 0x8
     },
     // TODO: Add player name and play time addresses when implemented
   } as const
 
-  get preloadRegions () {
+  get preloadRegions() {
     return [
       {
         address: this.memoryAddresses.partyData,
@@ -60,7 +60,7 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
    * Check if this config can handle the given save file
    * Vanilla is the fallback, so it's permissive and can handle most Emerald-based saves
    */
-  canHandle (saveData: Uint8Array): boolean {
+  canHandle(saveData: Uint8Array): boolean {
     return this.hasValidEmeraldSignature(saveData)
   }
 
@@ -68,7 +68,7 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
    * Check if this config can handle memory parsing for the given game title
    * Supports Pokémon Emerald variants
    */
-  canHandleMemory (gameTitle: string): boolean {
+  canHandleMemory(gameTitle: string): boolean {
     return gameTitle.toUpperCase().includes('POKEMON EMER')
   }
 }

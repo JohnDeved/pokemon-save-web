@@ -22,7 +22,7 @@ describe('Pokemon Quetzal Tests', () => {
   let testSaveData: ArrayBuffer
   let groundTruth: {
     player_name: string
-    play_time: { hours: number, minutes: number, seconds: number }
+    play_time: { hours: number; minutes: number; seconds: number }
     active_slot: number
     sector_map: Record<string, number>
     party_pokemon: Array<Record<string, unknown>>
@@ -70,7 +70,9 @@ describe('Pokemon Quetzal Tests', () => {
       // Load vanilla test data for comparison
       const vanillaPath = resolve(__dirname, 'test_data', 'emerald.sav')
       const vanillaBuffer = readFileSync(vanillaPath)
-      const vanillaData = new Uint8Array(vanillaBuffer.buffer.slice(vanillaBuffer.byteOffset, vanillaBuffer.byteOffset + vanillaBuffer.byteLength))
+      const vanillaData = new Uint8Array(
+        vanillaBuffer.buffer.slice(vanillaBuffer.byteOffset, vanillaBuffer.byteOffset + vanillaBuffer.byteLength),
+      )
 
       const vanillaConfig = new VanillaConfig()
       const quetzalConfig = new QuetzalConfig()
@@ -86,7 +88,10 @@ describe('Pokemon Quetzal Tests', () => {
       expect(quetzalResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon
 
       const vanillaParser = new PokemonSaveParser()
-      const vanillaArrayBuffer = vanillaBuffer.buffer.slice(vanillaBuffer.byteOffset, vanillaBuffer.byteOffset + vanillaBuffer.byteLength)
+      const vanillaArrayBuffer = vanillaBuffer.buffer.slice(
+        vanillaBuffer.byteOffset,
+        vanillaBuffer.byteOffset + vanillaBuffer.byteLength,
+      )
       const vanillaResult = await vanillaParser.parse(vanillaArrayBuffer)
       expect(vanillaParser.gameConfig?.name).toBe('Pokemon Emerald (Vanilla)')
       expect(vanillaResult.party_pokemon.length).toBe(1) // Vanilla has one Pokemon
@@ -133,14 +138,27 @@ describe('Pokemon Quetzal Tests', () => {
 
         // Moves
         expect([pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]).toEqual([
-          expected.move1, expected.move2, expected.move3, expected.move4,
+          expected.move1,
+          expected.move2,
+          expected.move3,
+          expected.move4,
         ])
 
         // EVs
         expect([
-          pokemon.hpEV, pokemon.atkEV, pokemon.defEV, pokemon.speEV, pokemon.spaEV, pokemon.spdEV,
+          pokemon.hpEV,
+          pokemon.atkEV,
+          pokemon.defEV,
+          pokemon.speEV,
+          pokemon.spaEV,
+          pokemon.spdEV,
         ]).toEqual([
-          expected.hpEV, expected.atkEV, expected.defEV, expected.speEV, expected.spaEV, expected.spdEV,
+          expected.hpEV,
+          expected.atkEV,
+          expected.defEV,
+          expected.speEV,
+          expected.spaEV,
+          expected.spdEV,
         ])
 
         // IVs
@@ -169,8 +187,8 @@ describe('Pokemon Quetzal Tests', () => {
       }
 
       // Check if we need to fetch any missing base stats
-      const speciesIds = Array.from(new Set(parsedData.party_pokemon.map(p => p.speciesId)))
-      const missing = speciesIds.filter(id => !baseStatsCache[id.toString()])
+      const speciesIds = Array.from(new Set(parsedData.party_pokemon.map((p) => p.speciesId)))
+      const missing = speciesIds.filter((id) => !baseStatsCache[id.toString()])
 
       if (missing.length > 0) {
         for (const speciesId of missing) {
@@ -178,10 +196,13 @@ describe('Pokemon Quetzal Tests', () => {
             const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`)
             if (!response.ok) continue
             const speciesData = await response.json()
-            const apiStats: Record<string, number> = speciesData.stats.reduce((acc: Record<string, number>, stat: { stat: { name: string }, base_stat: number }) => {
-              acc[stat.stat.name] = stat.base_stat
-              return acc
-            }, {})
+            const apiStats: Record<string, number> = speciesData.stats.reduce(
+              (acc: Record<string, number>, stat: { stat: { name: string }; base_stat: number }) => {
+                acc[stat.stat.name] = stat.base_stat
+                return acc
+              },
+              {},
+            )
             baseStatsCache[speciesId.toString()] = [
               apiStats.hp!,
               apiStats.attack!,
@@ -430,8 +451,12 @@ describe('Pokemon Quetzal Tests', () => {
       const reparsed = await parser.parse(reconstructed)
 
       // Verify the swap was preserved
-      expect(reparsed.party_pokemon[0]!.speciesId).toBe(parsed.party_pokemon[parsed.party_pokemon.length - 1]!.speciesId)
-      expect(reparsed.party_pokemon[reparsed.party_pokemon.length - 1]!.speciesId).toBe(parsed.party_pokemon[0]!.speciesId)
+      expect(reparsed.party_pokemon[0]!.speciesId).toBe(
+        parsed.party_pokemon[parsed.party_pokemon.length - 1]!.speciesId,
+      )
+      expect(reparsed.party_pokemon[reparsed.party_pokemon.length - 1]!.speciesId).toBe(
+        parsed.party_pokemon[0]!.speciesId,
+      )
     })
 
     it('should maintain data integrity when modifying Pokemon stats and EVs/IVs', async () => {
@@ -506,12 +531,12 @@ describe('Pokemon Quetzal Tests', () => {
         expect(pokemon.otId_str).toMatch(/^[0-9]{5}$/)
 
         // Verify valid ranges
-        pokemon.evs.forEach(ev => {
+        pokemon.evs.forEach((ev) => {
           expect(ev).toBeGreaterThanOrEqual(0)
           expect(ev).toBeLessThanOrEqual(255)
         })
 
-        pokemon.ivs.forEach(iv => {
+        pokemon.ivs.forEach((iv) => {
           expect(iv).toBeGreaterThanOrEqual(0)
           expect(iv).toBeLessThanOrEqual(31)
         })

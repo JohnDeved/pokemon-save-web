@@ -3,12 +3,7 @@
  * TypeScript port of pokemon_save_parser.py with modern browser-compatible features
  */
 
-import type {
-  GameConfig,
-  PlayTimeData,
-  SaveData,
-  SectorInfo,
-} from './types'
+import type { GameConfig, PlayTimeData, SaveData, SectorInfo } from './types'
 
 import { MgbaWebSocketClient } from '../../mgba/websocket-client'
 import { GameConfigRegistry } from '../games'
@@ -21,7 +16,7 @@ import charMap from '../data/pokemon_charmap.json'
 /**
  * Decode Pokemon character-encoded text to string
  */
-function decodePokemonText (bytes: Uint8Array): string {
+function decodePokemonText(bytes: Uint8Array): string {
   const result: string[] = []
 
   for (const byte of bytes) {
@@ -61,7 +56,7 @@ export class PokemonSaveParser {
   private watchingChanges = false
   private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
 
-  constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
+  constructor(forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot
     this.config = gameConfig ?? null
   }
@@ -70,7 +65,7 @@ export class PokemonSaveParser {
    * Load input data from a File, ArrayBuffer, or WebSocket connection
    * When WebSocket is provided, switches to memory mode
    */
-  async loadInputData (input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<void> {
+  async loadInputData(input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<void> {
     try {
       // Always clear sectorMap before loading new data to avoid stale state
       this.sectorMap.clear()
@@ -104,8 +99,12 @@ export class PokemonSaveParser {
           // Fallback for test environments where File might not have arrayBuffer method
           const reader = new FileReader()
           buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-            reader.onload = () => { resolve(reader.result as ArrayBuffer) }
-            reader.onerror = () => { reject(reader.error) }
+            reader.onload = () => {
+              resolve(reader.result as ArrayBuffer)
+            }
+            reader.onerror = () => {
+              reject(reader.error)
+            }
             reader.readAsArrayBuffer(input as File)
           })
         }
@@ -130,7 +129,7 @@ export class PokemonSaveParser {
   /**
    * Initialize memory mode with WebSocket client and auto-detect config
    */
-  private async initializeMemoryMode (client: MgbaWebSocketClient): Promise<void> {
+  private async initializeMemoryMode(client: MgbaWebSocketClient): Promise<void> {
     this.webSocketClient = client
     this.isMemoryMode = true
 
@@ -163,7 +162,7 @@ export class PokemonSaveParser {
   /**
    * Get information about a specific sector
    */
-  private getSectorInfo (sectorIndex: number): SectorInfo {
+  private getSectorInfo(sectorIndex: number): SectorInfo {
     if (!this.saveData || !this.config) {
       throw new Error('Save data and config not loaded')
     }
@@ -205,7 +204,7 @@ export class PokemonSaveParser {
   /**
    * Determine which save slot is active based on sector counters
    */
-  private determineActiveSlot (): void {
+  private determineActiveSlot(): void {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -216,8 +215,8 @@ export class PokemonSaveParser {
     }
 
     const getCounterSum = (range: number[]): number => {
-      const infos = range.map(i => this.getSectorInfo(i))
-      const validInfos = infos.filter(info => info.valid)
+      const infos = range.map((i) => this.getSectorInfo(i))
+      const validInfos = infos.filter((info) => info.valid)
       const sum = validInfos.reduce((sum, info) => sum + info.counter, 0)
       return sum
     }
@@ -229,7 +228,7 @@ export class PokemonSaveParser {
   /**
    * Default vanilla Emerald slot determination logic
    */
-  private getDefaultActiveSlot (getCounterSum: (range: number[]) => number): number {
+  private getDefaultActiveSlot(getCounterSum: (range: number[]) => number): number {
     // Slot 1: sectors 0-13 (14 sectors)
     // Slot 2: sectors 14-31 (18 sectors)
     const slot1Range = Array.from({ length: 14 }, (_, i) => i)
@@ -243,7 +242,7 @@ export class PokemonSaveParser {
   /**
    * Build a mapping of sector IDs to physical sector indices
    */
-  private buildSectorMap (): void {
+  private buildSectorMap(): void {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -251,9 +250,7 @@ export class PokemonSaveParser {
     this.sectorMap.clear()
 
     const sectorRange = this.forcedSlot !== undefined
-      ? (this.forcedSlot === 1
-          ? Array.from({ length: 18 }, (_, i) => i)
-          : Array.from({ length: 18 }, (_, i) => i + 14))
+      ? (this.forcedSlot === 1 ? Array.from({ length: 18 }, (_, i) => i) : Array.from({ length: 18 }, (_, i) => i + 14))
       : Array.from({ length: 18 }, (_, i) => i + this.activeSlotStart)
 
     for (const i of sectorRange) {
@@ -267,11 +264,11 @@ export class PokemonSaveParser {
   /**
    * Extract SaveBlock1 data from sectors 1-4
    */
-  private extractSaveblock1 (): Uint8Array {
+  private extractSaveblock1(): Uint8Array {
     if (!this.saveData || !this.config) {
       throw new Error('Save data and config not loaded')
     }
-    const saveblock1Sectors = [1, 2, 3, 4].filter(id => this.sectorMap.has(id))
+    const saveblock1Sectors = [1, 2, 3, 4].filter((id) => this.sectorMap.has(id))
     if (saveblock1Sectors.length === 0) {
       // Instead of throwing, return a zero-filled buffer to allow parsing to continue gracefully
       return new Uint8Array(this.config.saveLayout.saveBlockSize)
@@ -297,7 +294,7 @@ export class PokemonSaveParser {
   /**
    * Extract SaveBlock2 data from sector 0
    */
-  private extractSaveblock2 (): Uint8Array {
+  private extractSaveblock2(): Uint8Array {
     if (!this.saveData || !this.config) {
       throw new Error('Save data and config not loaded')
     }
@@ -314,7 +311,7 @@ export class PokemonSaveParser {
   /**
    * Parse party Pokemon from SaveBlock1 data or memory
    */
-  private async parsePartyPokemon (saveblock1Data?: Uint8Array): Promise<PokemonBase[]> {
+  private async parsePartyPokemon(saveblock1Data?: Uint8Array): Promise<PokemonBase[]> {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -336,7 +333,10 @@ export class PokemonSaveParser {
       }
 
       // Get party data from WebSocket cache (read all at once for efficiency)
-      const partyDataBuffer = await this.webSocketClient.readBytes(memoryAddresses.partyData, maxPartySize * this.config.pokemonSize)
+      const partyDataBuffer = await this.webSocketClient.readBytes(
+        memoryAddresses.partyData,
+        maxPartySize * this.config.pokemonSize,
+      )
 
       const pokemon: PokemonBase[] = []
 
@@ -389,7 +389,7 @@ export class PokemonSaveParser {
   /**
    * Parse player name from SaveBlock2 data
    */
-  private parsePlayerName (saveblock2Data: Uint8Array): string {
+  private parsePlayerName(saveblock2Data: Uint8Array): string {
     const playerNameBytes = saveblock2Data.slice(0, 8)
     return decodePokemonText(playerNameBytes)
   }
@@ -397,7 +397,7 @@ export class PokemonSaveParser {
   /**
    * Parse play time from SaveBlock2 data
    */
-  private parsePlayTime (saveblock2Data: Uint8Array): PlayTimeData {
+  private parsePlayTime(saveblock2Data: Uint8Array): PlayTimeData {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -414,7 +414,7 @@ export class PokemonSaveParser {
   /**
    * Calculate checksum for a sector's data
    */
-  private calculateSectorChecksum (sectorData: Uint8Array): number {
+  private calculateSectorChecksum(sectorData: Uint8Array): number {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -446,7 +446,7 @@ export class PokemonSaveParser {
    * @param saveblock1 The original SaveBlock1 buffer
    * @param party Array of PokemonInstance (max length = config.layout.party.maxSize)
    */
-  private updatePartyInSaveblock1 (saveblock1: Uint8Array, party: readonly PokemonBase[]): Uint8Array {
+  private updatePartyInSaveblock1(saveblock1: Uint8Array, party: readonly PokemonBase[]): Uint8Array {
     if (!this.config) {
       throw new Error('Config not loaded')
     }
@@ -471,7 +471,7 @@ export class PokemonSaveParser {
    * Parse input data and return structured data
    * Supports both file and memory input via WebSocket
    */
-  async parse (input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<SaveData> {
+  async parse(input: File | ArrayBuffer | FileSystemFileHandle | MgbaWebSocketClient): Promise<SaveData> {
     await this.loadInputData(input)
 
     // Memory mode: read directly from emulator memory
@@ -512,21 +512,21 @@ export class PokemonSaveParser {
   /**
    * Get the current game configuration
    */
-  getGameConfig (): GameConfig | null {
+  getGameConfig(): GameConfig | null {
     return this.config
   }
 
   /**
    * Set the game configuration (useful for testing or manual override)
    */
-  setGameConfig (config: GameConfig): void {
+  setGameConfig(config: GameConfig): void {
     this.config = config
   }
 
   /**
    * Get the currently active game config
    */
-  get gameConfig (): GameConfig | null {
+  get gameConfig(): GameConfig | null {
     return this.config
   }
 
@@ -536,7 +536,7 @@ export class PokemonSaveParser {
    *
    * @param partyPokemon Array of PokemonInstance to update party in SaveBlock1
    */
-  reconstructSaveFile (partyPokemon: readonly PokemonBase[]): Uint8Array {
+  reconstructSaveFile(partyPokemon: readonly PokemonBase[]): Uint8Array {
     if (!this.saveData || !this.config) throw new Error('Save data and config not loaded')
 
     const baseSaveblock1 = this.extractSaveblock1()
@@ -570,14 +570,14 @@ export class PokemonSaveParser {
   /**
    * Check if parser is in memory mode
    */
-  isInMemoryMode (): boolean {
+  isInMemoryMode(): boolean {
     return this.isMemoryMode
   }
 
   /**
    * Get the WebSocket client (for memory mode)
    */
-  getWebSocketClient (): MgbaWebSocketClient | null {
+  getWebSocketClient(): MgbaWebSocketClient | null {
     return this.webSocketClient
   }
 
@@ -586,7 +586,7 @@ export class PokemonSaveParser {
    * This will automatically set up memory watching for the party data regions
    * and call the provided callback when changes are detected
    */
-  async watch (options: {
+  async watch(options: {
     onPartyChange?: (partyPokemon: PokemonBase[]) => void
     onError?: (error: Error) => void
   } = {}): Promise<void> {
@@ -636,7 +636,7 @@ export class PokemonSaveParser {
   /**
    * Handle memory changes from WebSocket (simplified without buffer management)
    */
-  private async handleMemoryChange (address: number, _size: number, _data: Uint8Array): Promise<void> {
+  private async handleMemoryChange(address: number, _size: number, _data: Uint8Array): Promise<void> {
     if (!this.webSocketClient || !this.config?.memoryAddresses) return
 
     try {
@@ -678,7 +678,7 @@ export class PokemonSaveParser {
   /**
    * Check if we have required memory data by attempting to read from WebSocket cache
    */
-  private async hasMemoryData (): Promise<boolean> {
+  private async hasMemoryData(): Promise<boolean> {
     if (!this.config?.memoryAddresses || !this.webSocketClient) return false
 
     const { partyData, partyCount } = this.config.memoryAddresses
@@ -695,7 +695,7 @@ export class PokemonSaveParser {
   /**
    * Stop watching for memory changes
    */
-  async stopWatching (): Promise<void> {
+  async stopWatching(): Promise<void> {
     if (!this.webSocketClient) {
       return
     }
@@ -712,7 +712,7 @@ export class PokemonSaveParser {
   /**
    * Check if currently watching for changes
    */
-  isWatching (): boolean {
+  isWatching(): boolean {
     return this.watchingChanges
   }
 
@@ -720,7 +720,7 @@ export class PokemonSaveParser {
    * Get current save data without re-initializing WebSocket connection
    * Useful for getting data after memory mode initialization but before watch setup
    */
-  async getCurrentSaveData (): Promise<SaveData> {
+  async getCurrentSaveData(): Promise<SaveData> {
     if (!this.isMemoryMode || !this.webSocketClient) {
       throw new Error('getCurrentSaveData only available in memory mode')
     }

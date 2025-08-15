@@ -17,13 +17,9 @@ const Slider = ({
   maxVisualValue?: number
 }) => {
   const sliderRef = React.useRef<HTMLDivElement>(null)
-  const _values = Array.isArray(value)
-    ? value
-    : Array.isArray(defaultValue)
-      ? defaultValue
-      : [min, max]
+  const _values = Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max]
 
-  function handleWheel (e: WheelEvent) {
+  function handleWheel(e: WheelEvent) {
     if (typeof value === 'undefined' || !Array.isArray(value)) return
     if (props.disabled) return
     e.preventDefault()
@@ -51,16 +47,14 @@ const Slider = ({
     : 100
 
   // Clamp controlled value to maxVisualValue
-  const clampedValue = !Array.isArray(value)
-    ? value
-    : value.map(v => {
-      const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max
-      return Math.max(min, Math.min(upperLimit, v))
-    })
+  const clampedValue = !Array.isArray(value) ? value : value.map((v) => {
+    const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max
+    return Math.max(min, Math.min(upperLimit, v))
+  })
 
   return (
     <SliderPrimitive.Root
-      data-slot="slider"
+      data-slot='slider'
       defaultValue={defaultValue}
       value={clampedValue}
       min={min}
@@ -73,7 +67,7 @@ const Slider = ({
       {...props}
     >
       <SliderPrimitive.Track
-        data-slot="slider-track"
+        data-slot='slider-track'
         className={cn(
           'bg-muted relative grow overflow-hidden rounded-full cursor-pointer data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5',
         )}
@@ -89,7 +83,7 @@ const Slider = ({
           />
         )}
         <SliderPrimitive.Range
-          data-slot="slider-range"
+          data-slot='slider-range'
           className={cn(
             'bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full',
           )}
@@ -97,7 +91,7 @@ const Slider = ({
       </SliderPrimitive.Track>
       {Array.from({ length: _values.length }, (_, index) => (
         <SliderPrimitive.Thumb
-          data-slot="slider-thumb"
+          data-slot='slider-thumb'
           key={index}
           className={cn(
             'border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow,opacity] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 cursor-pointer',

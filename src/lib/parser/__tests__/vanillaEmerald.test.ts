@@ -21,7 +21,7 @@ describe('Vanilla Emerald Save Parser', () => {
   let testSaveData: ArrayBuffer
   let groundTruth: {
     player_name: string
-    play_time: { hours: number, minutes: number }
+    play_time: { hours: number; minutes: number }
     party_pokemon: Array<{
       nickname: string
       otName: string
@@ -37,8 +37,8 @@ describe('Vanilla Emerald Save Parser', () => {
       displayOtId: string
       displayNature: string
       moves: {
-        move1: { name: string, pp: number }
-        move2: { name: string, pp: number }
+        move1: { name: string; pp: number }
+        move2: { name: string; pp: number }
       }
     }>
   }
@@ -87,7 +87,9 @@ describe('Vanilla Emerald Save Parser', () => {
       // Load Quetzal test data and verify it's detected as Quetzal, not Vanilla
       const quetzalPath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const quetzalBuffer = readFileSync(quetzalPath)
-      const quetzalData = new Uint8Array(quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength))
+      const quetzalData = new Uint8Array(
+        quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength),
+      )
 
       const vanillaConfig = new VanillaConfig()
       const quetzalConfig = new QuetzalConfig()
@@ -99,7 +101,10 @@ describe('Vanilla Emerald Save Parser', () => {
 
       // Auto-detection should pick Quetzal for quetzal.sav
       const autoParser = new PokemonSaveParser()
-      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
+      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(
+        quetzalBuffer.byteOffset,
+        quetzalBuffer.byteOffset + quetzalBuffer.byteLength,
+      )
       const autoResult = await autoParser.parse(quetzalArrayBuffer)
       expect(autoParser.gameConfig?.name).toBe('Pokemon Quetzal')
       expect(autoResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon

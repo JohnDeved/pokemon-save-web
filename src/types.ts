@@ -5,9 +5,25 @@ export type SpriteType = 'normal' | 'shiny'
 
 // --- Zod schemas for API validation ---
 export const PokemonTypeSchema = z.enum([
-  'NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE',
-  'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG',
-  'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'UNKNOWN',
+  'NORMAL',
+  'FIRE',
+  'WATER',
+  'ELECTRIC',
+  'GRASS',
+  'ICE',
+  'FIGHTING',
+  'POISON',
+  'GROUND',
+  'FLYING',
+  'PSYCHIC',
+  'BUG',
+  'ROCK',
+  'GHOST',
+  'DRAGON',
+  'DARK',
+  'STEEL',
+  'FAIRY',
+  'UNKNOWN',
 ])
 export type PokemonType = z.infer<typeof PokemonTypeSchema>
 

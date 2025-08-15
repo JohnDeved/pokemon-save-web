@@ -1,15 +1,15 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
 /* Custom pixel font class */
 .font-pixel {
-  font-family: "Press Start 2P";
+  font-family: 'Press Start 2P';
 }
 
 .geist-font {
-  font-family: "Geist", sans-serif;
+  font-family: 'Geist', sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
 }
@@ -34,23 +34,35 @@
 
 /* Scroll fade effects using mask-image (not animatable) */
 .scroll-fade-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+  -webkit-mask-image:
+    linear-gradient(to bottom, black 85%, transparent 100%),
+    linear-gradient(to left, black 12px, transparent 12px);
   -webkit-mask-composite: add;
-  mask-image: linear-gradient(to bottom, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+  mask-image:
+    linear-gradient(to bottom, black 85%, transparent 100%),
+    linear-gradient(to left, black 12px, transparent 12px);
   mask-composite: add;
 }
 
 .scroll-fade-top {
-  -webkit-mask-image: linear-gradient(to top, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+  -webkit-mask-image:
+    linear-gradient(to top, black 85%, transparent 100%),
+    linear-gradient(to left, black 12px, transparent 12px);
   -webkit-mask-composite: add;
-  mask-image: linear-gradient(to top, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+  mask-image:
+    linear-gradient(to top, black 85%, transparent 100%),
+    linear-gradient(to left, black 12px, transparent 12px);
   mask-composite: add;
 }
 
 .scroll-fade-both {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%),
+    linear-gradient(to left, black 12px, transparent 12px);
   -webkit-mask-composite: add;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
+  mask-image:
+    linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%),
+    linear-gradient(to left, black 12px, transparent 12px);
   mask-composite: add;
 }
 

@@ -6,7 +6,7 @@
 
 import type { ChildProcess } from 'child_process'
 import { spawn } from 'child_process'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import WebSocket from 'ws'
@@ -33,7 +33,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
   beforeAll(async () => {
     // Check if Lua is available
     luaAvailable = await checkLuaAvailability()
-    
+
     if (!luaAvailable) {
       console.warn('⚠️ Lua not found - skipping Lua integration tests')
       return
@@ -56,8 +56,10 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
         output += data.toString()
         console.log('[mGBA Server]', data.toString().trim())
         // Look for the server startup message
-        if (output.includes('🚀 mGBA HTTP Server started on port') ||
-            output.includes('HTTP server loaded successfully')) {
+        if (
+          output.includes('🚀 mGBA HTTP Server started on port') ||
+          output.includes('HTTP server loaded successfully')
+        ) {
           clearTimeout(timeout)
           baseUrl = `http://127.0.0.1:${serverPort}`
           // Give the server time to be fully ready
@@ -106,7 +108,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('text/plain')
       // Note: GET / route does not have CORS middleware in the server code
-      
+
       const text = await response.text()
       expect(text).toContain('Welcome to mGBA HTTP Server!')
     })

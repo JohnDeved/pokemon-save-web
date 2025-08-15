@@ -12,7 +12,9 @@ interface SaveFileDropzoneProps {
   onOpenFilePicker?: (fn: () => void) => void
 }
 
-export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, error = null, showDropzone, onOpenFilePicker }) => {
+export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = (
+  { onFileLoad, error = null, showDropzone, onOpenFilePicker },
+) => {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null)
   const [lastModified, setLastModified] = useState<number | null>(null)
   const pollInterval = useRef<NodeJS.Timeout | null>(null)
@@ -44,7 +46,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
       // Fallback to default behavior for regular file drops
       return fromEvent(event)
     },
-    onDrop: acceptedFiles => {
+    onDrop: (acceptedFiles) => {
       const file = acceptedFiles[0]
       if (typeof file !== 'undefined') {
         onFileLoad(file)
@@ -117,7 +119,8 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     // Base styling
     showDropzone ? 'bg-slate-900/50 border-slate-700 shadow-2xl' : 'bg-transparent border-transparent',
     // Active drag styling
-    isDragActive && 'bg-slate-800/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
+    isDragActive &&
+      'bg-slate-800/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
     // Hover styling
     !isDragActive && showDropzone && 'hover:border-slate-600 hover:bg-slate-900/70',
   )
@@ -127,8 +130,8 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     // when the dropzone is not supposed to be visible.
     // input supports file open on browsers that do not support the File System Access API
     return (
-      <div {...getRootProps()} className="hidden" >
-        <input {...getInputProps()}/>
+      <div {...getRootProps()} className='hidden'>
+        <input {...getInputProps()} />
       </div>
     )
   }
@@ -139,21 +142,19 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
         {...getRootProps({ onClick: showDropzone ? open : undefined })}
         className={dropzoneStateClasses}
       >
-        <input {...getInputProps()}/>
-        <div className="text-center p-4 sm:p-6 lg:p-8 flex flex-col items-center">
+        <input {...getInputProps()} />
+        <div className='text-center p-4 sm:p-6 lg:p-8 flex flex-col items-center'>
           <img
-            src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
-            alt="Pokeball"
-            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 lg:mb-8"
+            src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'
+            alt='Pokeball'
+            className='w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 lg:mb-8'
             style={{ imageRendering: 'pixelated' }}
           />
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-100">
+          <h2 className='text-lg sm:text-xl lg:text-2xl font-bold text-slate-100'>
             {isDragActive ? 'Drop your Savegame to load!' : 'Drop your Savegame here'}
           </h2>
-          {showDropzone && (
-            <span className="text-slate-400 mt-1 text-sm sm:text-base">or click to browse</span>
-          )}
-          <p className="text-xs text-slate-500 mt-2">Supported: .sav, .sa2</p>
+          {showDropzone && <span className='text-slate-400 mt-1 text-sm sm:text-base'>or click to browse</span>}
+          <p className='text-xs text-slate-500 mt-2'>Supported: .sav, .sa2</p>
         </div>
       </div>
     </div>

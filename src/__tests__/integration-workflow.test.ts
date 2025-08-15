@@ -3,7 +3,7 @@
  * Tests the complete save file processing workflow
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import fs from 'fs'
 import path from 'path'
 
@@ -98,8 +98,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       const mockClient = new MgbaWebSocketClient()
 
       // Test that parser can identify WebSocket client
-      const isWebSocketLike =
-        typeof mockClient.isConnected === 'function' &&
+      const isWebSocketLike = typeof mockClient.isConnected === 'function' &&
         typeof mockClient.eval === 'function' &&
         !(mockClient instanceof ArrayBuffer)
 
