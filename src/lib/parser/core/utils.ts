@@ -3,8 +3,8 @@
  * Modern utilities for Pokemon data processing
  */
 
-import type { PokemonBase } from './PokemonBase'
-import charmapData from '../data/pokemon_charmap.json'
+import type { PokemonBase } from './PokemonBase.ts'
+import charmapData from '../data/pokemon_charmap.json' with { type: 'json' }
 
 // Convert charmap keys from strings to numbers for faster lookup
 const charmap: Record<number, string> = {}
