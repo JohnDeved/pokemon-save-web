@@ -2,9 +2,7 @@ import { cn } from '../../lib/utils'
 import { usePokemonStore } from '@/stores'
 import { Card } from '../common'
 
-interface CompactPokemonSelectorProps {}
-
-export const CompactPokemonSelector: React.FC<CompactPokemonSelectorProps> = () => {
+export const CompactPokemonSelector: React.FC = () => {
   const { partyList, activePokemonId, setActivePokemonId } = usePokemonStore()
   const selectedPokemon = partyList.find(p => p.id === activePokemonId)
   if (!selectedPokemon) return null

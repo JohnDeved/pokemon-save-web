@@ -13,7 +13,7 @@ export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({
 }) => {
   const { partyList, activePokemonId } = usePokemonStore()
   const pokemon = partyList.find(p => p.id === activePokemonId)
-  const moves = pokemon?.details?.moves || []
+  const moves = pokemon?.details?.moves ?? []
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
   const totalSlots = 4
   return (
