@@ -108,17 +108,13 @@ console.log(config.memoryAddresses.partyData)
 Use the CLI tool for signature extraction and analysis:
 
 ```bash
-# Dump memory from both ROM variants
-npx tsx src/lib/signature/cli.ts dump-memory --output=./dumps
+# Use the Universal Pattern System programmatically:
+import { detectPartyDataAddress } from './signature/proper-universal-patterns'
 
-# Test signatures against memory dumps
-npx tsx src/lib/signature/cli.ts test-signatures --variant=emerald --input=./dumps/emerald/memory.bin
-
-# Validate signatures work across variants
-npx tsx src/lib/signature/cli.ts validate --input=./dumps
-
-# Scan individual dump files
-npx tsx src/lib/signature/cli.ts scan-dump --input=memory.bin --variant=emerald
+const result = detectPartyDataAddress(romBuffer, gameTitle)
+if (result.success) {
+  console.log(`Found partyData address: 0x${result.address?.toString(16)}`)
+}
 ```
 
 ### Custom Signature Creation
@@ -283,9 +279,12 @@ The signature system is designed for extensibility:
 Common issues and solutions:
 
 ### Signatures Not Matching
-```bash
-# Test signatures against your memory dump
-npx tsx src/lib/signature/cli.ts test-signatures --input=memory.bin --variant=emerald --verbose
+```typescript
+// Test Universal Patterns programmatically
+import { findPartyDataAddressByInstructionPattern } from './signature/proper-universal-patterns'
+
+const result = findPartyDataAddressByInstructionPattern(romBuffer)
+console.log(result.success ? `Found: 0x${result.address?.toString(16)}` : 'Not found')
 ```
 
 ### Address Resolution Failing

@@ -8,19 +8,19 @@ import type { AsmSignature, BytePattern, SignatureMatch, ScanResults } from './t
  * Scans a buffer for ASM signatures and resolves target addresses
  */
 export class SignatureScanner {
-  private readonly signatures: Map<string, AsmSignature> = new Map()
+  private readonly signatures = new Map<string, AsmSignature>()
 
   /**
    * Register a signature for scanning
    */
-  addSignature(signature: AsmSignature): void {
+  addSignature (signature: AsmSignature): void {
     this.signatures.set(signature.name, signature)
   }
 
   /**
    * Register multiple signatures
    */
-  addSignatures(signatures: readonly AsmSignature[]): void {
+  addSignatures (signatures: readonly AsmSignature[]): void {
     for (const sig of signatures) {
       this.addSignature(sig)
     }
@@ -29,7 +29,7 @@ export class SignatureScanner {
   /**
    * Scan a memory buffer for all registered signatures
    */
-  scan(buffer: Uint8Array, variant?: string): ScanResults {
+  scan (buffer: Uint8Array, variant?: string): ScanResults {
     const matches: SignatureMatch[] = []
     const resolvedAddresses = new Map<string, number>()
     const errors: string[] = []
@@ -42,7 +42,7 @@ export class SignatureScanner {
 
       try {
         const sigMatches = this.findPattern(buffer, signature.pattern)
-        
+
         for (const offset of sigMatches) {
           const matchedBytes = buffer.slice(offset, offset + signature.pattern.pattern.length)
           const match: SignatureMatch = {
@@ -50,9 +50,9 @@ export class SignatureScanner {
             signature,
             matchedBytes,
           }
-          
+
           matches.push(match)
-          
+
           // Resolve the target address
           try {
             const address = signature.resolver.resolve(match, buffer)
@@ -76,10 +76,10 @@ export class SignatureScanner {
   /**
    * Find all occurrences of a byte pattern in a buffer
    */
-  findPattern(buffer: Uint8Array, pattern: BytePattern): number[] {
+  findPattern (buffer: Uint8Array, pattern: BytePattern): number[] {
     const matches: number[] = []
     const patternLength = pattern.pattern.length
-    
+
     if (patternLength === 0 || patternLength > buffer.length) {
       return matches
     }
@@ -96,23 +96,23 @@ export class SignatureScanner {
   /**
    * Check if pattern matches at a specific offset in the buffer
    */
-  private matchesAtOffset(buffer: Uint8Array, offset: number, pattern: BytePattern): boolean {
+  private matchesAtOffset (buffer: Uint8Array, offset: number, pattern: BytePattern): boolean {
     const patternBytes = pattern.pattern
-    
+
     for (let i = 0; i < patternBytes.length; i++) {
       const patternByte = patternBytes[i]!
-      
+
       // -1 is wildcard, always matches
       if (patternByte === -1) {
         continue
       }
-      
+
       // Check if buffer byte matches pattern byte
       if (buffer[offset + i] !== patternByte) {
         return false
       }
     }
-    
+
     return true
   }
 
@@ -120,11 +120,11 @@ export class SignatureScanner {
    * Create a byte pattern from IDA-style signature string
    * Example: "E5 9F ? ? 01 C0" -> pattern with wildcards
    */
-  static createPattern(idaSignature: string): BytePattern {
+  static createPattern (idaSignature: string): BytePattern {
     const parts = idaSignature.trim().split(/\s+/)
     const pattern: number[] = []
     let mask = ''
-    
+
     for (const part of parts) {
       if (part === '?') {
         pattern.push(-1) // Wildcard
@@ -138,7 +138,7 @@ export class SignatureScanner {
         mask += 'x'
       }
     }
-    
+
     return {
       pattern,
       mask,
@@ -148,16 +148,16 @@ export class SignatureScanner {
 
   /**
    * Create a pattern from bytes and mask strings
-   * Example: bytes=[0xE5, 0x9F, 0x12, 0x34], mask="xx??" 
+   * Example: bytes=[0xE5, 0x9F, 0x12, 0x34], mask="xx??"
    */
-  static createPatternFromMask(bytes: number[], mask: string): BytePattern {
+  static createPatternFromMask (bytes: number[], mask: string): BytePattern {
     if (bytes.length !== mask.length) {
       throw new Error('Bytes array and mask string must have same length')
     }
-    
+
     const pattern: number[] = []
     const idaParts: string[] = []
-    
+
     for (let i = 0; i < bytes.length; i++) {
       if (mask[i] === '?') {
         pattern.push(-1)
@@ -167,7 +167,7 @@ export class SignatureScanner {
         idaParts.push(bytes[i]!.toString(16).toUpperCase().padStart(2, '0'))
       }
     }
-    
+
     return {
       pattern,
       mask,

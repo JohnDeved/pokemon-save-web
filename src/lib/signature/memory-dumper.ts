@@ -13,25 +13,25 @@ import type { MemoryRegion, MemoryAccessContext, MemoryDumpConfig } from '../sig
  */
 export class GdbMemoryAnalyzer {
   private gdbProcess: any
-  private accessContexts: MemoryAccessContext[] = []
+  private readonly accessContexts: MemoryAccessContext[] = []
 
-  constructor(
+  constructor (
     private readonly containerName = 'mgba-test-environment',
-    private readonly gdbPath = 'gdb-multiarch'
+    private readonly gdbPath = 'gdb-multiarch',
   ) {}
 
   /**
    * Connect to mGBA's GDB stub
    */
-  async connect(port = 2345): Promise<void> {
+  async connect (port = 2345): Promise<void> {
     console.log(`Connecting to mGBA GDB stub on port ${port}...`)
-    
+
     // Launch GDB in the container
     this.gdbProcess = spawn('docker', [
       'exec', '-i', this.containerName,
-      this.gdbPath, '--batch', '--quiet'
+      this.gdbPath, '--batch', '--quiet',
     ], {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
 
     // Connect to mGBA
@@ -43,9 +43,9 @@ export class GdbMemoryAnalyzer {
   /**
    * Set watchpoints on known partyData addresses to capture access contexts
    */
-  async capturePartyDataAccesses(addresses: readonly number[], durationMs = 30000): Promise<MemoryAccessContext[]> {
+  async capturePartyDataAccesses (addresses: readonly number[], durationMs = 30000): Promise<MemoryAccessContext[]> {
     console.log(`Setting watchpoints on addresses: ${addresses.map(a => `0x${a.toString(16)}`).join(', ')}`)
-    
+
     // Set watchpoints for each address
     for (const address of addresses) {
       this.sendGdbCommand(`awatch *0x${address.toString(16)}`)
@@ -53,21 +53,21 @@ export class GdbMemoryAnalyzer {
 
     // Continue execution and capture watchpoint hits
     this.sendGdbCommand('continue')
-    
+
     console.log(`Capturing memory accesses for ${durationMs}ms...`)
     await new Promise(resolve => setTimeout(resolve, durationMs))
-    
+
     // Stop execution and collect results
     this.sendGdbCommand('interrupt')
     this.sendGdbCommand('info breakpoints')
-    
+
     return this.accessContexts
   }
 
   /**
    * Dump memory regions to files
    */
-  async dumpMemoryRegions(regions: readonly MemoryRegion[], outputDir: string): Promise<string[]> {
+  async dumpMemoryRegions (regions: readonly MemoryRegion[], outputDir: string): Promise<string[]> {
     if (!existsSync(outputDir)) {
       mkdirSync(outputDir, { recursive: true })
     }
@@ -77,17 +77,17 @@ export class GdbMemoryAnalyzer {
     for (const region of regions) {
       const filename = `memory_${region.address.toString(16)}_${region.size.toString(16)}.bin`
       const filepath = join(outputDir, filename)
-      
+
       console.log(`Dumping ${region.description}: 0x${region.address.toString(16)} (${region.size} bytes)`)
-      
+
       // Use GDB to dump memory region
       this.sendGdbCommand(`dump binary memory ${filename} 0x${region.address.toString(16)} 0x${(region.address + region.size).toString(16)}`)
-      
+
       // Copy file from container
       try {
         execSync(`docker cp ${this.containerName}:${filename} ${filepath}`, { stdio: 'inherit' })
         dumpFiles.push(filepath)
-        
+
         // Clean up file in container
         this.sendGdbCommand(`shell rm -f ${filename}`)
       } catch (error) {
@@ -101,23 +101,23 @@ export class GdbMemoryAnalyzer {
   /**
    * Capture instruction context around a program counter
    */
-  async captureInstructionContext(pc: number, contextSize = 64): Promise<Uint8Array> {
+  async captureInstructionContext (pc: number, contextSize = 64): Promise<Uint8Array> {
     const startAddr = Math.max(0, pc - contextSize / 2)
     const endAddr = pc + contextSize / 2
-    
+
     // Dump instruction context to temporary file
     const tempFile = `context_${pc.toString(16)}.bin`
     this.sendGdbCommand(`dump binary memory ${tempFile} 0x${startAddr.toString(16)} 0x${endAddr.toString(16)}`)
-    
+
     try {
       // Copy and read the context data
       execSync(`docker cp ${this.containerName}:${tempFile} /tmp/${tempFile}`, { stdio: 'inherit' })
       const contextData = readFileSync(`/tmp/${tempFile}`)
-      
+
       // Clean up
       this.sendGdbCommand(`shell rm -f ${tempFile}`)
       execSync(`rm -f /tmp/${tempFile}`)
-      
+
       return new Uint8Array(contextData)
     } catch (error) {
       console.warn(`Failed to capture instruction context at 0x${pc.toString(16)}: ${error}`)
@@ -128,7 +128,7 @@ export class GdbMemoryAnalyzer {
   /**
    * Disconnect from GDB
    */
-  disconnect(): void {
+  disconnect (): void {
     if (this.gdbProcess) {
       this.sendGdbCommand('quit')
       this.gdbProcess.kill()
@@ -136,13 +136,13 @@ export class GdbMemoryAnalyzer {
     }
   }
 
-  private sendGdbCommand(command: string): void {
-    if (this.gdbProcess && this.gdbProcess.stdin) {
-      this.gdbProcess.stdin.write(command + '\n')
+  private sendGdbCommand (command: string): void {
+    if (this.gdbProcess?.stdin) {
+      this.gdbProcess.stdin.write(`${command}\n`)
     }
   }
 
-  private async waitForPrompt(): Promise<void> {
+  private async waitForPrompt (): Promise<void> {
     // Simple wait - in production would parse GDB output
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
@@ -152,14 +152,14 @@ export class GdbMemoryAnalyzer {
  * Docker-based memory dump acquisition
  */
 export class DockerMemoryDumper {
-  constructor(
-    private readonly containerName = 'mgba-test-environment'
+  constructor (
+    private readonly containerName = 'mgba-test-environment',
   ) {}
 
   /**
    * Execute memory dump using Docker exec and mGBA Lua
    */
-  async dumpMemoryWithLua(config: MemoryDumpConfig, outputDir: string): Promise<string[]> {
+  async dumpMemoryWithLua (config: MemoryDumpConfig, outputDir: string): Promise<string[]> {
     if (!existsSync(outputDir)) {
       mkdirSync(outputDir, { recursive: true })
     }
@@ -177,9 +177,9 @@ export class DockerMemoryDumper {
 
       // Execute memory dump via mGBA Lua
       console.log('Executing memory dump via mGBA Lua...')
-      execSync(`docker exec ${this.containerName} mgba-qt -l /tmp/memory_dump.lua --gdb=2345`, { 
+      execSync(`docker exec ${this.containerName} mgba-qt -l /tmp/memory_dump.lua --gdb=2345`, {
         stdio: 'inherit',
-        timeout: 60000 // 60 second timeout
+        timeout: 60000, // 60 second timeout
       })
 
       // Copy dump files back
@@ -187,7 +187,7 @@ export class DockerMemoryDumper {
         const region = config.regions[i]!
         const filename = `dump_${i}_${region.address.toString(16)}.bin`
         const localPath = join(outputDir, filename)
-        
+
         try {
           execSync(`docker cp ${this.containerName}:/tmp/${filename} ${localPath}`, { stdio: 'inherit' })
           dumpFiles.push(localPath)
@@ -195,7 +195,6 @@ export class DockerMemoryDumper {
           console.warn(`Failed to copy dump file ${filename}: ${error}`)
         }
       }
-
     } catch (error) {
       console.error('Memory dump execution failed:', error)
     } finally {
@@ -210,24 +209,23 @@ export class DockerMemoryDumper {
   /**
    * Start mGBA container with specific game variant
    */
-  async startContainer(gameVariant: 'emerald' | 'quetzal' = 'emerald'): Promise<void> {
+  async startContainer (gameVariant: 'emerald' | 'quetzal' = 'emerald'): Promise<void> {
     console.log(`Starting mGBA container with ${gameVariant}...`)
-    
+
     try {
       // Stop any existing container
       execSync(`docker stop ${this.containerName} || true`, { stdio: 'inherit' })
       execSync(`docker rm ${this.containerName} || true`, { stdio: 'inherit' })
 
       // Start container with specified game
-      execSync(`GAME=${gameVariant} docker compose -f docker/docker-compose.yml up -d`, { 
+      execSync(`GAME=${gameVariant} docker compose -f docker/docker-compose.yml up -d`, {
         stdio: 'inherit',
-        env: { ...process.env, GAME: gameVariant }
+        env: { ...process.env, GAME: gameVariant },
       })
 
       // Wait for container to be ready
       console.log('Waiting for mGBA to initialize...')
       await new Promise(resolve => setTimeout(resolve, 10000))
-      
     } catch (error) {
       console.error('Failed to start mGBA container:', error)
       throw error
@@ -237,9 +235,9 @@ export class DockerMemoryDumper {
   /**
    * Stop mGBA container
    */
-  stopContainer(): void {
+  stopContainer (): void {
     try {
-      execSync(`docker compose -f docker/docker-compose.yml down`, { stdio: 'inherit' })
+      execSync('docker compose -f docker/docker-compose.yml down', { stdio: 'inherit' })
     } catch (error) {
       console.warn('Failed to stop container:', error)
     }
@@ -248,7 +246,7 @@ export class DockerMemoryDumper {
   /**
    * Quick memory dump for testing signatures
    */
-  async quickMemoryDump(_variant: 'emerald' | 'quetzal', outputDir: string): Promise<string[]> {
+  async quickMemoryDump (_variant: 'emerald' | 'quetzal', outputDir: string): Promise<string[]> {
     if (!existsSync(outputDir)) {
       mkdirSync(outputDir, { recursive: true })
     }
@@ -259,11 +257,11 @@ export class DockerMemoryDumper {
       ],
       format: 'raw',
     }
-    
+
     return await this.dumpMemoryWithLua(config, outputDir)
   }
 
-  private generateMemoryDumpScript(regions: readonly MemoryRegion[]): string {
+  private generateMemoryDumpScript (regions: readonly MemoryRegion[]): string {
     const dumpCommands = regions.map((region, index) => `
   -- Dump ${region.description}
   local data_${index} = ""
@@ -297,13 +295,13 @@ print("Memory dump complete")
  * High-level memory analysis orchestrator
  */
 export class MemoryAnalysisOrchestrator {
-  private dumper = new DockerMemoryDumper()
-  private analyzer = new GdbMemoryAnalyzer()
+  private readonly dumper = new DockerMemoryDumper()
+  private readonly analyzer = new GdbMemoryAnalyzer()
 
   /**
    * Perform complete memory analysis for both game variants
    */
-  async analyzePartyDataMemory(outputDir: string): Promise<{
+  async analyzePartyDataMemory (outputDir: string): Promise<{
     emeraldDumps: string[]
     quetzalDumps: string[]
     accessContexts: Map<string, MemoryAccessContext[]>
@@ -320,7 +318,7 @@ export class MemoryAnalysisOrchestrator {
     // Analyze Emerald variant
     console.log('=== Analyzing Pokemon Emerald (Vanilla) ===')
     await this.dumper.startContainer('emerald')
-    
+
     try {
       // Dump memory regions
       const emeraldConfig: MemoryDumpConfig = {
@@ -331,15 +329,14 @@ export class MemoryAnalysisOrchestrator {
         ],
         format: 'raw',
       }
-      
+
       results.emeraldDumps = await this.dumper.dumpMemoryWithLua(emeraldConfig, emeraldOutputDir)
-      
+
       // Capture access contexts
       await this.analyzer.connect()
       const emeraldContexts = await this.analyzer.capturePartyDataAccesses([0x020244EC])
       results.accessContexts.set('emerald', emeraldContexts)
       this.analyzer.disconnect()
-      
     } finally {
       this.dumper.stopContainer()
     }
@@ -347,7 +344,7 @@ export class MemoryAnalysisOrchestrator {
     // Analyze Quetzal variant
     console.log('\n=== Analyzing Pokemon Quetzal ===')
     await this.dumper.startContainer('quetzal')
-    
+
     try {
       const quetzalConfig: MemoryDumpConfig = {
         regions: [
@@ -357,14 +354,13 @@ export class MemoryAnalysisOrchestrator {
         ],
         format: 'raw',
       }
-      
+
       results.quetzalDumps = await this.dumper.dumpMemoryWithLua(quetzalConfig, quetzalOutputDir)
-      
+
       await this.analyzer.connect()
       const quetzalContexts = await this.analyzer.capturePartyDataAccesses([0x020235B8])
       results.accessContexts.set('quetzal', quetzalContexts)
       this.analyzer.disconnect()
-      
     } finally {
       this.dumper.stopContainer()
     }

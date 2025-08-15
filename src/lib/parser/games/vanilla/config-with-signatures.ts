@@ -34,8 +34,8 @@ export class VanillaConfigWithSignatures extends GameConfigBase implements GameC
   // Signature-aware memory addresses with fallback to known addresses
   readonly memoryAddresses: SignatureMemoryAddresses = createSignatureMemoryAddresses(
     0x020244ec, // Fallback partyData address for vanilla Emerald
-    0x020244e9, // Fallback partyCount address for vanilla Emerald  
-    0x258       // Enemy party offset (2024744 - 20244ec = 258)
+    0x020244e9, // Fallback partyCount address for vanilla Emerald
+    0x258, // Enemy party offset (2024744 - 20244ec = 258)
   )
 
   get preloadRegions () {
@@ -56,14 +56,14 @@ export class VanillaConfigWithSignatures extends GameConfigBase implements GameC
    * Enable signature-based address resolution when memory data is available
    * This should be called when connecting to mGBA or loading a memory dump
    */
-  enableSignatureResolution(memoryBuffer: Uint8Array): void {
+  enableSignatureResolution (memoryBuffer: Uint8Array): void {
     this.memoryAddresses.enableSignatureResolution(memoryBuffer, 'emerald')
     console.log('🔍 Signature-based address resolution enabled for Vanilla Emerald')
-    
+
     // Log resolved addresses for verification
     const resolved = this.memoryAddresses.partyData
     const fallback = this.memoryAddresses.getFallbackAddresses().partyData
-    
+
     if (resolved !== fallback) {
       console.log(`✅ Dynamic resolution: partyData at 0x${resolved.toString(16)} (fallback: 0x${fallback.toString(16)})`)
     } else {
@@ -90,7 +90,7 @@ export class VanillaConfigWithSignatures extends GameConfigBase implements GameC
   /**
    * Get current resolved addresses for debugging/verification
    */
-  getResolvedAddresses(): {
+  getResolvedAddresses (): {
     partyData: number
     partyCount: number
     fallbackPartyData: number
@@ -102,7 +102,7 @@ export class VanillaConfigWithSignatures extends GameConfigBase implements GameC
       partyCount: this.memoryAddresses.partyCount,
     }
     const fallbacks = this.memoryAddresses.getFallbackAddresses()
-    
+
     return {
       ...current,
       fallbackPartyData: fallbacks.partyData,

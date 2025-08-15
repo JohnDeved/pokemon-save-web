@@ -2,7 +2,7 @@
  * Types for ASM signature system
  */
 
-/**  
+/**
  * Architecture modes for ARM7TDMI (GBA processor)
  */
 export type ArchMode = 'ARM' | 'THUMB'

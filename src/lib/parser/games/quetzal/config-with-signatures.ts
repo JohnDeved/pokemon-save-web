@@ -55,7 +55,7 @@ export class QuetzalConfigWithSignatures extends GameConfigBase implements GameC
   readonly memoryAddresses: SignatureMemoryAddresses = createSignatureMemoryAddresses(
     0x020235b8, // Fallback partyData address for Quetzal
     0x020235b5, // Fallback partyCount address for Quetzal
-    0x4E0       // Enemy party offset (2023a98 - 20235b8 = 4E0)
+    0x4E0, // Enemy party offset (2023a98 - 20235b8 = 4E0)
   )
 
   /**
@@ -77,14 +77,14 @@ export class QuetzalConfigWithSignatures extends GameConfigBase implements GameC
   /**
    * Enable signature-based address resolution for Quetzal
    */
-  enableSignatureResolution(memoryBuffer: Uint8Array): void {
+  enableSignatureResolution (memoryBuffer: Uint8Array): void {
     this.memoryAddresses.enableSignatureResolution(memoryBuffer, 'quetzal')
     console.log('🔍 Signature-based address resolution enabled for Quetzal')
-    
+
     // Log resolved addresses for verification
     const resolved = this.memoryAddresses.partyData
     const fallback = this.memoryAddresses.getFallbackAddresses().partyData
-    
+
     if (resolved !== fallback) {
       console.log(`✅ Dynamic resolution: partyData at 0x${resolved.toString(16)} (fallback: 0x${fallback.toString(16)})`)
     } else {
@@ -271,7 +271,7 @@ export class QuetzalConfigWithSignatures extends GameConfigBase implements GameC
   /**
    * Get current resolved addresses for debugging/verification
    */
-  getResolvedAddresses(): {
+  getResolvedAddresses (): {
     partyData: number
     partyCount: number
     fallbackPartyData: number
@@ -283,7 +283,7 @@ export class QuetzalConfigWithSignatures extends GameConfigBase implements GameC
       partyCount: this.memoryAddresses.partyCount,
     }
     const fallbacks = this.memoryAddresses.getFallbackAddresses()
-    
+
     return {
       ...current,
       fallbackPartyData: fallbacks.partyData,

@@ -24,7 +24,7 @@ export class SignatureAddressResolver {
    * Set memory buffer for signature scanning
    * This should be called with RAM dump or WebSocket memory data
    */
-  setMemoryBuffer(buffer: Uint8Array, variant?: string): void {
+  setMemoryBuffer (buffer: Uint8Array, variant?: string): void {
     this.memoryBuffer = buffer
     this.variant = variant
     this.scanResults = undefined // Reset cached results
@@ -34,9 +34,9 @@ export class SignatureAddressResolver {
    * Resolve partyData address using signatures
    * Falls back to known addresses if signature resolution fails
    */
-  resolvePartyDataAddress(fallbackAddress: number, variant?: string): number {
+  resolvePartyDataAddress (fallbackAddress: number, variant?: string): number {
     const cacheKey = `partyData_${variant || 'unknown'}_${fallbackAddress.toString(16)}`
-    
+
     // Return cached result if available
     if (addressCache.has(cacheKey)) {
       return addressCache.get(cacheKey)!
@@ -60,7 +60,7 @@ export class SignatureAddressResolver {
   /**
    * Resolve party count address (typically partyData - 3)
    */
-  resolvePartyCountAddress(fallbackAddress: number, variant?: string): number {
+  resolvePartyCountAddress (fallbackAddress: number, variant?: string): number {
     const partyDataAddr = this.resolvePartyDataAddress(fallbackAddress + 3, variant)
     return partyDataAddr - 3
   }
@@ -68,7 +68,7 @@ export class SignatureAddressResolver {
   /**
    * Get all resolved addresses from last scan
    */
-  getResolvedAddresses(): ReadonlyMap<string, number> {
+  getResolvedAddresses (): ReadonlyMap<string, number> {
     if (!this.scanResults) {
       return new Map()
     }
@@ -78,34 +78,44 @@ export class SignatureAddressResolver {
   /**
    * Get scan errors from last resolution attempt
    */
-  getScanErrors(): readonly string[] {
+  getScanErrors (): readonly string[] {
     return this.scanResults?.errors || []
   }
 
   /**
    * Clear address cache (useful for testing)
    */
-  static clearCache(): void {
+  static clearCache (): void {
     addressCache.clear()
   }
 
-  private scanForPartyDataAddress(variant?: string): number {
+  private scanForPartyDataAddress (variant?: string): number {
     if (!this.memoryBuffer) {
       throw new Error('Memory buffer not set')
     }
 
     // Perform signature scan
     const scanner = createPartyDataScanner()
-    this.scanResults = scanner.scan(this.memoryBuffer, variant)
+    if (scanner) {
+      this.scanResults = scanner.scan(this.memoryBuffer, variant)
+    } else {
+      this.scanResults = {
+        matches: [],
+        errors: ['Scanner not available'],
+        resolvedAddresses: new Map<string, number>(),
+      }
+    }
 
-    if (this.scanResults.errors.length > 0) {
+    if (this.scanResults && this.scanResults.errors.length > 0) {
       console.warn('Signature scan errors:', this.scanResults.errors)
     }
 
     // Try to find a resolved partyData address
-    const possibleAddresses = Array.from(this.scanResults.resolvedAddresses.entries())
-      .filter(([name]) => name.includes('partyData') || name.includes('partyCount'))
-    
+    const possibleAddresses = this.scanResults
+      ? Array.from(this.scanResults.resolvedAddresses.entries())
+        .filter(([name]) => name.includes('partyData') || name.includes('partyCount'))
+      : []
+
     if (possibleAddresses.length === 0) {
       throw new Error('No partyData signatures matched')
     }
@@ -141,13 +151,13 @@ export const globalAddressResolver = new SignatureAddressResolver()
 export interface SignatureMemoryAddresses {
   /** Resolve partyData address dynamically */
   readonly partyData: number
-  /** Resolve partyCount address dynamically */  
+  /** Resolve partyCount address dynamically */
   readonly partyCount: number
   /** Enemy party data (computed from partyData) */
   readonly enemyParty: number
   /** Enemy party count (computed from partyCount) */
   readonly enemyPartyCount: number
-  
+
   /** Enable signature-based resolution */
   enableSignatureResolution(memoryBuffer: Uint8Array, variant: string): void
   /** Get fallback addresses for when signatures fail */
@@ -157,44 +167,44 @@ export interface SignatureMemoryAddresses {
 /**
  * Create signature-aware memory addresses for a game config
  */
-export function createSignatureMemoryAddresses(
+export function createSignatureMemoryAddresses (
   fallbackPartyData: number,
   fallbackPartyCount: number,
-  enemyPartyOffset = 0x258 // Default offset between party and enemy party
+  enemyPartyOffset = 0x258, // Default offset between party and enemy party
 ): SignatureMemoryAddresses {
   let useSignatures = false
   let variant = ''
 
   return {
-    get partyData(): number {
+    get partyData (): number {
       if (useSignatures) {
         return globalAddressResolver.resolvePartyDataAddress(fallbackPartyData, variant)
       }
       return fallbackPartyData
     },
 
-    get partyCount(): number {
+    get partyCount (): number {
       if (useSignatures) {
         return globalAddressResolver.resolvePartyCountAddress(fallbackPartyCount, variant)
       }
       return fallbackPartyCount
     },
 
-    get enemyParty(): number {
+    get enemyParty (): number {
       return this.partyData + enemyPartyOffset
     },
 
-    get enemyPartyCount(): number {
+    get enemyPartyCount (): number {
       return this.partyCount + 8 // Standard offset pattern
     },
 
-    enableSignatureResolution(memoryBuffer: Uint8Array, gameVariant: string): void {
+    enableSignatureResolution (memoryBuffer: Uint8Array, gameVariant: string): void {
       globalAddressResolver.setMemoryBuffer(memoryBuffer, gameVariant)
       useSignatures = true
       variant = gameVariant
     },
 
-    getFallbackAddresses() {
+    getFallbackAddresses () {
       return {
         partyData: fallbackPartyData,
         partyCount: fallbackPartyCount,
@@ -206,17 +216,17 @@ export function createSignatureMemoryAddresses(
 /**
  * Utility function to test signature resolution against a memory buffer
  */
-export async function testSignatureResolution(
-  memoryBuffer: Uint8Array, 
+export async function testSignatureResolution (
+  memoryBuffer: Uint8Array,
   variant: string,
-  expectedAddresses: { partyData: number, partyCount?: number }
+  expectedAddresses: { partyData: number, partyCount?: number },
 ): Promise<{
-  success: boolean
-  resolvedPartyData: number
-  resolvedPartyCount: number
-  matches: number
-  errors: string[]
-}> {
+    success: boolean
+    resolvedPartyData: number
+    resolvedPartyCount: number
+    matches: number
+    errors: string[]
+  }> {
   const resolver = new SignatureAddressResolver()
   resolver.setMemoryBuffer(memoryBuffer, variant)
 
