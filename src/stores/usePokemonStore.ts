@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { calculateTotalStats, natures } from '@/lib/parser/core/utils'
 import type { UIPokemonData } from '../types'
+import type { SaveData } from '@/lib/parser/core/types'
+import type { PokemonBase } from '@/lib/parser/core/PokemonBase'
 
 // Constants
 const MAX_EV_PER_STAT = 252
@@ -66,7 +68,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
         // Return a new object reference for React to detect change
         return { ...p }
-      })
+      }),
     }))
   },
 
@@ -83,7 +85,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
         // Return a new object reference for React to detect change
         return { ...p }
-      })
+      }),
     }))
   },
 
@@ -98,7 +100,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         // Optionally, recalculate stats if needed
         p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
         return { ...p }
-      })
+      }),
     }))
   },
 
@@ -119,9 +121,8 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 }))
 
 // Helper function to build party list from save data
-export const buildPartyListFromSaveData = (saveData: any) => {
-  if (!saveData?.party_pokemon) return []
-  return saveData.party_pokemon.map((parsedPokemon: any, index: number) => {
+export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] => {
+  return saveData.party_pokemon.map((parsedPokemon: PokemonBase, index: number) => {
     const isShiny = parsedPokemon.isShiny
     const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
     const spriteUrl = isShiny

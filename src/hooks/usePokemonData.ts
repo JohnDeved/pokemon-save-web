@@ -164,11 +164,11 @@ export const usePokemonData = () => {
     getRemainingEvs,
     resetPokemonData,
   } = usePokemonStore()
-  
-  // Get save file state 
+
+  // Get save file state
   const saveData = useSaveFileStore(state => state.saveData)
   const saveFileParser = useSaveFileStore()
-  
+
   const queryClient = useQueryClient()
 
   // Initialize party list when save data changes
@@ -177,10 +177,10 @@ export const usePokemonData = () => {
       resetPokemonData()
       return
     }
-    
+
     const initialPartyList = buildPartyListFromSaveData(saveData)
     setPartyList(initialPartyList)
-    
+
     // Clear cached pokemon details to avoid stale data after loading a new file
     queryClient.removeQueries({ queryKey: ['pokemon', 'details'] })
   }, [saveData, setPartyList, resetPokemonData, queryClient])
@@ -209,7 +209,7 @@ export const usePokemonData = () => {
         p.id === activePokemonId
           ? { ...p, details: detailedData }
           : p,
-      )
+      ),
     }))
   }, [detailedData, activePokemonId])
 

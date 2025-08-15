@@ -51,7 +51,7 @@ export const App: React.FC = () => {
         />
         {hasSaveData && (
           <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
-            <CompactPokemonSelector />
+            <CompactPokemonSelector/>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 z-10">
               <div className="flex flex-col gap-4">
                 <Menubar className="geist-font">
