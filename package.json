@@ -30,6 +30,9 @@
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
     "prove-patterns": "tsx scripts/prove-universal-patterns.ts",
     "prove-patterns-ts": "tsx scripts/prove-universal-patterns-typescript.ts",
+    "test-real-patterns": "tsx scripts/real-rom-pattern-detection.ts",
+    "test-simple-rom": "tsx scripts/simple-rom-test.ts",
+    "test-websocket-patterns": "tsx scripts/websocket-pattern-detection.ts",
     "mgba": "tsx docker/mgba-docker.ts"
   },
   "dependencies": {
