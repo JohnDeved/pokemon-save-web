@@ -3,7 +3,7 @@
  * Replaces npm run preview
  */
 
-import { serve } from '@std/http/server'
+import { serve } from "@std/http"
 import { join } from '@std/path'
 import { exists } from '@std/fs'
 
@@ -78,4 +78,4 @@ async function handler(request: Request): Promise<Response> {
 console.log(`🔍 Preview server starting on http://localhost:${PORT}`)
 console.log(`📁 Serving build files from ${DIST_ROOT}`)
 
-await serve(handler, { port: PORT })
+Deno.serve({ port: PORT }, handler)

@@ -4,7 +4,7 @@
   "unstable": ["webgpu"],
   "tasks": {
     "dev": "deno run --allow-net --allow-read --allow-write --allow-env ./scripts/dev.ts",
-    "build": "deno run --allow-net --allow-read --allow-write --allow-env ./scripts/build.ts",
+    "build": "deno run --allow-net --allow-read --allow-write --allow-env --allow-run ./scripts/build.ts",
     "preview": "deno run --allow-net --allow-read --allow-write --allow-env ./scripts/preview.ts",
     "test": "deno test --allow-net --allow-read --allow-write --allow-env",
     "test:watch": "deno test --allow-net --allow-read --allow-write --allow-env --watch",

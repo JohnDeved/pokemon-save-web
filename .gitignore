@@ -7,7 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+# Deno
+.deno/
+
+# Build artifacts
 dist
 dist-ssr
 *.local
