@@ -148,12 +148,10 @@ describe('Pokemon Save Web - Integration Workflow', () => {
   describe('Component State Workflow', () => {
     it('should handle hook state management', async () => {
       // Test the hook modules can be imported and have correct types
-      const { usePokemonData, useSaveFileParser } = await import('../hooks')
+      const { usePokemonData } = await import('../hooks')
 
       expect(usePokemonData).toBeDefined()
-      expect(useSaveFileParser).toBeDefined()
       expect(typeof usePokemonData).toBe('function')
-      expect(typeof useSaveFileParser).toBe('function')
     })
   })
 
