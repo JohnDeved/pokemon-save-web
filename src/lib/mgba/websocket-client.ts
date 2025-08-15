@@ -4,11 +4,11 @@
  */
 
 import WebSocket from 'isomorphic-ws'
-import { WebSocketResponseSchema } from './types'
-import type { MemoryChangeListener, SimpleMessage, WebSocketEvalResult, WebSocketResponse } from './types'
+import { WebSocketResponseSchema } from './types.ts'
+import type { MemoryChangeListener, SimpleMessage, WebSocketEvalResult, WebSocketResponse } from './types.ts'
 
 // Re-export types for consumers
-export type { MemoryChangeListener } from './types'
+export type { MemoryChangeListener } from './types.ts'
 
 export class MgbaWebSocketClient {
   private ws: WebSocket | null = null

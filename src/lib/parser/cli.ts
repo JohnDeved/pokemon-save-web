@@ -1,11 +1,11 @@
-#!/usr/bin/env -S npx tsx
-import fs from 'fs'
-import path from 'path'
-import { PokemonSaveParser } from './core/PokemonSaveParser'
-import type { PokemonBase } from './core/PokemonBase'
-import type { SaveData } from './core/types'
-import { bytesToGbaString, gbaStringToBytes } from './core/utils'
-import { MgbaWebSocketClient } from '../mgba/websocket-client'
+#!/usr/bin/env -S deno run --allow-net --allow-read --allow-write --allow-env
+import { existsSync } from "@std/fs"
+import { resolve } from "@std/path"
+import { PokemonSaveParser } from './core/PokemonSaveParser.ts'
+import type { PokemonBase } from './core/PokemonBase.ts'
+import type { SaveData } from './core/types.ts'
+import { bytesToGbaString, gbaStringToBytes } from './core/utils.ts'
+import { MgbaWebSocketClient } from '../mgba/websocket-client.ts'
 
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [
@@ -171,8 +171,8 @@ async function parseAndDisplay(
   if (typeof input === 'string') {
     // File mode
     mode = 'FILE'
-    const absPath = path.resolve(input)
-    const buffer = fs.readFileSync(absPath)
+    const absPath = resolve(input)
+    const buffer = Deno.readFileSync(absPath)
     result = await parser.parse(buffer)
     if (!options.skipDisplay) {
       console.log(`📁 Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
@@ -210,7 +210,7 @@ async function parseAndDisplay(
  * Clear screen and move cursor to top
  */
 function clearScreen() {
-  process.stdout.write('\x1b[2J\x1b[H')
+  console.clear()
 }
 
 /**
@@ -245,8 +245,8 @@ async function watchModeFile(filePath: string, options: { debug: boolean; graph:
   while (true) {
     try {
       // Parse save data without re-initializing parser
-      const absPath = path.resolve(filePath)
-      const buffer = fs.readFileSync(absPath)
+      const absPath = resolve(filePath)
+      const buffer = Deno.readFileSync(absPath)
       const result = await parser.parse(buffer)
 
       // Create a simple hash of the party data to detect changes
@@ -316,14 +316,19 @@ async function watchModeWebSocket(
       resolve()
     }
 
-    process.on('SIGINT', cleanup)
-    process.on('SIGTERM', cleanup)
+    // Use Deno signal listeners
+    const signalHandler = () => {
+      cleanup()
+    }
+    
+    Deno.addSignalListener('SIGINT', signalHandler)
+    Deno.addSignalListener('SIGTERM', signalHandler)
   })
 }
 
 // CLI entry point
 async function main() {
-  const argv = process.argv
+  const argv = Deno.args
 
   // Parse command line options
   const debug = argv.includes('--debug')
@@ -332,24 +337,24 @@ async function main() {
   const websocket = argv.includes('--websocket')
 
   // Watch interval option
-  const intervalArg = argv.find((arg) => arg.startsWith('--interval='))
+  const intervalArg = argv.find((arg: string) => arg.startsWith('--interval='))
   const interval = intervalArg ? parseInt(intervalArg.split('=')[1] ?? '1000') : 1000
 
   // WebSocket URL option
-  const wsUrlArg = argv.find((arg) => arg.startsWith('--ws-url='))
+  const wsUrlArg = argv.find((arg: string) => arg.startsWith('--ws-url='))
   const wsUrl = wsUrlArg ? wsUrlArg.split('=')[1] : 'ws://localhost:7102/ws'
 
   // Utility string conversion functions
-  const toBytesArg = argv.find((arg) => arg.startsWith('--toBytes='))
+  const toBytesArg = argv.find((arg: string) => arg.startsWith('--toBytes='))
   if (toBytesArg) {
     const str = toBytesArg.split('=')[1] ?? ''
     const bytes = gbaStringToBytes(str, str.length + 1) // +1 for null terminator
     console.log(`GBA bytes for "${str}":`)
-    console.log(Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join(' '))
-    process.exit(0)
+    console.log(Array.from(bytes).map((b: number) => b.toString(16).padStart(2, '0')).join(' '))
+    Deno.exit(0)
   }
 
-  const toStringArg = argv.find((arg) => arg.startsWith('--toString='))
+  const toStringArg = argv.find((arg: string) => arg.startsWith('--toString='))
   if (toStringArg) {
     const hexStr = toStringArg.split('=')[1] ?? ''
     // Accepts space or comma separated hex bytes
@@ -358,12 +363,12 @@ async function main() {
         .trim()
         .split(/\s+|,/)
         .filter(Boolean)
-        .map((b) => parseInt(b, 16)),
+        .map((b: string) => parseInt(b, 16)),
     )
     const str = bytesToGbaString(bytes)
-    console.log(`String for bytes [${Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join(' ')}]:`)
+    console.log(`String for bytes [${Array.from(bytes).map((b: number) => b.toString(16).padStart(2, '0')).join(' ')}]:`)
     console.log(str)
-    process.exit(0)
+    Deno.exit(0)
   }
 
   // Determine input source
@@ -380,19 +385,20 @@ async function main() {
       input = client
 
       // Setup cleanup on exit
-      process.on('SIGINT', () => {
+      const signalHandler = () => {
         client.disconnect()
-        process.exit(0)
-      })
+        Deno.exit(0)
+      }
+      Deno.addSignalListener('SIGINT', signalHandler)
     } catch (error) {
       console.error('❌ Failed to connect to mGBA WebSocket:', error instanceof Error ? error.message : 'Unknown error')
-      process.exit(1)
+      Deno.exit(1)
     }
   } else {
     // File mode
-    const savePath = argv.find((arg) => arg.match(/\.sav$/i) && fs.existsSync(path.resolve(arg)))
+    const savePath = argv.find((arg: string) => arg.match(/\.sav$/i) && existsSync(resolve(arg)))
     if (!savePath) {
-      console.error(`\nUsage: tsx cli.ts [savefile.sav] [options]
+      console.error(`\nUsage: deno run cli.ts [savefile.sav] [options]
 
 Options:
   --websocket           Connect to mGBA via WebSocket instead of reading a file
@@ -405,17 +411,17 @@ Options:
   --toString=HEX        Convert a space/comma-separated hex byte string to a decoded GBA string
 
 Examples:
-  tsx cli.ts mysave.sav --debug
-  tsx cli.ts mysave.sav --graph --watch
-  tsx cli.ts --websocket --watch --interval=2000
-  tsx cli.ts --websocket --debug
-  tsx cli.ts --toBytes=PIKACHU
-  tsx cli.ts --toString="50 49 4b 41 43 48 55 00"
+  deno run cli.ts mysave.sav --debug
+  deno run cli.ts mysave.sav --graph --watch
+  deno run cli.ts --websocket --watch --interval=2000
+  deno run cli.ts --websocket --debug
+  deno run cli.ts --toBytes=PIKACHU
+  deno run cli.ts --toString="50 49 4b 41 43 48 55 00"
 
 WebSocket Mode:
   Requires mGBA Docker container to be running with WebSocket API enabled.
 `)
-      process.exit(1)
+      Deno.exit(1)
     }
     input = savePath
   }
@@ -446,12 +452,12 @@ WebSocket Mode:
       input.disconnect()
     }
 
-    process.exit(1)
+    Deno.exit(1)
   }
 }
 
 // Run the CLI
 main().catch((error) => {
   console.error('❌ Unexpected error:', error)
-  process.exit(1)
+  Deno.exit(1)
 })

@@ -3,15 +3,15 @@
  * TypeScript port of pokemon_save_parser.py with modern browser-compatible features
  */
 
-import type { GameConfig, PlayTimeData, SaveData, SectorInfo } from './types'
+import type { GameConfig, PlayTimeData, SaveData, SectorInfo } from './types.ts'
 
-import { MgbaWebSocketClient } from '../../mgba/websocket-client'
-import { GameConfigRegistry } from '../games'
-import { PokemonBase } from './PokemonBase'
-import { VANILLA_EMERALD_SIGNATURE } from './types'
+import { MgbaWebSocketClient } from '../../mgba/websocket-client.ts'
+import { GameConfigRegistry } from '../games/index.ts'
+import { PokemonBase } from './PokemonBase.ts'
+import { VANILLA_EMERALD_SIGNATURE } from './types.ts'
 
 // Import character map for decoding text
-import charMap from '../data/pokemon_charmap.json'
+import charMap from '../data/pokemon_charmap.json' with { type: 'json' }
 
 /**
  * Decode Pokemon character-encoded text to string

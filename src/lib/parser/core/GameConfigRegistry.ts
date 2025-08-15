@@ -2,7 +2,7 @@
  * Game configuration registry for automatic game detection
  */
 
-import type { GameConfig } from './types'
+import type { GameConfig } from './types.ts'
 
 /**
  * Type for game config constructors that can be registered

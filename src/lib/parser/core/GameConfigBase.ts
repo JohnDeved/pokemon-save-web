@@ -2,7 +2,7 @@
  * Base class for game configurations with common functionality
  */
 
-import { VANILLA_EMERALD_SIGNATURE } from './types'
+import { VANILLA_EMERALD_SIGNATURE } from './types.ts'
 
 /**
  * Abstract base class providing common functionality for all game configurations

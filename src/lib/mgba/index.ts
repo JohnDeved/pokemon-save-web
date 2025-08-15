@@ -12,5 +12,5 @@
  * - Intelligent caching: Watched regions use cached data, reducing network calls
  */
 
-export { MgbaWebSocketClient } from './websocket-client'
-export type { MemoryChangeListener, SimpleMessage } from './types'
+export { MgbaWebSocketClient } from './websocket-client.ts'
+export type { MemoryChangeListener, SimpleMessage } from './types.ts'

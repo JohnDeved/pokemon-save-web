@@ -3,9 +3,9 @@
  * All vanilla behavior is built-in, game configs only override what's different
  */
 
-import type { GameConfig, MoveData, PokemonMoves } from './types'
-import { VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from './types'
-import { bytesToGbaString, natureEffects, natures, statStrings } from './utils'
+import type { GameConfig, MoveData, PokemonMoves } from './types.ts'
+import { VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from './types.ts'
+import { bytesToGbaString, natureEffects, natures, statStrings } from './utils.ts'
 
 /**
  * Pokemon data class with vanilla Pokemon Emerald as the baseline
