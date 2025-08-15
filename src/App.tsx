@@ -18,16 +18,10 @@ import { usePokemonData } from './hooks'
 export const App: React.FC = () => {
   const {
     partyList,
-    activePokemonId,
-    setActivePokemonId,
     activePokemon,
     isLoading,
     saveFileParser,
-    setEvIndex,
-    setIvIndex,
     preloadPokemonDetails,
-    getRemainingEvs,
-    setNature,
   } = usePokemonData()
 
   // Check if the browser supports the File System Access API
@@ -57,11 +51,7 @@ export const App: React.FC = () => {
         />
         {hasSaveData && (
           <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
-            <CompactPokemonSelector
-              selectedPokemon={activePokemon}
-              partyList={partyList}
-              onSelect={setActivePokemonId}
-            />
+            <CompactPokemonSelector />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 z-10">
               <div className="flex flex-col gap-4">
                 <Menubar className="geist-font">
@@ -132,9 +122,6 @@ export const App: React.FC = () => {
                 </Menubar>
                 <div className="hidden lg:block">
                   <PokemonPartyList
-                    partyList={partyList}
-                    activePokemonId={activePokemonId}
-                    onPokemonSelect={setActivePokemonId}
                     isRenaming={false}
                     onPokemonHover={preloadPokemonDetails}
                   />
@@ -143,27 +130,19 @@ export const App: React.FC = () => {
               <div className="grid grid-rows-[auto_auto_1fr] gap-4">
                 <Card className="z-30">
                   <PokemonHeader
-                    pokemon={activePokemon}
-                    setNature={setNature}
                     isLoading={isLoading}
                   />
                   <PokemonMovesSection
-                    moves={activePokemon?.details?.moves}
                     isLoading={!activePokemon?.details || isLoading}
                   />
                 </Card>
                 <Card className="z-20">
                   <PokemonStatDisplay
-                    setEvIndex={setEvIndex}
-                    setIvIndex={setIvIndex}
-                    pokemon={activePokemon}
                     isLoading={!activePokemon?.details || isLoading}
-                    getRemainingEvs={getRemainingEvs}
                   />
                 </Card>
                 <Card className="z-10">
                   <PokemonAbilitySection
-                    pokemon={activePokemon}
                     isLoading={!activePokemon?.details || isLoading}
                   />
                 </Card>

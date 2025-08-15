@@ -1,5 +1,5 @@
 import { calculateTotalStatsDirect } from '../../lib/parser/core/utils'
-import type { Pokemon } from '../../types'
+import { usePokemonStore } from '@/stores'
 import { Skeleton } from '../common'
 import { Slider } from '../ui/slider'
 import { useState } from 'react'
@@ -11,10 +11,6 @@ const STAT_NAMES = ['HP', 'ATK', 'DEF', 'SPE', 'SpA', 'SpD'] as const
 
 export interface PokemonStatDisplayProps {
   isLoading?: boolean
-  setEvIndex: (pokemonId: number, statIndex: number, newValue: number) => void
-  setIvIndex: (pokemonId: number, statIndex: number, newValue: number) => void
-  pokemon?: Pokemon
-  getRemainingEvs?: (pokemonId: number) => number
 }
 
 // Move EVSliderProps to top-level
@@ -40,12 +36,10 @@ const EVSlider: React.FC<EVSliderProps> = ({ value, onChange, maxVisualValue }) 
 }
 
 export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
-  pokemon,
   isLoading = false,
-  setEvIndex,
-  setIvIndex,
-  getRemainingEvs,
 }) => {
+  const { partyList, activePokemonId, setEvIndex, setIvIndex, getRemainingEvs } = usePokemonStore()
+  const pokemon = partyList.find(p => p.id === activePokemonId)
   const ivs = pokemon?.data.ivs
   const evs = pokemon?.data.evs
   const baseStats = pokemon?.details?.baseStats

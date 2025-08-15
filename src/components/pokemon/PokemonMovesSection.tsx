@@ -1,18 +1,19 @@
 import React, { useState } from 'react'
-import type { MoveWithDetails } from '../../types'
+import { usePokemonStore } from '@/stores'
 import { Skeleton } from '../common'
 import { PokemonMoveButton } from './PokemonMoveButton'
 import { PokemonMovePlaceholder } from './PokemonMovePlaceholder'
 
 interface PokemonMovesProps {
-  moves?: MoveWithDetails[]
   isLoading?: boolean
 }
 
 export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({
-  moves = [],
   isLoading = false,
 }) => {
+  const { partyList, activePokemonId } = usePokemonStore()
+  const pokemon = partyList.find(p => p.id === activePokemonId)
+  const moves = pokemon?.details?.moves || []
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
   const totalSlots = 4
   return (

@@ -1,18 +1,12 @@
 import { cn } from '../../lib/utils'
-import type { Pokemon } from '../../types'
+import { usePokemonStore } from '@/stores'
 import { Card } from '../common'
 
-interface CompactPokemonSelectorProps {
-  selectedPokemon?: Pokemon
-  partyList: Pokemon[]
-  onSelect: (id: number) => void
-}
+interface CompactPokemonSelectorProps {}
 
-export const CompactPokemonSelector: React.FC<CompactPokemonSelectorProps> = ({
-  selectedPokemon,
-  partyList,
-  onSelect,
-}) => {
+export const CompactPokemonSelector: React.FC<CompactPokemonSelectorProps> = () => {
+  const { partyList, activePokemonId, setActivePokemonId } = usePokemonStore()
+  const selectedPokemon = partyList.find(p => p.id === activePokemonId)
   if (!selectedPokemon) return null
 
   return (
@@ -33,7 +27,7 @@ export const CompactPokemonSelector: React.FC<CompactPokemonSelectorProps> = ({
         {partyList.map(pokemon => (
           <button
             key={pokemon.id}
-            onClick={() => onSelect(pokemon.id)}
+            onClick={() => setActivePokemonId(pokemon.id)}
             className={cn(
               'flex-shrink-0 w-12 h-12 rounded border-2 transition-colors',
               pokemon.id === selectedPokemon.id

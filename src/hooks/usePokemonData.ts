@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import type { z } from 'zod'
 import type {
   Ability,
@@ -16,13 +16,9 @@ import {
   PokemonApiResponseSchema,
   PokemonTypeSchema,
 } from '../types'
-
-import { calculateTotalStats, natures } from '@/lib/parser/core/utils'
-import { useSaveFileParser } from './useSaveFileParser'
+import { usePokemonStore, usePokemonDataSync, useSaveFileStore } from '../stores'
 
 // --- Constants ---
-const MAX_EV_PER_STAT = 252
-const MAX_TOTAL_EVS = 508
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN'
 const NO_MOVE: MoveWithDetails = {
   pp: 0,
@@ -153,47 +149,27 @@ async function getPokemonDetails (pokemon: UIPokemonData) {
 
 /**
  * React hook for accessing and managing Pokémon party data and details.
+ * This is a compatibility layer that uses Zustand stores but maintains the same API.
  */
 export const usePokemonData = () => {
-  const saveFileParser = useSaveFileParser()
-  const { saveData } = saveFileParser
+  // Initialize Pokemon data from save data
+  const initialPartyList = usePokemonDataSync()
+  
+  // Get state from Zustand stores
+  const {
+    activePokemonId,
+    partyList,
+    setActivePokemonId,
+    setEvIndex,
+    setIvIndex,
+    setNature,
+    getRemainingEvs,
+  } = usePokemonStore()
+  
+  // Get save file parser state 
+  const saveFileParser = useSaveFileStore()
+  
   const queryClient = useQueryClient()
-
-  // Build the initial party list from save data
-  const initialPartyList = useMemo(() => {
-    if (!saveData?.party_pokemon) return []
-    return saveData.party_pokemon.map((parsedPokemon, index) => {
-      // Use the isShiny property which correctly implements vanilla (shinyNumber < 8) and Quetzal logic
-      const isShiny = parsedPokemon.isShiny
-      const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
-      const spriteUrl = isShiny
-        ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
-        : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
-
-      const SPRITE_ANI_BASE_URL = '/sprites'
-      const spriteAniUrl = isShiny
-        ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif`
-        : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
-      return {
-        id: index,
-        spriteUrl,
-        spriteAniUrl,
-        data: parsedPokemon,
-      }
-    })
-  }, [saveData])
-
-  // UI state: which Pokémon is active
-  const [activePokemonId, setActivePokemonId] = useState(0)
-  // Store party list in state for immutable updates
-  const [partyList, setPartyList] = useState<UIPokemonData[]>(() => initialPartyList)
-
-  // When saveData changes, reset partyList and activePokemonId to avoid stale details
-  useEffect(() => {
-    setPartyList(initialPartyList)
-    // Clear cached pokemon details to avoid stale data after loading a new file
-    queryClient.removeQueries({ queryKey: ['pokemon', 'details'] })
-  }, [initialPartyList, queryClient])
 
   // Get the current active Pokémon from initial data
   const activePokemonFromInitial = initialPartyList.find(p => p.id === activePokemonId)
@@ -214,13 +190,13 @@ export const usePokemonData = () => {
   // Update partyList with detailed data
   useEffect(() => {
     if (!detailedData || activePokemonId < 0) return
-    setPartyList(prevList =>
-      prevList.map(p =>
+    usePokemonStore.setState(prevState => ({
+      partyList: prevState.partyList.map(p =>
         p.id === activePokemonId
           ? { ...p, details: detailedData }
           : p,
-      ),
-    )
+      )
+    }))
   }, [detailedData, activePokemonId])
 
   // Preload details for a given party member by id
@@ -236,76 +212,6 @@ export const usePokemonData = () => {
     },
     [initialPartyList, queryClient],
   )
-
-  // Update EVs immutably, but preserve class instance
-  const setEvIndex = useCallback((pokemonId: number, statIndex: number, evValue: number) => {
-    setPartyList(prevList => prevList.map(p => {
-      if (p.id !== pokemonId || !p.details) return p
-
-      // Validate EV constraints
-      const clampedEvValue = Math.max(0, Math.min(MAX_EV_PER_STAT, evValue))
-
-      // Calculate current total EVs excluding the stat being changed
-      const currentEvs = p.data.evs
-      const otherEvsTotal = currentEvs.reduce((sum, ev, index) =>
-        index === statIndex ? sum : sum + ev, 0,
-      )
-
-      // Ensure total EVs don't exceed limit
-      const maxAllowedForThisStat = Math.min(
-        MAX_EV_PER_STAT,
-        MAX_TOTAL_EVS - otherEvsTotal,
-      )
-      const finalEvValue = Math.min(clampedEvValue, maxAllowedForThisStat)
-
-      // Only update if the value actually changed
-      if (currentEvs[statIndex] === finalEvValue) return p
-
-      // Directly mutate the class instance
-      p.data.setEvByIndex(statIndex, finalEvValue)
-      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
-      // Return a new object reference for React to detect change
-      return { ...p }
-    }))
-  }, [])
-
-  // Update IVs immutably, but preserve class instance
-  const setIvIndex = useCallback((pokemonId: number, statIndex: number, ivValue: number) => {
-    setPartyList(prevList => prevList.map(p => {
-      if (p.id !== pokemonId || !p.details) return p
-
-      // Only update if the value actually changed
-      if (p.data.ivs[statIndex] === ivValue) return p
-
-      // Directly mutate the class instance
-      p.data.setIvByIndex(statIndex, ivValue)
-      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
-      // Return a new object reference for React to detect change
-      return { ...p }
-    }))
-  }, [])
-
-  // Set nature by updating natureRaw and state
-  const setNature = useCallback((pokemonId: number, nature: string) => {
-    setPartyList(prevList => prevList.map(p => {
-      const natureValue = natures.indexOf(nature)
-      if (p.id !== pokemonId || !p.details) return p
-      // Only update if the value actually changed
-      if (p.data.natureRaw === natureValue) return p
-      p.data.setNatureRaw(natureValue)
-      // Optionally, recalculate stats if needed
-      p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
-      return { ...p }
-    }))
-  }, [])
-
-  // Calculate remaining EVs for the active Pokémon
-  const getRemainingEvs = useCallback((pokemonId: number) => {
-    const pokemon = partyList.find(p => p.id === pokemonId)
-    if (!pokemon) return MAX_TOTAL_EVS
-    const totalEvs = pokemon.data.evs.reduce((sum, ev) => sum + ev, 0)
-    return Math.max(0, MAX_TOTAL_EVS - totalEvs)
-  }, [partyList])
 
   return {
     partyList,
