@@ -50,6 +50,8 @@
     "test-real-behavioral": "tsx scripts/test-real-behavioral.ts",
     "test-proper-patterns": "tsx scripts/test-proper-universal-patterns.ts",
     "test-proper-final": "tsx scripts/proper-universal-final.ts",
+    "test-working-proper": "tsx scripts/working-proper-test.ts",
+    "test-final-proper": "tsx scripts/final-working-proper.ts",
     "test-true-behavioral-mgba": "tsx scripts/test-true-behavioral-mgba.ts",
     "test-true-behavioral": "tsx scripts/test-true-behavioral.ts",
     "create-mock-roms": "tsx scripts/create-mock-roms.ts",
