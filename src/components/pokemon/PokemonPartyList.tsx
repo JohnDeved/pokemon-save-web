@@ -1,5 +1,5 @@
 import { QuetzalConfig } from '../../lib/parser/games/quetzal/config'
-import type { Pokemon } from '../../types'
+import { usePokemonStore } from '@/stores'
 import { PokemonStatus } from './PokemonStatus'
 import { PokemonStatusPlaceholder } from './PokemonStatusPlaceholder'
 
@@ -7,20 +7,15 @@ import { PokemonStatusPlaceholder } from './PokemonStatusPlaceholder'
 const config = new QuetzalConfig()
 
 interface PokemonPartyListProps {
-  partyList: Pokemon[]
-  activePokemonId: number
-  onPokemonSelect: (id: number) => void
   isRenaming: boolean
-  onPokemonHover?: (id: number) => void // Added prop
+  onPokemonHover?: (id: number) => void
 }
 
 export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
-  partyList,
-  activePokemonId,
-  onPokemonSelect,
   isRenaming,
   onPokemonHover,
 }) => {
+  const { partyList, activePokemonId, setActivePokemonId } = usePokemonStore()
   const emptySlots = Array.from({ length: Math.max(0, config.maxPartySize - partyList.length) })
 
   return (
@@ -28,7 +23,7 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
       {partyList.map(pokemon => (
         <div
           key={pokemon.id}
-          onClick={() => { if (!isRenaming) onPokemonSelect(pokemon.id) }}
+          onClick={() => { if (!isRenaming) setActivePokemonId(pokemon.id) }}
           onMouseEnter={() => { if (onPokemonHover) onPokemonHover(pokemon.id) }} // Preload on hover
           className="cursor-pointer group"
         >

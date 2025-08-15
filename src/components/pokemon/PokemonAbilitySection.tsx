@@ -1,15 +1,15 @@
-import type { Pokemon } from '../../types'
+import { usePokemonStore } from '@/stores'
 import { ScrollableContainer, Skeleton } from '../common'
 
 interface PokemonAbilitySectionProps {
-  pokemon?: Pokemon
   isLoading?: boolean
 }
 
 export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({
-  pokemon,
   isLoading = false,
 }) => {
+  const { partyList, activePokemonId } = usePokemonStore()
+  const pokemon = partyList.find(p => p.id === activePokemonId)
   const ability = !pokemon?.details
     ? null
     : pokemon.details.abilities.find(a => a.slot === (pokemon.data.abilityNumber + 1))

@@ -66,9 +66,7 @@ describe('Pokemon Save Web - Core Functionality', () => {
       const hooks = await import('../hooks')
 
       expect(hooks.usePokemonData).toBeDefined()
-      expect(hooks.useSaveFileParser).toBeDefined()
       expect(typeof hooks.usePokemonData).toBe('function')
-      expect(typeof hooks.useSaveFileParser).toBe('function')
     })
   })
 

@@ -1,24 +1,21 @@
-import type { usePokemonData } from '@/hooks'
 import { getItemSpriteUrl, natures } from '@/lib/parser/core/utils'
+import { usePokemonStore } from '@/stores'
 import { FaHashtag, FaWandMagicSparkles } from 'react-icons/fa6'
 import { IoSparkles } from 'react-icons/io5'
-import type { Pokemon } from '../../types'
 import { Skeleton } from '../common'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { PokemonTypeBadge } from './PokemonTypeBadge'
 
 interface PokemonHeaderProps {
-  pokemon?: Pokemon
   isLoading?: boolean
-  setNature?: ReturnType<typeof usePokemonData>['setNature']
 }
 
 export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
-  pokemon,
-  setNature,
   isLoading = false,
 }) => {
+  const { partyList, activePokemonId, setNature } = usePokemonStore()
+  const pokemon = partyList.find(p => p.id === activePokemonId)
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-3 border-b border-slate-800">
@@ -75,7 +72,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
               onValueChange={nature => {
                 console.log('Setting nature:', pokemon?.id, nature)
                 if (typeof pokemon?.id === 'undefined') return
-                setNature?.(pokemon.id, nature)
+                setNature(pokemon.id, nature)
               }}
             >
               <SelectTrigger className="text-xs min-h-[44px] lg:min-h-[36px]">
