@@ -1,6 +1,6 @@
 # Pokemon Save Web
 
-A web-based Pokemon save file editor, CLI tool, and TypeScript parser core with PWA support.
+A web-based Pokemon save file editor, CLI tool, and TypeScript parser core with PWA support. **Now powered by Deno!**
 
 ## 🚀 Features
 
@@ -9,66 +9,68 @@ A web-based Pokemon save file editor, CLI tool, and TypeScript parser core with 
 - **Real-time Editing**: Interactive Pokemon data visualization and editing
 - **File System Integration**: Modern browser file API support
 - **Cross-Platform**: Web, CLI, and library usage
+- **Modern Runtime**: Built with Deno for better security and performance
 
 ## Quick Start
 
+### Prerequisites
+
+Install Deno:
+```bash
+curl -fsSL https://deno.land/install.sh | sh
+# Add to PATH: export PATH="$HOME/.deno/bin:$PATH"
+```
+
 ### Web Application (PWA)
 ```bash
-npm install
-npm run dev
+deno task dev
 ```
-Open your browser and drag & drop a Pokemon save file to get started.
+Open your browser to http://localhost:5173 and drag & drop a Pokemon save file to get started.
 
 **PWA Features:**
 - 📱 Install as native app on desktop and mobile
 - 🔄 Works offline with previously loaded save files
-- ⚡ Fast loading with optimized caching
+- ⚡ Fast loading with optimized caching using native ES modules
 - 🎨 Native app-like interface and theming
 
 ### Command Line
 ```bash
 # Parse a save file
-npx github:JohnDeved/pokemon-save-web save.sav
+deno task parse save.sav
 
 # With debug output
-npx github:JohnDeved/pokemon-save-web save.sav --debug
+deno task parse save.sav --debug
+
+# String conversion utilities
+deno task parse --toBytes=PIKACHU
+deno task parse --toString="ca c3 c5 bb bd c2 cf"
+```
+
+### Production Build
+```bash
+deno task build    # Build for production
+deno task preview  # Preview production build
 ```
 
 ### As a Library
 ```typescript
-import { PokemonSaveParser } from './lib/parser'
+import { PokemonSaveParser } from './src/lib/parser/core/PokemonSaveParser.ts'
 
 const parser = new PokemonSaveParser()
-const saveData = await parser.parseSaveFile(file)
+const saveData = await parser.parse(fileArrayBuffer)
 console.log(`Player: ${saveData.player_name}`)
 ```
 
 ```typescript
-import { MgbaWebSocketClient, EmeraldMemoryParser } from './lib/mgba'
+import { MgbaWebSocketClient } from './src/lib/mgba/websocket-client.ts'
 
 // Connect to mGBA emulator
 const client = new MgbaWebSocketClient()
 await client.connect()
 
-// Configure memory regions to watch for real-time updates
-client.configureSharedBuffer({
-  preloadRegions: [
-    { address: 0x20244e9, size: 7 },   // Party count + context
-    { address: 0x20244ec, size: 600 }  // Full party data
-  ]
-})
-
-// Start watching for memory changes (push-based updates)
-await client.startWatchingPreloadRegions()
-
-// Add listener for real-time memory changes
-client.addMemoryChangeListener((address, size, data) => {
-  console.log(`Memory changed at 0x${address.toString(16)}: ${data.length} bytes`)
-})
-
 // Parse save data from memory
-const parser = new EmeraldMemoryParser(client)
-const saveData = await parser.parseFromMemory()
+const parser = new PokemonSaveParser()
+const saveData = await parser.parse(client)
 
 console.log(`Player: ${saveData.player_name}`)
 console.log(`Party: ${saveData.party_pokemon.length} Pokémon`)
@@ -76,7 +78,7 @@ console.log(`Party: ${saveData.party_pokemon.length} Pokémon`)
 
 ### Real-time Memory Synchronization
 
-The WebSocket client now supports **push-based memory updates** instead of constant polling:
+The WebSocket client supports **push-based memory updates** instead of constant polling:
 
 - **Memory Watching**: Configure regions to watch and receive updates only when they change
 - **Intelligent Caching**: Watched regions use cached data, dramatically reducing network calls
