@@ -16,7 +16,7 @@ import {
   PokemonApiResponseSchema,
   PokemonTypeSchema,
 } from '../types'
-import { usePokemonStore, usePokemonDataSync, useSaveFileStore } from '../stores'
+import { usePokemonStore, buildPartyListFromSaveData, useSaveFileStore } from '../stores'
 
 // --- Constants ---
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN'
@@ -152,27 +152,41 @@ async function getPokemonDetails (pokemon: UIPokemonData) {
  * This is a compatibility layer that uses Zustand stores but maintains the same API.
  */
 export const usePokemonData = () => {
-  // Initialize Pokemon data from save data
-  const initialPartyList = usePokemonDataSync()
-  
   // Get state from Zustand stores
   const {
     activePokemonId,
     partyList,
     setActivePokemonId,
+    setPartyList,
     setEvIndex,
     setIvIndex,
     setNature,
     getRemainingEvs,
+    resetPokemonData,
   } = usePokemonStore()
   
-  // Get save file parser state 
+  // Get save file state 
+  const saveData = useSaveFileStore(state => state.saveData)
   const saveFileParser = useSaveFileStore()
   
   const queryClient = useQueryClient()
 
-  // Get the current active Pokémon from initial data
-  const activePokemonFromInitial = initialPartyList.find(p => p.id === activePokemonId)
+  // Initialize party list when save data changes
+  useEffect(() => {
+    if (!saveData?.party_pokemon) {
+      resetPokemonData()
+      return
+    }
+    
+    const initialPartyList = buildPartyListFromSaveData(saveData)
+    setPartyList(initialPartyList)
+    
+    // Clear cached pokemon details to avoid stale data after loading a new file
+    queryClient.removeQueries({ queryKey: ['pokemon', 'details'] })
+  }, [saveData, setPartyList, resetPokemonData, queryClient])
+
+  // Get the current active Pokémon
+  const activePokemon = partyList.find((p: UIPokemonData) => p.id === activePokemonId)
 
   // Query for details of the active Pokémon
   const {
@@ -182,8 +196,8 @@ export const usePokemonData = () => {
     error,
   } = useQuery({
     queryKey: ['pokemon', 'details', String(activePokemonId)],
-    queryFn: () => activePokemonFromInitial ? getPokemonDetails(activePokemonFromInitial) : Promise.reject(new Error('No active Pokémon')),
-    enabled: activePokemonId >= 0 && !!activePokemonFromInitial,
+    queryFn: () => activePokemon ? getPokemonDetails(activePokemon) : Promise.reject(new Error('No active Pokémon')),
+    enabled: activePokemonId >= 0 && !!activePokemon,
     staleTime: 1000 * 60 * 60, // 1 hour
   })
 
@@ -202,7 +216,7 @@ export const usePokemonData = () => {
   // Preload details for a given party member by id
   const preloadPokemonDetails = useCallback(
     async (id: number) => {
-      const pokemon = initialPartyList.find((p) => p.id === id)
+      const pokemon = partyList.find((p: UIPokemonData) => p.id === id)
       if (!pokemon) return
       await queryClient.prefetchQuery({
         queryKey: ['pokemon', 'details', String(id)],
@@ -210,7 +224,7 @@ export const usePokemonData = () => {
         staleTime: 1000 * 60 * 60,
       })
     },
-    [initialPartyList, queryClient],
+    [partyList, queryClient],
   )
 
   return {
