@@ -33,6 +33,10 @@
     "test-real-patterns": "tsx scripts/real-rom-pattern-detection.ts",
     "test-simple-rom": "tsx scripts/simple-rom-test.ts",
     "test-websocket-patterns": "tsx scripts/websocket-pattern-detection.ts",
+    "test-fast-patterns": "tsx scripts/fast-websocket-pattern-detection.ts",
+    "test-step-patterns": "tsx scripts/step-by-step-pattern-detection.ts",
+    "test-complete-patterns": "tsx scripts/complete-pattern-detection.ts",
+    "test-proof-patterns": "tsx scripts/proof-of-concept-patterns.ts",
     "mgba": "tsx docker/mgba-docker.ts"
   },
   "dependencies": {
