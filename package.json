@@ -28,6 +28,8 @@
     "parse": "tsx src/lib/parser/cli.ts",
     "generate-mappings": "node scripts/generate-vanilla-mappings.js",
     "generate-icons": "tsx scripts/generate-icons.ts && tsx scripts/generate-og-image.ts",
+    "prove-patterns": "tsx scripts/prove-universal-patterns.ts",
+    "prove-patterns-ts": "tsx scripts/prove-universal-patterns-typescript.ts",
     "mgba": "tsx docker/mgba-docker.ts"
   },
   "dependencies": {

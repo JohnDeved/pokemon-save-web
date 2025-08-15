@@ -7,6 +7,7 @@ services:
     container_name: mgba-test-environment
     ports:
       - "7102:7102"
+      - "7681:7681"
     environment:
       - DISPLAY=:99
       - QT_QPA_PLATFORM=xcb

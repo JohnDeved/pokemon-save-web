@@ -60,7 +60,7 @@ RUN mkdir -p /app/roms \
     && unzip -o /app/roms/tmp_quetzal.zip -d /app/roms/ \
     && find /app/roms -iname "*quetzal*.gba" -exec mv {} /app/roms/quetzal.gba \; \
     && rm -f /app/roms/tmp_quetzal.zip
-COPY entrypoint.sh /app/entrypoint.sh
+COPY docker/entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
