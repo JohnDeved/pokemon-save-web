@@ -52,6 +52,19 @@ deno task build    # Build for production
 deno task preview  # Preview production build
 ```
 
+### Cloudflare Pages Deployment
+
+This project is configured for native Cloudflare Pages deployment with pure Deno runtime:
+
+1. **Connect repository** to Cloudflare Pages
+2. **Configure build settings** in the Pages dashboard:
+   - **Build command**: `curl -fsSL https://deno.land/install.sh | sh -s v2.1.4 && export PATH=$HOME/.deno/bin:$PATH && deno run -A --node-modules-dir npm:vite build`
+   - **Build output directory**: `dist`
+   - **Root directory**: `/` (default)
+3. **Deploy** - No additional configuration needed!
+
+The `wrangler.toml` file ensures proper Pages configuration with `pages_build_output_dir = "dist"`.
+
 ### As a Library
 ```typescript
 import { PokemonSaveParser } from './src/lib/parser/core/PokemonSaveParser.ts'
@@ -94,10 +107,9 @@ For detailed documentation, see [src/lib/mgba/README.md](./src/lib/mgba/README.m
 The main web application provides a user-friendly interface for uploading and analyzing save files.
 
 ```bash
-npm install
-npm run dev    # Start development server
-npm run build  # Build for production (includes PWA)
-npm run preview # Preview PWA build locally
+deno task dev      # Start development server
+deno task build    # Build for production (includes PWA)
+deno task preview  # Preview PWA build locally
 ```
 
 **Features:**
@@ -132,7 +144,7 @@ Parse save files from the command line with multiple output formats.
 
 ```bash
 # Local usage
-npm run parse save.sav --debug
+deno task parse save.sav --debug
 
 # NPX usage (direct from GitHub)  
 npx github:JohnDeved/pokemon-save-web save.sav --graph

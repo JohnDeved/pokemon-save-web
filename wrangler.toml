@@ -1,9 +1,3 @@
 name = "pokemon-save-web"
 compatibility_date = "2024-08-16"
 pages_build_output_dir = "dist"
-
-[env.production.vars]
-DENO_INSTALL_ROOT = "/opt/buildhome/.deno"
-
-[build]
-command = "curl -fsSL https://deno.land/install.sh | sh -s v2.1.4 && export PATH=$HOME/.deno/bin:$PATH && deno run -A --node-modules-dir npm:vite build"
