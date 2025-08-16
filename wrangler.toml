@@ -1,0 +1,7 @@
+name = "pokemon-save-web"
+compatibility_date = "2024-08-16"
+
+[build]
+command = "deno run -A --node-modules-dir npm:vite build"
+cwd = "."
+publish = "dist"

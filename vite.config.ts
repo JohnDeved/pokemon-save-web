@@ -1,6 +1,7 @@
 
 import path from "node:path"
 import { defineConfig } from 'vite'
+import deno from '@deno/vite-plugin'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -8,6 +9,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    deno(),
     react({
       babel: {
         plugins: ['babel-plugin-react-compiler'], // must run first!
@@ -54,6 +56,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      external: [
+        'zustand', 'zod', 'sonner', 'framer-motion', 'lucide-react', 
+        'file-saver', 'file-selector', 'react-dropzone', 
+        'clsx', 'tailwind-merge', 'class-variance-authority',
+        /^react-icons\//
+      ],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
