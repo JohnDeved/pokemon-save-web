@@ -9,7 +9,7 @@ const TooltipProvider = ({
 }: React.ComponentProps<typeof TooltipPrimitive.Provider>) => {
   return (
     <TooltipPrimitive.Provider
-      data-slot="tooltip-provider"
+      data-slot='tooltip-provider'
       delayDuration={delayDuration}
       {...props}
     />
@@ -21,7 +21,7 @@ const Tooltip = ({
 }: React.ComponentProps<typeof TooltipPrimitive.Root>) => {
   return (
     <TooltipProvider>
-      <TooltipPrimitive.Root data-slot="tooltip" {...props}/>
+      <TooltipPrimitive.Root data-slot='tooltip' {...props} />
     </TooltipProvider>
   )
 }
@@ -29,7 +29,7 @@ const Tooltip = ({
 const TooltipTrigger = ({
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) => {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props}/>
+  return <TooltipPrimitive.Trigger data-slot='tooltip-trigger' {...props} />
 }
 
 const TooltipContent = ({
@@ -41,7 +41,7 @@ const TooltipContent = ({
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
-        data-slot="tooltip-content"
+        data-slot='tooltip-content'
         sideOffset={sideOffset}
         className={cn(
           // Make background lighter
@@ -51,7 +51,7 @@ const TooltipContent = ({
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow className="bg-slate-800/70 fill-slate-800/70 z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] backdrop-blur-md"/>
+        <TooltipPrimitive.Arrow className='bg-slate-800/70 fill-slate-800/70 z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] backdrop-blur-md' />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )

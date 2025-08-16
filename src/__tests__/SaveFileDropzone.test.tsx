@@ -3,7 +3,7 @@
  * Tests the save file upload functionality
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 // Note: These tests are temporarily simplified due to jsdom environment setup issues
 // Full testing will be handled by E2E tests

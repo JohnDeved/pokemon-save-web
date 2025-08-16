@@ -1,20 +1,5 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S deno run --unstable-sloppy-imports --allow-net --allow-read --allow-write --allow-env
 
-// Wrapper script to run the TypeScript CLI with tsx
-import { execFileSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const cliPath = join(__dirname, '..', 'src', 'lib', 'parser', 'cli.ts');
-
-try {
-  execFileSync('npx', ['tsx', cliPath, ...process.argv.slice(2)], {
-    stdio: 'inherit',
-    cwd: join(__dirname, '..')
-  });
-} catch (error) {
-  process.exit(error.status || 1);
-}
+// Pokemon Save Parser CLI
+// This is a direct import of the main CLI module
+export * from '../src/lib/parser/cli.ts'

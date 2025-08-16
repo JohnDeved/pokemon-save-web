@@ -3,9 +3,9 @@
  * Automatically registers all available game configs
  */
 
-import { gameConfigRegistry } from '../core/GameConfigRegistry'
-import { QuetzalConfig } from './quetzal/config'
-import { VanillaConfig } from './vanilla/config'
+import { gameConfigRegistry } from '../core/GameConfigRegistry.ts'
+import { QuetzalConfig } from './quetzal/config.ts'
+import { VanillaConfig } from './vanilla/config.ts'
 
 // Register configs in priority order (most specific first)
 gameConfigRegistry.register(QuetzalConfig)

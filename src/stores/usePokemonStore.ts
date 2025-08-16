@@ -41,7 +41,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
   setEvIndex: (pokemonId: number, statIndex: number, evValue: number) => {
     set((state) => ({
-      partyList: state.partyList.map(p => {
+      partyList: state.partyList.map((p) => {
         if (p.id !== pokemonId || !p.details) return p
 
         // Validate EV constraints
@@ -49,9 +49,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
         // Calculate current total EVs excluding the stat being changed
         const currentEvs = p.data.evs
-        const otherEvsTotal = currentEvs.reduce((sum, ev, index) =>
-          index === statIndex ? sum : sum + ev, 0,
-        )
+        const otherEvsTotal = currentEvs.reduce((sum, ev, index) => index === statIndex ? sum : sum + ev, 0)
 
         // Ensure total EVs don't exceed limit
         const maxAllowedForThisStat = Math.min(
@@ -74,7 +72,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
   setIvIndex: (pokemonId: number, statIndex: number, ivValue: number) => {
     set((state) => ({
-      partyList: state.partyList.map(p => {
+      partyList: state.partyList.map((p) => {
         if (p.id !== pokemonId || !p.details) return p
 
         // Only update if the value actually changed
@@ -91,7 +89,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
   setNature: (pokemonId: number, nature: string) => {
     set((state) => ({
-      partyList: state.partyList.map(p => {
+      partyList: state.partyList.map((p) => {
         const natureValue = natures.indexOf(nature)
         if (p.id !== pokemonId || !p.details) return p
         // Only update if the value actually changed
@@ -106,7 +104,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
   getRemainingEvs: (pokemonId: number) => {
     const { partyList } = get()
-    const pokemon = partyList.find(p => p.id === pokemonId)
+    const pokemon = partyList.find((p) => p.id === pokemonId)
     if (!pokemon) return MAX_TOTAL_EVS
     const totalEvs = pokemon.data.evs.reduce((sum, ev) => sum + ev, 0)
     return Math.max(0, MAX_TOTAL_EVS - totalEvs)

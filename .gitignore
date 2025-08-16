@@ -7,10 +7,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+# Deno
+.deno/
+
+# Node modules (when using Deno with nodeModulesDir: auto)
+node_modules/
+
+# Build artifacts
 dist
 dist-ssr
 *.local
+.vite/
 
 # Editor directories and files
 .vscode/*

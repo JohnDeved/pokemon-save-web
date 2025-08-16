@@ -11,7 +11,18 @@ import {
   PokemonStatDisplay,
   SaveFileDropzone,
 } from './components/pokemon'
-import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarShortcut,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
+  MenubarTrigger,
+} from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
 import { usePokemonData } from './hooks'
 
@@ -36,99 +47,120 @@ export const App: React.FC = () => {
   return (
     <>
       {/* Background pattern appears immediately */}
-      <div className="fixed inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"/>
+      <div className='fixed inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]' />
       {/* Shader overlay fades in after pattern */}
       <Suspense fallback={null}>
-        <ShaderBackground/>
+        <ShaderBackground />
       </Suspense>
-      <Toaster richColors position="bottom-center"/>
-      <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
+      <Toaster richColors position='bottom-center' />
+      <div className='min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100'>
         <SaveFileDropzone
           onFileLoad={saveFileParser.parse}
           error={saveFileParser.error}
           showDropzone={shouldShowDropzone}
-          onOpenFilePicker={fn => { filePickerRef.current = fn }}
+          onOpenFilePicker={(fn) => {
+            filePickerRef.current = fn
+          }}
         />
         {hasSaveData && (
-          <main className="max-w-6xl mx-auto z-10 gap-4 flex flex-col">
-            <CompactPokemonSelector/>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 z-10">
-              <div className="flex flex-col gap-4">
-                <Menubar className="geist-font">
+          <main className='max-w-6xl mx-auto z-10 gap-4 flex flex-col'>
+            <CompactPokemonSelector />
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 z-10'>
+              <div className='flex flex-col gap-4'>
+                <Menubar className='geist-font'>
                   <MenubarMenu>
                     <MenubarTrigger>File</MenubarTrigger>
                     <MenubarContent>
-                      <MenubarItem onClick={() => { filePickerRef.current?.() }}>
+                      <MenubarItem
+                        onClick={() => {
+                          filePickerRef.current?.()
+                        }}
+                      >
                         Open
                       </MenubarItem>
                       <MenubarItem disabled>Open Recent</MenubarItem>
-                      <MenubarSeparator/>
+                      <MenubarSeparator />
                       <MenubarItem
                         disabled={!saveFileParser.parser?.fileHandle}
                         onClick={() => saveFileParser.reconstructAndDownload('save')}
-                      >Save <MenubarShortcut>Ctrl+S</MenubarShortcut>
+                      >
+                        Save <MenubarShortcut>Ctrl+S</MenubarShortcut>
                       </MenubarItem>
                       <MenubarItem
                         onClick={() => saveFileParser.reconstructAndDownload('saveAs')}
                         disabled={!canSaveAs}
-                      >Save As
+                      >
+                        Save As
                       </MenubarItem>
                       <MenubarItem
                         onClick={() => saveFileParser.reconstructAndDownload()}
-                      >Download
+                      >
+                        Download
                       </MenubarItem>
-                      <MenubarSeparator/>
+                      <MenubarSeparator />
                       <MenubarSub>
                         <MenubarSubTrigger>Party</MenubarSubTrigger>
                         <MenubarSubContent>
                           <MenubarItem disabled>Load from File</MenubarItem>
                           <MenubarItem disabled>Storage</MenubarItem>
-                          <MenubarSeparator/>
+                          <MenubarSeparator />
                           <MenubarItem disabled>Save As</MenubarItem>
                           <MenubarItem disabled>Download</MenubarItem>
                           <MenubarItem disabled>Store</MenubarItem>
                         </MenubarSubContent>
                       </MenubarSub>
-                      <MenubarSeparator/>
+                      <MenubarSeparator />
                       <MenubarSub>
                         <MenubarSubTrigger>Player</MenubarSubTrigger>
                         <MenubarSubContent>
-                          <MenubarItem disabled>Info <MenubarShortcut>{saveFileParser.saveData?.player_name}</MenubarShortcut></MenubarItem>
+                          <MenubarItem disabled>
+                            Info <MenubarShortcut>{saveFileParser.saveData?.player_name}</MenubarShortcut>
+                          </MenubarItem>
                           <MenubarItem disabled>Rename</MenubarItem>
                         </MenubarSubContent>
                       </MenubarSub>
-                      <MenubarSeparator/>
+                      <MenubarSeparator />
                       <MenubarItem disabled>Share</MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>
                   <MenubarMenu>
                     <MenubarTrigger>Edit</MenubarTrigger>
                     <MenubarContent>
-                      <MenubarItem disabled>Undo <MenubarShortcut>Ctrl+Z</MenubarShortcut></MenubarItem>
-                      <MenubarItem disabled>Redo <MenubarShortcut>Ctrl+Shift+Y</MenubarShortcut></MenubarItem>
-                      <MenubarSeparator/>
+                      <MenubarItem disabled>
+                        Undo <MenubarShortcut>Ctrl+Z</MenubarShortcut>
+                      </MenubarItem>
+                      <MenubarItem disabled>
+                        Redo <MenubarShortcut>Ctrl+Shift+Y</MenubarShortcut>
+                      </MenubarItem>
+                      <MenubarSeparator />
                       <MenubarItem disabled>Reset</MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>
                   <MenubarMenu>
                     <MenubarTrigger>Help</MenubarTrigger>
                     <MenubarContent>
-                      <MenubarItem onClick={() => { location.reload() }}>Restart</MenubarItem>
-                      <MenubarSeparator/>
+                      <MenubarItem
+                        onClick={() => {
+                          location.reload()
+                        }}
+                      >
+                        Restart
+                      </MenubarItem>
+                      <MenubarSeparator />
                       <MenubarItem disabled>Github</MenubarItem>
                       <MenubarItem disabled>About</MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>
                 </Menubar>
-                <div className="hidden lg:block">
+                <div className='hidden lg:block'>
                   <PokemonPartyList
                     isRenaming={false}
                     onPokemonHover={preloadPokemonDetails}
                   />
                 </div>
               </div>
-              <div className="grid grid-rows-[auto_auto_1fr] gap-4">
-                <Card className="z-30">
+              <div className='grid grid-rows-[auto_auto_1fr] gap-4'>
+                <Card className='z-30'>
                   <PokemonHeader
                     isLoading={isLoading}
                   />
@@ -136,12 +168,12 @@ export const App: React.FC = () => {
                     isLoading={!activePokemon?.details || isLoading}
                   />
                 </Card>
-                <Card className="z-20">
+                <Card className='z-20'>
                   <PokemonStatDisplay
                     isLoading={!activePokemon?.details || isLoading}
                   />
                 </Card>
-                <Card className="z-10">
+                <Card className='z-10'>
                   <PokemonAbilitySection
                     isLoading={!activePokemon?.details || isLoading}
                   />
@@ -151,7 +183,7 @@ export const App: React.FC = () => {
           </main>
         )}
       </div>
-      <PWAInstallPrompt/>
+      <PWAInstallPrompt />
     </>
   )
 }

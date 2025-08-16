@@ -21,7 +21,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
   let testSaveData: ArrayBuffer
   let groundTruth: {
     player_name: string
-    play_time: { hours: number, minutes: number }
+    play_time: { hours: number; minutes: number }
     party_pokemon: Array<{
       nickname: string
       otName: string
@@ -37,8 +37,8 @@ describe('Vanilla Pokemon Emerald Tests', () => {
       displayOtId: string
       displayNature: string
       moves: {
-        move1: { name: string, pp: number }
-        move2: { name: string, pp: number }
+        move1: { name: string; pp: number }
+        move2: { name: string; pp: number }
       }
     }>
   }
@@ -87,7 +87,9 @@ describe('Vanilla Pokemon Emerald Tests', () => {
       // Load Quetzal test data and verify detection priority
       const quetzalPath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const quetzalBuffer = readFileSync(quetzalPath)
-      const quetzalData = new Uint8Array(quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength))
+      const quetzalData = new Uint8Array(
+        quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength),
+      )
 
       const vanillaConfig = new VanillaConfig()
       const quetzalConfig = new QuetzalConfig()
@@ -102,7 +104,10 @@ describe('Vanilla Pokemon Emerald Tests', () => {
       expect(vanillaParser.gameConfig?.name).toBe('Pokemon Emerald (Vanilla)')
 
       const quetzalParser = new PokemonSaveParser()
-      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
+      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(
+        quetzalBuffer.byteOffset,
+        quetzalBuffer.byteOffset + quetzalBuffer.byteLength,
+      )
       const quetzalResult = await quetzalParser.parse(quetzalArrayBuffer)
       expect(quetzalParser.gameConfig?.name).toBe('Pokemon Quetzal')
       expect(quetzalResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon
@@ -168,14 +173,14 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
         // EVs should be valid (0-255 range)
         expect(pokemon.evs).toHaveLength(6)
-        pokemon.evs.forEach(ev => {
+        pokemon.evs.forEach((ev) => {
           expect(ev).toBeGreaterThanOrEqual(0)
           expect(ev).toBeLessThanOrEqual(255)
         })
 
         // IVs should be valid (0-31 range)
         expect(pokemon.ivs).toHaveLength(6)
-        pokemon.ivs.forEach(iv => {
+        pokemon.ivs.forEach((iv) => {
           expect(iv).toBeGreaterThanOrEqual(0)
           expect(iv).toBeLessThanOrEqual(31)
         })
@@ -307,11 +312,31 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         // Verify using Gen 3 formula: personality % 25
         const expectedNatureIndex = pokemon.personality % 25
         const natures = [
-          'Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty',
-          'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax',
-          'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive',
-          'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash',
-          'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky',
+          'Hardy',
+          'Lonely',
+          'Brave',
+          'Adamant',
+          'Naughty',
+          'Bold',
+          'Docile',
+          'Relaxed',
+          'Impish',
+          'Lax',
+          'Timid',
+          'Hasty',
+          'Serious',
+          'Jolly',
+          'Naive',
+          'Modest',
+          'Mild',
+          'Quiet',
+          'Bashful',
+          'Rash',
+          'Calm',
+          'Gentle',
+          'Sassy',
+          'Careful',
+          'Quirky',
         ]
         expect(pokemon.nature).toBe(natures[expectedNatureIndex])
       }

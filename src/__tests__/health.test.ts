@@ -3,7 +3,7 @@
  * Simple test to verify the website builds and basic functionality works
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 describe('Pokemon Save Web - Basic Health Check', () => {
   it('should verify core modules import correctly', () => {

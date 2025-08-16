@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useMemo, memo, useState, useEffect } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { ShaderMaterial } from 'three'
 
 import fragmentShader from '../../glsl/shader.glsl?raw'
@@ -23,8 +23,8 @@ const Scene = memo(() => {
 
   return (
     <mesh>
-      <planeGeometry args={[2, 2]}/>
-      <primitive object={material}/>
+      <planeGeometry args={[2, 2]} />
+      <primitive object={material} />
     </mesh>
   )
 })
@@ -42,12 +42,10 @@ export const ShaderBackground = memo(() => {
 
   return (
     <div
-      className={`fixed inset-0 transition-opacity duration-500 ${
-        isLoaded ? 'opacity-100' : 'opacity-0'
-      }`}
+      className={`fixed inset-0 transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
     >
       <Canvas gl={{ antialias: false, powerPreference: 'high-performance' }}>
-        <Scene/>
+        <Scene />
       </Canvas>
     </div>
   )

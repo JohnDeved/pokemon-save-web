@@ -4,25 +4,25 @@ import { Card } from '../common'
 
 export const CompactPokemonSelector: React.FC = () => {
   const { partyList, activePokemonId, setActivePokemonId } = usePokemonStore()
-  const selectedPokemon = partyList.find(p => p.id === activePokemonId)
+  const selectedPokemon = partyList.find((p) => p.id === activePokemonId)
   if (!selectedPokemon) return null
 
   return (
-    <Card className="p-3 lg:hidden">
-      <div className="flex items-center gap-3 mb-3">
+    <Card className='p-3 lg:hidden'>
+      <div className='flex items-center gap-3 mb-3'>
         <img
           src={selectedPokemon.spriteUrl}
-          className="w-12 h-12 [image-rendering:pixelated]"
+          className='w-12 h-12 [image-rendering:pixelated]'
           alt={selectedPokemon.data.nickname}
         />
         <div>
-          <h3 className="text-white font-semibold">{selectedPokemon.data.nickname}</h3>
-          <span className="text-slate-300 text-sm">Lv.{selectedPokemon.data.level}</span>
+          <h3 className='text-white font-semibold'>{selectedPokemon.data.nickname}</h3>
+          <span className='text-slate-300 text-sm'>Lv.{selectedPokemon.data.level}</span>
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto">
-        {partyList.map(pokemon => (
+      <div className='flex gap-2 overflow-x-auto'>
+        {partyList.map((pokemon) => (
           <button
             key={pokemon.id}
             onClick={() => setActivePokemonId(pokemon.id)}
@@ -35,7 +35,7 @@ export const CompactPokemonSelector: React.FC = () => {
           >
             <img
               src={pokemon.spriteUrl}
-              className="w-full h-full [image-rendering:pixelated]"
+              className='w-full h-full [image-rendering:pixelated]'
               alt={pokemon.data.nickname}
             />
           </button>

@@ -1,11 +1,11 @@
-#!/usr/bin/env -S npx tsx
-import fs from 'fs'
-import path from 'path'
-import { PokemonSaveParser } from './core/PokemonSaveParser'
-import type { PokemonBase } from './core/PokemonBase'
-import type { SaveData } from './core/types'
-import { bytesToGbaString, gbaStringToBytes } from './core/utils'
-import { MgbaWebSocketClient } from '../mgba/websocket-client'
+#!/usr/bin/env -S deno run --allow-net --allow-read --allow-write --allow-env
+import { existsSync } from "@std/fs"
+import { resolve } from "@std/path"
+import { PokemonSaveParser } from './core/PokemonSaveParser.ts'
+import type { PokemonBase } from './core/PokemonBase.ts'
+import type { SaveData } from './core/types.ts'
+import { bytesToGbaString, gbaStringToBytes } from './core/utils.ts'
+import { MgbaWebSocketClient } from '../mgba/websocket-client.ts'
 
 // New: Define columns for party table in a single array for maintainability
 const PARTY_COLUMNS = [
@@ -33,7 +33,7 @@ const PARTY_COLUMNS = [
   { label: 'IDNo', width: 7, value: (p: PokemonBase) => p.otId_str },
 ]
 
-function pad (str: string, width: number) {
+function pad(str: string, width: number) {
   return str.toString().padEnd(width)
 }
 
@@ -41,10 +41,10 @@ function pad (str: string, width: number) {
 const displayPartyPokemon = (party: readonly PokemonBase[], mode = 'FILE') => {
   console.log(`\n--- Party Pokémon Summary (${mode} MODE) ---`)
   if (!party.length) return void console.log('No Pokémon found in party.')
-  const header = PARTY_COLUMNS.map(col => pad(col.label, col.width)).join('')
+  const header = PARTY_COLUMNS.map((col) => pad(col.label, col.width)).join('')
   console.log(header, `\n${'-'.repeat(header.length)}`)
   party.forEach((p, i) => {
-    const row = PARTY_COLUMNS.map(col => pad(col.value(p, i), col.width)).join('')
+    const row = PARTY_COLUMNS.map((col) => pad(col.value(p, i), col.width)).join('')
     console.log(row)
   })
 }
@@ -62,7 +62,7 @@ const displayPartyPokemonRaw = (party: readonly PokemonBase[]) => {
   if (!party.length) return void console.log('No Pokémon found in party.')
   party.forEach((p, i) => {
     console.log(`\n--- Slot ${i + 1}: ${p.nickname} ---`)
-    console.log([...p.rawBytes].map(b => b.toString(16).padStart(2, '0')).join(' '))
+    console.log([...p.rawBytes].map((b) => b.toString(16).padStart(2, '0')).join(' '))
   })
 }
 
@@ -97,31 +97,48 @@ const displayColoredBytes = (raw: Uint8Array, fields: Array<[number, number, str
   let pos = 0
   while (pos < raw.length) {
     let lineEnd = Math.min(pos + bytesPerLine, raw.length)
-    for (const [s, e] of fields) if (pos < s && s < lineEnd && lineEnd < e) { lineEnd = s; break }
-    if (lineEnd === pos) lineEnd = Math.min(...fields.filter(([s, e]) => s <= pos && pos < e).map(([, e]) => e).concat([pos + 1, raw.length]))
+    for (const [s, e] of fields) {
+      if (pos < s && s < lineEnd && lineEnd < e) {
+        lineEnd = s
+        break
+      }
+    }
+    if (lineEnd === pos) {
+      lineEnd = Math.min(
+        ...fields.filter(([s, e]) => s <= pos && pos < e).map(([, e]) => e).concat([pos + 1, raw.length]),
+      )
+    }
     const lineBytes = raw.slice(pos, lineEnd)
     const fieldForByte = Array.from(lineBytes, (_, j) => fields.find(([s, e]) => pos + j >= s && pos + j < e))
     // Label line
     let labelLine = ''
     for (let i = 0; i < lineBytes.length;) {
-      const field = fieldForByte[i]; const idx = pos + i
+      const field = fieldForByte[i]
+      const idx = pos + i
       if (field && idx === field[0]) {
-        const [s, e, n] = field; const color = colorFor(fields.indexOf(field))
-        const fieldLen = Math.min(e - s, lineBytes.length - i); const width = fieldLen * 3 - 1
+        const [s, e, n] = field
+        const color = colorFor(fields.indexOf(field))
+        const fieldLen = Math.min(e - s, lineBytes.length - i)
+        const width = fieldLen * 3 - 1
         const shortName = n.length > width ? `${n.slice(0, Math.max(0, width - 1))}.` : n
         labelLine += `${color}${shortName.padStart(Math.floor((width + shortName.length) / 2)).padEnd(width)}${RESET}`
         i += fieldLen
         if (i < lineBytes.length) labelLine += ' '
       } else {
-        labelLine += (i < lineBytes.length - 1 ? '   ' : '  ')
+        labelLine += i < lineBytes.length - 1 ? '   ' : '  '
         i++
       }
     }
-    let artLine = ''; let hexLine = ''
+    let artLine = ''
+    let hexLine = ''
     for (let j = 0; j < lineBytes.length; ++j) {
-      const field = fieldForByte[j]; const color = field ? colorFor(fields.indexOf(field)) : ''
+      const field = fieldForByte[j]
+      const color = field ? colorFor(fields.indexOf(field)) : ''
       artLine += (field ? `${color}──${RESET}` : '  ') + (j < lineBytes.length - 1 ? ' ' : '')
-      hexLine += (j ? ' ' : '') + (field ? `${color}${lineBytes[j]!.toString(16).padStart(2, '0')}${RESET}` : lineBytes[j]!.toString(16).padStart(2, '0'))
+      hexLine += (j ? ' ' : '') +
+        (field
+          ? `${color}${lineBytes[j]!.toString(16).padStart(2, '0')}${RESET}`
+          : lineBytes[j]!.toString(16).padStart(2, '0'))
     }
     if (labelLine.trim()) console.log(`\n      ${labelLine}`)
     if (artLine.trim()) console.log(`      ${artLine}`)
@@ -143,7 +160,10 @@ const displayPartyPokemonGraph = (party: readonly PokemonBase[]) => {
 /**
  * Parse and display save data from either file or WebSocket
  */
-async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, skipDisplay?: boolean }): Promise<SaveData> {
+async function parseAndDisplay(
+  input: string | MgbaWebSocketClient,
+  options: { debug: boolean; graph: boolean; skipDisplay?: boolean },
+): Promise<SaveData> {
   const parser = new PokemonSaveParser()
   let result: SaveData
   let mode: string
@@ -151,8 +171,8 @@ async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { 
   if (typeof input === 'string') {
     // File mode
     mode = 'FILE'
-    const absPath = path.resolve(input)
-    const buffer = fs.readFileSync(absPath)
+    const absPath = resolve(input)
+    const buffer = Deno.readFileSync(absPath)
     result = await parser.parse(buffer)
     if (!options.skipDisplay) {
       console.log(`📁 Detected game: ${parser.gameConfig?.name ?? 'unknown'}`)
@@ -189,14 +209,17 @@ async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { 
 /**
  * Clear screen and move cursor to top
  */
-function clearScreen () {
-  process.stdout.write('\x1b[2J\x1b[H')
+function clearScreen() {
+  console.clear()
 }
 
 /**
  * Watch mode - continuously monitor and update display
  */
-async function watchMode (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
+async function watchMode(
+  input: string | MgbaWebSocketClient,
+  options: { debug: boolean; graph: boolean; interval: number },
+) {
   if (typeof input === 'string') {
     // File-based watch mode - use polling since files don't support push notifications
     return watchModeFile(input, options)
@@ -209,7 +232,7 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
 /**
  * File-based watch mode - polling approach for file changes
  */
-async function watchModeFile (filePath: string, options: { debug: boolean, graph: boolean, interval: number }) {
+async function watchModeFile(filePath: string, options: { debug: boolean; graph: boolean; interval: number }) {
   console.log(`🔄 Starting file watch mode (updating every ${options.interval}ms)...`)
   console.log('Press Ctrl+C to exit')
 
@@ -222,13 +245,13 @@ async function watchModeFile (filePath: string, options: { debug: boolean, graph
   while (true) {
     try {
       // Parse save data without re-initializing parser
-      const absPath = path.resolve(filePath)
-      const buffer = fs.readFileSync(absPath)
+      const absPath = resolve(filePath)
+      const buffer = Deno.readFileSync(absPath)
       const result = await parser.parse(buffer)
 
       // Create a simple hash of the party data to detect changes
       const dataHash = JSON.stringify(
-        result.party_pokemon.map(p => ({
+        result.party_pokemon.map((p) => ({
           species: p.speciesId,
           level: p.level,
           hp: p.currentHp,
@@ -248,14 +271,17 @@ async function watchModeFile (filePath: string, options: { debug: boolean, graph
       console.error('❌ Error:', error instanceof Error ? error.message : 'Unknown error')
     }
 
-    await new Promise(resolve => setTimeout(resolve, options.interval))
+    await new Promise((resolve) => setTimeout(resolve, options.interval))
   }
 }
 
 /**
  * WebSocket-based watch mode - event-driven approach using parser watch API
  */
-async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
+async function watchModeWebSocket(
+  client: MgbaWebSocketClient,
+  options: { debug: boolean; graph: boolean; interval: number },
+) {
   console.log('🔄 Starting event-driven watch mode...')
   console.log('Press Ctrl+C to exit')
 
@@ -290,14 +316,19 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
       resolve()
     }
 
-    process.on('SIGINT', cleanup)
-    process.on('SIGTERM', cleanup)
+    // Use Deno signal listeners
+    const signalHandler = () => {
+      cleanup()
+    }
+    
+    Deno.addSignalListener('SIGINT', signalHandler)
+    Deno.addSignalListener('SIGTERM', signalHandler)
   })
 }
 
 // CLI entry point
-async function main () {
-  const argv = process.argv
+async function main() {
+  const argv = Deno.args
 
   // Parse command line options
   const debug = argv.includes('--debug')
@@ -306,24 +337,24 @@ async function main () {
   const websocket = argv.includes('--websocket')
 
   // Watch interval option
-  const intervalArg = argv.find(arg => arg.startsWith('--interval='))
+  const intervalArg = argv.find((arg: string) => arg.startsWith('--interval='))
   const interval = intervalArg ? parseInt(intervalArg.split('=')[1] ?? '1000') : 1000
 
   // WebSocket URL option
-  const wsUrlArg = argv.find(arg => arg.startsWith('--ws-url='))
+  const wsUrlArg = argv.find((arg: string) => arg.startsWith('--ws-url='))
   const wsUrl = wsUrlArg ? wsUrlArg.split('=')[1] : 'ws://localhost:7102/ws'
 
   // Utility string conversion functions
-  const toBytesArg = argv.find(arg => arg.startsWith('--toBytes='))
+  const toBytesArg = argv.find((arg: string) => arg.startsWith('--toBytes='))
   if (toBytesArg) {
     const str = toBytesArg.split('=')[1] ?? ''
     const bytes = gbaStringToBytes(str, str.length + 1) // +1 for null terminator
     console.log(`GBA bytes for "${str}":`)
-    console.log(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '))
-    process.exit(0)
+    console.log(Array.from(bytes).map((b: number) => b.toString(16).padStart(2, '0')).join(' '))
+    Deno.exit(0)
   }
 
-  const toStringArg = argv.find(arg => arg.startsWith('--toString='))
+  const toStringArg = argv.find((arg: string) => arg.startsWith('--toString='))
   if (toStringArg) {
     const hexStr = toStringArg.split('=')[1] ?? ''
     // Accepts space or comma separated hex bytes
@@ -332,12 +363,12 @@ async function main () {
         .trim()
         .split(/\s+|,/)
         .filter(Boolean)
-        .map(b => parseInt(b, 16)),
+        .map((b: string) => parseInt(b, 16)),
     )
     const str = bytesToGbaString(bytes)
-    console.log(`String for bytes [${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`)
+    console.log(`String for bytes [${Array.from(bytes).map((b: number) => b.toString(16).padStart(2, '0')).join(' ')}]:`)
     console.log(str)
-    process.exit(0)
+    Deno.exit(0)
   }
 
   // Determine input source
@@ -354,19 +385,20 @@ async function main () {
       input = client
 
       // Setup cleanup on exit
-      process.on('SIGINT', () => {
+      const signalHandler = () => {
         client.disconnect()
-        process.exit(0)
-      })
+        Deno.exit(0)
+      }
+      Deno.addSignalListener('SIGINT', signalHandler)
     } catch (error) {
       console.error('❌ Failed to connect to mGBA WebSocket:', error instanceof Error ? error.message : 'Unknown error')
-      process.exit(1)
+      Deno.exit(1)
     }
   } else {
     // File mode
-    const savePath = argv.find(arg => arg.match(/\.sav$/i) && fs.existsSync(path.resolve(arg)))
+    const savePath = argv.find((arg: string) => arg.match(/\.sav$/i) && existsSync(resolve(arg)))
     if (!savePath) {
-      console.error(`\nUsage: tsx cli.ts [savefile.sav] [options]
+      console.error(`\nUsage: deno run cli.ts [savefile.sav] [options]
 
 Options:
   --websocket           Connect to mGBA via WebSocket instead of reading a file
@@ -379,17 +411,17 @@ Options:
   --toString=HEX        Convert a space/comma-separated hex byte string to a decoded GBA string
 
 Examples:
-  tsx cli.ts mysave.sav --debug
-  tsx cli.ts mysave.sav --graph --watch
-  tsx cli.ts --websocket --watch --interval=2000
-  tsx cli.ts --websocket --debug
-  tsx cli.ts --toBytes=PIKACHU
-  tsx cli.ts --toString="50 49 4b 41 43 48 55 00"
+  deno run cli.ts mysave.sav --debug
+  deno run cli.ts mysave.sav --graph --watch
+  deno run cli.ts --websocket --watch --interval=2000
+  deno run cli.ts --websocket --debug
+  deno run cli.ts --toBytes=PIKACHU
+  deno run cli.ts --toString="50 49 4b 41 43 48 55 00"
 
 WebSocket Mode:
   Requires mGBA Docker container to be running with WebSocket API enabled.
 `)
-      process.exit(1)
+      Deno.exit(1)
     }
     input = savePath
   }
@@ -420,12 +452,12 @@ WebSocket Mode:
       input.disconnect()
     }
 
-    process.exit(1)
+    Deno.exit(1)
   }
 }
 
 // Run the CLI
-main().catch(error => {
+main().catch((error) => {
   console.error('❌ Unexpected error:', error)
-  process.exit(1)
+  Deno.exit(1)
 })

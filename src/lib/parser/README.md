@@ -65,13 +65,14 @@ The parser uses a flexible GameConfig system for adding support for new Pokemon 
 3. **Registry** - Add your config to the available configurations list
 
 Basic structure:
+
 ```typescript
 // 1. GameConfig implementation
 export class MyGameConfig implements GameConfig {
   // Define offsets, mappings, detection logic
 }
 
-// 2. Pokemon data class  
+// 2. Pokemon data class
 class MyGamePokemonData extends BasePokemonData {
   // Implement game-specific data reading
 }
@@ -90,7 +91,7 @@ export const AVAILABLE_CONFIGS = [
 ```typescript
 class PokemonSaveParser {
   constructor(saveData?: Uint8Array, config?: GameConfig)
-  
+
   async parseSaveFile(file: File): Promise<SaveData>
   reconstructSaveFile(saveData: SaveData): Uint8Array
   getGameConfig(): GameConfig | null
@@ -109,7 +110,7 @@ abstract class BasePokemonData {
   readonly stats: readonly number[]
   readonly evs: readonly number[]
   readonly moves: PokemonMoves
-  
+
   // Abstract methods (game-specific)
   abstract get ivs(): readonly number[]
   abstract get isShiny(): boolean

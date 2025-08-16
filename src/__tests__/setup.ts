@@ -28,7 +28,7 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: vi.fn().mockImplementation(query => ({
+    value: vi.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -43,7 +43,7 @@ if (typeof window !== 'undefined') {
   // Mock PointerEvent for touch/pointer interactions
   if (typeof PointerEvent === 'undefined') {
     global.PointerEvent = class PointerEvent extends Event {
-      constructor (type: string, options: EventInit = {}) {
+      constructor(type: string, options: EventInit = {}) {
         super(type, options)
       }
     } as unknown as typeof Event
@@ -77,8 +77,8 @@ const originalConsoleWarn = console.warn
 
 // These functions are available globally in vitest
 declare global {
-  function beforeEach (fn: () => void): void
-  function afterEach (fn: () => void): void
+  function beforeEach(fn: () => void): void
+  function afterEach(fn: () => void): void
 }
 
 beforeEach(() => {

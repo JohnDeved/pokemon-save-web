@@ -3,7 +3,7 @@
  * Tests the core website functionality including loading, editing, and saving Pokemon save files
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 // Note: These tests are temporarily simplified due to jsdom environment setup issues
 // Full testing will be handled by E2E tests with Playwright

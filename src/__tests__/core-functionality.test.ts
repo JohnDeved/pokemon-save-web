@@ -3,7 +3,7 @@
  * Tests essential website functionality without complex DOM mocking
  */
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 describe('Pokemon Save Web - Core Functionality', () => {
   describe('Parser Integration', () => {

@@ -7,7 +7,7 @@ const image = 'mgba-test-env:latest'
 const remoteImage = 'ghcr.io/johndeved/pokemon-save-web/mgba-test-env:latest'
 const container = 'mgba-test-environment'
 
-function run (cmd: string, env?: NodeJS.ProcessEnv) {
+function run(cmd: string, env?: NodeJS.ProcessEnv) {
   try {
     execSync(cmd, { stdio: 'inherit', env: env ? { ...process.env, ...env } : process.env })
   } catch (e) {
@@ -15,7 +15,7 @@ function run (cmd: string, env?: NodeJS.ProcessEnv) {
   }
 }
 
-function printHelp () {
+function printHelp() {
   console.log('\n\x1b[1mPokémon Save Web: mGBA Docker CLI\x1b[0m\n')
   console.log('Usage: tsx docker/mgba-docker.ts <command> [args] [--game emerald|quetzal]\n')
   console.log('Commands:')
@@ -43,13 +43,13 @@ function printHelp () {
 const [cmd, ...args] = process.argv.slice(2)
 let game: string | undefined
 const filteredArgs = [...args]
-const gameIdx = filteredArgs.findIndex(a => a === '--game')
+const gameIdx = filteredArgs.findIndex((a) => a === '--game')
 if (gameIdx !== -1 && filteredArgs[gameIdx + 1]) {
   game = filteredArgs[gameIdx + 1]
   filteredArgs.splice(gameIdx, 2)
 }
 
-function withGameEnv (cmd: string): { cmd: string, env?: NodeJS.ProcessEnv } {
+function withGameEnv(cmd: string): { cmd: string; env?: NodeJS.ProcessEnv } {
   if (!game) return { cmd }
   // For docker exec, inject -e GAME=... as a CLI flag
   if (cmd.startsWith('docker exec')) {
@@ -106,7 +106,9 @@ switch (cmd) {
       console.error('Usage: tsx docker/mgba-docker.ts exec <command> [--game emerald|quetzal]')
       process.exit(1)
     }
-    const { cmd: c, env } = withGameEnv(`docker exec -it ${container} ${filteredArgs.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`)
+    const { cmd: c, env } = withGameEnv(
+      `docker exec -it ${container} ${filteredArgs.map((a) => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`,
+    )
     run(c, env)
     break
   }

@@ -188,7 +188,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
 /**
  * Helper function to load the test save file
  */
-async function loadTestSaveFile (page: Page) {
+async function loadTestSaveFile(page: Page) {
   await page.evaluate(async () => {
     const response = await fetch('/src/lib/parser/__tests__/test_data/emerald.sav')
     const buffer = await response.arrayBuffer()
