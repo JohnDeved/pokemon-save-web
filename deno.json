@@ -39,7 +39,6 @@
   },
   "compilerOptions": {
     "strict": true,
-    "allowJs": true,
     "lib": ["deno.window", "dom", "dom.iterable", "dom.asynciterable"],
     "jsx": "react-jsx",
     "jsxImportSource": "react"
