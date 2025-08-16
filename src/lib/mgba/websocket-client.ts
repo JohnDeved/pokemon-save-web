@@ -42,7 +42,7 @@ export class MgbaWebSocketClient {
           resolve()
         }
 
-        this.ws.onmessage = (event) => {
+        this.ws.onmessage = (event: MessageEvent) => {
           const data = event.data as string
           this.handleMessage(data)
         }
@@ -53,7 +53,7 @@ export class MgbaWebSocketClient {
           this.watchedRegions = []
         }
 
-        this.ws.onerror = (error) => {
+        this.ws.onerror = (error: Event) => {
           reject(new Error(`WebSocket connection failed: ${String(error)}`))
         }
       } catch (error) {
