@@ -4,8 +4,7 @@
  */
 
 import WebSocket from 'isomorphic-ws'
-import { WebSocketResponseSchema } from './types'
-import type { SimpleMessage, MemoryChangeListener, WebSocketResponse, WebSocketEvalResult } from './types'
+import { WebSocketResponseSchema, type SimpleMessage, type MemoryChangeListener, type WebSocketResponse, type WebSocketEvalResult } from './types'
 
 // Re-export types for consumers
 export type { MemoryChangeListener } from './types'
@@ -37,25 +36,25 @@ export class MgbaWebSocketClient {
       try {
         this.ws = new WebSocket(this.url)
 
-        this.ws.onopen = () => {
+        this.ws.addEventListener('open', () => {
           this.connected = true
           resolve()
-        }
+        })
 
-        this.ws.onmessage = event => {
+        this.ws.addEventListener('message', event => {
           const data = event.data as string
           this.handleMessage(data)
-        }
+        })
 
-        this.ws.onclose = () => {
+        this.ws.addEventListener('close', () => {
           this.connected = false
           this.watchingMemory = false
           this.watchedRegions = []
-        }
+        })
 
-        this.ws.onerror = error => {
+        this.ws.addEventListener('error', error => {
           reject(new Error(`WebSocket connection failed: ${String(error)}`))
-        }
+        })
       } catch (error) {
         reject(error)
       }

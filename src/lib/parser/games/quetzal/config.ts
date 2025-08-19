@@ -3,8 +3,7 @@
  * Only overrides differences from vanilla Emerald baseline
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping, PokemonOffsetsOverride, SaveLayoutOverride } from '../../core/types'
-import { VANILLA_SAVE_LAYOUT } from '../../core/types'
+import { VANILLA_SAVE_LAYOUT, type GameConfig, type ItemMapping, type MoveMapping, type PokemonMapping, type PokemonOffsetsOverride, type SaveLayoutOverride } from '../../core/types'
 import { createMapping, natures } from '../../core/utils'
 import { GameConfigBase } from '../../core/GameConfigBase'
 import itemMapData from './data/item_map.json'

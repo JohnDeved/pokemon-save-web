@@ -3,8 +3,7 @@
  * All vanilla behavior is built-in, game configs only override what's different
  */
 
-import type { GameConfig, MoveData, PokemonMoves } from './types'
-import { VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from './types'
+import { VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT, type GameConfig, type MoveData, type PokemonMoves } from './types'
 import { bytesToGbaString, natureEffects, natures, statStrings } from './utils'
 
 /**

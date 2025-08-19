@@ -306,7 +306,7 @@ async function watchModeWebSocket(client: MgbaWebSocketClient, options: { debug:
 
 // CLI entry point
 async function main() {
-  const argv = process.argv
+  const { argv } = process
 
   // Parse command line options
   const debug = argv.includes('--debug')

@@ -22,10 +22,10 @@ export const PWAInstallPrompt: React.FC = () => {
       setShowPrompt(true)
     }
 
-    window.addEventListener('beforeinstallprompt', handler)
+    globalThis.addEventListener('beforeinstallprompt', handler)
 
     // Debug: Simulate the prompt on localhost if not already shown and not dismissed (session only)
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const isLocalhost = globalThis.location.hostname === 'localhost' || globalThis.location.hostname === '127.0.0.1'
     if (isLocalhost && !deferredPrompt && !showPrompt && !dismissedForDev) {
       // Fake BeforeInstallPromptEvent for debug
       const fakePrompt: BeforeInstallPromptEvent = {
@@ -38,7 +38,7 @@ export const PWAInstallPrompt: React.FC = () => {
     }
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler)
+      globalThis.removeEventListener('beforeinstallprompt', handler)
     }
   }, [deferredPrompt, showPrompt, dismissedForDev])
 
@@ -60,7 +60,7 @@ export const PWAInstallPrompt: React.FC = () => {
     setShowPrompt(false)
     setDeferredPrompt(null)
     // Remember dismissal for the session only (state)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (globalThis.location.hostname === 'localhost' || globalThis.location.hostname === '127.0.0.1') {
       setDismissedForDev(true)
     }
   }

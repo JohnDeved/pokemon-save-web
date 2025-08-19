@@ -242,8 +242,8 @@ export function updatePartyInSaveblock1(saveblock1: Uint8Array, party: readonly 
     const offset = partyStartOffset + i * partyPokemonSize
     const pokemon = party[i]
     if (pokemon?.rawBytes) {
-      // Type-safe conversion to Uint8Array
-      const rawBytes = pokemon.rawBytes
+      // Type-safe conversion to Uint8Array - use destructuring
+      const { rawBytes } = pokemon
       if (rawBytes instanceof Uint8Array) {
         updated.set(rawBytes, offset)
       }

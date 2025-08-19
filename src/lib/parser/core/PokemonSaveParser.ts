@@ -98,12 +98,12 @@ export class PokemonSaveParser {
           // Fallback for test environments where File might not have arrayBuffer method
           const reader = new FileReader()
           buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-            reader.onload = () => {
+            reader.addEventListener('load', () => {
               resolve(reader.result as ArrayBuffer)
-            }
-            reader.onerror = () => {
+            })
+            reader.addEventListener('error', () => {
               reject(reader.error)
-            }
+            })
             reader.readAsArrayBuffer(input as File)
           })
         }
@@ -243,7 +243,16 @@ export class PokemonSaveParser {
 
     this.sectorMap.clear()
 
-    const sectorRange = this.forcedSlot !== undefined ? (this.forcedSlot === 1 ? Array.from({ length: 18 }, (_, i) => i) : Array.from({ length: 18 }, (_, i) => i + 14)) : Array.from({ length: 18 }, (_, i) => i + this.activeSlotStart)
+    let sectorRange: number[]
+    if (this.forcedSlot !== undefined) {
+      if (this.forcedSlot === 1) {
+        sectorRange = Array.from({ length: 18 }, (_, i) => i)
+      } else {
+        sectorRange = Array.from({ length: 18 }, (_, i) => i + 14)
+      }
+    } else {
+      sectorRange = Array.from({ length: 18 }, (_, i) => i + this.activeSlotStart)
+    }
 
     for (const i of sectorRange) {
       const sectorInfo = this.getSectorInfo(i)
@@ -316,7 +325,7 @@ export class PokemonSaveParser {
       const partyCountBuffer = await this.webSocketClient.readBytes(memoryAddresses.partyCount, 1)
       const partyCountValue = partyCountBuffer[0] ?? 0
 
-      const maxPartySize = this.config.maxPartySize
+      const { maxPartySize } = this.config
       if (partyCountValue < 0 || partyCountValue > maxPartySize) {
         throw new Error(`Invalid party count: ${partyCountValue}. Expected 0-${maxPartySize}.`)
       }
@@ -625,8 +634,7 @@ export class PokemonSaveParser {
     try {
       // Check if this address is relevant to our party data
       const { partyData, partyCount } = this.config.memoryAddresses
-      const pokemonSize = this.config.pokemonSize
-      const maxPartySize = this.config.maxPartySize
+      const { pokemonSize, maxPartySize } = this.config
 
       const isRelevantAddress = address === partyCount || (address >= partyData && address < partyData + maxPartySize * pokemonSize)
 

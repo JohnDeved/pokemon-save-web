@@ -13,6 +13,7 @@ export default defineConfig({
       },
     }),
     tailwindcss(),
+    // eslint-disable-next-line new-cap
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'safari-pinned-tab.svg'],

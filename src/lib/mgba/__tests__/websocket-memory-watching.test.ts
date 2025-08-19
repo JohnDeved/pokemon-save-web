@@ -3,8 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { MgbaWebSocketClient } from '../websocket-client'
-import type { MemoryChangeListener } from '../websocket-client'
+import { MgbaWebSocketClient, type MemoryChangeListener } from '../websocket-client'
 
 describe('MgbaWebSocketClient - Memory Watching API', () => {
   let client: MgbaWebSocketClient

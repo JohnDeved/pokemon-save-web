@@ -28,7 +28,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     }
 
     // Mock WebSocket constructor to return our mock
-    global.WebSocket = vi.fn(() => mockWebSocket) as unknown as typeof WebSocket
+    globalThis.WebSocket = vi.fn(() => mockWebSocket) as unknown as typeof WebSocket
     vi.clearAllMocks()
   })
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 
 interface ScrollableContainerProps {
@@ -20,7 +20,7 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
   const [scrollState, setScrollState] = useState<ScrollState>('none')
   const containerRef = useRef<HTMLDivElement>(null)
 
-  function checkScroll() {
+  const checkScroll = useCallback(() => {
     const el = containerRef.current
     if (!el) {
       setScrollState('none')
@@ -45,7 +45,7 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
       return
     }
     setScrollState('none')
-  }
+  }, [])
 
   useLayoutEffect(() => {
     checkScroll()
@@ -54,10 +54,10 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
   useEffect(() => {
     const el = containerRef.current
     el?.addEventListener('scroll', checkScroll)
-    window.addEventListener('resize', checkScroll)
+    globalThis.addEventListener('resize', checkScroll)
     return () => {
       el?.removeEventListener('scroll', checkScroll)
-      window.removeEventListener('resize', checkScroll)
+      globalThis.removeEventListener('resize', checkScroll)
     }
   }, [checkScroll])
 

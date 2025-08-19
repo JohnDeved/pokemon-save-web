@@ -11,7 +11,7 @@ export const App: React.FC = () => {
   const { partyList, activePokemon, isLoading, saveFileParser, preloadPokemonDetails } = usePokemonData()
 
   // Check if the browser supports the File System Access API
-  const canSaveAs = typeof window !== 'undefined' && !!window.showSaveFilePicker
+  const canSaveAs = typeof globalThis !== 'undefined' && !!(globalThis as unknown as any).showSaveFilePicker
   // Determine if there is save data to display
   const hasSaveData = saveFileParser.hasFile && partyList.length > 0
   // Only show dropzone if there is no save data and last parse did not fail

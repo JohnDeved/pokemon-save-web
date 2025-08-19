@@ -11,28 +11,39 @@ const Slider = ({
   max = 100,
   thumbVisibleOnHover = true,
   maxVisualValue,
+  disabled,
+  onValueChange,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root> & {
   thumbVisibleOnHover?: boolean
   maxVisualValue?: number
 }) => {
   const sliderRef = React.useRef<HTMLDivElement>(null)
-  const _values = Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max]
+
+  // Fix nested ternary
+  let _values: number[]
+  if (Array.isArray(value)) {
+    _values = value
+  } else if (Array.isArray(defaultValue)) {
+    _values = defaultValue
+  } else {
+    _values = [min, max]
+  }
 
   const handleWheel = React.useCallback(
     (e: WheelEvent) => {
       if (typeof value === 'undefined' || !Array.isArray(value)) return
-      if (props.disabled) return
+      if (disabled) return
       e.preventDefault()
       const delta = Math.sign(e.deltaY) * (e.shiftKey ? 10 : 1)
       // Clamp to maxVisualValue if provided
       const upperLimit = typeof maxVisualValue === 'number' ? Math.min(max, maxVisualValue) : max
       const newValue = Math.max(min, Math.min(upperLimit, value[0]! - delta))
-      if (props.onValueChange) {
-        props.onValueChange([newValue])
+      if (onValueChange) {
+        onValueChange([newValue])
       }
     },
-    [value, props.disabled, props.onValueChange, max, maxVisualValue, min]
+    [value, disabled, onValueChange, max, maxVisualValue, min]
   )
 
   React.useEffect(() => {
@@ -62,6 +73,8 @@ const Slider = ({
       value={clampedValue}
       min={min}
       max={max}
+      disabled={disabled}
+      onValueChange={onValueChange}
       className={cn('group relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col', className)}
       ref={sliderRef}
       {...props}

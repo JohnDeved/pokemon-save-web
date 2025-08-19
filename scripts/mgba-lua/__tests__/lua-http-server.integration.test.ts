@@ -4,8 +4,7 @@
  * and making real HTTP/WebSocket connections to it
  */
 
-import type { ChildProcess } from 'child_process'
-import { spawn } from 'child_process'
+import { spawn, type ChildProcess } from 'child_process'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'

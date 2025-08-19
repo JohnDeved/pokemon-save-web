@@ -21,7 +21,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     getFilesFromEvent: async event => {
       if (Array.isArray(event)) {
         // Handle file system access API
-        const handle = event[0]
+        const [handle] = event
         if (!(handle instanceof FileSystemFileHandle)) {
           toast.error('Invalid file handle. Please try again.', {
             position: 'bottom-center',
@@ -40,7 +40,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
       return fromEvent(event)
     },
     onDrop: acceptedFiles => {
-      const file = acceptedFiles[0]
+      const [file] = acceptedFiles
       if (typeof file !== 'undefined') {
         onFileLoad(file)
       }

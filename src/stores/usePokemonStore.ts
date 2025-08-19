@@ -118,7 +118,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 // Helper function to build party list from save data
 export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] => {
   return saveData.party_pokemon.map((parsedPokemon: PokemonBase, index: number) => {
-    const isShiny = parsedPokemon.isShiny
+    const { isShiny } = parsedPokemon
     const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
     const spriteUrl = isShiny ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png` : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
 

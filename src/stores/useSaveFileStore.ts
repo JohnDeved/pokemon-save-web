@@ -80,10 +80,10 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
 
     if (method === 'saveAs') {
       try {
-        if (!window.showSaveFilePicker) {
+        if (!(globalThis as unknown as any).showSaveFilePicker) {
           throw new Error('File System Access API not supported')
         }
-        const handle = await window.showSaveFilePicker({
+        const handle = await (globalThis as unknown as any).showSaveFilePicker({
           suggestedName: defaultFileName,
           types: [
             {

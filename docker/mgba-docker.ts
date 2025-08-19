@@ -43,7 +43,7 @@ function printHelp() {
 const [cmd, ...args] = process.argv.slice(2)
 let game: string | undefined
 const filteredArgs = [...args]
-const gameIdx = filteredArgs.findIndex(a => a === '--game')
+const gameIdx = filteredArgs.indexOf('--game')
 if (gameIdx !== -1 && filteredArgs[gameIdx + 1]) {
   game = filteredArgs[gameIdx + 1]
   filteredArgs.splice(gameIdx, 2)

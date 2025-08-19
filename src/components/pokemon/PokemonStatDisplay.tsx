@@ -90,7 +90,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoadin
           const isShowingPreview = isHovered && iv !== MAX_IV && previewTotal !== null
           // Calculate how many more EVs can be assigned to this stat
           let maxVisualValue = MAX_EV
-          if (pokemon?.id != null && typeof getRemainingEvs === 'function') {
+          if (pokemon?.id !== null && pokemon?.id !== undefined && typeof getRemainingEvs === 'function') {
             const remainingTotalEvs = getRemainingEvs(pokemon.id)
             maxVisualValue = Math.min(MAX_EV, (evs?.[index] ?? 0) + remainingTotalEvs)
           }

@@ -32,7 +32,7 @@ const useGifFrame = (gifUrl: string) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
 
-    img.onload = () => {
+    img.addEventListener('load', () => {
       const canvas = document.createElement('canvas')
       canvas.width = img.naturalWidth
       canvas.height = img.naturalHeight
@@ -44,13 +44,13 @@ const useGifFrame = (gifUrl: string) => {
         setStaticFrameSrc(gifUrl) // fallback if context is null
       }
       setIsLoading(false)
-    }
+    })
 
-    img.onerror = () => {
+    img.addEventListener('error', () => {
       console.error('Failed to load GIF for processing.')
       setStaticFrameSrc(gifUrl) // Fallback to original on error
       setIsLoading(false)
-    }
+    })
 
     img.src = gifUrl
   }, [gifUrl]) // Re-run the effect if the gifUrl changes.
@@ -88,7 +88,16 @@ const PokemonSprite: React.FC<{
 // Component for a single Pokémon's status display on the left
 export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive }) => {
   const hpPercentage = (pokemon.data.currentHp / pokemon.data.maxHp) * 100
-  const hpColor = hpPercentage > HP_THRESHOLDS.HIGH ? 'from-green-400 to-emerald-500' : hpPercentage > HP_THRESHOLDS.LOW ? 'from-yellow-400 to-amber-500' : 'from-red-500 to-rose-600'
+
+  // Fix nested ternary
+  let hpColor: string
+  if (hpPercentage > HP_THRESHOLDS.HIGH) {
+    hpColor = 'from-green-400 to-emerald-500'
+  } else if (hpPercentage > HP_THRESHOLDS.LOW) {
+    hpColor = 'from-yellow-400 to-amber-500'
+  } else {
+    hpColor = 'from-red-500 to-rose-600'
+  }
 
   const containerClasses = isActive ? 'bg-slate-800/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30' : 'hover:bg-slate-800/80'
 
