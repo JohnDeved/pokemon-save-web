@@ -493,7 +493,7 @@ export class PokemonBase {
   }
 
   get natureRaw(): number {
-    const nature = this.nature
+    const { nature } = this
     return natures.indexOf(nature)
   }
 
@@ -550,14 +550,20 @@ export class PokemonBase {
     // usage for statsArray
     // Nature modifiers: [hp, atk, def, spe, spa, spd]
     const { increased, decreased } = this.natureModifiers
-    return this.stats.map((_, i) => (i === increased ? 1.1 : i === decreased ? 0.9 : 1))
+    return this.stats.map((_, i) => {
+      if (i === increased) return 1.1
+      if (i === decreased) return 0.9
+      return 1
+    })
   }
 
   get abilityNumber(): number {
     // if 2nd bit of status is set, ability is 1
     // if 3rd bit is set, ability is 2
     // otherwise ability is 0
-    return this.status & 16 ? 1 : this.status & 32 ? 2 : 0
+    if (this.status & 16) return 1
+    if (this.status & 32) return 2
+    return 0
   }
 
   get stats(): readonly number[] {

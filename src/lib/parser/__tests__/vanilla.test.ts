@@ -12,6 +12,13 @@ import { VanillaConfig } from '../games/vanilla/config'
 import { QuetzalConfig } from '../games/quetzal/config'
 import type { SaveData } from '../core/types'
 
+// Hash function for comparing buffers
+const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
+  const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
+  const { createHash } = await import('crypto')
+  return createHash('sha256').update(ab).digest('hex')
+}
+
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -336,8 +343,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         const pokemon = parsedData.party_pokemon[0]!
 
         // Validate shiny calculation matches vanilla Gen 3 formula
-        const personality = pokemon.personality
-        const otId = pokemon.otId
+        const { personality, otId } = pokemon
         const trainerId = otId & 0xffff
         const secretId = (otId >> 16) & 0xffff
         const personalityLow = personality & 0xffff
@@ -368,13 +374,6 @@ describe('Vanilla Pokemon Emerald Tests', () => {
     it('should produce identical save file when reconstructing with unchanged party', async () => {
       const parsed = await parser.parse(testSaveData)
       const reconstructed = parser.reconstructSaveFile([...parsed.party_pokemon])
-
-      // Create hash function for comparison
-      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
-        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
-        const { createHash } = await import('crypto')
-        return createHash('sha256').update(ab).digest('hex')
-      }
 
       const originalHash = await hashBuffer(testSaveData)
       const reconstructedHash = await hashBuffer(reconstructed)

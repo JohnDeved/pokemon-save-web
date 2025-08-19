@@ -29,7 +29,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       expect(result.party_pokemon.length).toBeGreaterThan(0)
 
       // Verify first Pokemon (TREECKO)
-      const firstPokemon = result.party_pokemon[0]
+      const [firstPokemon] = result.party_pokemon
       expect(firstPokemon).toBeDefined()
       if (firstPokemon) {
         expect(firstPokemon.nickname).toBe('TREECKO')
@@ -47,7 +47,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       const result = await parser.parse(saveData.buffer)
 
       // Get first Pokemon
-      const pokemon = result.party_pokemon[0]
+      const [pokemon] = result.party_pokemon
       expect(pokemon).toBeDefined()
 
       // Test basic properties exist
@@ -94,7 +94,8 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       const { MgbaWebSocketClient } = await import('../lib/mgba/websocket-client')
 
       // Test basic instantiation
-      new PokemonSaveParser()
+      const parser = new PokemonSaveParser()
+      expect(parser).toBeInstanceOf(PokemonSaveParser)
       const mockClient = new MgbaWebSocketClient()
 
       // Test that parser can identify WebSocket client

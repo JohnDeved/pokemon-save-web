@@ -13,6 +13,13 @@ import { VanillaConfig } from '../games/vanilla/config'
 import type { SaveData } from '../core/types'
 import { calculateTotalStats, natures } from '../core/utils'
 
+// Hash function for comparing buffers
+const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
+  const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
+  const { createHash } = await import('crypto')
+  return createHash('sha256').update(ab).digest('hex')
+}
+
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -198,8 +205,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should calculate natures correctly using Quetzal formula', async () => {
       const result = await parser.parse(testSaveData)
 
-      for (let i = 0; i < result.party_pokemon.length; i++) {
-        const pokemon = result.party_pokemon[i]
+      for (const [i, pokemon] of result.party_pokemon.entries()) {
         const expectedPokemon = groundTruth.party_pokemon[i]
 
         if (pokemon && expectedPokemon) {
@@ -365,13 +371,6 @@ describe('Pokemon Quetzal Tests', () => {
       const parsed = await parser.parse(testSaveData)
       const reconstructed = parser.reconstructSaveFile([...parsed.party_pokemon])
 
-      // Create hash function for comparison
-      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
-        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
-        const { createHash } = await import('crypto')
-        return createHash('sha256').update(ab).digest('hex')
-      }
-
       const originalHash = await hashBuffer(testSaveData)
       const reconstructedHash = await hashBuffer(reconstructed)
       expect(reconstructedHash).toBe(originalHash)
@@ -383,18 +382,11 @@ describe('Pokemon Quetzal Tests', () => {
       if (parsed.party_pokemon.length < 2) return
 
       const swapped = [...parsed.party_pokemon]
-      const temp = swapped[0]
+      const [temp] = swapped
       swapped[0] = swapped[swapped.length - 1]!
       swapped[swapped.length - 1] = temp!
 
       const reconstructed = parser.reconstructSaveFile(swapped)
-
-      // Create hash function for comparison
-      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
-        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
-        const { createHash } = await import('crypto')
-        return createHash('sha256').update(ab).digest('hex')
-      }
 
       const originalHash = await hashBuffer(testSaveData)
       const swappedHash = await hashBuffer(reconstructed)
@@ -407,7 +399,7 @@ describe('Pokemon Quetzal Tests', () => {
       if (parsed.party_pokemon.length < 2) return
 
       const swapped = [...parsed.party_pokemon]
-      const temp = swapped[0]
+      const [temp] = swapped
       swapped[0] = swapped[swapped.length - 1]!
       swapped[swapped.length - 1] = temp!
 

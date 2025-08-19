@@ -8,25 +8,25 @@ import React from 'react'
 import { vi } from 'vitest'
 
 // Make React available globally for JSX transform
-global.React = React
+globalThis.React = React
 
 // Mock ResizeObserver which might be used by components
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
+globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }))
 
 // Mock IntersectionObserver which might be used by components
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+globalThis.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }))
 
 // Mock matchMedia which is used by responsive components (browser environment only)
-if (typeof window !== 'undefined') {
-  Object.defineProperty(window, 'matchMedia', {
+if (typeof globalThis !== 'undefined') {
+  Object.defineProperty(globalThis, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation(query => ({
       matches: false,
@@ -42,7 +42,7 @@ if (typeof window !== 'undefined') {
 
   // Mock PointerEvent for touch/pointer interactions
   if (typeof PointerEvent === 'undefined') {
-    global.PointerEvent = class PointerEvent extends Event {
+    globalThis.PointerEvent = class PointerEvent extends Event {
       constructor(type: string, options: EventInit = {}) {
         super(type, options)
       }
@@ -56,7 +56,7 @@ if (typeof window !== 'undefined') {
     removeItem: vi.fn(),
     clear: vi.fn(),
   }
-  Object.defineProperty(window, 'localStorage', {
+  Object.defineProperty(globalThis, 'localStorage', {
     value: localStorageMock,
   })
 
@@ -67,7 +67,7 @@ if (typeof window !== 'undefined') {
     removeItem: vi.fn(),
     clear: vi.fn(),
   }
-  Object.defineProperty(window, 'sessionStorage', {
+  Object.defineProperty(globalThis, 'sessionStorage', {
     value: sessionStorageMock,
   })
 }

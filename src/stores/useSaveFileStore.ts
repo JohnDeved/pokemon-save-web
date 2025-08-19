@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { create } from 'zustand'
 import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
 import type { SaveData } from '../lib/parser/core/types'
+import type { GlobalThisWithFileSystemAPI } from '../types/global'
 
 export interface SaveFileState {
   saveData: SaveData | null
@@ -80,10 +81,11 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
 
     if (method === 'saveAs') {
       try {
-        if (!(globalThis as unknown as any).showSaveFilePicker) {
+        const globalAPI = globalThis as unknown as GlobalThisWithFileSystemAPI
+        if (!globalAPI.showSaveFilePicker) {
           throw new Error('File System Access API not supported')
         }
-        const handle = await (globalThis as unknown as any).showSaveFilePicker({
+        const handle = await globalAPI.showSaveFilePicker({
           suggestedName: defaultFileName,
           types: [
             {
