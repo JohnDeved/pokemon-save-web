@@ -11,10 +11,7 @@ interface PokemonPartyListProps {
   onPokemonHover?: (id: number) => void
 }
 
-export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
-  isRenaming,
-  onPokemonHover,
-}) => {
+export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, onPokemonHover }) => {
   const { partyList, activePokemonId, setActivePokemonId } = usePokemonStore()
   const emptySlots = Array.from({ length: Math.max(0, config.maxPartySize - partyList.length) })
 
@@ -23,15 +20,19 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({
       {partyList.map(pokemon => (
         <div
           key={pokemon.id}
-          onClick={() => { if (!isRenaming) setActivePokemonId(pokemon.id) }}
-          onMouseEnter={() => { if (onPokemonHover) onPokemonHover(pokemon.id) }} // Preload on hover
+          onClick={() => {
+            if (!isRenaming) setActivePokemonId(pokemon.id)
+          }}
+          onMouseEnter={() => {
+            if (onPokemonHover) onPokemonHover(pokemon.id)
+          }} // Preload on hover
           className="cursor-pointer group"
         >
-          <PokemonStatus pokemon={pokemon} isActive={pokemon.id === activePokemonId}/>
+          <PokemonStatus pokemon={pokemon} isActive={pokemon.id === activePokemonId} />
         </div>
       ))}
       {emptySlots.map((_, index) => (
-        <PokemonStatusPlaceholder key={`placeholder-${index}`}/>
+        <PokemonStatusPlaceholder key={`placeholder-${index}`} />
       ))}
     </section>
   )

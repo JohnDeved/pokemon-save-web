@@ -21,7 +21,7 @@ describe('Vanilla Emerald Save Parser', () => {
   let testSaveData: ArrayBuffer
   let groundTruth: {
     player_name: string
-    play_time: { hours: number, minutes: number }
+    play_time: { hours: number; minutes: number }
     party_pokemon: {
       nickname: string
       otName: string
@@ -37,8 +37,8 @@ describe('Vanilla Emerald Save Parser', () => {
       displayOtId: string
       displayNature: string
       moves: {
-        move1: { name: string, pp: number }
-        move2: { name: string, pp: number }
+        move1: { name: string; pp: number }
+        move2: { name: string; pp: number }
       }
     }[]
   }

@@ -3,14 +3,8 @@
  * All vanilla behavior is built-in, game configs only override what's different
  */
 
-import type {
-  GameConfig,
-  MoveData, PokemonMoves,
-} from './types'
-import {
-  VANILLA_POKEMON_OFFSETS,
-  VANILLA_SAVE_LAYOUT,
-} from './types'
+import type { GameConfig, MoveData, PokemonMoves } from './types'
+import { VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT } from './types'
 import { bytesToGbaString, natureEffects, natures, statStrings } from './utils'
 
 /**
@@ -23,12 +17,15 @@ export class PokemonBase {
   protected readonly offsets: typeof VANILLA_POKEMON_OFFSETS
   protected readonly saveLayout: typeof VANILLA_SAVE_LAYOUT
 
-  constructor (protected readonly data: Uint8Array, config: GameConfig) {
+  constructor(
+    protected readonly data: Uint8Array,
+    config: GameConfig
+  ) {
     // Merge config overrides with vanilla defaults
     this.offsets = { ...VANILLA_POKEMON_OFFSETS, ...config.offsetOverrides }
     this.saveLayout = { ...VANILLA_SAVE_LAYOUT, ...config.saveLayoutOverrides }
     // Use a safe fallback when pokemonSize is not provided in config
-    const pokemonSize = (typeof config.pokemonSize === 'number') ? config.pokemonSize : 100
+    const pokemonSize = typeof config.pokemonSize === 'number' ? config.pokemonSize : 100
 
     if (data.length < pokemonSize) {
       throw new Error(`Insufficient data for Pokemon: ${data.length} bytes`)
@@ -38,51 +35,105 @@ export class PokemonBase {
   }
 
   // Basic unencrypted properties (common to all games)
-  get personality () { return this.view.getUint32(this.offsets.personality, true) }
-  get otId () { return this.view.getUint32(this.offsets.otId, true) }
-  get currentHp () { return this.view.getUint16(this.offsets.currentHp, true) }
-  get status () { return this.view.getUint8(this.offsets.status) }
-  get level () { return this.view.getUint8(this.offsets.level) }
-  get maxHp () { return this.view.getUint16(this.offsets.maxHp, true) }
-  set maxHp (value) { this.view.setUint16(this.offsets.maxHp, value, true) }
-  get attack () { return this.view.getUint16(this.offsets.attack, true) }
-  set attack (value) { this.view.setUint16(this.offsets.attack, value, true) }
-  get defense () { return this.view.getUint16(this.offsets.defense, true) }
-  set defense (value) { this.view.setUint16(this.offsets.defense, value, true) }
-  get speed () { return this.view.getUint16(this.offsets.speed, true) }
-  set speed (value) { this.view.setUint16(this.offsets.speed, value, true) }
-  get spAttack () { return this.view.getUint16(this.offsets.spAttack, true) }
-  set spAttack (value) { this.view.setUint16(this.offsets.spAttack, value, true) }
-  get spDefense () { return this.view.getUint16(this.offsets.spDefense, true) }
-  set spDefense (value) { this.view.setUint16(this.offsets.spDefense, value, true) }
+  get personality() {
+    return this.view.getUint32(this.offsets.personality, true)
+  }
+  get otId() {
+    return this.view.getUint32(this.offsets.otId, true)
+  }
+  get currentHp() {
+    return this.view.getUint16(this.offsets.currentHp, true)
+  }
+  get status() {
+    return this.view.getUint8(this.offsets.status)
+  }
+  get level() {
+    return this.view.getUint8(this.offsets.level)
+  }
+  get maxHp() {
+    return this.view.getUint16(this.offsets.maxHp, true)
+  }
+  set maxHp(value) {
+    this.view.setUint16(this.offsets.maxHp, value, true)
+  }
+  get attack() {
+    return this.view.getUint16(this.offsets.attack, true)
+  }
+  set attack(value) {
+    this.view.setUint16(this.offsets.attack, value, true)
+  }
+  get defense() {
+    return this.view.getUint16(this.offsets.defense, true)
+  }
+  set defense(value) {
+    this.view.setUint16(this.offsets.defense, value, true)
+  }
+  get speed() {
+    return this.view.getUint16(this.offsets.speed, true)
+  }
+  set speed(value) {
+    this.view.setUint16(this.offsets.speed, value, true)
+  }
+  get spAttack() {
+    return this.view.getUint16(this.offsets.spAttack, true)
+  }
+  set spAttack(value) {
+    this.view.setUint16(this.offsets.spAttack, value, true)
+  }
+  get spDefense() {
+    return this.view.getUint16(this.offsets.spDefense, true)
+  }
+  set spDefense(value) {
+    this.view.setUint16(this.offsets.spDefense, value, true)
+  }
 
-  private get nicknameRaw () {
+  private get nicknameRaw() {
     return new Uint8Array(this.view.buffer, this.view.byteOffset + this.offsets.nickname, this.offsets.nicknameLength)
   }
 
-  private get otNameRaw () {
+  private get otNameRaw() {
     return new Uint8Array(this.view.buffer, this.view.byteOffset + this.offsets.otName, this.offsets.otNameLength)
   }
 
   // Vanilla Emerald encryption methods (can be overridden by configs)
-  protected getEncryptionKey (data: Uint8Array): number {
+  protected getEncryptionKey(data: Uint8Array): number {
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
     const personality = view.getUint32(0x00, true)
     const otId = view.getUint32(0x04, true)
     return personality ^ otId
   }
 
-  protected getSubstructOrder (personality: number): number[] {
+  protected getSubstructOrder(personality: number): number[] {
     const orderTable = [
-      [0, 1, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3], [0, 3, 1, 2], [0, 2, 3, 1], [0, 3, 2, 1],
-      [1, 0, 2, 3], [1, 0, 3, 2], [2, 0, 1, 3], [3, 0, 1, 2], [2, 0, 3, 1], [3, 0, 2, 1],
-      [1, 2, 0, 3], [1, 3, 0, 2], [2, 1, 0, 3], [3, 1, 0, 2], [2, 3, 0, 1], [3, 2, 0, 1],
-      [1, 2, 3, 0], [1, 3, 2, 0], [2, 1, 3, 0], [3, 1, 2, 0], [2, 3, 1, 0], [3, 2, 1, 0],
+      [0, 1, 2, 3],
+      [0, 1, 3, 2],
+      [0, 2, 1, 3],
+      [0, 3, 1, 2],
+      [0, 2, 3, 1],
+      [0, 3, 2, 1],
+      [1, 0, 2, 3],
+      [1, 0, 3, 2],
+      [2, 0, 1, 3],
+      [3, 0, 1, 2],
+      [2, 0, 3, 1],
+      [3, 0, 2, 1],
+      [1, 2, 0, 3],
+      [1, 3, 0, 2],
+      [2, 1, 0, 3],
+      [3, 1, 0, 2],
+      [2, 3, 0, 1],
+      [3, 2, 0, 1],
+      [1, 2, 3, 0],
+      [1, 3, 2, 0],
+      [2, 1, 3, 0],
+      [3, 1, 2, 0],
+      [2, 3, 1, 0],
+      [3, 2, 1, 0],
     ]
     return orderTable[personality % 24]!
   }
 
-  protected setEncryptedSubstruct (substructIndex: number, decryptedData: Uint8Array): void {
+  protected setEncryptedSubstruct(substructIndex: number, decryptedData: Uint8Array): void {
     const view = new DataView(this.data.buffer, this.data.byteOffset, this.data.byteLength)
     const personality = view.getUint32(0x00, true)
     const order = this.getSubstructOrder(personality)
@@ -106,7 +157,7 @@ export class PokemonBase {
     }
   }
 
-  protected getDecryptedSubstruct (data: Uint8Array, substructIndex: number): Uint8Array {
+  protected getDecryptedSubstruct(data: Uint8Array, substructIndex: number): Uint8Array {
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
     const personality = view.getUint32(0x00, true)
     const order = this.getSubstructOrder(personality)
@@ -129,7 +180,7 @@ export class PokemonBase {
   }
 
   // Game-specific data access with config overrides or vanilla defaults
-  get speciesId () {
+  get speciesId() {
     if (this.config.getSpeciesId) {
       const rawSpecies = this.config.getSpeciesId(this.data, this.view)
       return this.config.mappings?.pokemon?.get(rawSpecies)?.id ?? rawSpecies
@@ -141,7 +192,7 @@ export class PokemonBase {
     return this.config.mappings?.pokemon?.get(rawSpecies)?.id ?? rawSpecies
   }
 
-  get nameId () {
+  get nameId() {
     if (this.config.getPokemonName) {
       return this.config.getPokemonName(this.data, this.view)
     }
@@ -153,7 +204,7 @@ export class PokemonBase {
     return this.config.mappings?.pokemon?.get(rawSpecies)?.id_name
   }
 
-  get item () {
+  get item() {
     if (this.config.getItem) {
       const rawItem = this.config.getItem(this.data, this.view)
       return this.config.mappings?.items?.get(rawItem)?.id ?? rawItem
@@ -165,7 +216,7 @@ export class PokemonBase {
     return this.config.mappings?.items?.get(rawItem)?.id ?? rawItem
   }
 
-  get itemIdName () {
+  get itemIdName() {
     if (this.config.getItemName) {
       return this.config.getItemName(this.data, this.view)
     }
@@ -176,7 +227,7 @@ export class PokemonBase {
     return this.config.mappings?.items?.get(rawItem)?.id_name
   }
 
-  get move1 () {
+  get move1() {
     if (this.config.getMove) {
       const rawMove = this.config.getMove(this.data, this.view, 0)
       return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
@@ -188,7 +239,7 @@ export class PokemonBase {
     return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
-  get move2 () {
+  get move2() {
     if (this.config.getMove) {
       const rawMove = this.config.getMove(this.data, this.view, 1)
       return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
@@ -200,7 +251,7 @@ export class PokemonBase {
     return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
-  get move3 () {
+  get move3() {
     if (this.config.getMove) {
       const rawMove = this.config.getMove(this.data, this.view, 2)
       return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
@@ -212,7 +263,7 @@ export class PokemonBase {
     return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
-  get move4 () {
+  get move4() {
     if (this.config.getMove) {
       const rawMove = this.config.getMove(this.data, this.view, 3)
       return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
@@ -224,42 +275,42 @@ export class PokemonBase {
     return this.config.mappings?.moves?.get(rawMove)?.id ?? rawMove
   }
 
-  get pp1 () {
+  get pp1() {
     if (this.config.getPP) return this.config.getPP(this.data, this.view, 0)
     // Vanilla: pp1 is byte 8 of decrypted substruct 1
     const substruct1 = this.getDecryptedSubstruct(this.data, 1)
     return substruct1[8]!
   }
 
-  get pp2 () {
+  get pp2() {
     if (this.config.getPP) return this.config.getPP(this.data, this.view, 1)
     // Vanilla: pp2 is byte 9 of decrypted substruct 1
     const substruct1 = this.getDecryptedSubstruct(this.data, 1)
     return substruct1[9]!
   }
 
-  get pp3 () {
+  get pp3() {
     if (this.config.getPP) return this.config.getPP(this.data, this.view, 2)
     // Vanilla: pp3 is byte 10 of decrypted substruct 1
     const substruct1 = this.getDecryptedSubstruct(this.data, 1)
     return substruct1[10]!
   }
 
-  get pp4 () {
+  get pp4() {
     if (this.config.getPP) return this.config.getPP(this.data, this.view, 3)
     // Vanilla: pp4 is byte 11 of decrypted substruct 1
     const substruct1 = this.getDecryptedSubstruct(this.data, 1)
     return substruct1[11]!
   }
 
-  get hpEV () {
+  get hpEV() {
     if (this.config.getEV) return this.config.getEV(this.data, this.view, 0)
     // Vanilla: hpEV is byte 0 of decrypted substruct 2
     const substruct2 = this.getDecryptedSubstruct(this.data, 2)
     return substruct2[0]!
   }
 
-  set hpEV (value) {
+  set hpEV(value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 0, value)
     } else {
@@ -270,14 +321,14 @@ export class PokemonBase {
     }
   }
 
-  get atkEV () {
+  get atkEV() {
     if (this.config.getEV) return this.config.getEV(this.data, this.view, 1)
     // Vanilla: atkEV is byte 1 of decrypted substruct 2
     const substruct2 = this.getDecryptedSubstruct(this.data, 2)
     return substruct2[1]!
   }
 
-  set atkEV (value) {
+  set atkEV(value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 1, value)
     } else {
@@ -287,14 +338,14 @@ export class PokemonBase {
     }
   }
 
-  get defEV () {
+  get defEV() {
     if (this.config.getEV) return this.config.getEV(this.data, this.view, 2)
     // Vanilla: defEV is byte 2 of decrypted substruct 2
     const substruct2 = this.getDecryptedSubstruct(this.data, 2)
     return substruct2[2]!
   }
 
-  set defEV (value) {
+  set defEV(value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 2, value)
     } else {
@@ -304,14 +355,14 @@ export class PokemonBase {
     }
   }
 
-  get speEV () {
+  get speEV() {
     if (this.config.getEV) return this.config.getEV(this.data, this.view, 3)
     // Vanilla: speEV is byte 3 of decrypted substruct 2
     const substruct2 = this.getDecryptedSubstruct(this.data, 2)
     return substruct2[3]!
   }
 
-  set speEV (value) {
+  set speEV(value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 3, value)
     } else {
@@ -321,14 +372,14 @@ export class PokemonBase {
     }
   }
 
-  get spaEV () {
+  get spaEV() {
     if (this.config.getEV) return this.config.getEV(this.data, this.view, 4)
     // Vanilla: spaEV is byte 4 of decrypted substruct 2
     const substruct2 = this.getDecryptedSubstruct(this.data, 2)
     return substruct2[4]!
   }
 
-  set spaEV (value) {
+  set spaEV(value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 4, value)
     } else {
@@ -338,14 +389,14 @@ export class PokemonBase {
     }
   }
 
-  get spdEV () {
+  get spdEV() {
     if (this.config.getEV) return this.config.getEV(this.data, this.view, 5)
     // Vanilla: spdEV is byte 5 of decrypted substruct 2
     const substruct2 = this.getDecryptedSubstruct(this.data, 2)
     return substruct2[5]!
   }
 
-  set spdEV (value) {
+  set spdEV(value) {
     if (this.config.setEV) {
       this.config.setEV(this.data, this.view, 5, value)
     } else {
@@ -355,7 +406,7 @@ export class PokemonBase {
     }
   }
 
-  get ivs (): readonly number[] {
+  get ivs(): readonly number[] {
     if (this.config.getIVs) return this.config.getIVs(this.data, this.view)
     // Vanilla: IVs are packed into bytes 4-7 of decrypted substruct 3
     const substruct3 = this.getDecryptedSubstruct(this.data, 3)
@@ -371,7 +422,7 @@ export class PokemonBase {
     ]
   }
 
-  set ivs (values: readonly number[]) {
+  set ivs(values: readonly number[]) {
     if (this.config.setIVs) {
       this.config.setIVs(this.data, this.view, values)
     } else {
@@ -390,7 +441,7 @@ export class PokemonBase {
     }
   }
 
-  get isShiny (): boolean {
+  get isShiny(): boolean {
     if (this.config.isShiny) return this.config.isShiny(this.personality, this.otId)
     // Vanilla: shiny if shiny number < 8
     const personality = this.view.getUint32(0x00, true)
@@ -403,7 +454,7 @@ export class PokemonBase {
     return shinyNumber < 8
   }
 
-  get shinyNumber (): number {
+  get shinyNumber(): number {
     if (this.config.getShinyValue) return this.config.getShinyValue(this.personality, this.otId)
     // Vanilla: shiny number calculation
     const personality = this.view.getUint32(0x00, true)
@@ -415,37 +466,39 @@ export class PokemonBase {
     return trainerId ^ secretId ^ personalityLow ^ personalityHigh
   }
 
-  get isRadiant (): boolean {
+  get isRadiant(): boolean {
     if (this.config.isRadiant) return this.config.isRadiant(this.personality, this.otId)
     return false // Vanilla doesn't have radiant
   }
 
-  get rawBytes () { return new Uint8Array(this.data) }
+  get rawBytes() {
+    return new Uint8Array(this.data)
+  }
 
   // Computed properties
-  get otId_str (): string {
+  get otId_str(): string {
     return (this.otId & 0xFFFF).toString().padStart(5, '0')
   }
 
-  get nickname (): string {
+  get nickname(): string {
     return bytesToGbaString(this.nicknameRaw)
   }
 
-  get otName (): string {
+  get otName(): string {
     return bytesToGbaString(this.otNameRaw)
   }
 
-  get nature (): string {
+  get nature(): string {
     // Use config override or vanilla Gen 3 standard formula
     return this.config.calculateNature?.(this.personality) ?? natures[this.personality % 25]!
   }
 
-  get natureRaw (): number {
+  get natureRaw(): number {
     const nature = this.nature
     return natures.indexOf(nature)
   }
 
-  set natureRaw (value: number) {
+  set natureRaw(value: number) {
     if (value < 0 || value >= 25) {
       throw new Error(`Nature value must be between 0 and 24, got ${value}`)
     }
@@ -468,7 +521,7 @@ export class PokemonBase {
       const substruct3 = this.getDecryptedSubstruct(this.data, 3)
 
       // Calculate new personality: preserve quotient, set remainder to desired nature
-      const newPersonality = (this.personality - currentNature) + value
+      const newPersonality = this.personality - currentNature + value
 
       // Update the personality value in the data
       this.view.setUint32(this.offsets.personality, newPersonality >>> 0, true)
@@ -481,12 +534,12 @@ export class PokemonBase {
     }
   }
 
-  get natureModifiers (): { increased: number, decreased: number } {
+  get natureModifiers(): { increased: number; decreased: number } {
     // Fallback to {0,0} if nature is not found
     return natureEffects[this.nature] ?? { increased: 0, decreased: 0 }
   }
 
-  get natureModifiersString (): { increased: string, decreased: string } {
+  get natureModifiersString(): { increased: string; decreased: string } {
     const { increased, decreased } = this.natureModifiers
     return {
       increased: statStrings[increased] ?? 'Unknown',
@@ -494,26 +547,25 @@ export class PokemonBase {
     }
   }
 
-  get natureModifiersArray (): readonly number[] { // usage for statsArray
+  get natureModifiersArray(): readonly number[] {
+    // usage for statsArray
     // Nature modifiers: [hp, atk, def, spe, spa, spd]
     const { increased, decreased } = this.natureModifiers
-    return this.stats.map((_, i) =>
-      i === increased ? 1.1 : (i === decreased ? 0.9 : 1),
-    )
+    return this.stats.map((_, i) => (i === increased ? 1.1 : (i === decreased ? 0.9 : 1)))
   }
 
-  get abilityNumber (): number {
+  get abilityNumber(): number {
     // if 2nd bit of status is set, ability is 1
     // if 3rd bit is set, ability is 2
     // otherwise ability is 0
-    return (this.status & 16) ? 1 : ((this.status & 32) ? 2 : 0)
+    return this.status & 16 ? 1 : (this.status & 32 ? 2 : 0)
   }
 
-  get stats (): readonly number[] {
+  get stats(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense]
   }
 
-  set stats (values: readonly number[]) {
+  set stats(values: readonly number[]) {
     if (values.length !== 6) throw new Error('Stats array must have 6 values')
     this.maxHp = values[0]!
     this.attack = values[1]!
@@ -523,23 +575,23 @@ export class PokemonBase {
     this.spDefense = values[5]!
   }
 
-  setStats (values: readonly number[]): void {
+  setStats(values: readonly number[]): void {
     this.stats = values
   }
 
-  setEvs (values: readonly number[]): void {
+  setEvs(values: readonly number[]): void {
     this.evs = values
   }
 
-  setIvs (values: readonly number[]): void {
+  setIvs(values: readonly number[]): void {
     this.ivs = values
   }
 
-  setNatureRaw (value: number): void {
+  setNatureRaw(value: number): void {
     this.natureRaw = value
   }
 
-  get moves (): {
+  get moves(): {
     readonly move1: MoveData
     readonly move2: MoveData
     readonly move3: MoveData
@@ -553,7 +605,7 @@ export class PokemonBase {
     }
   }
 
-  get moves_data (): PokemonMoves {
+  get moves_data(): PokemonMoves {
     return {
       move1: { id: this.move1, pp: this.pp1 },
       move2: { id: this.move2, pp: this.pp2 },
@@ -562,11 +614,11 @@ export class PokemonBase {
     }
   }
 
-  get evs (): readonly number[] {
+  get evs(): readonly number[] {
     return [this.hpEV, this.atkEV, this.defEV, this.speEV, this.spaEV, this.spdEV]
   }
 
-  set evs (values: readonly number[]) {
+  set evs(values: readonly number[]) {
     if (values.length !== 6) throw new Error('EVs array must have 6 values')
     this.hpEV = values[0]!
     this.atkEV = values[1]!
@@ -576,36 +628,48 @@ export class PokemonBase {
     this.spdEV = values[5]!
   }
 
-  get totalEVs (): number {
+  get totalEVs(): number {
     return this.evs.reduce((sum, ev) => sum + ev, 0)
   }
 
-  get totalIVs (): number {
+  get totalIVs(): number {
     return this.ivs.reduce((sum, iv) => sum + iv, 0)
   }
 
-  get moveIds (): readonly number[] {
+  get moveIds(): readonly number[] {
     return [this.move1, this.move2, this.move3, this.move4]
   }
 
-  get ppValues (): readonly number[] {
+  get ppValues(): readonly number[] {
     return [this.pp1, this.pp2, this.pp3, this.pp4]
   }
 
-  setEvByIndex (statIndex: number, value: number): void {
+  setEvByIndex(statIndex: number, value: number): void {
     switch (statIndex) {
-      case 0: this.hpEV = value; break
-      case 1: this.atkEV = value; break
-      case 2: this.defEV = value; break
-      case 3: this.speEV = value; break
-      case 4: this.spaEV = value; break
-      case 5: this.spdEV = value; break
+      case 0:
+        this.hpEV = value
+        break
+      case 1:
+        this.atkEV = value
+        break
+      case 2:
+        this.defEV = value
+        break
+      case 3:
+        this.speEV = value
+        break
+      case 4:
+        this.spaEV = value
+        break
+      case 5:
+        this.spdEV = value
+        break
       default:
         throw new Error(`Invalid EV index: ${statIndex}`)
     }
   }
 
-  setIvByIndex (statIndex: number, value: number): void {
+  setIvByIndex(statIndex: number, value: number): void {
     if (statIndex < 0 || statIndex > 5) {
       throw new Error(`Invalid IV index: ${statIndex}`)
     }

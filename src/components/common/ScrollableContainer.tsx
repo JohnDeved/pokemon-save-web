@@ -20,15 +20,30 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
   const [scrollState, setScrollState] = useState<ScrollState>('none')
   const containerRef = useRef<HTMLDivElement>(null)
 
-  function checkScroll () {
+  function checkScroll() {
     const el = containerRef.current
-    if (!el) { setScrollState('none'); return }
-    if (el.scrollHeight <= el.clientHeight) { setScrollState('none'); return }
+    if (!el) {
+      setScrollState('none')
+      return
+    }
+    if (el.scrollHeight <= el.clientHeight) {
+      setScrollState('none')
+      return
+    }
     const atTop = el.scrollTop === 0
     const atBottom = Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) < 1
-    if (!atTop && !atBottom) { setScrollState('both'); return }
-    if (atTop && !atBottom) { setScrollState('bottom'); return }
-    if (!atTop && atBottom) { setScrollState('top'); return }
+    if (!atTop && !atBottom) {
+      setScrollState('both')
+      return
+    }
+    if (atTop && !atBottom) {
+      setScrollState('bottom')
+      return
+    }
+    if (!atTop && atBottom) {
+      setScrollState('top')
+      return
+    }
     setScrollState('none')
   }
 
@@ -47,10 +62,7 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
   }, [checkScroll])
 
   return (
-    <div
-      ref={containerRef}
-      className={cn('scroll-container geist-font', className, fadeClassMap[scrollState])}
-    >
+    <div ref={containerRef} className={cn('scroll-container geist-font', className, fadeClassMap[scrollState])}>
       {children}
     </div>
   )

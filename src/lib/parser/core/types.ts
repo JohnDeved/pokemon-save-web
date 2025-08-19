@@ -189,7 +189,7 @@ export interface GameConfig {
     readonly playTime?: number
   }
 
-  readonly preloadRegions?: readonly { address: number, size: number }[]
+  readonly preloadRegions?: readonly { address: number; size: number }[]
 
   // Optional behavioral overrides for game-specific mechanics
   calculateNature?(personality: number): string

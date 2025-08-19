@@ -11,9 +11,7 @@ interface PokemonHeaderProps {
   isLoading?: boolean
 }
 
-export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
-  isLoading = false,
-}) => {
+export const PokemonHeader: React.FC<PokemonHeaderProps> = ({ isLoading = false }) => {
   const { partyList, activePokemonId, setNature } = usePokemonStore()
   const pokemon = partyList.find(p => p.id === activePokemonId)
   return (
@@ -27,7 +25,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
               <Tooltip disableHoverableContent>
                 <TooltipTrigger asChild>
                   <span>
-                    <IoSparkles className="text-yellow-300/80"/>
+                    <IoSparkles className="text-yellow-300/80" />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>Shiny</TooltipContent>
@@ -37,7 +35,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
               <Tooltip disableHoverableContent>
                 <TooltipTrigger asChild>
                   <span>
-                    <FaWandMagicSparkles className="text-purple-400/80"/>
+                    <FaWandMagicSparkles className="text-purple-400/80" />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>Radiant</TooltipContent>
@@ -45,28 +43,20 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
             )}
           </h2>
           <div className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border border-cyan-800">
-            <FaHashtag size={12}/>
-            <span>
-              {String(pokemon?.data.speciesId).padStart(3, '0')}
-            </span>
+            <FaHashtag size={12} />
+            <span>{String(pokemon?.data.speciesId).padStart(3, '0')}</span>
           </div>
         </div>
         {/* Row 2: Typing and Nature */}
         <div className="flex items-center justify-between mt-2 min-h-[25px]">
           <Skeleton.Container className="flex items-center gap-2 min-w-8">
-            {isLoading && (<PokemonTypeBadge type="UNKNOWN" isLarge/>)}
-            {pokemon?.details?.types.map(type => <PokemonTypeBadge key={type} type={type} isLarge/>)}
+            {isLoading && <PokemonTypeBadge type="UNKNOWN" isLarge />}
+            {pokemon?.details?.types.map(type => (
+              <PokemonTypeBadge key={type} type={type} isLarge />
+            ))}
           </Skeleton.Container>
           <div className="flex items-center gap-2 min-w-8">
-            {
-              pokemon?.data.itemIdName && (
-                <img
-                  src={getItemSpriteUrl(pokemon.data.itemIdName)}
-                  alt={pokemon.data.itemIdName}
-                  className="w-6 h-6"
-                />
-              )
-            }
+            {pokemon?.data.itemIdName && <img src={getItemSpriteUrl(pokemon.data.itemIdName)} alt={pokemon.data.itemIdName} className="w-6 h-6" />}
             <Select
               value={pokemon?.data.nature ?? undefined}
               onValueChange={nature => {
@@ -76,12 +66,14 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
               }}
             >
               <SelectTrigger className="text-xs min-h-[44px] lg:min-h-[36px]">
-                <SelectValue placeholder="Nature"/>
+                <SelectValue placeholder="Nature" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   {natures.map(nature => (
-                    <SelectItem key={nature} value={nature}>{nature}</SelectItem>
+                    <SelectItem key={nature} value={nature}>
+                      {nature}
+                    </SelectItem>
                   ))}
                 </SelectGroup>
               </SelectContent>

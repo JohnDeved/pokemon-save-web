@@ -56,7 +56,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     partyData: 0x20235B8,
     partyCount: 0x20235B5,
     enemyParty: 0x2023A98,
-    get enemyPartyCount () {
+    get enemyPartyCount() {
       return this.partyCount + 0x8
     },
     // TODO: Add player name and play time addresses when implemented
@@ -65,7 +65,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   /**
    * Preload regions for Quetzal memory parsing
    */
-  get preloadRegions () {
+  get preloadRegions() {
     return [
       {
         address: this.memoryAddresses.partyData,
@@ -100,59 +100,59 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   } as const
 
   // Override data access methods for Quetzal's unencrypted structure
-  getSpeciesId (_data: Uint8Array, view: DataView): number {
+  getSpeciesId(_data: Uint8Array, view: DataView): number {
     const rawSpecies = view.getUint16(this.quetzalOffsets.species, true)
     // Apply ID mapping using the base mapping system
     return this.mappings.pokemon.get(rawSpecies)?.id ?? rawSpecies
   }
 
-  getPokemonName (_data: Uint8Array, view: DataView): string | undefined {
+  getPokemonName(_data: Uint8Array, view: DataView): string | undefined {
     const rawSpecies = view.getUint16(this.quetzalOffsets.species, true)
     // Apply name mapping using the base mapping system - use id_name for sprite filenames
     return this.mappings.pokemon.get(rawSpecies)?.id_name
   }
 
-  getItem (_data: Uint8Array, view: DataView): number {
+  getItem(_data: Uint8Array, view: DataView): number {
     const rawItem = view.getUint16(this.quetzalOffsets.item, true)
     // Apply ID mapping using the base mapping system
     return this.mappings.items.get(rawItem)?.id ?? rawItem
   }
 
-  getItemName (_data: Uint8Array, view: DataView): string | undefined {
+  getItemName(_data: Uint8Array, view: DataView): string | undefined {
     const rawItem = view.getUint16(this.quetzalOffsets.item, true)
     // Apply name mapping using the base mapping system
     return this.mappings.items.get(rawItem)?.id_name
   }
 
-  getMove (_data: Uint8Array, view: DataView, index: number): number {
+  getMove(_data: Uint8Array, view: DataView, index: number): number {
     const moveOffsets = [this.quetzalOffsets.move1, this.quetzalOffsets.move2, this.quetzalOffsets.move3, this.quetzalOffsets.move4]
     const rawMove = view.getUint16(moveOffsets[index]!, true)
     // Apply ID mapping using the base mapping system
     return this.mappings.moves.get(rawMove)?.id ?? rawMove
   }
 
-  getPP (_data: Uint8Array, view: DataView, index: number): number {
+  getPP(_data: Uint8Array, view: DataView, index: number): number {
     const ppOffsets = [this.quetzalOffsets.pp1, this.quetzalOffsets.pp2, this.quetzalOffsets.pp3, this.quetzalOffsets.pp4]
     return view.getUint8(ppOffsets[index]!)
   }
 
-  getEV (_data: Uint8Array, view: DataView, index: number): number {
+  getEV(_data: Uint8Array, view: DataView, index: number): number {
     const evOffsets = [this.quetzalOffsets.hpEV, this.quetzalOffsets.atkEV, this.quetzalOffsets.defEV, this.quetzalOffsets.speEV, this.quetzalOffsets.spaEV, this.quetzalOffsets.spdEV]
     return view.getUint8(evOffsets[index]!)
   }
 
-  setEV (_data: Uint8Array, view: DataView, index: number, value: number): void {
+  setEV(_data: Uint8Array, view: DataView, index: number, value: number): void {
     const evOffsets = [this.quetzalOffsets.hpEV, this.quetzalOffsets.atkEV, this.quetzalOffsets.defEV, this.quetzalOffsets.speEV, this.quetzalOffsets.spaEV, this.quetzalOffsets.spdEV]
     const clampedValue = Math.max(0, Math.min(255, value))
     view.setUint8(evOffsets[index]!, clampedValue)
   }
 
-  getIVs (_data: Uint8Array, view: DataView): readonly number[] {
+  getIVs(_data: Uint8Array, view: DataView): readonly number[] {
     const ivData = view.getUint32(this.quetzalOffsets.ivData, true)
     return Array.from({ length: 6 }, (_, i) => (ivData >>> (i * 5)) & 0x1F)
   }
 
-  setIVs (_data: Uint8Array, view: DataView, values: readonly number[]): void {
+  setIVs(_data: Uint8Array, view: DataView, values: readonly number[]): void {
     if (values.length !== 6) throw new Error('IVs array must have 6 values')
     let packed = 0
     for (let i = 0; i < 6; i++) {
@@ -165,7 +165,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   /**
    * Override nature calculation for Quetzal-specific formula
    */
-  calculateNature (personality: number): string {
+  calculateNature(personality: number): string {
     // Quetzal uses only the first byte of personality modulo 25
     return natures[(personality & 0xFF) % 25]!
   }
@@ -173,7 +173,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   /**
    * Override nature setting for Quetzal-specific implementation
    */
-  setNature (_data: Uint8Array, view: DataView, value: number): void {
+  setNature(_data: Uint8Array, view: DataView, value: number): void {
     // Quetzal uses (personality & 0xFF) % 25 for nature calculation
     const currentPersonality = view.getUint32(0x00, true)
     const currentFirstByte = currentPersonality & 0xFF
@@ -182,7 +182,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     if (currentNature === value) return
 
     // Calculate new first byte: preserve quotient, set remainder to desired nature
-    const newFirstByte = (currentFirstByte - currentNature) + value
+    const newFirstByte = currentFirstByte - currentNature + value
 
     // Update personality with new first byte
     const newPersonality = (currentPersonality & 0xFFFFFF00) | (newFirstByte & 0xFF)
@@ -192,7 +192,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   /**
    * Override active slot determination for Quetzal
    */
-  determineActiveSlot (getCounterSum: (range: number[]) => number): number {
+  determineActiveSlot(getCounterSum: (range: number[]) => number): number {
     const slot1Range = Array.from({ length: 18 }, (_, i) => i)
     const slot2Range = Array.from({ length: 18 }, (_, i) => i + 14)
     const slot1Sum = getCounterSum(slot1Range)
@@ -204,15 +204,15 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   /**
    * Override shiny calculation for Quetzal-specific values
    */
-  isShiny (personality: number, _otId: number): boolean {
+  isShiny(personality: number, _otId: number): boolean {
     return this.getShinyValue(personality, _otId) === 1
   }
 
-  getShinyValue (personality: number, _otId: number): number {
+  getShinyValue(personality: number, _otId: number): number {
     return (personality >> 8) & 0xFF
   }
 
-  isRadiant (personality: number, _otId: number): boolean {
+  isRadiant(personality: number, _otId: number): boolean {
     return this.getShinyValue(personality, _otId) === 2
   }
 
@@ -220,7 +220,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
    * Check if this config can handle the given save file
    * Use parsing success as detection criteria with base class helpers
    */
-  canHandle (saveData: Uint8Array): boolean {
+  canHandle(saveData: Uint8Array): boolean {
     // Use base class to check for valid Emerald signature
     if (!this.hasValidEmeraldSignature(saveData)) {
       return false
@@ -233,11 +233,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
       const saveblock1Data = this.extractSaveBlock1(saveData, sectorMap)
 
       // Use base class helper for Pokemon detection
-      const pokemonFound = this.parsePokemonForDetection(
-        saveblock1Data,
-        this.pokemonSize,
-        (data, view) => this.getSpeciesId(data, view),
-      )
+      const pokemonFound = this.parsePokemonForDetection(saveblock1Data, this.pokemonSize, (data, view) => this.getSpeciesId(data, view))
 
       // Return true if we found valid Pokemon data
       return pokemonFound > 0
@@ -250,7 +246,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
    * Check if this config can handle memory parsing for the given game title
    * Currently not supported for Quetzal
    */
-  canHandleMemory (gameTitle: string): boolean {
+  canHandleMemory(gameTitle: string): boolean {
     // Return false for now until we implement Quetzal memory support
     return gameTitle.toLowerCase().includes('quetzal')
   }

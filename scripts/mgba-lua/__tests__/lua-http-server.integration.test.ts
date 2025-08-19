@@ -17,10 +17,10 @@ const __dirname = dirname(__filename)
 
 // Helper function to check if Lua is available
 function checkLuaAvailability(): Promise<boolean> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const luaCheck = spawn('lua', ['-v'], { stdio: 'ignore' })
     luaCheck.on('error', () => resolve(false))
-    luaCheck.on('exit', (code) => resolve(code === 0))
+    luaCheck.on('exit', code => resolve(code === 0))
   })
 }
 
@@ -33,7 +33,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
   beforeAll(async () => {
     // Check if Lua is available
     luaAvailable = await checkLuaAvailability()
-    
+
     if (!luaAvailable) {
       console.warn('⚠️ Lua not found - skipping Lua integration tests')
       return
@@ -56,8 +56,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
         output += data.toString()
         console.log('[mGBA Server]', data.toString().trim())
         // Look for the server startup message
-        if (output.includes('🚀 mGBA HTTP Server started on port') ||
-            output.includes('HTTP server loaded successfully')) {
+        if (output.includes('🚀 mGBA HTTP Server started on port') || output.includes('HTTP server loaded successfully')) {
           clearTimeout(timeout)
           baseUrl = `http://127.0.0.1:${serverPort}`
           // Give the server time to be fully ready
@@ -70,7 +69,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       })
 
       serverProcess!.on('error', reject)
-      serverProcess!.on('exit', (code) => {
+      serverProcess!.on('exit', code => {
         if (code !== 0) {
           reject(new Error(`Lua server exited with code ${code}`))
         }
@@ -82,7 +81,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
     if (serverProcess) {
       serverProcess.kill('SIGTERM')
       // Wait for process to exit
-      await new Promise<void>((resolve) => {
+      await new Promise<void>(resolve => {
         serverProcess!.on('exit', () => resolve())
         // Force kill if it doesn't exit gracefully
         setTimeout(() => {
@@ -106,7 +105,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('text/plain')
       // Note: GET / route does not have CORS middleware in the server code
-      
+
       const text = await response.text()
       expect(text).toContain('Welcome to mGBA HTTP Server!')
     })
@@ -197,7 +196,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
           console.log('[Test] WebSocket connected')
         })
 
-        ws.on('message', (data) => {
+        ws.on('message', data => {
           clearTimeout(timeout)
           resolve(data.toString())
         })
@@ -228,7 +227,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
           console.log('[Test] WebSocket eval test connected')
         })
 
-        ws.on('message', (data) => {
+        ws.on('message', data => {
           const message = data.toString()
           console.log('[Test] Received message:', message)
 

@@ -39,11 +39,7 @@ export const PokemonTypeBadge: React.FC<TypeBadgeProps> = ({ type, isLarge = fal
 
   return (
     <div className={`inline-flex gap-1 pl-1 rounded-md items-center justify-center shadow-md ${TYPE_COLORS[type.toLowerCase()]!}`}>
-      <img
-        key={type}
-        src={iconUrl}
-        className={cn('image-pixelate', iconSize)}
-      />
+      <img key={type} src={iconUrl} className={cn('image-pixelate', iconSize)} />
       <div className="flex-1 flex">
         <span className={cn('text-white', sizeClasses)}>{type.toUpperCase()}</span>
       </div>

@@ -22,7 +22,7 @@ describe('Pokemon Quetzal Tests', () => {
   let testSaveData: ArrayBuffer
   let groundTruth: {
     player_name: string
-    play_time: { hours: number, minutes: number, seconds: number }
+    play_time: { hours: number; minutes: number; seconds: number }
     active_slot: number
     sector_map: Record<string, number>
     party_pokemon: Record<string, unknown>[]
@@ -132,16 +132,10 @@ describe('Pokemon Quetzal Tests', () => {
         expect(pokemon.otId).toBe(expected.otId)
 
         // Moves
-        expect([pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]).toEqual([
-          expected.move1, expected.move2, expected.move3, expected.move4,
-        ])
+        expect([pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]).toEqual([expected.move1, expected.move2, expected.move3, expected.move4])
 
         // EVs
-        expect([
-          pokemon.hpEV, pokemon.atkEV, pokemon.defEV, pokemon.speEV, pokemon.spaEV, pokemon.spdEV,
-        ]).toEqual([
-          expected.hpEV, expected.atkEV, expected.defEV, expected.speEV, expected.spaEV, expected.spdEV,
-        ])
+        expect([pokemon.hpEV, pokemon.atkEV, pokemon.defEV, pokemon.speEV, pokemon.spaEV, pokemon.spdEV]).toEqual([expected.hpEV, expected.atkEV, expected.defEV, expected.speEV, expected.spaEV, expected.spdEV])
 
         // IVs
         expect([...pokemon.ivs]).toEqual(expected.ivs)
@@ -151,9 +145,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should have valid sector mapping', () => {
       expect(parsedData.sector_map).toBeDefined()
       expect(parsedData.sector_map!.size).toBeGreaterThan(0)
-      const expectedSectorMap = new Map(
-        Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v]),
-      )
+      const expectedSectorMap = new Map(Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v]))
       expect(parsedData.sector_map).toEqual(expectedSectorMap)
     })
 
@@ -169,7 +161,7 @@ describe('Pokemon Quetzal Tests', () => {
       }
 
       // Check if we need to fetch any missing base stats
-      const speciesIds = [...new Set(parsedData.party_pokemon.map((p) => p.speciesId))]
+      const speciesIds = [...new Set(parsedData.party_pokemon.map(p => p.speciesId))]
       const missing = speciesIds.filter(id => !baseStatsCache[id.toString()])
 
       if (missing.length > 0) {
@@ -178,18 +170,11 @@ describe('Pokemon Quetzal Tests', () => {
             const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`)
             if (!response.ok) continue
             const speciesData = await response.json()
-            const apiStats: Record<string, number> = speciesData.stats.reduce((acc: Record<string, number>, stat: { stat: { name: string }, base_stat: number }) => {
+            const apiStats: Record<string, number> = speciesData.stats.reduce((acc: Record<string, number>, stat: { stat: { name: string }; base_stat: number }) => {
               acc[stat.stat.name] = stat.base_stat
               return acc
             }, {})
-            baseStatsCache[speciesId.toString()] = [
-              apiStats.hp!,
-              apiStats.attack!,
-              apiStats.defense!,
-              apiStats.speed!,
-              apiStats['special-attack']!,
-              apiStats['special-defense']!,
-            ]
+            baseStatsCache[speciesId.toString()] = [apiStats.hp!, apiStats.attack!, apiStats.defense!, apiStats.speed!, apiStats['special-attack']!, apiStats['special-defense']!]
           } catch (error) {
             console.warn(`Failed to fetch base stats for species ${speciesId}:`, error)
           }
@@ -498,7 +483,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should create properly structured Pokemon data', async () => {
       const result = await parser.parse(testSaveData)
 
-      result.party_pokemon.forEach((pokemon) => {
+      result.party_pokemon.forEach(pokemon => {
         // Verify required properties exist
         expect(pokemon.moves_data).toBeDefined()
         expect(pokemon.evs).toHaveLength(6)
@@ -521,7 +506,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should handle Quetzal-specific features correctly', async () => {
       const result = await parser.parse(testSaveData)
 
-      result.party_pokemon.forEach((pokemon) => {
+      result.party_pokemon.forEach(pokemon => {
         // Test shiny calculation (Quetzal-specific)
         if (pokemon.isShiny) {
           expect(pokemon.shinyNumber).toBe(1)
@@ -541,7 +526,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should use correct Quetzal shiny logic distinct from vanilla', async () => {
       const result = await parser.parse(testSaveData)
 
-      result.party_pokemon.forEach((pokemon) => {
+      result.party_pokemon.forEach(pokemon => {
         // Verify shiny logic is different from vanilla
         // In Quetzal: shinyNumber = 1 means shiny, shinyNumber = 2 means radiant
         // In vanilla: shinyNumber < 8 means shiny (no radiant)

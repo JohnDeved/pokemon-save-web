@@ -5,16 +5,14 @@ interface SkeletonProps {
   className?: string
   loading?: boolean // Indicates if skeleton should be shown
   children?: React.ReactNode
-};
+}
 
 // Context for loading state
 const SkeletonLoadingContext = createContext<boolean | undefined>(undefined)
 
-export const SkeletonLoadingProvider = ({ loading, children }: { loading: boolean, children: React.ReactNode }) => (
-  <SkeletonLoadingContext.Provider value={loading}>{children}</SkeletonLoadingContext.Provider>
-)
+export const SkeletonLoadingProvider = ({ loading, children }: { loading: boolean; children: React.ReactNode }) => <SkeletonLoadingContext.Provider value={loading}>{children}</SkeletonLoadingContext.Provider>
 
-function useSkeletonLoading (loading?: boolean) {
+function useSkeletonLoading(loading?: boolean) {
   const contextLoading = useContext(SkeletonLoadingContext)
   return loading ?? contextLoading ?? true
 }
@@ -34,7 +32,9 @@ export const SkeletonText = ({
   if (!isLoading) {
     // If not loading, render children directly using JSX
     return (
-      <Component className={className} {...props}>{children}</Component>
+      <Component className={className} {...props}>
+        {children}
+      </Component>
     )
   }
 
@@ -58,9 +58,7 @@ export const SkeletonBox = ({ className, loading, children, ...props }: Skeleton
   if (!isLoading) {
     return children
   }
-  return (
-    <div className={cn('bg-slate-700/50 animate-pulse rounded', className)} {...props}/>
-  )
+  return <div className={cn('bg-slate-700/50 animate-pulse rounded', className)} {...props} />
 }
 
 // Button skeleton that preserves button dimensions exactly
@@ -70,12 +68,7 @@ export const SkeletonButton = ({ children, className, loading, ...props }: Skele
     return children
   }
   return (
-    <button
-      className={cn('bg-slate-700/50 animate-pulse', className)}
-      disabled
-      aria-hidden="true"
-      {...props}
-    >
+    <button className={cn('bg-slate-700/50 animate-pulse', className)} disabled aria-hidden="true" {...props}>
       <span className="invisible">{children}</span>
     </button>
   )
@@ -86,29 +79,24 @@ export const SkeletonImage = ({ className, loading, ...props }: SkeletonProps & 
   const isLoading = useSkeletonLoading(loading)
   if (!isLoading) {
     // Render actual image with all img props
-    return <img className={className} {...props}/>
+    return <img className={className} {...props} />
   }
   // Render skeleton placeholder
-  return (
-    <div
-      className={cn('bg-slate-700/50 animate-pulse', className)}
-      style={{ aspectRatio: props.width && props.height ? `${props.width} / ${props.height}` : undefined, ...props.style }}
-    />
-  )
+  return <div className={cn('bg-slate-700/50 animate-pulse', className)} style={{ aspectRatio: props.width && props.height ? `${props.width} / ${props.height}` : undefined, ...props.style }} />
 }
 
 // with the Container we just take the children, but make them invisible and non-interactive, then make the container itself pulse with the skeleton class
 export const SkeletonContainer = ({ className, children, loading, ...props }: SkeletonProps) => {
   const isLoading = useSkeletonLoading(loading)
   if (!isLoading) {
-    return <div className={className} {...props}>{children}</div>
+    return (
+      <div className={className} {...props}>
+        {children}
+      </div>
+    )
   }
 
-  return (
-    <div className={cn(className, 'bg-slate-700/50 animate-pulse children-invisible rounded border-none')}>
-      {children}
-    </div>
-  )
+  return <div className={cn(className, 'bg-slate-700/50 animate-pulse children-invisible rounded border-none')}>{children}</div>
 }
 
 /*

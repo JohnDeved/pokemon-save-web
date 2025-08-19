@@ -4,11 +4,7 @@ import type { PokemonBase } from './lib/parser/core/PokemonBase'
 export type SpriteType = 'normal' | 'shiny'
 
 // --- Zod schemas for API validation ---
-export const PokemonTypeSchema = z.enum([
-  'NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE',
-  'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG',
-  'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'UNKNOWN',
-])
+export const PokemonTypeSchema = z.enum(['NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE', 'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG', 'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'UNKNOWN'])
 export type PokemonType = z.infer<typeof PokemonTypeSchema>
 
 // --- Damage Class ---
@@ -79,32 +75,40 @@ export const PokeApiFlavorTextEntrySchema = z.object({
 })
 export type PokeApiFlavorTextEntry = z.infer<typeof PokeApiFlavorTextEntrySchema>
 
-export const PokemonApiResponseSchema = z.object({
-  types: z.array(PokeApiTypeSchema),
-  stats: z.array(PokeApiStatSchema),
-  abilities: z.array(PokeApiAbilitySchema),
-}).passthrough() // Allow additional properties
+export const PokemonApiResponseSchema = z
+  .object({
+    types: z.array(PokeApiTypeSchema),
+    stats: z.array(PokeApiStatSchema),
+    abilities: z.array(PokeApiAbilitySchema),
+  })
+  .passthrough() // Allow additional properties
 export type PokemonApiResponse = z.infer<typeof PokemonApiResponseSchema>
 
-export const MoveApiResponseSchema = z.object({
-  name: z.string(),
-  type: z.object({
+export const MoveApiResponseSchema = z
+  .object({
     name: z.string(),
-  }).optional(),
-  damage_class: DamageClassSchema.optional(),
-  target: TargetSchema.optional(),
-  effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
-  flavor_text_entries: z.array(PokeApiFlavorTextEntrySchema).optional(),
-  power: z.number().nullable().optional(),
-  accuracy: z.number().nullable().optional(),
-  effect_chance: z.number().nullable().optional(),
-}).passthrough()
+    type: z
+      .object({
+        name: z.string(),
+      })
+      .optional(),
+    damage_class: DamageClassSchema.optional(),
+    target: TargetSchema.optional(),
+    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
+    flavor_text_entries: z.array(PokeApiFlavorTextEntrySchema).optional(),
+    power: z.number().nullable().optional(),
+    accuracy: z.number().nullable().optional(),
+    effect_chance: z.number().nullable().optional(),
+  })
+  .passthrough()
 export type MoveApiResponse = z.infer<typeof MoveApiResponseSchema>
 
-export const AbilityApiResponseSchema = z.object({
-  name: z.string(),
-  effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
-}).passthrough()
+export const AbilityApiResponseSchema = z
+  .object({
+    name: z.string(),
+    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
+  })
+  .passthrough()
 export type AbilityApiResponse = z.infer<typeof AbilityApiResponseSchema>
 
 // --- Interfaces ---

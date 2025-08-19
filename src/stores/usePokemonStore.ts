@@ -40,7 +40,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
   },
 
   setEvIndex: (pokemonId: number, statIndex: number, evValue: number) => {
-    set((state) => ({
+    set(state => ({
       partyList: state.partyList.map(p => {
         if (p.id !== pokemonId || !p.details) return p
 
@@ -49,15 +49,10 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
         // Calculate current total EVs excluding the stat being changed
         const currentEvs = p.data.evs
-        const otherEvsTotal = currentEvs.reduce((sum, ev, index) =>
-          index === statIndex ? sum : sum + ev, 0,
-        )
+        const otherEvsTotal = currentEvs.reduce((sum, ev, index) => (index === statIndex ? sum : sum + ev), 0)
 
         // Ensure total EVs don't exceed limit
-        const maxAllowedForThisStat = Math.min(
-          MAX_EV_PER_STAT,
-          MAX_TOTAL_EVS - otherEvsTotal,
-        )
+        const maxAllowedForThisStat = Math.min(MAX_EV_PER_STAT, MAX_TOTAL_EVS - otherEvsTotal)
         const finalEvValue = Math.min(clampedEvValue, maxAllowedForThisStat)
 
         // Only update if the value actually changed
@@ -73,7 +68,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
   },
 
   setIvIndex: (pokemonId: number, statIndex: number, ivValue: number) => {
-    set((state) => ({
+    set(state => ({
       partyList: state.partyList.map(p => {
         if (p.id !== pokemonId || !p.details) return p
 
@@ -90,7 +85,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
   },
 
   setNature: (pokemonId: number, nature: string) => {
-    set((state) => ({
+    set(state => ({
       partyList: state.partyList.map(p => {
         const natureValue = natures.indexOf(nature)
         if (p.id !== pokemonId || !p.details) return p
@@ -125,14 +120,10 @@ export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] 
   return saveData.party_pokemon.map((parsedPokemon: PokemonBase, index: number) => {
     const isShiny = parsedPokemon.isShiny
     const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
-    const spriteUrl = isShiny
-      ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
-      : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
+    const spriteUrl = isShiny ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png` : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
 
     const SPRITE_ANI_BASE_URL = '/sprites'
-    const spriteAniUrl = isShiny
-      ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif`
-      : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
+    const spriteAniUrl = isShiny ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif` : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
     return {
       id: index,
       spriteUrl,

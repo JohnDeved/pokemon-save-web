@@ -6,8 +6,8 @@ on:
     paths:
       - 'src/**'
       - 'package*.json'
-      - '.eslintrc*'
-      - '.eslintignore'
+      - '.oxlintrc.json'
+      - 'biome.json'
       - '.github/workflows/lint.yml'
 
 jobs:
@@ -45,6 +45,5 @@ jobs:
         with:
           name: lint-results
           path: |
-            eslint-report.json
-            eslint-report.html
+            oxlint-report.json
           retention-days: 7

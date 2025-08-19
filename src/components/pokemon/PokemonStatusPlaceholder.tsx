@@ -12,7 +12,7 @@ export const PokemonStatusPlaceholder: React.FC = () => {
           <h3 className="text-slate-400">Empty Slot</h3>
         </div>
         <div className="w-full bg-slate-900/30 border border-slate-700 border-x-2 rounded-sm h-2.5 mt-2 overflow-hidden">
-          <div className={cn('bg-gradient-to-r h-full')} style={{ width: '0%' }}/>
+          <div className={cn('bg-gradient-to-r h-full')} style={{ width: '0%' }} />
         </div>
         <p className="text-right text-xs mt-1 text-slate-500">-/-</p>
       </div>

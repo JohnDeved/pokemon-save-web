@@ -21,7 +21,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
   let testSaveData: ArrayBuffer
   let groundTruth: {
     player_name: string
-    play_time: { hours: number, minutes: number }
+    play_time: { hours: number; minutes: number }
     party_pokemon: {
       nickname: string
       otName: string
@@ -37,8 +37,8 @@ describe('Vanilla Pokemon Emerald Tests', () => {
       displayOtId: string
       displayNature: string
       moves: {
-        move1: { name: string, pp: number }
-        move2: { name: string, pp: number }
+        move1: { name: string; pp: number }
+        move2: { name: string; pp: number }
       }
     }[]
   }
@@ -306,13 +306,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
         // Verify using Gen 3 formula: personality % 25
         const expectedNatureIndex = pokemon.personality % 25
-        const natures = [
-          'Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty',
-          'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax',
-          'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive',
-          'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash',
-          'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky',
-        ]
+        const natures = ['Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax', 'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive', 'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash', 'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky']
         expect(pokemon.nature).toBe(natures[expectedNatureIndex])
       }
     })

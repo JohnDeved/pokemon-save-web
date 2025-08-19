@@ -17,13 +17,8 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
   const [lastModified, setLastModified] = useState<number | null>(null)
   const pollInterval = useRef<NodeJS.Timeout | null>(null)
 
-  const {
-    getRootProps,
-    getInputProps,
-    isDragActive,
-    open,
-  } = useDropzone({
-    getFilesFromEvent: async (event) => {
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    getFilesFromEvent: async event => {
       if (Array.isArray(event)) {
         // Handle file system access API
         const handle = event[0]
@@ -100,26 +95,20 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
   const shouldShowOverlay = isDragActive || showDropzone
 
   // Define reusable style constants
-  const overlayClasses = cn(
-    'fixed inset-0 z-50 transition-colors duration-200',
-    isDragActive ? 'bg-black/20' : 'bg-transparent',
-    showDropzone ? 'p-4 sm:p-8 lg:p-48' : 'p-0',
-    !showDropzone && !isDragActive && 'pointer-events-none',
-  )
+  const overlayClasses = cn('fixed inset-0 z-50 transition-colors duration-200', isDragActive ? 'bg-black/20' : 'bg-transparent', showDropzone ? 'p-4 sm:p-8 lg:p-48' : 'p-0', !showDropzone && !isDragActive && 'pointer-events-none')
 
-  const dropzoneBaseClasses =
-    'group w-full h-full flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all duration-300 ease-in-out border-2 border-dashed'
+  const dropzoneBaseClasses = 'group w-full h-full flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all duration-300 ease-in-out border-2 border-dashed'
 
   const dropzoneStateClasses = cn(
     dropzoneBaseClasses,
     // Visibility
-    (isDragActive || showDropzone) ? 'opacity-100' : 'opacity-0',
+    isDragActive || showDropzone ? 'opacity-100' : 'opacity-0',
     // Base styling
     showDropzone ? 'bg-slate-900/50 border-slate-700 shadow-2xl' : 'bg-transparent border-transparent',
     // Active drag styling
     isDragActive && 'bg-slate-800/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
     // Hover styling
-    !isDragActive && showDropzone && 'hover:border-slate-600 hover:bg-slate-900/70',
+    !isDragActive && showDropzone && 'hover:border-slate-600 hover:bg-slate-900/70'
   )
 
   if (!shouldShowOverlay) {
@@ -127,32 +116,20 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     // when the dropzone is not supposed to be visible.
     // input supports file open on browsers that do not support the File System Access API
     return (
-      <div {...getRootProps()} className="hidden" >
-        <input {...getInputProps()}/>
+      <div {...getRootProps()} className="hidden">
+        <input {...getInputProps()} />
       </div>
     )
   }
 
   return (
     <div className={overlayClasses}>
-      <div
-        {...getRootProps({ onClick: showDropzone ? open : undefined })}
-        className={dropzoneStateClasses}
-      >
-        <input {...getInputProps()}/>
+      <div {...getRootProps({ onClick: showDropzone ? open : undefined })} className={dropzoneStateClasses}>
+        <input {...getInputProps()} />
         <div className="text-center p-4 sm:p-6 lg:p-8 flex flex-col items-center">
-          <img
-            src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
-            alt="Pokeball"
-            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 lg:mb-8"
-            style={{ imageRendering: 'pixelated' }}
-          />
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-100">
-            {isDragActive ? 'Drop your Savegame to load!' : 'Drop your Savegame here'}
-          </h2>
-          {showDropzone && (
-            <span className="text-slate-400 mt-1 text-sm sm:text-base">or click to browse</span>
-          )}
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Pokeball" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 lg:mb-8" style={{ imageRendering: 'pixelated' }} />
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-100">{isDragActive ? 'Drop your Savegame to load!' : 'Drop your Savegame here'}</h2>
+          {showDropzone && <span className="text-slate-400 mt-1 text-sm sm:text-base">or click to browse</span>}
           <p className="text-xs text-slate-500 mt-2">Supported: .sav, .sa2</p>
         </div>
       </div>

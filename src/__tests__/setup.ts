@@ -43,7 +43,7 @@ if (typeof window !== 'undefined') {
   // Mock PointerEvent for touch/pointer interactions
   if (typeof PointerEvent === 'undefined') {
     global.PointerEvent = class PointerEvent extends Event {
-      constructor (type: string, options: EventInit = {}) {
+      constructor(type: string, options: EventInit = {}) {
         super(type, options)
       }
     } as unknown as typeof Event
@@ -77,18 +77,13 @@ const originalConsoleWarn = console.warn
 
 // These functions are available globally in vitest
 declare global {
-  function beforeEach (fn: () => void): void
-  function afterEach (fn: () => void): void
+  function beforeEach(fn: () => void): void
+  function afterEach(fn: () => void): void
 }
 
 beforeEach(() => {
   console.warn = (...args: unknown[]) => {
-    if (
-      typeof args[0] === 'string' && (
-        args[0].includes('ReactDOM.render is no longer supported') ||
-        args[0].includes('Warning: Function components cannot be given refs')
-      )
-    ) {
+    if (typeof args[0] === 'string' && (args[0].includes('ReactDOM.render is no longer supported') || args[0].includes('Warning: Function components cannot be given refs'))) {
       return
     }
     originalConsoleWarn(...args)

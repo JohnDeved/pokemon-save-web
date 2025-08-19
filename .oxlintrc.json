@@ -1,1 +1,1 @@
-{"extends": ["./node_modules/ox-standard/.oxlintrc.json"]}
+{ "extends": ["./node_modules/ox-standard/.oxlintrc.json"] }

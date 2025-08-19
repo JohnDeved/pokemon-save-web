@@ -25,19 +25,11 @@ const EVSlider: React.FC<EVSliderProps> = ({ value, onChange, maxVisualValue }) 
     onChange(val[0]!)
   }
   return (
-    <Slider
-      value={[value]}
-      max={MAX_EV}
-      onValueChange={handleValueChange}
-      className="[&_[data-slot=slider-track]]:bg-slate-700/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500"
-      maxVisualValue={maxVisualValue}
-    />
+    <Slider value={[value]} max={MAX_EV} onValueChange={handleValueChange} className="[&_[data-slot=slider-track]]:bg-slate-700/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500" maxVisualValue={maxVisualValue} />
   )
 }
 
-export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
-  isLoading = false,
-}) => {
+export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoading = false }) => {
   const { partyList, activePokemonId, setEvIndex, setIvIndex, getRemainingEvs } = usePokemonStore()
   const pokemon = partyList.find(p => p.id === activePokemonId)
   const ivs = pokemon?.data.ivs
@@ -50,19 +42,19 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
   const [hoveredIvIndex, setHoveredIvIndex] = useState<number | null>(null)
 
   // Handler for EV changes - update parent state immediately
-  function handleEvChange (statIndex: number, newValue: number) {
+  function handleEvChange(statIndex: number, newValue: number) {
     if (typeof pokemon?.id !== 'number') return
     setEvIndex(pokemon.id, statIndex, newValue)
   }
 
   // Handler for IV clicks - set to max (31) when clicked
-  function handleIvClick (statIndex: number) {
+  function handleIvClick(statIndex: number) {
     if (typeof pokemon?.id !== 'number') return
     setIvIndex(pokemon.id, statIndex, 31)
   }
 
   // Calculate what the total stat would be with max IV (31)
-  function calculatePreviewStat (statIndex: number, currentIv: number) {
+  function calculatePreviewStat(statIndex: number, currentIv: number) {
     if (currentIv === MAX_IV || !pokemon?.data || !baseStats) return null
     // Create a copy of IVs with the selected stat set to MAX_IV
     const currentIvs = [...pokemon.data.ivs]
@@ -109,31 +101,51 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
               <div className="col-span-5 flex items-center gap-1 sm:gap-2">
                 <EVSlider
                   value={evs?.[index] ?? 0}
-                  onChange={newValue => { handleEvChange(index, newValue) }}
+                  onChange={newValue => {
+                    handleEvChange(index, newValue)
+                  }}
                   maxVisualValue={maxVisualValue}
                 />
                 <span className="text-white w-6 sm:w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
               </div>
               <div
                 className={`text-center text-sm ${ivClass} ${iv !== MAX_IV ? 'cursor-pointer hover:text-cyan-300 transition-colors' : ''}`}
-                onClick={iv !== MAX_IV ? () => { handleIvClick(index) } : undefined}
-                onMouseEnter={iv !== MAX_IV ? () => { setHoveredIvIndex(index) } : undefined}
-                onMouseLeave={iv !== MAX_IV ? () => { setHoveredIvIndex(null) } : undefined}
+                onClick={
+                  iv !== MAX_IV
+                    ? () => {
+                        handleIvClick(index)
+                      }
+                    : undefined
+                }
+                onMouseEnter={
+                  iv !== MAX_IV
+                    ? () => {
+                        setHoveredIvIndex(index)
+                      }
+                    : undefined
+                }
+                onMouseLeave={
+                  iv !== MAX_IV
+                    ? () => {
+                        setHoveredIvIndex(null)
+                      }
+                    : undefined
+                }
                 title={iv !== MAX_IV ? 'Click to set to max (31)' : undefined}
               >
                 {isHovered && iv !== MAX_IV ? MAX_IV : iv}
               </div>
-              <div className="text-slate-700 text-center text-sm"><Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text></div>
+              <div className="text-slate-700 text-center text-sm">
+                <Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text>
+              </div>
               <div className={`col-span-2 text-right text-sm ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}>
-                {isShowingPreview && previewTotal
-                  ? (
-                    <span>
-                      <span className="text-green-400">+{previewTotal - total}</span> {previewTotal}
-                    </span>
-                    )
-                  : (
-                      total
-                    )}
+                {isShowingPreview && previewTotal ? (
+                  <span>
+                    <span className="text-green-400">+{previewTotal - total}</span> {previewTotal}
+                  </span>
+                ) : (
+                  total
+                )}
               </div>
             </div>
           )
