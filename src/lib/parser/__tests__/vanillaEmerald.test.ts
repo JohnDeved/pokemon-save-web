@@ -22,7 +22,7 @@ describe('Vanilla Emerald Save Parser', () => {
   let groundTruth: {
     player_name: string
     play_time: { hours: number, minutes: number }
-    party_pokemon: Array<{
+    party_pokemon: {
       nickname: string
       otName: string
       currentHp: number
@@ -40,7 +40,7 @@ describe('Vanilla Emerald Save Parser', () => {
         move1: { name: string, pp: number }
         move2: { name: string, pp: number }
       }
-    }>
+    }[]
   }
 
   beforeAll(async () => {

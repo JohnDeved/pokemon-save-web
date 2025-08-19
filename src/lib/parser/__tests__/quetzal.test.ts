@@ -25,7 +25,7 @@ describe('Pokemon Quetzal Tests', () => {
     play_time: { hours: number, minutes: number, seconds: number }
     active_slot: number
     sector_map: Record<string, number>
-    party_pokemon: Array<Record<string, unknown>>
+    party_pokemon: Record<string, unknown>[]
   }
 
   beforeAll(async () => {
@@ -169,7 +169,7 @@ describe('Pokemon Quetzal Tests', () => {
       }
 
       // Check if we need to fetch any missing base stats
-      const speciesIds = Array.from(new Set(parsedData.party_pokemon.map(p => p.speciesId)))
+      const speciesIds = [...new Set(parsedData.party_pokemon.map((p) => p.speciesId))]
       const missing = speciesIds.filter(id => !baseStatsCache[id.toString()])
 
       if (missing.length > 0) {
@@ -378,7 +378,7 @@ describe('Pokemon Quetzal Tests', () => {
   describe('Save File Reconstruction', () => {
     it('should produce identical save file when reconstructing with unchanged party', async () => {
       const parsed = await parser.parse(testSaveData)
-      const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon.slice())
+      const reconstructed = parser.reconstructSaveFile([...parsed.party_pokemon])
 
       // Create hash function for comparison
       const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
@@ -397,7 +397,7 @@ describe('Pokemon Quetzal Tests', () => {
 
       if (parsed.party_pokemon.length < 2) return
 
-      const swapped = parsed.party_pokemon.slice()
+      const swapped = [...parsed.party_pokemon]
       const temp = swapped[0]
       swapped[0] = swapped[swapped.length - 1]!
       swapped[swapped.length - 1] = temp!
@@ -421,7 +421,7 @@ describe('Pokemon Quetzal Tests', () => {
 
       if (parsed.party_pokemon.length < 2) return
 
-      const swapped = parsed.party_pokemon.slice()
+      const swapped = [...parsed.party_pokemon]
       const temp = swapped[0]
       swapped[0] = swapped[swapped.length - 1]!
       swapped[swapped.length - 1] = temp!

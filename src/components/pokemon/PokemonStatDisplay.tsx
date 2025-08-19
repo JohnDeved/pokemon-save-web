@@ -86,10 +86,10 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({
           const iv = ivs?.[index] ?? 0
           const base = baseStats?.[index] ?? 0
           const total = totalStats?.[index] ?? 0
-          const natureMod = natureModifier?.[index] ?? 1.0
+          const natureMod = natureModifier?.[index] ?? 1
           let statClass = 'text-slate-500'
-          if (natureMod > 1.0) statClass = 'text-green-400/50 font-bold'
-          else if (natureMod < 1.0) statClass = 'text-red-400/50 font-bold'
+          if (natureMod > 1) statClass = 'text-green-400/50 font-bold'
+          else if (natureMod < 1) statClass = 'text-red-400/50 font-bold'
           // IV color: bright cyan for max IV (31), slightly dimmed for non-max
           const ivClass = iv === MAX_IV ? 'text-cyan-400' : 'text-cyan-800'
           // Calculate preview stat if this IV is hovered and not at max

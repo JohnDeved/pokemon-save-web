@@ -172,7 +172,7 @@ export function getNatureModifier (nature: string, statIndex: number): number {
     if (statIndex === effect.increased) return 1.1
     if (statIndex === effect.decreased) return 0.9
   }
-  return 1.0
+  return 1
 }
 
 /**

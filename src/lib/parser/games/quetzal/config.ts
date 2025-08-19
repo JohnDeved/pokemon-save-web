@@ -53,9 +53,9 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   // Memory addresses for Quetzal ROM hack
   readonly memoryAddresses = {
-    partyData: 0x20235b8,
-    partyCount: 0x20235b5,
-    enemyParty: 0x2023a98,
+    partyData: 0x20235B8,
+    partyCount: 0x20235B5,
+    enemyParty: 0x2023A98,
     get enemyPartyCount () {
       return this.partyCount + 0x8
     },

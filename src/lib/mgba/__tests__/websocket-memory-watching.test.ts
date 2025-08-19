@@ -46,8 +46,8 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
   describe('Watch Message Types', () => {
     it('should create valid watch message structure', () => {
       const regions = [
-        { address: 0x20244e9, size: 7 },
-        { address: 0x20244ec, size: 600 },
+        { address: 0x20244E9, size: 7 },
+        { address: 0x20244EC, size: 600 },
       ]
 
       // This tests that the TypeScript types are correctly defined
@@ -65,7 +65,7 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
         type: 'memoryUpdate' as const,
         regions: [
           {
-            address: 0x20244e9,
+            address: 0x20244E9,
             size: 4,
             data: [1, 2, 3, 4],
           },
@@ -81,7 +81,7 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
 
   describe('Error Handling', () => {
     it('should throw error when starting watch without connection', async () => {
-      const regions = [{ address: 0x20244e9, size: 4 }]
+      const regions = [{ address: 0x20244E9, size: 4 }]
 
       await expect(client.startWatching(regions)).rejects.toThrow('Not connected to mGBA WebSocket server')
     })

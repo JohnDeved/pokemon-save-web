@@ -498,7 +498,7 @@ export class PokemonBase {
     // Nature modifiers: [hp, atk, def, spe, spa, spd]
     const { increased, decreased } = this.natureModifiers
     return this.stats.map((_, i) =>
-      i === increased ? 1.1 : i === decreased ? 0.9 : 1,
+      i === increased ? 1.1 : (i === decreased ? 0.9 : 1),
     )
   }
 
@@ -506,7 +506,7 @@ export class PokemonBase {
     // if 2nd bit of status is set, ability is 1
     // if 3rd bit is set, ability is 2
     // otherwise ability is 0
-    return (this.status & 16) ? 1 : (this.status & 32) ? 2 : 0
+    return (this.status & 16) ? 1 : ((this.status & 32) ? 2 : 0)
   }
 
   get stats (): readonly number[] {

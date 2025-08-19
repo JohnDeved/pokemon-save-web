@@ -7,18 +7,18 @@ declare global {
 
 interface SaveFilePickerOptions {
   suggestedName?: string
-  types?: Array<{
+  types?: {
     description?: string
     accept: Record<string, string[]>
-  }>
+  }[]
 }
 
 interface OpenFilePickerOptions {
   multiple?: boolean
-  types?: Array<{
+  types?: {
     description?: string
     accept: Record<string, string[]>
-  }>
+  }[]
 }
 
 interface FileSystemFileHandle {

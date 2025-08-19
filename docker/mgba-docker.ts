@@ -10,7 +10,7 @@ const container = 'mgba-test-environment'
 function run (cmd: string, env?: NodeJS.ProcessEnv) {
   try {
     execSync(cmd, { stdio: 'inherit', env: env ? { ...process.env, ...env } : process.env })
-  } catch (e) {
+  } catch {
     process.exit(1)
   }
 }

@@ -68,11 +68,11 @@ const displayPartyPokemonRaw = (party: readonly PokemonBase[]) => {
 
 // Table/graph constants
 const COLORS = [31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96]
-const FIELDS: Array<[number, number, string]> = [
+const FIELDS: [number, number, string][] = [
   [0x00, 0x04, 'personality'],
   [0x04, 0x08, 'otId'],
   [0x08, 0x12, 'nickname'],
-  [0x14, 0x1b, 'otName'],
+  [0x14, 0x1B, 'otName'],
   [0x23, 0x25, 'c.HP'],
   [0x25, 0x26, 'status'],
   [0x28, 0x2A, 'sp.Id'],
@@ -93,7 +93,7 @@ const RESET = '\x1b[0m'
 const colorFor = (i: number) => `\x1b[${COLORS[i % COLORS.length]!}m`
 
 /** Display colored, labeled hex/ASCII visualization for Pokémon bytes. */
-const displayColoredBytes = (raw: Uint8Array, fields: Array<[number, number, string]>, bytesPerLine = 32) => {
+const displayColoredBytes = (raw: Uint8Array, fields: [number, number, string][], bytesPerLine = 32) => {
   let pos = 0
   while (pos < raw.length) {
     let lineEnd = Math.min(pos + bytesPerLine, raw.length)
@@ -319,7 +319,7 @@ async function main () {
     const str = toBytesArg.split('=')[1] ?? ''
     const bytes = gbaStringToBytes(str, str.length + 1) // +1 for null terminator
     console.log(`GBA bytes for "${str}":`)
-    console.log(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '))
+    console.log([...bytes].map(b => b.toString(16).padStart(2, '0')).join(' '))
     process.exit(0)
   }
 
@@ -335,7 +335,7 @@ async function main () {
         .map(b => parseInt(b, 16)),
     )
     const str = bytesToGbaString(bytes)
-    console.log(`String for bytes [${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`)
+    console.log(`String for bytes [${[...bytes].map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`)
     console.log(str)
     process.exit(0)
   }

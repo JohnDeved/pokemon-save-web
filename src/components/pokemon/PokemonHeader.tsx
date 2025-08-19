@@ -54,8 +54,8 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({
         {/* Row 2: Typing and Nature */}
         <div className="flex items-center justify-between mt-2 min-h-[25px]">
           <Skeleton.Container className="flex items-center gap-2 min-w-8">
-            {isLoading && (<PokemonTypeBadge type="UNKNOWN" isLarge={true}/>)}
-            {pokemon?.details?.types.map(type => <PokemonTypeBadge key={type} type={type} isLarge={true}/>)}
+            {isLoading && (<PokemonTypeBadge type="UNKNOWN" isLarge/>)}
+            {pokemon?.details?.types.map(type => <PokemonTypeBadge key={type} type={type} isLarge/>)}
           </Skeleton.Container>
           <div className="flex items-center gap-2 min-w-8">
             {

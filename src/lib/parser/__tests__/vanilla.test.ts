@@ -22,7 +22,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
   let groundTruth: {
     player_name: string
     play_time: { hours: number, minutes: number }
-    party_pokemon: Array<{
+    party_pokemon: {
       nickname: string
       otName: string
       currentHp: number
@@ -40,7 +40,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         move1: { name: string, pp: number }
         move2: { name: string, pp: number }
       }
-    }>
+    }[]
   }
 
   beforeAll(async () => {
@@ -373,7 +373,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
   describe('Save File Reconstruction', () => {
     it('should produce identical save file when reconstructing with unchanged party', async () => {
       const parsed = await parser.parse(testSaveData)
-      const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon.slice())
+      const reconstructed = parser.reconstructSaveFile([...parsed.party_pokemon])
 
       // Create hash function for comparison
       const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {

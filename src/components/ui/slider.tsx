@@ -19,9 +19,9 @@ const Slider = ({
   const sliderRef = React.useRef<HTMLDivElement>(null)
   const _values = Array.isArray(value)
     ? value
-    : Array.isArray(defaultValue)
+    : (Array.isArray(defaultValue)
       ? defaultValue
-      : [min, max]
+      : [min, max])
 
   function handleWheel (e: WheelEvent) {
     if (typeof value === 'undefined' || !Array.isArray(value)) return

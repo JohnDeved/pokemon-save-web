@@ -59,7 +59,7 @@ export class PokemonSaveParser {
 
   // Watching properties
   private watchingChanges = false
-  private readonly watchListeners: Array<(partyPokemon: PokemonBase[]) => void> = []
+  private readonly watchListeners: ((partyPokemon: PokemonBase[]) => void)[] = []
 
   constructor (forcedSlot?: 1 | 2, gameConfig?: GameConfig) {
     this.forcedSlot = forcedSlot

@@ -15,7 +15,7 @@ export class MgbaWebSocketClient {
   private connected = false
 
   // Memory watching
-  private watchedRegions: Array<{ address: number, size: number }> = []
+  private watchedRegions: { address: number, size: number }[] = []
   private readonly memoryChangeListeners: MemoryChangeListener[] = []
   private watchingMemory = false
 
@@ -23,7 +23,7 @@ export class MgbaWebSocketClient {
   private readonly memoryCache = new Map<string, Uint8Array>()
 
   // Eval request handling
-  private readonly pendingEvalHandlers: Array<(message: SimpleMessage) => boolean> = []
+  private readonly pendingEvalHandlers: ((message: SimpleMessage) => boolean)[] = []
 
   constructor (private readonly url = 'ws://localhost:7102/ws') {}
 
@@ -138,7 +138,7 @@ export class MgbaWebSocketClient {
   /**
    * Start watching memory regions
    */
-  async startWatching (regions: Array<{ address: number, size: number }>): Promise<void> {
+  async startWatching (regions: { address: number, size: number }[]): Promise<void> {
     if (!this.connected || !this.ws) {
       throw new Error('Not connected to mGBA WebSocket server')
     }
@@ -262,7 +262,7 @@ export class MgbaWebSocketClient {
    * Write bytes to memory
    */
   async writeBytes (address: number, data: Uint8Array): Promise<void> {
-    const bytes = Array.from(data).join(',')
+    const bytes = [...data].join(',')
     // Convert address to hex to avoid issues with large decimal numbers in Lua
     const hexAddress = `0x${address.toString(16)}`
     const code = `
@@ -294,7 +294,7 @@ export class MgbaWebSocketClient {
    */
   removeMemoryChangeListener (listener: MemoryChangeListener): void {
     const index = this.memoryChangeListeners.indexOf(listener)
-    if (index >= 0) {
+    if (index !== -1) {
       this.memoryChangeListeners.splice(index, 1)
     }
   }
@@ -309,7 +309,7 @@ export class MgbaWebSocketClient {
   /**
    * Get currently watched regions
    */
-  getWatchedRegions (): Array<{ address: number, size: number }> {
+  getWatchedRegions (): { address: number, size: number }[] {
     return [...this.watchedRegions]
   }
 

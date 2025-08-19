@@ -28,7 +28,7 @@ describe('Parser CLI Tests', () => {
     // Clean up temp directory
     try {
       rmSync(tempDir, { recursive: true, force: true })
-    } catch (e) {
+    } catch {
       // Ignore cleanup errors
     }
   })

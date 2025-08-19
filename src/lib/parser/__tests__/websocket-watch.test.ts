@@ -36,7 +36,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     // Test the specific address that caused the original issue
     const configAddresses = [
       { input: 33703145, expected: '0x20244e9', name: 'party count (original issue)' },
-      { input: 0x20244ec, expected: '0x20244ec', name: 'party data' },
+      { input: 0x20244EC, expected: '0x20244ec', name: 'party data' },
       { input: 255, expected: '0xff', name: 'small address' },
       { input: 16777215, expected: '0xffffff', name: 'large address' },
     ]
@@ -105,7 +105,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
       command: 'watch',
       status: 'update',
       updates: [{
-        address: 0x20244e9, // Party count address from config
+        address: 0x20244E9, // Party count address from config
         size: 7,
         data: [1, 0, 0, 0, 0, 0, 0],
       }],
@@ -117,7 +117,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
 
     // Verify memory change was triggered
     expect(memoryChangeTriggered).toBe(true)
-    expect(receivedAddress).toBe(0x20244e9)
+    expect(receivedAddress).toBe(0x20244E9)
     expect(receivedSize).toBe(7)
     expect(receivedData).toBeInstanceOf(Uint8Array)
     expect(receivedData?.length).toBe(7)
@@ -137,8 +137,8 @@ describe('WebSocket Watch Mode Regression Tests', () => {
   test('should format watch regions correctly for server communication', () => {
     // Test the watch message format with the exact config addresses
     const regions = [
-      { address: 0x20244e9, size: 7 }, // Party count + context
-      { address: 0x20244ec, size: 600 }, // Full party data
+      { address: 0x20244E9, size: 7 }, // Party count + context
+      { address: 0x20244EC, size: 600 }, // Full party data
     ]
 
     // The watch message should use decimal addresses (what server expects)
