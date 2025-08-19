@@ -21,9 +21,9 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   // Override offsets for Quetzal's unencrypted structure
   readonly offsetOverrides: PokemonOffsetsOverride = {
     currentHp: 0x23,
-    maxHp: 0x5A,
-    attack: 0x5C,
-    defense: 0x5E,
+    maxHp: 0x5a,
+    attack: 0x5c,
+    defense: 0x5e,
     speed: 0x60,
     spAttack: 0x62,
     spDefense: 0x64,
@@ -33,8 +33,8 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   // Override save layout for Quetzal
   readonly saveLayoutOverrides: SaveLayoutOverride = {
-    partyOffset: 0x6A8,
-    partyCountOffset: 0x6A4,
+    partyOffset: 0x6a8,
+    partyCountOffset: 0x6a4,
     playTimeHours: 0x10,
     playTimeMinutes: 0x14,
     playTimeSeconds: 0x15,
@@ -53,9 +53,9 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   // Memory addresses for Quetzal ROM hack
   readonly memoryAddresses = {
-    partyData: 0x20235B8,
-    partyCount: 0x20235B5,
-    enemyParty: 0x2023A98,
+    partyData: 0x20235b8,
+    partyCount: 0x20235b5,
+    enemyParty: 0x2023a98,
     get enemyPartyCount() {
       return this.partyCount + 0x8
     },
@@ -81,15 +81,15 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   // Quetzal-specific offsets for unencrypted data
   private readonly quetzalOffsets = {
     species: 0x28,
-    item: 0x2A,
+    item: 0x2a,
     move1: 0x34,
     move2: 0x36,
     move3: 0x38,
-    move4: 0x3A,
-    pp1: 0x3C,
-    pp2: 0x3D,
-    pp3: 0x3E,
-    pp4: 0x3F,
+    move4: 0x3a,
+    pp1: 0x3c,
+    pp2: 0x3d,
+    pp3: 0x3e,
+    pp4: 0x3f,
     hpEV: 0x40,
     atkEV: 0x41,
     defEV: 0x42,
@@ -149,7 +149,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
 
   getIVs(_data: Uint8Array, view: DataView): readonly number[] {
     const ivData = view.getUint32(this.quetzalOffsets.ivData, true)
-    return Array.from({ length: 6 }, (_, i) => (ivData >>> (i * 5)) & 0x1F)
+    return Array.from({ length: 6 }, (_, i) => (ivData >>> (i * 5)) & 0x1f)
   }
 
   setIVs(_data: Uint8Array, view: DataView, values: readonly number[]): void {
@@ -157,7 +157,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     let packed = 0
     for (let i = 0; i < 6; i++) {
       const clampedValue = Math.max(0, Math.min(31, values[i]!))
-      packed |= (clampedValue & 0x1F) << (i * 5)
+      packed |= (clampedValue & 0x1f) << (i * 5)
     }
     view.setUint32(this.quetzalOffsets.ivData, packed, true)
   }
@@ -167,7 +167,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
    */
   calculateNature(personality: number): string {
     // Quetzal uses only the first byte of personality modulo 25
-    return natures[(personality & 0xFF) % 25]!
+    return natures[(personality & 0xff) % 25]!
   }
 
   /**
@@ -176,7 +176,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   setNature(_data: Uint8Array, view: DataView, value: number): void {
     // Quetzal uses (personality & 0xFF) % 25 for nature calculation
     const currentPersonality = view.getUint32(0x00, true)
-    const currentFirstByte = currentPersonality & 0xFF
+    const currentFirstByte = currentPersonality & 0xff
     const currentNature = currentFirstByte % 25
 
     if (currentNature === value) return
@@ -185,7 +185,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     const newFirstByte = currentFirstByte - currentNature + value
 
     // Update personality with new first byte
-    const newPersonality = (currentPersonality & 0xFFFFFF00) | (newFirstByte & 0xFF)
+    const newPersonality = (currentPersonality & 0xffffff00) | (newFirstByte & 0xff)
     view.setUint32(0x00, newPersonality >>> 0, true)
   }
 
@@ -209,7 +209,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   }
 
   getShinyValue(personality: number, _otId: number): number {
-    return (personality >> 8) & 0xFF
+    return (personality >> 8) & 0xff
   }
 
   isRadiant(personality: number, _otId: number): boolean {

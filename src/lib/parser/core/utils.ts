@@ -49,7 +49,7 @@ export function bytesToGbaString(bytes: Uint8Array): string {
 function findStringEnd(bytes: Uint8Array): number {
   // Check for trailing 0xFF padding (more than 2 suggests padding)
   let trailingFFs = 0
-  for (let i = bytes.length - 1; i >= 0 && bytes[i] === 0xFF; i--) {
+  for (let i = bytes.length - 1; i >= 0 && bytes[i] === 0xff; i--) {
     trailingFFs++
   }
 
@@ -59,11 +59,11 @@ function findStringEnd(bytes: Uint8Array): number {
 
   // Look for garbage pattern: 0xFF followed by low values (0x01-0x0F)
   for (let i = 0; i < bytes.length - 1; i++) {
-    if (bytes[i] === 0xFF) {
+    if (bytes[i] === 0xff) {
       for (let j = i + 1; j < bytes.length; j++) {
         const nextByte = bytes[j]!
         if (nextByte > 0 && nextByte < 0x10) return i // Found garbage
-        if (nextByte !== 0xFF && nextByte !== 0) break
+        if (nextByte !== 0xff && nextByte !== 0) break
       }
     }
   }
@@ -85,7 +85,7 @@ export function gbaStringToBytes(str: string, length = 10): Uint8Array {
   for (const [key, value] of Object.entries(charmap)) {
     reverseCharmap[value] = Number(key)
   }
-  const bytes = new Uint8Array(length).fill(0xFF)
+  const bytes = new Uint8Array(length).fill(0xff)
   let i = 0
   for (const char of str) {
     if (i >= length) break

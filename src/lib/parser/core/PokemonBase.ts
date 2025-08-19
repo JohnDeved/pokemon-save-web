@@ -413,12 +413,12 @@ export class PokemonBase {
     const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
     const ivData = subView.getUint32(4, true)
     return [
-      (ivData >> 0) & 0x1F, // HP
-      (ivData >> 5) & 0x1F, // Attack
-      (ivData >> 10) & 0x1F, // Defense
-      (ivData >> 15) & 0x1F, // Speed
-      (ivData >> 20) & 0x1F, // Sp. Attack
-      (ivData >> 25) & 0x1F, // Sp. Defense
+      (ivData >> 0) & 0x1f, // HP
+      (ivData >> 5) & 0x1f, // Attack
+      (ivData >> 10) & 0x1f, // Defense
+      (ivData >> 15) & 0x1f, // Speed
+      (ivData >> 20) & 0x1f, // Sp. Attack
+      (ivData >> 25) & 0x1f, // Sp. Defense
     ]
   }
 
@@ -430,12 +430,12 @@ export class PokemonBase {
       const substruct3 = this.getDecryptedSubstruct(this.data, 3)
       const subView = new DataView(substruct3.buffer, substruct3.byteOffset, substruct3.byteLength)
       let ivData = 0
-      ivData |= (values[0]! & 0x1F) << 0 // HP
-      ivData |= (values[1]! & 0x1F) << 5 // Attack
-      ivData |= (values[2]! & 0x1F) << 10 // Defense
-      ivData |= (values[3]! & 0x1F) << 15 // Speed
-      ivData |= (values[4]! & 0x1F) << 20 // Sp. Attack
-      ivData |= (values[5]! & 0x1F) << 25 // Sp. Defense
+      ivData |= (values[0]! & 0x1f) << 0 // HP
+      ivData |= (values[1]! & 0x1f) << 5 // Attack
+      ivData |= (values[2]! & 0x1f) << 10 // Defense
+      ivData |= (values[3]! & 0x1f) << 15 // Speed
+      ivData |= (values[4]! & 0x1f) << 20 // Sp. Attack
+      ivData |= (values[5]! & 0x1f) << 25 // Sp. Defense
       subView.setUint32(4, ivData, true)
       this.setEncryptedSubstruct(3, substruct3)
     }
@@ -446,10 +446,10 @@ export class PokemonBase {
     // Vanilla: shiny if shiny number < 8
     const personality = this.view.getUint32(0x00, true)
     const otId = this.view.getUint32(0x04, true)
-    const trainerId = otId & 0xFFFF
-    const secretId = (otId >> 16) & 0xFFFF
-    const personalityLow = personality & 0xFFFF
-    const personalityHigh = (personality >> 16) & 0xFFFF
+    const trainerId = otId & 0xffff
+    const secretId = (otId >> 16) & 0xffff
+    const personalityLow = personality & 0xffff
+    const personalityHigh = (personality >> 16) & 0xffff
     const shinyNumber = trainerId ^ secretId ^ personalityLow ^ personalityHigh
     return shinyNumber < 8
   }
@@ -459,10 +459,10 @@ export class PokemonBase {
     // Vanilla: shiny number calculation
     const personality = this.view.getUint32(0x00, true)
     const otId = this.view.getUint32(0x04, true)
-    const trainerId = otId & 0xFFFF
-    const secretId = (otId >> 16) & 0xFFFF
-    const personalityLow = personality & 0xFFFF
-    const personalityHigh = (personality >> 16) & 0xFFFF
+    const trainerId = otId & 0xffff
+    const secretId = (otId >> 16) & 0xffff
+    const personalityLow = personality & 0xffff
+    const personalityHigh = (personality >> 16) & 0xffff
     return trainerId ^ secretId ^ personalityLow ^ personalityHigh
   }
 
@@ -477,7 +477,7 @@ export class PokemonBase {
 
   // Computed properties
   get otId_str(): string {
-    return (this.otId & 0xFFFF).toString().padStart(5, '0')
+    return (this.otId & 0xffff).toString().padStart(5, '0')
   }
 
   get nickname(): string {
@@ -551,14 +551,14 @@ export class PokemonBase {
     // usage for statsArray
     // Nature modifiers: [hp, atk, def, spe, spa, spd]
     const { increased, decreased } = this.natureModifiers
-    return this.stats.map((_, i) => (i === increased ? 1.1 : (i === decreased ? 0.9 : 1)))
+    return this.stats.map((_, i) => (i === increased ? 1.1 : i === decreased ? 0.9 : 1))
   }
 
   get abilityNumber(): number {
     // if 2nd bit of status is set, ability is 1
     // if 3rd bit is set, ability is 2
     // otherwise ability is 0
-    return this.status & 16 ? 1 : (this.status & 32 ? 2 : 0)
+    return this.status & 16 ? 1 : this.status & 32 ? 2 : 0
   }
 
   get stats(): readonly number[] {

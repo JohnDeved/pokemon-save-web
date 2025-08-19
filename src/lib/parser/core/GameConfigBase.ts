@@ -118,7 +118,7 @@ export abstract class GameConfigBase {
 
     // Basic sanity check - ensure data is not all zeros or all 0xFF
     const isAllZeros = data.every(byte => byte === 0)
-    const isAllOnes = data.every(byte => byte === 0xFF)
+    const isAllOnes = data.every(byte => byte === 0xff)
 
     return !isAllZeros && !isAllOnes
   }
@@ -130,7 +130,7 @@ export abstract class GameConfigBase {
     let pokemonFound = 0
 
     for (let slot = 0; slot < 6; slot++) {
-      const offset = 0x6A8 + slot * pokemonSize
+      const offset = 0x6a8 + slot * pokemonSize
       const data = saveblock1Data.slice(offset, offset + pokemonSize)
 
       if (!this.validatePokemonData(data, pokemonSize)) {

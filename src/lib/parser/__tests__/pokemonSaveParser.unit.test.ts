@@ -154,16 +154,16 @@ describe('Pokemon Save Parser - Unit Tests', () => {
     it('should decode Pokemon text with spaces correctly', () => {
       // Test case 1: "my mon" using byte 0 for space (full-width space as used in Pokemon)
       // Character mappings: 'm' = 225, 'y' = 237, ' ' = 0 (full-width), 'o' = 227, 'n' = 226
-      const nickname1 = new Uint8Array([225, 237, 0, 225, 227, 226, 0xFF, 0xFF, 0xFF, 0xFF])
+      const nickname1 = new Uint8Array([225, 237, 0, 225, 227, 226, 0xff, 0xff, 0xff, 0xff])
       expect(bytesToGbaString(nickname1)).toBe('my　mon') // Note: full-width space
 
       // Test case 2: "A B" using uppercase letters with full-width space
       // Character mappings: 'A' = 187, ' ' = 0 (full-width), 'B' = 188
-      const nickname2 = new Uint8Array([187, 0, 188, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+      const nickname2 = new Uint8Array([187, 0, 188, 0xff, 0xff, 0xff, 0xff, 0xff])
       expect(bytesToGbaString(nickname2)).toBe('A　B') // Note: full-width space
 
       // Test case 3: Regular name without spaces
-      const nickname3 = new Uint8Array([187, 188, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+      const nickname3 = new Uint8Array([187, 188, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
       expect(bytesToGbaString(nickname3)).toBe('AB')
 
       // Test case 4: If regular ASCII space is actually used (byte 255 from charmap)
@@ -173,7 +173,7 @@ describe('Pokemon Save Parser - Unit Tests', () => {
 
     it('should handle edge cases in text decoding', () => {
       // Empty string (just padding)
-      const empty = new Uint8Array([0xFF, 0xFF, 0xFF, 0xFF])
+      const empty = new Uint8Array([0xff, 0xff, 0xff, 0xff])
       expect(bytesToGbaString(empty)).toBe('')
 
       // String with no padding
@@ -181,13 +181,13 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       expect(bytesToGbaString(noPadding)).toBe('AB')
 
       // String with control characters that should be skipped
-      const withControl = new Uint8Array([187, 250, 188, 0xFF]) // "A[line break]B" - should skip line break
+      const withControl = new Uint8Array([187, 250, 188, 0xff]) // "A[line break]B" - should skip line break
       expect(bytesToGbaString(withControl)).toBe('AB')
     })
 
     it('should handle various termination scenarios', () => {
       // String terminated with 0xFF
-      const terminated1 = new Uint8Array([187, 188, 189, 0xFF, 0xFF])
+      const terminated1 = new Uint8Array([187, 188, 189, 0xff, 0xff])
       expect(bytesToGbaString(terminated1)).toBe('ABC')
 
       // String without termination (full buffer)
@@ -195,7 +195,7 @@ describe('Pokemon Save Parser - Unit Tests', () => {
       expect(bytesToGbaString(noTermination)).toBe('ABCDE')
 
       // String with 0xFF followed by garbage (low bytes trigger termination)
-      const withGarbage = new Uint8Array([187, 188, 0xFF, 0x05, 0x02])
+      const withGarbage = new Uint8Array([187, 188, 0xff, 0x05, 0x02])
       expect(bytesToGbaString(withGarbage)).toBe('AB')
     })
   })

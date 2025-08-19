@@ -111,7 +111,7 @@ describe('Parser CLI Tests', () => {
   describe('Error handling', () => {
     it('should handle corrupted save file gracefully', () => {
       const corruptedSavePath = resolve(tempDir, 'corrupted.sav')
-      writeFileSync(corruptedSavePath, Buffer.alloc(1000, 0xFF)) // 1KB of 0xFF bytes
+      writeFileSync(corruptedSavePath, Buffer.alloc(1000, 0xff)) // 1KB of 0xFF bytes
 
       expect(() => {
         execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })

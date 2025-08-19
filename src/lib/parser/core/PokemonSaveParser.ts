@@ -19,7 +19,7 @@ function decodePokemonText(bytes: Uint8Array): string {
   const result: string[] = []
 
   for (const byte of bytes) {
-    if (byte === 0xFF) {
+    if (byte === 0xff) {
       // End of string marker
       break
     }
@@ -423,7 +423,7 @@ export class PokemonSaveParser {
       }
     }
 
-    return ((checksum >>> 16) + (checksum & 0xFFFF)) & 0xFFFF
+    return ((checksum >>> 16) + (checksum & 0xffff)) & 0xffff
   }
 
   /**

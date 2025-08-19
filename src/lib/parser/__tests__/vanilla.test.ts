@@ -338,10 +338,10 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         // Validate shiny calculation matches vanilla Gen 3 formula
         const personality = pokemon.personality
         const otId = pokemon.otId
-        const trainerId = otId & 0xFFFF
-        const secretId = (otId >> 16) & 0xFFFF
-        const personalityLow = personality & 0xFFFF
-        const personalityHigh = (personality >> 16) & 0xFFFF
+        const trainerId = otId & 0xffff
+        const secretId = (otId >> 16) & 0xffff
+        const personalityLow = personality & 0xffff
+        const personalityHigh = (personality >> 16) & 0xffff
         const expectedShinyNumber = trainerId ^ secretId ^ personalityLow ^ personalityHigh
 
         expect(pokemon.shinyNumber).toBe(expectedShinyNumber)

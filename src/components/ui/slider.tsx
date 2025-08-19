@@ -17,7 +17,7 @@ const Slider = ({
   maxVisualValue?: number
 }) => {
   const sliderRef = React.useRef<HTMLDivElement>(null)
-  const _values = Array.isArray(value) ? value : (Array.isArray(defaultValue) ? defaultValue : [min, max])
+  const _values = Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max]
 
   const handleWheel = React.useCallback(
     (e: WheelEvent) => {

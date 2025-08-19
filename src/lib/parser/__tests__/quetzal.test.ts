@@ -206,7 +206,7 @@ describe('Pokemon Quetzal Tests', () => {
           expect(pokemon.nature).toBe(expectedPokemon.displayNature)
 
           // Verify the formula uses first byte only (Quetzal-specific)
-          const firstByteNature = natures[(pokemon.personality & 0xFF) % 25]
+          const firstByteNature = natures[(pokemon.personality & 0xff) % 25]
           expect(pokemon.nature).toBe(firstByteNature)
         }
       }
@@ -518,7 +518,7 @@ describe('Pokemon Quetzal Tests', () => {
         }
 
         // Verify nature calculation uses first byte
-        const expectedNature = natures[(pokemon.personality & 0xFF) % 25]
+        const expectedNature = natures[(pokemon.personality & 0xff) % 25]
         expect(pokemon.nature).toBe(expectedNature)
       })
     })

@@ -67,8 +67,8 @@ describe('CLI Event-Driven Functionality', () => {
 
     // Simulate calling the simplified watching method that should be called in event-driven mode
     const regions = [
-      { address: 0x20244E9, size: 7 }, // Party count + context
-      { address: 0x20244EC, size: 600 }, // Full party data
+      { address: 0x20244e9, size: 7 }, // Party count + context
+      { address: 0x20244ec, size: 600 }, // Full party data
     ]
 
     await client.startWatching(regions)
@@ -109,7 +109,7 @@ describe('CLI Event-Driven Functionality', () => {
     // Simulate a memory change event for party count
     if (capturedListener) {
       const mockData = new Uint8Array([6, 0, 0, 0, 0, 0, 0]) // 6 Pokemon in party
-      await capturedListener(0x20244E9, 7, mockData)
+      await capturedListener(0x20244e9, 7, mockData)
 
       // The test can't directly verify CLI behavior, but we can verify
       // that the parseSaveFile would be called when memory changes
@@ -138,6 +138,6 @@ describe('CLI Event-Driven Functionality', () => {
     const client = new MgbaWebSocketClient()
 
     // This should throw, simulating the fallback behavior in the CLI
-    await expect(client.startWatching([{ address: 0x20244E9, size: 7 }])).rejects.toThrow('Watch setup failed')
+    await expect(client.startWatching([{ address: 0x20244e9, size: 7 }])).rejects.toThrow('Watch setup failed')
   })
 })

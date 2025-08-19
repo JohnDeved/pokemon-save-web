@@ -88,7 +88,7 @@ const PokemonSprite: React.FC<{
 // Component for a single Pokémon's status display on the left
 export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive }) => {
   const hpPercentage = (pokemon.data.currentHp / pokemon.data.maxHp) * 100
-  const hpColor = hpPercentage > HP_THRESHOLDS.HIGH ? 'from-green-400 to-emerald-500' : (hpPercentage > HP_THRESHOLDS.LOW ? 'from-yellow-400 to-amber-500' : 'from-red-500 to-rose-600')
+  const hpColor = hpPercentage > HP_THRESHOLDS.HIGH ? 'from-green-400 to-emerald-500' : hpPercentage > HP_THRESHOLDS.LOW ? 'from-yellow-400 to-amber-500' : 'from-red-500 to-rose-600'
 
   const containerClasses = isActive ? 'bg-slate-800/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30' : 'hover:bg-slate-800/80'
 
