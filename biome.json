@@ -1,1 +1,3 @@
-{ "extends": ["./node_modules/ox-standard/biome.json"] }
+{
+  "extends": ["./node_modules/ox-standard/biome.json"]
+}
