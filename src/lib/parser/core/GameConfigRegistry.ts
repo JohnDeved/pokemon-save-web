@@ -18,16 +18,16 @@ export class GameConfigRegistry {
   /**
    * Register a game configuration class
    */
-  register (configClass: GameConfigConstructor): void {
+  register(configClass: GameConfigConstructor): void {
     this.configs.push(configClass)
   }
 
   /**
    * Auto-detect the appropriate game configuration for save data or memory
    */
-  detectGameConfig (saveData: Uint8Array): GameConfig | null
-  detectGameConfig (gameTitle: string): GameConfig | null
-  detectGameConfig (input: Uint8Array | string): GameConfig | null {
+  detectGameConfig(saveData: Uint8Array): GameConfig | null
+  detectGameConfig(gameTitle: string): GameConfig | null
+  detectGameConfig(input: Uint8Array | string): GameConfig | null {
     // Try each registered config in order
     for (const ConfigClass of this.configs) {
       try {
@@ -57,14 +57,14 @@ export class GameConfigRegistry {
   /**
    * Get all registered config classes (for testing/debugging)
    */
-  getRegisteredConfigs (): readonly GameConfigConstructor[] {
+  getRegisteredConfigs(): readonly GameConfigConstructor[] {
     return [...this.configs]
   }
 
   /**
    * Clear all registered configs (for testing)
    */
-  clear (): void {
+  clear(): void {
     this.configs.length = 0
   }
 }

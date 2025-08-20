@@ -1,5 +1,0 @@
-dist/
-build/
-node_modules/
-vite.config.ts
-vitest.config.ts

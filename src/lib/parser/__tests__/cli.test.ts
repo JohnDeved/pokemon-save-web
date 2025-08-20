@@ -28,7 +28,7 @@ describe('Parser CLI Tests', () => {
     // Clean up temp directory
     try {
       rmSync(tempDir, { recursive: true, force: true })
-    } catch (e) {
+    } catch {
       // Ignore cleanup errors
     }
   })
@@ -42,7 +42,7 @@ describe('Parser CLI Tests', () => {
       try {
         execSync(`tsx "${cliPath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: unknown) {
-        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        const execError = error as Error & { stderr?: string; stdout?: string; status?: number }
         const output = execError.stderr ?? execError.stdout
         expect(output).toContain('Usage: tsx cli.ts [savefile.sav] [options]')
         expect(output).toContain('--debug')
@@ -61,7 +61,7 @@ describe('Parser CLI Tests', () => {
       try {
         execSync(`tsx "${cliPath}" nonexistent.sav`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: unknown) {
-        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        const execError = error as Error & { stderr?: string; stdout?: string; status?: number }
         const output = execError.stderr ?? execError.stdout
         expect(output).toContain('Usage: tsx cli.ts [savefile.sav] [options]')
         expect(execError.status).toBe(1)
@@ -111,7 +111,7 @@ describe('Parser CLI Tests', () => {
   describe('Error handling', () => {
     it('should handle corrupted save file gracefully', () => {
       const corruptedSavePath = resolve(tempDir, 'corrupted.sav')
-      writeFileSync(corruptedSavePath, Buffer.alloc(1000, 0xFF)) // 1KB of 0xFF bytes
+      writeFileSync(corruptedSavePath, Buffer.alloc(1000, 0xff)) // 1KB of 0xFF bytes
 
       expect(() => {
         execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
@@ -120,7 +120,7 @@ describe('Parser CLI Tests', () => {
       try {
         execSync(`tsx "${cliPath}" "${corruptedSavePath}"`, { encoding: 'utf8', stdio: 'pipe' })
       } catch (error: unknown) {
-        const execError = error as Error & { stderr?: string, stdout?: string, status?: number }
+        const execError = error as Error & { stderr?: string; stdout?: string; status?: number }
         expect(execError.stderr ?? execError.stdout).toContain('❌ Failed to parse save data:')
         expect(execError.status).toBe(1)
       }

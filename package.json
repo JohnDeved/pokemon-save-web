@@ -15,7 +15,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
+    "lint": "oxlint --fix .; biome format --write .",
+    "format": "npx biome format --write .",
     "test": "vitest run",
     "test:run": "vitest run",
     "test:watch": "vitest",
@@ -40,7 +41,6 @@
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.81.5",
     "@types/react-query": "^1.2.8",
-    "@undefined/lint": "github:JohnDeved/undefined-lint",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
@@ -57,6 +57,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
     "@playwright/test": "^1.54.1",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
@@ -75,6 +76,8 @@
     "cheerio": "^1.1.2",
     "globals": "^16.2.0",
     "jsdom": "^26.1.0",
+    "ox-standard": "github:JohnDeved/ox-standard",
+    "oxlint": "^1.12.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sharp": "^0.34.3",

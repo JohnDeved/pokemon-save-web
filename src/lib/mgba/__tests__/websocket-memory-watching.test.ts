@@ -3,8 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { MgbaWebSocketClient } from '../websocket-client'
-import type { MemoryChangeListener } from '../websocket-client'
+import { MgbaWebSocketClient, type MemoryChangeListener } from '../websocket-client'
 
 describe('MgbaWebSocketClient - Memory Watching API', () => {
   let client: MgbaWebSocketClient
@@ -88,16 +87,16 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
 
     it('should throw error when starting watch without regions', async () => {
       // Mock connection state
-      ;(client as unknown as { connected: boolean, ws: { readyState: number } }).connected = true
-      ;(client as unknown as { connected: boolean, ws: { readyState: number } }).ws = { readyState: 1 }
+      ;(client as unknown as { connected: boolean; ws: { readyState: number } }).connected = true
+      ;(client as unknown as { connected: boolean; ws: { readyState: number } }).ws = { readyState: 1 }
 
       await expect(client.startWatching([])).rejects.toThrow('No regions to watch')
     })
 
     it('should throw error when starting watch with empty regions', async () => {
       // Mock connection state
-      ;(client as unknown as { connected: boolean, ws: { readyState: number } }).connected = true
-      ;(client as unknown as { connected: boolean, ws: { readyState: number } }).ws = { readyState: 1 }
+      ;(client as unknown as { connected: boolean; ws: { readyState: number } }).connected = true
+      ;(client as unknown as { connected: boolean; ws: { readyState: number } }).ws = { readyState: 1 }
 
       await expect(client.startWatching([])).rejects.toThrow('No regions to watch')
     })

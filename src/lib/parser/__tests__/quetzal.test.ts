@@ -13,6 +13,13 @@ import { VanillaConfig } from '../games/vanilla/config'
 import type { SaveData } from '../core/types'
 import { calculateTotalStats, natures } from '../core/utils'
 
+// Hash function for comparing buffers
+const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
+  const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
+  const { createHash } = await import('crypto')
+  return createHash('sha256').update(ab).digest('hex')
+}
+
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -22,10 +29,10 @@ describe('Pokemon Quetzal Tests', () => {
   let testSaveData: ArrayBuffer
   let groundTruth: {
     player_name: string
-    play_time: { hours: number, minutes: number, seconds: number }
+    play_time: { hours: number; minutes: number; seconds: number }
     active_slot: number
     sector_map: Record<string, number>
-    party_pokemon: Array<Record<string, unknown>>
+    party_pokemon: Record<string, unknown>[]
   }
 
   beforeAll(async () => {
@@ -132,16 +139,10 @@ describe('Pokemon Quetzal Tests', () => {
         expect(pokemon.otId).toBe(expected.otId)
 
         // Moves
-        expect([pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]).toEqual([
-          expected.move1, expected.move2, expected.move3, expected.move4,
-        ])
+        expect([pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]).toEqual([expected.move1, expected.move2, expected.move3, expected.move4])
 
         // EVs
-        expect([
-          pokemon.hpEV, pokemon.atkEV, pokemon.defEV, pokemon.speEV, pokemon.spaEV, pokemon.spdEV,
-        ]).toEqual([
-          expected.hpEV, expected.atkEV, expected.defEV, expected.speEV, expected.spaEV, expected.spdEV,
-        ])
+        expect([pokemon.hpEV, pokemon.atkEV, pokemon.defEV, pokemon.speEV, pokemon.spaEV, pokemon.spdEV]).toEqual([expected.hpEV, expected.atkEV, expected.defEV, expected.speEV, expected.spaEV, expected.spdEV])
 
         // IVs
         expect([...pokemon.ivs]).toEqual(expected.ivs)
@@ -151,9 +152,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should have valid sector mapping', () => {
       expect(parsedData.sector_map).toBeDefined()
       expect(parsedData.sector_map!.size).toBeGreaterThan(0)
-      const expectedSectorMap = new Map(
-        Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v]),
-      )
+      const expectedSectorMap = new Map(Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v]))
       expect(parsedData.sector_map).toEqual(expectedSectorMap)
     })
 
@@ -169,7 +168,7 @@ describe('Pokemon Quetzal Tests', () => {
       }
 
       // Check if we need to fetch any missing base stats
-      const speciesIds = Array.from(new Set(parsedData.party_pokemon.map(p => p.speciesId)))
+      const speciesIds = [...new Set(parsedData.party_pokemon.map(p => p.speciesId))]
       const missing = speciesIds.filter(id => !baseStatsCache[id.toString()])
 
       if (missing.length > 0) {
@@ -178,18 +177,11 @@ describe('Pokemon Quetzal Tests', () => {
             const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`)
             if (!response.ok) continue
             const speciesData = await response.json()
-            const apiStats: Record<string, number> = speciesData.stats.reduce((acc: Record<string, number>, stat: { stat: { name: string }, base_stat: number }) => {
+            const apiStats: Record<string, number> = speciesData.stats.reduce((acc: Record<string, number>, stat: { stat: { name: string }; base_stat: number }) => {
               acc[stat.stat.name] = stat.base_stat
               return acc
             }, {})
-            baseStatsCache[speciesId.toString()] = [
-              apiStats.hp!,
-              apiStats.attack!,
-              apiStats.defense!,
-              apiStats.speed!,
-              apiStats['special-attack']!,
-              apiStats['special-defense']!,
-            ]
+            baseStatsCache[speciesId.toString()] = [apiStats.hp!, apiStats.attack!, apiStats.defense!, apiStats.speed!, apiStats['special-attack']!, apiStats['special-defense']!]
           } catch (error) {
             console.warn(`Failed to fetch base stats for species ${speciesId}:`, error)
           }
@@ -213,15 +205,14 @@ describe('Pokemon Quetzal Tests', () => {
     it('should calculate natures correctly using Quetzal formula', async () => {
       const result = await parser.parse(testSaveData)
 
-      for (let i = 0; i < result.party_pokemon.length; i++) {
-        const pokemon = result.party_pokemon[i]
+      for (const [i, pokemon] of result.party_pokemon.entries()) {
         const expectedPokemon = groundTruth.party_pokemon[i]
 
         if (pokemon && expectedPokemon) {
           expect(pokemon.nature).toBe(expectedPokemon.displayNature)
 
           // Verify the formula uses first byte only (Quetzal-specific)
-          const firstByteNature = natures[(pokemon.personality & 0xFF) % 25]
+          const firstByteNature = natures[(pokemon.personality & 0xff) % 25]
           expect(pokemon.nature).toBe(firstByteNature)
         }
       }
@@ -378,14 +369,7 @@ describe('Pokemon Quetzal Tests', () => {
   describe('Save File Reconstruction', () => {
     it('should produce identical save file when reconstructing with unchanged party', async () => {
       const parsed = await parser.parse(testSaveData)
-      const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon.slice())
-
-      // Create hash function for comparison
-      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
-        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
-        const { createHash } = await import('crypto')
-        return createHash('sha256').update(ab).digest('hex')
-      }
+      const reconstructed = parser.reconstructSaveFile([...parsed.party_pokemon])
 
       const originalHash = await hashBuffer(testSaveData)
       const reconstructedHash = await hashBuffer(reconstructed)
@@ -397,19 +381,12 @@ describe('Pokemon Quetzal Tests', () => {
 
       if (parsed.party_pokemon.length < 2) return
 
-      const swapped = parsed.party_pokemon.slice()
-      const temp = swapped[0]
+      const swapped = [...parsed.party_pokemon]
+      const [temp] = swapped
       swapped[0] = swapped[swapped.length - 1]!
       swapped[swapped.length - 1] = temp!
 
       const reconstructed = parser.reconstructSaveFile(swapped)
-
-      // Create hash function for comparison
-      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
-        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
-        const { createHash } = await import('crypto')
-        return createHash('sha256').update(ab).digest('hex')
-      }
 
       const originalHash = await hashBuffer(testSaveData)
       const swappedHash = await hashBuffer(reconstructed)
@@ -421,8 +398,8 @@ describe('Pokemon Quetzal Tests', () => {
 
       if (parsed.party_pokemon.length < 2) return
 
-      const swapped = parsed.party_pokemon.slice()
-      const temp = swapped[0]
+      const swapped = [...parsed.party_pokemon]
+      const [temp] = swapped
       swapped[0] = swapped[swapped.length - 1]!
       swapped[swapped.length - 1] = temp!
 
@@ -498,7 +475,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should create properly structured Pokemon data', async () => {
       const result = await parser.parse(testSaveData)
 
-      result.party_pokemon.forEach((pokemon) => {
+      result.party_pokemon.forEach(pokemon => {
         // Verify required properties exist
         expect(pokemon.moves_data).toBeDefined()
         expect(pokemon.evs).toHaveLength(6)
@@ -521,7 +498,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should handle Quetzal-specific features correctly', async () => {
       const result = await parser.parse(testSaveData)
 
-      result.party_pokemon.forEach((pokemon) => {
+      result.party_pokemon.forEach(pokemon => {
         // Test shiny calculation (Quetzal-specific)
         if (pokemon.isShiny) {
           expect(pokemon.shinyNumber).toBe(1)
@@ -533,7 +510,7 @@ describe('Pokemon Quetzal Tests', () => {
         }
 
         // Verify nature calculation uses first byte
-        const expectedNature = natures[(pokemon.personality & 0xFF) % 25]
+        const expectedNature = natures[(pokemon.personality & 0xff) % 25]
         expect(pokemon.nature).toBe(expectedNature)
       })
     })
@@ -541,7 +518,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should use correct Quetzal shiny logic distinct from vanilla', async () => {
       const result = await parser.parse(testSaveData)
 
-      result.party_pokemon.forEach((pokemon) => {
+      result.party_pokemon.forEach(pokemon => {
         // Verify shiny logic is different from vanilla
         // In Quetzal: shinyNumber = 1 means shiny, shinyNumber = 2 means radiant
         // In vanilla: shinyNumber < 8 means shiny (no radiant)

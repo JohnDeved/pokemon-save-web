@@ -3,8 +3,7 @@
  * Only provides ID mappings - all other behavior uses the defaults from PokemonInstance
  */
 
-import type { GameConfig, ItemMapping, MoveMapping, PokemonMapping } from '../../core/types'
-import { VANILLA_SAVE_LAYOUT } from '../../core/types'
+import { VANILLA_SAVE_LAYOUT, type GameConfig, type ItemMapping, type MoveMapping, type PokemonMapping } from '../../core/types'
 import { GameConfigBase } from '../../core/GameConfigBase'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'
@@ -36,13 +35,13 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
     partyData: 0x20244ec,
     partyCount: 0x20244e9,
     enemyParty: 0x2024744,
-    get enemyPartyCount () {
+    get enemyPartyCount() {
       return this.partyCount + 0x8
     },
     // TODO: Add player name and play time addresses when implemented
   } as const
 
-  get preloadRegions () {
+  get preloadRegions() {
     return [
       {
         address: this.memoryAddresses.partyData,
@@ -60,7 +59,7 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
    * Check if this config can handle the given save file
    * Vanilla is the fallback, so it's permissive and can handle most Emerald-based saves
    */
-  canHandle (saveData: Uint8Array): boolean {
+  canHandle(saveData: Uint8Array): boolean {
     return this.hasValidEmeraldSignature(saveData)
   }
 
@@ -68,7 +67,7 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
    * Check if this config can handle memory parsing for the given game title
    * Supports Pokémon Emerald variants
    */
-  canHandleMemory (gameTitle: string): boolean {
+  canHandleMemory(gameTitle: string): boolean {
     return gameTitle.toUpperCase().includes('POKEMON EMER')
   }
 }

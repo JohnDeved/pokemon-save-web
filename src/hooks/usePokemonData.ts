@@ -1,21 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 import type { z } from 'zod'
-import type {
-  Ability,
-  AbilityApiResponse,
-  MoveApiResponse,
-  MoveWithDetails,
-  PokeApiFlavorTextEntry,
-  PokemonType, UIPokemonData,
-} from '../types'
-import {
-  AbilityApiResponseSchema,
-  MoveApiResponseSchema,
-  PokeApiFlavorTextEntrySchema,
-  PokemonApiResponseSchema,
-  PokemonTypeSchema,
-} from '../types'
+import { AbilityApiResponseSchema, MoveApiResponseSchema, PokeApiFlavorTextEntrySchema, PokemonApiResponseSchema, PokemonTypeSchema, type Ability, type AbilityApiResponse, type MoveApiResponse, type MoveWithDetails, type PokeApiFlavorTextEntry, type PokemonType, type UIPokemonData } from '../types'
 import { usePokemonStore, buildPartyListFromSaveData, useSaveFileStore } from '../stores'
 
 // --- Constants ---
@@ -41,7 +27,7 @@ const parsePokemonType = (apiType: string): PokemonType => {
 /**
  * Fetch and validate JSON from a URL using a Zod schema.
  */
-async function fetchAndValidate<T> (url: string, schema: z.ZodType<T>): Promise<T> {
+async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Failed to fetch from ${url}: ${response.statusText}`)
   const data = await response.json()
@@ -53,7 +39,7 @@ async function fetchAndValidate<T> (url: string, schema: z.ZodType<T>): Promise<
 /**
  * Helper to get the best English description from effect_entries or flavor_text_entries.
  */
-function getBestEnglishDescription (apiObj: MoveApiResponse | AbilityApiResponse): string {
+function getBestEnglishDescription(apiObj: MoveApiResponse | AbilityApiResponse): string {
   // Prefer effect_entries in English
   const effectEntry = apiObj.effect_entries?.find(e => e.language.name === 'en')
   if (effectEntry?.effect) return effectEntry.effect
@@ -80,28 +66,16 @@ function getBestEnglishDescription (apiObj: MoveApiResponse | AbilityApiResponse
 /**
  * Fetches all details for a Pokémon, including moves and abilities.
  */
-async function getPokemonDetails (pokemon: UIPokemonData) {
+async function getPokemonDetails(pokemon: UIPokemonData) {
   const { data } = pokemon
-  const pokeData = await fetchAndValidate(
-        `https://pokeapi.co/api/v2/pokemon/${data.speciesId}`,
-        PokemonApiResponseSchema,
-  )
+  const pokeData = await fetchAndValidate(`https://pokeapi.co/api/v2/pokemon/${data.speciesId}`, PokemonApiResponseSchema)
   const moveSources = [data.moves.move1, data.moves.move2, data.moves.move3, data.moves.move4]
-  const moveResults = await Promise.all(
-    moveSources.map(move =>
-      move.id === 0
-        ? null
-        : fetchAndValidate<MoveApiResponse>(`https://pokeapi.co/api/v2/move/${move.id}`, MoveApiResponseSchema).catch(() => null),
-    ),
-  )
+  const moveResults = await Promise.all(moveSources.map(move => (move.id === 0 ? null : fetchAndValidate<MoveApiResponse>(`https://pokeapi.co/api/v2/move/${move.id}`, MoveApiResponseSchema).catch(() => null))))
   const abilityEntries = pokeData.abilities
   const abilities: Ability[] = await Promise.all(
-    abilityEntries.map(async (entry) => {
+    abilityEntries.map(async entry => {
       try {
-        const abilityData = await fetchAndValidate<AbilityApiResponse>(
-          entry.ability.url,
-          AbilityApiResponseSchema,
-        )
+        const abilityData = await fetchAndValidate<AbilityApiResponse>(entry.ability.url, AbilityApiResponseSchema)
         return {
           slot: entry.slot,
           name: formatName(abilityData.name),
@@ -110,12 +84,11 @@ async function getPokemonDetails (pokemon: UIPokemonData) {
       } catch {
         return { slot: entry.slot, name: entry.ability.name, description: 'Could not fetch ability data.' }
       }
-    }),
+    })
   )
-  const types = pokeData.types.map((t) => parsePokemonType(t.type.name))
+  const types = pokeData.types.map(t => parsePokemonType(t.type.name))
   // Extract base stats in correct order
-  const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense']
-    .map(stat => pokeData.stats.find(s => s.stat.name === stat)?.base_stat ?? 0)
+  const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense'].map(stat => pokeData.stats.find(s => s.stat.name === stat)?.base_stat ?? 0)
   const moves: MoveWithDetails[] = moveSources.map((move, i) => {
     if (move.id === 0) {
       return { ...NO_MOVE }
@@ -153,17 +126,7 @@ async function getPokemonDetails (pokemon: UIPokemonData) {
  */
 export const usePokemonData = () => {
   // Get state from Zustand stores
-  const {
-    activePokemonId,
-    partyList,
-    setActivePokemonId,
-    setPartyList,
-    setEvIndex,
-    setIvIndex,
-    setNature,
-    getRemainingEvs,
-    resetPokemonData,
-  } = usePokemonStore()
+  const { activePokemonId, partyList, setActivePokemonId, setPartyList, setEvIndex, setIvIndex, setNature, getRemainingEvs, resetPokemonData } = usePokemonStore()
 
   // Get save file state
   const saveData = useSaveFileStore(state => state.saveData)
@@ -196,7 +159,7 @@ export const usePokemonData = () => {
     error,
   } = useQuery({
     queryKey: ['pokemon', 'details', String(activePokemonId)],
-    queryFn: () => activePokemon ? getPokemonDetails(activePokemon) : Promise.reject(new Error('No active Pokémon')),
+    queryFn: () => (activePokemon ? getPokemonDetails(activePokemon) : Promise.reject(new Error('No active Pokémon'))),
     enabled: activePokemonId >= 0 && !!activePokemon,
     staleTime: 1000 * 60 * 60, // 1 hour
   })
@@ -205,11 +168,7 @@ export const usePokemonData = () => {
   useEffect(() => {
     if (!detailedData || activePokemonId < 0) return
     usePokemonStore.setState(prevState => ({
-      partyList: prevState.partyList.map(p =>
-        p.id === activePokemonId
-          ? { ...p, details: detailedData }
-          : p,
-      ),
+      partyList: prevState.partyList.map(p => (p.id === activePokemonId ? { ...p, details: detailedData } : p)),
     }))
   }, [detailedData, activePokemonId])
 
@@ -224,14 +183,14 @@ export const usePokemonData = () => {
         staleTime: 1000 * 60 * 60,
       })
     },
-    [partyList, queryClient],
+    [partyList, queryClient]
   )
 
   return {
     partyList,
     activePokemonId,
     setActivePokemonId,
-    activePokemon: partyList.find((p) => p.id === activePokemonId),
+    activePokemon: partyList.find(p => p.id === activePokemonId),
     isLoading,
     isError,
     error,

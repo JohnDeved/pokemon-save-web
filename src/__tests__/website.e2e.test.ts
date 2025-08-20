@@ -3,8 +3,7 @@
  * Tests the complete user workflow of loading, editing, and saving Pokemon save files
  */
 
-import type { Page } from '@playwright/test'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 // Path to test save file (declared but not used in basic tests)
 // const testSaveFile = path.join(__dirname, '../lib/parser/__tests__/test_data/emerald.sav')
@@ -106,7 +105,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await page.getByRole('menuitem', { name: 'File' }).click()
 
     // Start download and wait for it
-    const downloadPromise = page.waitForDownload()
+    const downloadPromise = page.waitForEvent('download')
     await page.getByRole('menuitem', { name: 'Download' }).click()
     const download = await downloadPromise
 
@@ -188,7 +187,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
 /**
  * Helper function to load the test save file
  */
-async function loadTestSaveFile (page: Page) {
+async function loadTestSaveFile(page: Page) {
   await page.evaluate(async () => {
     const response = await fetch('/src/lib/parser/__tests__/test_data/emerald.sav')
     const buffer = await response.arrayBuffer()

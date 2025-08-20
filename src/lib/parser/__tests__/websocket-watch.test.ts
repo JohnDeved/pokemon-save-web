@@ -28,7 +28,7 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     }
 
     // Mock WebSocket constructor to return our mock
-    global.WebSocket = vi.fn(() => mockWebSocket) as unknown as typeof WebSocket
+    globalThis.WebSocket = vi.fn(() => mockWebSocket) as unknown as typeof WebSocket
     vi.clearAllMocks()
   })
 
@@ -104,11 +104,13 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     const watchUpdate = JSON.stringify({
       command: 'watch',
       status: 'update',
-      updates: [{
-        address: 0x20244e9, // Party count address from config
-        size: 7,
-        data: [1, 0, 0, 0, 0, 0, 0],
-      }],
+      updates: [
+        {
+          address: 0x20244e9, // Party count address from config
+          size: 7,
+          data: [1, 0, 0, 0, 0, 0, 0],
+        },
+      ],
     })
 
     // Simulate message directly

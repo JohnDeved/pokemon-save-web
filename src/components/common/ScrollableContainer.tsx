@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 
 interface ScrollableContainerProps {
@@ -20,17 +20,32 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
   const [scrollState, setScrollState] = useState<ScrollState>('none')
   const containerRef = useRef<HTMLDivElement>(null)
 
-  function checkScroll () {
+  const checkScroll = useCallback(() => {
     const el = containerRef.current
-    if (!el) { setScrollState('none'); return }
-    if (el.scrollHeight <= el.clientHeight) { setScrollState('none'); return }
+    if (!el) {
+      setScrollState('none')
+      return
+    }
+    if (el.scrollHeight <= el.clientHeight) {
+      setScrollState('none')
+      return
+    }
     const atTop = el.scrollTop === 0
     const atBottom = Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) < 1
-    if (!atTop && !atBottom) { setScrollState('both'); return }
-    if (atTop && !atBottom) { setScrollState('bottom'); return }
-    if (!atTop && atBottom) { setScrollState('top'); return }
+    if (!atTop && !atBottom) {
+      setScrollState('both')
+      return
+    }
+    if (atTop && !atBottom) {
+      setScrollState('bottom')
+      return
+    }
+    if (!atTop && atBottom) {
+      setScrollState('top')
+      return
+    }
     setScrollState('none')
-  }
+  }, [])
 
   useLayoutEffect(() => {
     checkScroll()
@@ -39,18 +54,15 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
   useEffect(() => {
     const el = containerRef.current
     el?.addEventListener('scroll', checkScroll)
-    window.addEventListener('resize', checkScroll)
+    globalThis.addEventListener('resize', checkScroll)
     return () => {
       el?.removeEventListener('scroll', checkScroll)
-      window.removeEventListener('resize', checkScroll)
+      globalThis.removeEventListener('resize', checkScroll)
     }
   }, [checkScroll])
 
   return (
-    <div
-      ref={containerRef}
-      className={cn('scroll-container geist-font', className, fadeClassMap[scrollState])}
-    >
+    <div ref={containerRef} className={cn('scroll-container geist-font', className, fadeClassMap[scrollState])}>
       {children}
     </div>
   )

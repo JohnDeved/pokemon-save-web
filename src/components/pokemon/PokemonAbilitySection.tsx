@@ -5,14 +5,10 @@ interface PokemonAbilitySectionProps {
   isLoading?: boolean
 }
 
-export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({
-  isLoading = false,
-}) => {
+export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({ isLoading = false }) => {
   const { partyList, activePokemonId } = usePokemonStore()
   const pokemon = partyList.find(p => p.id === activePokemonId)
-  const ability = !pokemon?.details
-    ? null
-    : pokemon.details.abilities.find(a => a.slot === (pokemon.data.abilityNumber + 1))
+  const ability = !pokemon?.details ? null : pokemon.details.abilities.find(a => a.slot === pokemon.data.abilityNumber + 1)
 
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
@@ -26,9 +22,7 @@ export const PokemonAbilitySection: React.FC<PokemonAbilitySectionProps> = ({
 
         <div className="relative flex-1">
           <ScrollableContainer className="absolute inset-0 text-slate-400 leading-relaxed overflow-y-auto custom-scrollbar p-4 text-xs">
-            <Skeleton.Text>
-              {ability?.description ?? 'This is a placeholder ability description that shows how the text will be laid out when the actual content loads. It mimics the typical length and structure of Pokemon ability descriptions.'}
-            </Skeleton.Text>
+            <Skeleton.Text>{ability?.description ?? 'This is a placeholder ability description that shows how the text will be laid out when the actual content loads. It mimics the typical length and structure of Pokemon ability descriptions.'}</Skeleton.Text>
           </ScrollableContainer>
         </div>
       </div>

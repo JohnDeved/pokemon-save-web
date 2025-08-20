@@ -14,8 +14,9 @@ describe('Pokemon Save Web - Core Functionality', () => {
       expect(typeof PokemonSaveParser).toBe('function')
 
       // Test basic instantiation
-      new PokemonSaveParser()
+      const parser = new PokemonSaveParser()
       expect(typeof PokemonSaveParser).toBe('function')
+      expect(parser).toBeInstanceOf(PokemonSaveParser)
     })
 
     it('should detect WebSocket client input correctly', async () => {
@@ -44,7 +45,8 @@ describe('Pokemon Save Web - Core Functionality', () => {
       const { PokemonSaveParser } = await import('../lib/parser/core/PokemonSaveParser')
 
       // Test basic instantiation
-      new PokemonSaveParser()
+      const parser = new PokemonSaveParser()
+      expect(parser).toBeInstanceOf(PokemonSaveParser)
       const testBuffer = new ArrayBuffer(131088) // Standard GBA save size
 
       // Test that ArrayBuffer input is accepted

@@ -10,14 +10,7 @@ const toasterStyle = {
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
 
-  return (
-    <Sonner
-      theme={theme as ToasterProps['theme']}
-      className="toaster group"
-      style={toasterStyle as React.CSSProperties}
-      {...props}
-    />
-  )
+  return <Sonner theme={theme as ToasterProps['theme']} className="toaster group" style={toasterStyle as React.CSSProperties} {...props} />
 }
 
 export { Toaster }

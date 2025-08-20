@@ -101,9 +101,9 @@ export const VANILLA_POKEMON_OFFSETS = {
   otNameLength: 7,
   currentHp: 0x56,
   maxHp: 0x58,
-  attack: 0x5A,
-  defense: 0x5C,
-  speed: 0x5E,
+  attack: 0x5a,
+  defense: 0x5c,
+  speed: 0x5e,
   spAttack: 0x60,
   spDefense: 0x62,
   status: 0x50,
@@ -118,7 +118,7 @@ export const VANILLA_SAVE_LAYOUT = {
   saveBlockSize: 3968 * 4,
   partyOffset: 0x238,
   partyCountOffset: 0x234,
-  playTimeHours: 0x0E,
+  playTimeHours: 0x0e,
   playTimeMinutes: 0x10,
   playTimeSeconds: 0x11,
   playTimeMilliseconds: 0x12,
@@ -189,7 +189,7 @@ export interface GameConfig {
     readonly playTime?: number
   }
 
-  readonly preloadRegions?: ReadonlyArray<{ address: number, size: number }>
+  readonly preloadRegions?: readonly { address: number; size: number }[]
 
   // Optional behavioral overrides for game-specific mechanics
   calculateNature?(personality: number): string

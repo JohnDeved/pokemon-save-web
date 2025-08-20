@@ -12,6 +12,13 @@ import { VanillaConfig } from '../games/vanilla/config'
 import { QuetzalConfig } from '../games/quetzal/config'
 import type { SaveData } from '../core/types'
 
+// Hash function for comparing buffers
+const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
+  const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
+  const { createHash } = await import('crypto')
+  return createHash('sha256').update(ab).digest('hex')
+}
+
 // Handle ES modules in Node.js
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -21,8 +28,8 @@ describe('Vanilla Pokemon Emerald Tests', () => {
   let testSaveData: ArrayBuffer
   let groundTruth: {
     player_name: string
-    play_time: { hours: number, minutes: number }
-    party_pokemon: Array<{
+    play_time: { hours: number; minutes: number }
+    party_pokemon: {
       nickname: string
       otName: string
       currentHp: number
@@ -37,10 +44,10 @@ describe('Vanilla Pokemon Emerald Tests', () => {
       displayOtId: string
       displayNature: string
       moves: {
-        move1: { name: string, pp: number }
-        move2: { name: string, pp: number }
+        move1: { name: string; pp: number }
+        move2: { name: string; pp: number }
       }
-    }>
+    }[]
   }
 
   beforeAll(async () => {
@@ -306,13 +313,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
         // Verify using Gen 3 formula: personality % 25
         const expectedNatureIndex = pokemon.personality % 25
-        const natures = [
-          'Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty',
-          'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax',
-          'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive',
-          'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash',
-          'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky',
-        ]
+        const natures = ['Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax', 'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive', 'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash', 'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky']
         expect(pokemon.nature).toBe(natures[expectedNatureIndex])
       }
     })
@@ -342,12 +343,11 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         const pokemon = parsedData.party_pokemon[0]!
 
         // Validate shiny calculation matches vanilla Gen 3 formula
-        const personality = pokemon.personality
-        const otId = pokemon.otId
-        const trainerId = otId & 0xFFFF
-        const secretId = (otId >> 16) & 0xFFFF
-        const personalityLow = personality & 0xFFFF
-        const personalityHigh = (personality >> 16) & 0xFFFF
+        const { personality, otId } = pokemon
+        const trainerId = otId & 0xffff
+        const secretId = (otId >> 16) & 0xffff
+        const personalityLow = personality & 0xffff
+        const personalityHigh = (personality >> 16) & 0xffff
         const expectedShinyNumber = trainerId ^ secretId ^ personalityLow ^ personalityHigh
 
         expect(pokemon.shinyNumber).toBe(expectedShinyNumber)
@@ -373,14 +373,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
   describe('Save File Reconstruction', () => {
     it('should produce identical save file when reconstructing with unchanged party', async () => {
       const parsed = await parser.parse(testSaveData)
-      const reconstructed = parser.reconstructSaveFile(parsed.party_pokemon.slice())
-
-      // Create hash function for comparison
-      const hashBuffer = async (buf: ArrayBuffer | Uint8Array) => {
-        const ab = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
-        const { createHash } = await import('crypto')
-        return createHash('sha256').update(ab).digest('hex')
-      }
+      const reconstructed = parser.reconstructSaveFile([...parsed.party_pokemon])
 
       const originalHash = await hashBuffer(testSaveData)
       const reconstructedHash = await hashBuffer(reconstructed)

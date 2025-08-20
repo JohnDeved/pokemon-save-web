@@ -5,20 +5,26 @@ declare global {
   }
 }
 
+// Interface for File System Access API on globalThis
+export interface GlobalThisWithFileSystemAPI {
+  showSaveFilePicker?: (options?: SaveFilePickerOptions) => Promise<FileSystemFileHandle>
+  showOpenFilePicker?: (options?: OpenFilePickerOptions) => Promise<FileSystemFileHandle[]>
+}
+
 interface SaveFilePickerOptions {
   suggestedName?: string
-  types?: Array<{
+  types?: {
     description?: string
     accept: Record<string, string[]>
-  }>
+  }[]
 }
 
 interface OpenFilePickerOptions {
   multiple?: boolean
-  types?: Array<{
+  types?: {
     description?: string
     accept: Record<string, string[]>
-  }>
+  }[]
 }
 
 interface FileSystemFileHandle {
@@ -30,5 +36,3 @@ interface FileSystemWritableFileStream {
   write(data: BufferSource | Blob | string): Promise<void>
   close(): Promise<void>
 }
-
-export {}

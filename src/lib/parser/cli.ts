@@ -20,7 +20,7 @@ const PARTY_COLUMNS = [
     label: 'HP',
     width: 32,
     value: (p: PokemonBase) => {
-      const hpBars = p.maxHp > 0 ? Math.round(20 * p.currentHp / p.maxHp) : 0
+      const hpBars = p.maxHp > 0 ? Math.round((20 * p.currentHp) / p.maxHp) : 0
       return `[${'█'.repeat(hpBars)}${'░'.repeat(20 - hpBars)}] ${p.currentHp}/${p.maxHp}`
     },
   },
@@ -33,7 +33,7 @@ const PARTY_COLUMNS = [
   { label: 'IDNo', width: 7, value: (p: PokemonBase) => p.otId_str },
 ]
 
-function pad (str: string, width: number) {
+function pad(str: string, width: number) {
   return str.toString().padEnd(width)
 }
 
@@ -68,23 +68,23 @@ const displayPartyPokemonRaw = (party: readonly PokemonBase[]) => {
 
 // Table/graph constants
 const COLORS = [31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96]
-const FIELDS: Array<[number, number, string]> = [
+const FIELDS: [number, number, string][] = [
   [0x00, 0x04, 'personality'],
   [0x04, 0x08, 'otId'],
   [0x08, 0x12, 'nickname'],
   [0x14, 0x1b, 'otName'],
   [0x23, 0x25, 'c.HP'],
   [0x25, 0x26, 'status'],
-  [0x28, 0x2A, 'sp.Id'],
-  [0x2A, 0x2C, 'item'],
-  [0x34, 0x3F, 'moves'],
-  [0x3F, 0x45, 'EVS?'],
+  [0x28, 0x2a, 'sp.Id'],
+  [0x2a, 0x2c, 'item'],
+  [0x34, 0x3f, 'moves'],
+  [0x3f, 0x45, 'EVS?'],
   [0x50, 0x54, 'IV'],
   [0x57, 0x58, 'ability'],
   [0x58, 0x59, 'lv'],
-  [0x5A, 0x5C, 'HP'],
-  [0x5C, 0x5E, 'Atk'],
-  [0x5E, 0x60, 'Def'],
+  [0x5a, 0x5c, 'HP'],
+  [0x5c, 0x5e, 'Atk'],
+  [0x5e, 0x60, 'Def'],
   [0x60, 0x62, 'S.Def'],
   [0x62, 0x64, 'S.Atk'],
   [0x64, 0x66, 'Speed'],
@@ -93,33 +93,42 @@ const RESET = '\x1b[0m'
 const colorFor = (i: number) => `\x1b[${COLORS[i % COLORS.length]!}m`
 
 /** Display colored, labeled hex/ASCII visualization for Pokémon bytes. */
-const displayColoredBytes = (raw: Uint8Array, fields: Array<[number, number, string]>, bytesPerLine = 32) => {
+const displayColoredBytes = (raw: Uint8Array, fields: [number, number, string][], bytesPerLine = 32) => {
   let pos = 0
   while (pos < raw.length) {
     let lineEnd = Math.min(pos + bytesPerLine, raw.length)
-    for (const [s, e] of fields) if (pos < s && s < lineEnd && lineEnd < e) { lineEnd = s; break }
-    if (lineEnd === pos) lineEnd = Math.min(...fields.filter(([s, e]) => s <= pos && pos < e).map(([, e]) => e).concat([pos + 1, raw.length]))
+    for (const [s, e] of fields)
+      if (pos < s && s < lineEnd && lineEnd < e) {
+        lineEnd = s
+        break
+      }
+    if (lineEnd === pos) lineEnd = Math.min(...fields.filter(([s, e]) => s <= pos && pos < e).map(([, e]) => e), pos + 1, raw.length)
     const lineBytes = raw.slice(pos, lineEnd)
     const fieldForByte = Array.from(lineBytes, (_, j) => fields.find(([s, e]) => pos + j >= s && pos + j < e))
     // Label line
     let labelLine = ''
-    for (let i = 0; i < lineBytes.length;) {
-      const field = fieldForByte[i]; const idx = pos + i
+    for (let i = 0; i < lineBytes.length; ) {
+      const field = fieldForByte[i]
+      const idx = pos + i
       if (field && idx === field[0]) {
-        const [s, e, n] = field; const color = colorFor(fields.indexOf(field))
-        const fieldLen = Math.min(e - s, lineBytes.length - i); const width = fieldLen * 3 - 1
+        const [s, e, n] = field
+        const color = colorFor(fields.indexOf(field))
+        const fieldLen = Math.min(e - s, lineBytes.length - i)
+        const width = fieldLen * 3 - 1
         const shortName = n.length > width ? `${n.slice(0, Math.max(0, width - 1))}.` : n
         labelLine += `${color}${shortName.padStart(Math.floor((width + shortName.length) / 2)).padEnd(width)}${RESET}`
         i += fieldLen
         if (i < lineBytes.length) labelLine += ' '
       } else {
-        labelLine += (i < lineBytes.length - 1 ? '   ' : '  ')
+        labelLine += i < lineBytes.length - 1 ? '   ' : '  '
         i++
       }
     }
-    let artLine = ''; let hexLine = ''
+    let artLine = ''
+    let hexLine = ''
     for (let j = 0; j < lineBytes.length; ++j) {
-      const field = fieldForByte[j]; const color = field ? colorFor(fields.indexOf(field)) : ''
+      const field = fieldForByte[j]
+      const color = field ? colorFor(fields.indexOf(field)) : ''
       artLine += (field ? `${color}──${RESET}` : '  ') + (j < lineBytes.length - 1 ? ' ' : '')
       hexLine += (j ? ' ' : '') + (field ? `${color}${lineBytes[j]!.toString(16).padStart(2, '0')}${RESET}` : lineBytes[j]!.toString(16).padStart(2, '0'))
     }
@@ -143,7 +152,7 @@ const displayPartyPokemonGraph = (party: readonly PokemonBase[]) => {
 /**
  * Parse and display save data from either file or WebSocket
  */
-async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, skipDisplay?: boolean }): Promise<SaveData> {
+async function parseAndDisplay(input: string | MgbaWebSocketClient, options: { debug: boolean; graph: boolean; skipDisplay?: boolean }): Promise<SaveData> {
   const parser = new PokemonSaveParser()
   let result: SaveData
   let mode: string
@@ -189,14 +198,14 @@ async function parseAndDisplay (input: string | MgbaWebSocketClient, options: { 
 /**
  * Clear screen and move cursor to top
  */
-function clearScreen () {
+function clearScreen() {
   process.stdout.write('\x1b[2J\x1b[H')
 }
 
 /**
  * Watch mode - continuously monitor and update display
  */
-async function watchMode (input: string | MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
+async function watchMode(input: string | MgbaWebSocketClient, options: { debug: boolean; graph: boolean; interval: number }) {
   if (typeof input === 'string') {
     // File-based watch mode - use polling since files don't support push notifications
     return watchModeFile(input, options)
@@ -209,7 +218,7 @@ async function watchMode (input: string | MgbaWebSocketClient, options: { debug:
 /**
  * File-based watch mode - polling approach for file changes
  */
-async function watchModeFile (filePath: string, options: { debug: boolean, graph: boolean, interval: number }) {
+async function watchModeFile(filePath: string, options: { debug: boolean; graph: boolean; interval: number }) {
   console.log(`🔄 Starting file watch mode (updating every ${options.interval}ms)...`)
   console.log('Press Ctrl+C to exit')
 
@@ -233,7 +242,7 @@ async function watchModeFile (filePath: string, options: { debug: boolean, graph
           level: p.level,
           hp: p.currentHp,
           nickname: p.nickname,
-        })),
+        }))
       )
 
       // Only update display if party data changed or first run
@@ -255,7 +264,7 @@ async function watchModeFile (filePath: string, options: { debug: boolean, graph
 /**
  * WebSocket-based watch mode - event-driven approach using parser watch API
  */
-async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug: boolean, graph: boolean, interval: number }) {
+async function watchModeWebSocket(client: MgbaWebSocketClient, options: { debug: boolean; graph: boolean; interval: number }) {
   console.log('🔄 Starting event-driven watch mode...')
   console.log('Press Ctrl+C to exit')
 
@@ -272,19 +281,19 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
 
   // Set up watching with the new parser API
   await parser.watch({
-    onPartyChange: (partyPokemon) => {
+    onPartyChange: partyPokemon => {
       clearScreen()
       displayPartyPokemon(partyPokemon, 'MEMORY')
       if (options.debug) displayPartyPokemonRaw(partyPokemon)
     },
-    onError: (error) => {
+    onError: error => {
       console.error('❌ Error processing memory change:', error.message)
     },
   })
   console.log('✅ Memory watching started')
 
   // Keep the process alive and handle cleanup
-  return new Promise<void>((resolve) => {
+  return new Promise<void>(resolve => {
     const cleanup = async () => {
       await parser.stopWatching()
       resolve()
@@ -296,8 +305,8 @@ async function watchModeWebSocket (client: MgbaWebSocketClient, options: { debug
 }
 
 // CLI entry point
-async function main () {
-  const argv = process.argv
+async function main() {
+  const { argv } = process
 
   // Parse command line options
   const debug = argv.includes('--debug')
@@ -319,7 +328,7 @@ async function main () {
     const str = toBytesArg.split('=')[1] ?? ''
     const bytes = gbaStringToBytes(str, str.length + 1) // +1 for null terminator
     console.log(`GBA bytes for "${str}":`)
-    console.log(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '))
+    console.log([...bytes].map(b => b.toString(16).padStart(2, '0')).join(' '))
     process.exit(0)
   }
 
@@ -332,10 +341,10 @@ async function main () {
         .trim()
         .split(/\s+|,/)
         .filter(Boolean)
-        .map(b => parseInt(b, 16)),
+        .map(b => parseInt(b, 16))
     )
     const str = bytesToGbaString(bytes)
-    console.log(`String for bytes [${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`)
+    console.log(`String for bytes [${[...bytes].map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`)
     console.log(str)
     process.exit(0)
   }
