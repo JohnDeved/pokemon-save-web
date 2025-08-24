@@ -2062,7 +2062,7 @@
   "413": {
     "name": "Wormadam",
     "id_name": "wormadam-trash",
-    "id": 1030
+    "id": 413
   },
   "414": {
     "name": "Mothim",
@@ -2457,7 +2457,7 @@
   "492": {
     "name": "Shaymin",
     "id_name": "shaymin-sky",
-    "id": 1031
+    "id": 492
   },
   "493": {
     "name": "Arceus",
@@ -3402,7 +3402,7 @@
   "681": {
     "name": "Aegislash",
     "id_name": "aegislash-blade",
-    "id": 1051
+    "id": 681
   },
   "682": {
     "name": "Spritzee",
@@ -3547,12 +3547,12 @@
   "710": {
     "name": "Pumpkaboo",
     "id_name": "pumpkaboo-super",
-    "id": 1054
+    "id": 710
   },
   "711": {
     "name": "Gourgeist",
     "id_name": "gourgeist-super",
-    "id": 1057
+    "id": 711
   },
   "712": {
     "name": "Bergmite",
@@ -3702,7 +3702,7 @@
   "741": {
     "name": "Oricorio",
     "id_name": "oricorio-pau",
-    "id": 1149
+    "id": 741
   },
   "742": {
     "name": "Cutiefly",
@@ -3722,7 +3722,7 @@
   "745": {
     "name": "Lycanroc",
     "id_name": "lycanroc-dusk",
-    "id": 1177
+    "id": 745
   },
   "746": {
     "name": "Wishiwashi",
@@ -3867,7 +3867,7 @@
   "774": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "775": {
     "name": "Komala",
@@ -4912,7 +4912,7 @@
   "983": {
     "name": "Darmanitan",
     "id_name": "darmanitan-zen",
-    "id": 1042
+    "id": 555
   },
   "984": {
     "name": "Yamask",
@@ -5177,12 +5177,12 @@
   "1036": {
     "name": "Wormadam",
     "id_name": "wormadam-trash",
-    "id": 1030
+    "id": 413
   },
   "1037": {
     "name": "Wormadam",
     "id_name": "wormadam-trash",
-    "id": 1030
+    "id": 413
   },
   "1038": {
     "name": "Cherrim",
@@ -5232,7 +5232,7 @@
   "1047": {
     "name": "Shaymin",
     "id_name": "shaymin-sky",
-    "id": 1031
+    "id": 492
   },
   "1048": {
     "name": "Arceus",
@@ -5327,12 +5327,12 @@
   "1066": {
     "name": "Darmanitan",
     "id_name": "darmanitan-zen",
-    "id": 1042
+    "id": 555
   },
   "1067": {
     "name": "Darmanitan",
     "id_name": "darmanitan-zen",
-    "id": 1042
+    "id": 555
   },
   "1068": {
     "name": "Deerling",
@@ -5642,37 +5642,37 @@
   "1129": {
     "name": "Aegislash",
     "id_name": "aegislash-blade",
-    "id": 1051
+    "id": 711
   },
   "1130": {
     "name": "Pumpkaboo",
     "id_name": "pumpkaboo-super",
-    "id": 1054
+    "id": 711
   },
   "1131": {
     "name": "Pumpkaboo",
     "id_name": "pumpkaboo-super",
-    "id": 1054
+    "id": 711
   },
   "1132": {
     "name": "Pumpkaboo",
     "id_name": "pumpkaboo-super",
-    "id": 1054
+    "id": 711
   },
   "1133": {
     "name": "Gourgeist",
     "id_name": "gourgeist-super",
-    "id": 1057
+    "id": 711
   },
   "1134": {
     "name": "Gourgeist",
     "id_name": "gourgeist-super",
-    "id": 1057
+    "id": 711
   },
   "1135": {
     "name": "Gourgeist",
     "id_name": "gourgeist-super",
-    "id": 1057
+    "id": 711
   },
   "1136": {
     "name": "Xerneas",
@@ -5707,17 +5707,17 @@
   "1142": {
     "name": "Oricorio",
     "id_name": "oricorio-pau",
-    "id": 1149
+    "id": 741
   },
   "1143": {
     "name": "Oricorio",
     "id_name": "oricorio-pau",
-    "id": 1149
+    "id": 741
   },
   "1144": {
     "name": "Oricorio",
     "id_name": "oricorio-pau",
-    "id": 1149
+    "id": 741
   },
   "1145": {
     "name": "Rockruff",
@@ -5727,12 +5727,12 @@
   "1146": {
     "name": "Lycanroc",
     "id_name": "lycanroc-dusk",
-    "id": 1177
+    "id": 745
   },
   "1147": {
     "name": "Lycanroc",
     "id_name": "lycanroc-dusk",
-    "id": 1177
+    "id": 745
   },
   "1148": {
     "name": "Wishiwashi",
@@ -5827,67 +5827,67 @@
   "1166": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1167": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1168": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1169": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1170": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1171": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1172": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1173": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1174": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1175": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1176": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1177": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1178": {
     "name": "Minior",
     "id_name": "minior-red",
-    "id": 1161
+    "id": 774
   },
   "1179": {
     "name": "Mimikyu",
