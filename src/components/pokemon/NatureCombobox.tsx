@@ -75,6 +75,10 @@ export function NatureCombobox({ value, onChange, disabled = false, triggerClass
                       onChange(nature)
                       setOpen(false)
                     }}
+                    onClick={() => {
+                      onChange(nature)
+                      setOpen(false)
+                    }}
                   >
                     <div className="flex w-full items-center">
                       <CheckIcon className={cn('mr-2 h-4 w-4 text-muted-foreground', isSelected ? 'opacity-100' : 'opacity-0')} />
