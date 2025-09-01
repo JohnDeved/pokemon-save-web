@@ -44,17 +44,17 @@ export function NatureCombobox({ value, onChange, disabled = false, triggerClass
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
+          size="default"
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
           className={cn(
             // Match menubar look & feel: use default button text size and geist font
-            'justify-between w-[168px] border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50 geist-font',
+            'justify-between w-[168px] border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50 geist-font text-sm font-medium',
             triggerClassName
           )}
         >
-          <span className="font-sans font-normal">{label ?? 'Nature'}</span>
+          <span className="font-sans font-medium">{label ?? 'Nature'}</span>
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -96,7 +96,7 @@ export function NatureCombobox({ value, onChange, disabled = false, triggerClass
                   >
                     <div className="flex w-full items-center">
                       <CheckIcon className={cn('mr-2 h-4 w-4 text-muted-foreground', isSelected ? 'opacity-100' : 'opacity-0')} />
-                      <span className="mr-2 font-sans font-normal leading-5">{nature}</span>
+                      <span className="mr-2 font-sans font-medium leading-5">{nature}</span>
                       <span className="ml-auto text-xs text-foreground/90 flex items-center gap-2 font-sans">
                         {effect ? (
                           <>
