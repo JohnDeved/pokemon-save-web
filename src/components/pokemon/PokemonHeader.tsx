@@ -65,7 +65,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({ isLoading = false 
                 setNature(pokemon.id, nature)
               }}
             >
-              <SelectTrigger className="text-xs min-h-[44px] lg:min-h-[36px]">
+              <SelectTrigger className="text-sm font-medium min-h-[44px] lg:min-h-[36px]">
                 <SelectValue placeholder="Nature" />
               </SelectTrigger>
               <SelectContent>

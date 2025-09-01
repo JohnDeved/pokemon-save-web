@@ -43,4 +43,7 @@ docker-compose.override.yml
 .input
 .vars
 
+# Playwright
+playwright-report/
+test-results/
 
