@@ -58,20 +58,9 @@ export function NatureCombobox({ value, onChange, disabled = false, triggerClass
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-[260px] p-1 geist-font"
-        onOpenAutoFocus={e => {
-          // Ensure input receives focus when opened
-          e.preventDefault()
-          inputRef.current?.focus()
-        }}
-        onKeyDownCapture={() => {
-          // Route any typing within the content to the input
-          if (document.activeElement !== inputRef.current) inputRef.current?.focus()
-        }}
-      >
+      <PopoverContent className="w-[260px] p-1 geist-font">
         <Command>
-          <CommandInput ref={inputRef} autoFocus placeholder="Search nature..." />
+          <CommandInput ref={inputRef} placeholder="Search nature..." />
           <CommandList className="custom-scrollbar">
             <CommandEmpty>No nature found.</CommandEmpty>
             <CommandGroup>
@@ -83,13 +72,6 @@ export function NatureCombobox({ value, onChange, disabled = false, triggerClass
                     key={nature}
                     value={nature}
                     onSelect={() => {
-                      onChange(nature)
-                      setOpen(false)
-                    }}
-                    onMouseDown={e => {
-                      // cmdk keeps focus on the input by preventing default on mousedown.
-                      // Handle selection here and prevent default to avoid focus/blur glitches.
-                      e.preventDefault()
                       onChange(nature)
                       setOpen(false)
                     }}
