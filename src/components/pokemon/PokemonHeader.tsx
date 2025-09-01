@@ -1,11 +1,12 @@
-import { getItemSpriteUrl, natures } from '@/lib/parser/core/utils'
+import { getItemSpriteUrl } from '@/lib/parser/core/utils'
 import { usePokemonStore } from '@/stores'
 import { FaHashtag, FaWandMagicSparkles } from 'react-icons/fa6'
 import { IoSparkles } from 'react-icons/io5'
 import { Skeleton } from '../common'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+// import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { PokemonTypeBadge } from './PokemonTypeBadge'
+import { NatureCombobox } from './NatureCombobox'
 
 interface PokemonHeaderProps {
   isLoading?: boolean
@@ -57,27 +58,14 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({ isLoading = false 
           </Skeleton.Container>
           <div className="flex items-center gap-2 min-w-8">
             {pokemon?.data.itemIdName && <img src={getItemSpriteUrl(pokemon.data.itemIdName)} alt={pokemon.data.itemIdName} className="w-6 h-6" />}
-            <Select
-              value={pokemon?.data.nature ?? undefined}
-              onValueChange={nature => {
-                console.log('Setting nature:', pokemon?.id, nature)
+            <NatureCombobox
+              value={pokemon?.data.nature}
+              onChange={nature => {
                 if (typeof pokemon?.id === 'undefined') return
                 setNature(pokemon.id, nature)
               }}
-            >
-              <SelectTrigger className="text-xs min-h-[44px] lg:min-h-[36px]">
-                <SelectValue placeholder="Nature" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {natures.map(nature => (
-                    <SelectItem key={nature} value={nature}>
-                      {nature}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              disabled={!pokemon}
+            />
           </div>
         </div>
       </div>
