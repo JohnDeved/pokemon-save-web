@@ -83,8 +83,8 @@ export const NatureTab: React.FC = () => {
                   onClick={() => setChooseMode(prev => (prev === 'raise' ? null : 'raise'))}
                   title="Click to change raised stat"
                   aria-pressed={chooseMode === 'raise'}
-                  className={`inline-flex items-center gap-1 rounded-md border border-emerald-700/60 bg-emerald-900/30 text-emerald-300 px-2 py-1 text-xs transition-all duration-150 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-emerald-300/40 ${
-                    chooseMode === 'raise' ? 'ring-2 ring-emerald-400/60 hover:ring-2 hover:ring-emerald-400/60 shadow-lg -translate-y-0.5 animate-glow-emerald' : ''
+                  className={`inline-flex items-center gap-1 rounded-md border border-emerald-700/60 bg-emerald-900/30 text-emerald-300 px-2 py-1 text-xs transition-all duration-150 ease-out cursor-pointer hover:ring-1 hover:ring-emerald-300/40 ${
+                    chooseMode === 'raise' ? 'ring-2 ring-emerald-400/60 hover:ring-2 hover:ring-emerald-400/60 animate-glow-emerald' : ''
                   }`}
                 >
                   <IoCaretUp className="text-emerald-300" /> Raises {getStatAbbr(incIndex)}
@@ -97,8 +97,8 @@ export const NatureTab: React.FC = () => {
                   onClick={() => setChooseMode(prev => (prev === 'lower' ? null : 'lower'))}
                   title="Click to change lowered stat"
                   aria-pressed={chooseMode === 'lower'}
-                  className={`inline-flex items-center gap-1 rounded-md border border-rose-700/60 bg-rose-900/30 text-rose-300 px-2 py-1 text-xs transition-all duration-150 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-rose-300/40 ${
-                    chooseMode === 'lower' ? 'ring-2 ring-rose-400/60 hover:ring-2 hover:ring-rose-400/60 shadow-lg -translate-y-0.5 animate-glow-rose' : ''
+                  className={`inline-flex items-center gap-1 rounded-md border border-rose-700/60 bg-rose-900/30 text-rose-300 px-2 py-1 text-xs transition-all duration-150 ease-out cursor-pointer hover:ring-1 hover:ring-rose-300/40 ${
+                    chooseMode === 'lower' ? 'ring-2 ring-rose-400/60 hover:ring-2 hover:ring-rose-400/60 animate-glow-rose' : ''
                   }`}
                 >
                   <IoCaretDown className="text-rose-300" /> Lowers {getStatAbbr(decIndex)}
@@ -114,7 +114,7 @@ export const NatureTab: React.FC = () => {
                 {statAbbreviations.map((abbr, i) => {
                   const isUp = incIndex === i
                   const isDown = decIndex === i
-                  const base = 'px-2 py-1 rounded-md border text-xs'
+                  const base = 'relative px-2 py-1 rounded-md border text-xs leading-none transition-[padding] duration-200 ease-out'
                   const color = isUp ? 'bg-emerald-900/30 border-emerald-700/60 text-emerald-300' : isDown ? 'bg-rose-900/30 border-rose-700/60 text-rose-300' : 'bg-slate-800/40 border-slate-700 text-slate-300'
 
                   let interactive = false
@@ -123,7 +123,7 @@ export const NatureTab: React.FC = () => {
 
                   const ringColor = chooseMode === 'raise' ? 'hover:ring-emerald-300/40' : chooseMode === 'lower' ? 'hover:ring-rose-300/40' : 'hover:ring-slate-400/30'
 
-                  const interactiveCls = chooseMode ? (interactive ? `cursor-pointer hover:ring-1 ${ringColor} transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-md` : 'opacity-40 cursor-not-allowed') : 'transition-all duration-150 ease-out'
+                  const interactiveCls = chooseMode ? (interactive ? `cursor-pointer hover:ring-1 ${ringColor} transition-all duration-150 ease-out` : 'opacity-40 cursor-not-allowed') : 'transition-all duration-150 ease-out'
 
                   const preview = hoveredStat === i ? getPreviewDelta(i) : null
                   let displayDelta: number | null = null
@@ -138,10 +138,11 @@ export const NatureTab: React.FC = () => {
                       displayDelta = preview
                     }
                   }
+                  const padAnimCls = chooseMode && interactive ? 'hover:pr-7' : ''
                   return (
                     <div
                       key={`nature-stat-${i}`}
-                      className={`${base} ${color} ${interactiveCls}`}
+                      className={`${base} ${color} ${interactiveCls} ${padAnimCls}`}
                       onClick={() => chooseMode && interactive && handleSelectCounterpart(i)}
                       onMouseEnter={() => (chooseMode && interactive ? setHoveredStat(i) : undefined)}
                       onMouseLeave={() => (hoveredStat === i ? setHoveredStat(null) : undefined)}
@@ -149,7 +150,9 @@ export const NatureTab: React.FC = () => {
                       aria-disabled={chooseMode && !interactive ? true : undefined}
                     >
                       {abbr}
-                      {displayDelta !== null && <span className={`ml-1 ${displayDelta > 0 ? 'text-emerald-200/90' : 'text-rose-200/90'}`}>{displayDelta > 0 ? `+${displayDelta}` : `${displayDelta}`}</span>}
+                      <span className={`pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 whitespace-nowrap text-right transition-opacity duration-150 ease-out select-none ${displayDelta !== null ? 'opacity-100' : 'opacity-0'}`} aria-hidden={displayDelta === null ? true : undefined}>
+                        {displayDelta !== null && <span className={displayDelta > 0 ? 'text-emerald-200/90' : 'text-rose-200/90'}>{displayDelta > 0 ? `+${displayDelta}` : `${displayDelta}`}</span>}
+                      </span>
                     </div>
                   )
                 })}
