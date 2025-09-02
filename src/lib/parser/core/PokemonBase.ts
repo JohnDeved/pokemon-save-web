@@ -534,15 +534,15 @@ export class PokemonBase {
   }
 
   get natureModifiers(): { increased: number; decreased: number } {
-    // Fallback to {0,0} if nature is not found
-    return natureEffects[this.nature] ?? { increased: 0, decreased: 0 }
+    // Neutral natures shouldn't modify any stats
+    return natureEffects[this.nature] ?? { increased: -1, decreased: -1 }
   }
 
   get natureModifiersString(): { increased: string; decreased: string } {
     const { increased, decreased } = this.natureModifiers
     return {
-      increased: statStrings[increased] ?? 'Unknown',
-      decreased: statStrings[decreased] ?? 'Unknown',
+      increased: increased >= 0 ? (statStrings[increased] ?? 'Unknown') : 'None',
+      decreased: decreased >= 0 ? (statStrings[decreased] ?? 'Unknown') : 'None',
     }
   }
 

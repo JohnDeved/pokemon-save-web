@@ -10,6 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { PokemonSaveParser } from '../core/PokemonSaveParser'
 import { VanillaConfig } from '../games/vanilla/config'
 import { QuetzalConfig } from '../games/quetzal/config'
+import { PokemonBase } from '../core/PokemonBase'
 import type { SaveData } from '../core/types'
 
 // Hash function for comparing buffers
@@ -316,6 +317,17 @@ describe('Vanilla Pokemon Emerald Tests', () => {
         const natures = ['Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax', 'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive', 'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash', 'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky']
         expect(pokemon.nature).toBe(natures[expectedNatureIndex])
       }
+    })
+
+    it('should not modify stats for neutral natures', () => {
+      const config = new VanillaConfig()
+      const data = new Uint8Array(config.pokemonSize)
+      const view = new DataView(data.buffer)
+      // Personality 0 corresponds to Hardy, a neutral nature
+      view.setUint32(0x00, 0, true)
+      const pokemon = new PokemonBase(data, config)
+      expect(pokemon.nature).toBe('Hardy')
+      expect(pokemon.natureModifiersArray).toEqual([1, 1, 1, 1, 1, 1])
     })
   })
 
