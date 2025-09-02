@@ -1,4 +1,4 @@
-import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
+import { CheckIcon, ChevronsUpDownIcon, Pencil } from 'lucide-react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -11,9 +11,13 @@ export interface PokemonNatureComboboxProps {
   onChange: (value: string) => void
   disabled?: boolean
   triggerClassName?: string
+  buttonVariant?: React.ComponentProps<typeof Button>['variant']
+  buttonSize?: React.ComponentProps<typeof Button>['size']
+  hideIcon?: boolean
+  asText?: boolean
 }
 
-export function PokemonNatureCombobox({ value, onChange, disabled = false, triggerClassName }: PokemonNatureComboboxProps) {
+export function PokemonNatureCombobox({ value, onChange, disabled = false, triggerClassName, buttonVariant = 'outline', buttonSize = 'sm', hideIcon = false, asText = false }: PokemonNatureComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
@@ -22,21 +26,45 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className={cn(
-            // Match menubar look & feel: use default button text size and geist font
-            'justify-between w-[168px] border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50 geist-font',
-            triggerClassName
-          )}
-        >
-          <span className="font-sans font-normal">{label ?? 'Nature'}</span>
-          <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+        {asText ? (
+          <button
+            type="button"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            onClick={() => {
+              if (!disabled) setOpen(true)
+            }}
+            className={cn(
+              'group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-slate-200 focus-visible:ring-0 focus-visible:border-transparent',
+              'transition-colors',
+              triggerClassName
+            )}
+            aria-label="Edit nature"
+          >
+            <span className="leading-none">{label ?? 'Nature'}</span>
+            <Pencil className="ml-2 h-3.5 w-3.5 opacity-40 group-hover:opacity-80 group-focus:opacity-80 transition-opacity duration-150" />
+          </button>
+        ) : (
+          <Button
+            variant={buttonVariant}
+            size={buttonSize}
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            onClick={() => {
+              if (!disabled) setOpen(true)
+            }}
+            className={cn(
+              // Match menubar look & feel: use default button text size and geist font
+              'justify-between w-[168px] border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50 geist-font',
+              triggerClassName
+            )}
+          >
+            <span className="font-sans font-normal">{label ?? 'Nature'}</span>
+            {!hideIcon && <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent
         className="w-[260px] p-0 geist-font"

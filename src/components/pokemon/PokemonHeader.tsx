@@ -5,21 +5,21 @@ import { Skeleton } from '@/components/common'
 // import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
-import { PokemonNatureCombobox } from '@/components/pokemon/PokemonNatureCombobox'
+// Nature editing moved to Traits section's Nature tab
 
 interface PokemonHeaderProps {
   isLoading?: boolean
 }
 
 export const PokemonHeader: React.FC<PokemonHeaderProps> = ({ isLoading = false }) => {
-  const { partyList, activePokemonId, setNature } = usePokemonStore()
+  const { partyList, activePokemonId } = usePokemonStore()
   const pokemon = partyList.find(p => p.id === activePokemonId)
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-3 border-b border-slate-800">
         {/* Row 1: Name and Dex ID */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl text-white tracking-tight flex items-center gap-2 h-8">
+          <h2 className="font-pixel text-lg sm:text-xl text-white leading-none flex items-center gap-2">
             {pokemon?.data.nickname}
             {pokemon?.data.isShiny && (
               <Tooltip disableHoverableContent>
@@ -55,16 +55,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({ isLoading = false 
               <PokemonTypeBadge key={type} type={type} isLarge />
             ))}
           </Skeleton.Container>
-          <div className="flex items-center gap-2 min-w-8">
-            <PokemonNatureCombobox
-              value={pokemon?.data.nature}
-              onChange={nature => {
-                if (typeof pokemon?.id === 'undefined') return
-                setNature(pokemon.id, nature)
-              }}
-              disabled={!pokemon}
-            />
-          </div>
+          <div className="flex items-center gap-2 min-w-8" />
         </div>
       </div>
     </Skeleton.LoadingProvider>

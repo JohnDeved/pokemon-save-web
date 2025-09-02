@@ -3,13 +3,14 @@ import { ScrollableContainer, Skeleton } from '@/components/common'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getItemSpriteUrl, getStatAbbr, statAbbreviations } from '@/lib/parser/core/utils'
 import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
+import { PokemonNatureCombobox } from '@/components/pokemon/PokemonNatureCombobox'
 
 interface PokemonAbilitySectionProps {
   isLoading?: boolean
 }
 
 export const PokemonTraitsSection: React.FC<PokemonAbilitySectionProps> = ({ isLoading = false }) => {
-  const { partyList, activePokemonId } = usePokemonStore()
+  const { partyList, activePokemonId, setNature } = usePokemonStore()
   const pokemon = partyList.find(p => p.id === activePokemonId)
   const ability = !pokemon?.details ? null : pokemon.details.abilities.find(a => a.slot === pokemon.data.abilityNumber + 1)
   const itemIdName = pokemon?.data.itemIdName
@@ -81,7 +82,16 @@ export const PokemonTraitsSection: React.FC<PokemonAbilitySectionProps> = ({ isL
               <ScrollableContainer className="absolute inset-0 px-4 pt-3 pb-4 overflow-y-auto custom-scrollbar">
                 <div className="flex flex-col gap-3">
                   <div className="text-white">
-                    <Skeleton.Text className="font-pixel text-lg sm:text-xl">{natureName}</Skeleton.Text>
+                    {pokemon ? (
+                      <PokemonNatureCombobox
+                        value={pokemon.data.nature}
+                        onChange={nature => setNature(pokemon.id, nature)}
+                        asText
+                        triggerClassName="font-pixel text-lg sm:text-xl text-white"
+                      />
+                    ) : (
+                      <Skeleton.Text className="font-pixel text-lg sm:text-xl">{natureName}</Skeleton.Text>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
