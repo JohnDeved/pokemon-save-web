@@ -63,8 +63,8 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoadin
 
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
-      <div className="p-3 sm:p-4 space-y-1.5 sm:space-y-2 text-xs w-full">
-        <div className="grid grid-cols-10 gap-1 sm:gap-2 text-slate-500 font-pixel tracking-[0.12em] uppercase text-[10px]">
+      <div className="p-3 sm:p-4 space-y-1 sm:space-y-2 text-xs w-full">
+        <div className="grid grid-cols-10 gap-1 sm:gap-2 text-slate-400">
           <div className="col-span-1">STAT</div>
           <div className="col-span-5 text-end">EV</div>
           <div className="text-center">IV</div>
@@ -93,8 +93,8 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoadin
           }
 
           return (
-            <div key={statName} className="grid grid-cols-10 gap-1 sm:gap-2 items-center rounded-md -mx-1 sm:-mx-2 px-1 sm:px-2 hover:bg-slate-800/20 transition-colors">
-              <div className="text-white font-pixel">{statName}</div>
+            <div key={statName} className="grid grid-cols-10 gap-1 sm:gap-2 items-center">
+              <div className="text-white">{statName}</div>
               <div className="col-span-5 flex items-center gap-1 sm:gap-2">
                 <EVSlider
                   value={evs?.[index] ?? 0}
@@ -103,10 +103,10 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoadin
                   }}
                   maxVisualValue={maxVisualValue}
                 />
-                <span className="text-white tabular-nums w-7 sm:w-9 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
+                <span className="text-white w-6 sm:w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
               </div>
               <div
-                className={`text-center text-sm tabular-nums ${ivClass} ${iv !== MAX_IV ? 'cursor-pointer hover:text-cyan-300 transition-colors focus-visible:ring-2 focus-visible:ring-cyan-400/50 focus-visible:outline-none rounded-sm' : ''}`}
+                className={`text-center text-sm ${ivClass} ${iv !== MAX_IV ? 'cursor-pointer hover:text-cyan-300 transition-colors' : ''}`}
                 onClick={
                   iv !== MAX_IV
                     ? () => {
@@ -132,10 +132,10 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoadin
               >
                 {isHovered && iv !== MAX_IV ? MAX_IV : iv}
               </div>
-              <div className="text-slate-600 text-center text-sm tabular-nums">
+              <div className="text-slate-700 text-center text-sm">
                 <Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text>
               </div>
-              <div className={`col-span-2 text-right text-sm tabular-nums ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}> 
+              <div className={`col-span-2 text-right text-sm ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}>
                 {isShowingPreview && previewTotal ? (
                   <span>
                     <span className="text-green-400">+{previewTotal - total}</span> {previewTotal}
