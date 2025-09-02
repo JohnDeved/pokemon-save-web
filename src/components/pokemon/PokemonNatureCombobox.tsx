@@ -1,11 +1,10 @@
-import * as React from 'react'
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
-
-import { cn } from '@/lib/utils'
-import { natures, natureEffects, getStatAbbr } from '@/lib/parser/core/utils'
+import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { getStatAbbr, natureEffects, natures } from '@/lib/parser/core/utils'
+import { cn } from '@/lib/utils'
 
 export interface PokemonNatureComboboxProps {
   value?: string
@@ -40,7 +39,7 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[260px] p-1 geist-font"
+        className="w-[260px] p-0 geist-font"
         onOpenAutoFocus={e => {
           // Ensure input receives focus when opened
           e.preventDefault()
@@ -78,14 +77,14 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
                     <div className="flex w-full items-center">
                       <CheckIcon className={cn('mr-2 h-4 w-4 text-muted-foreground', isSelected ? 'opacity-100' : 'opacity-0')} />
                       <span className="mr-2 font-sans font-normal leading-5">{nature}</span>
-                      <span className="ml-auto text-xs text-foreground/90 flex items-center gap-2 font-sans">
+                      <span className="ml-auto text-xs text-foreground/90 grid grid-cols-[auto_50px] items-center justify-items-end gap-2 font-sans shrink-0">
                         {effect ? (
                           <>
                             <span className="text-emerald-400">↑ {getStatAbbr(effect.increased)}</span>
-                            <span className="text-rose-400">↓ {getStatAbbr(effect.decreased)}</span>
+                            <span className="text-rose-400">{getStatAbbr(effect.decreased)} ↓</span>
                           </>
                         ) : (
-                          <span className="text-muted-foreground">Neutral</span>
+                          <span className="text-muted-foreground col-span-2 text-right">Neutral</span>
                         )}
                       </span>
                     </div>
