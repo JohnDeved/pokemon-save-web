@@ -1,5 +1,5 @@
-import { cn } from '../../lib/utils'
-import type { PokemonType } from '../../types'
+import { cn } from '@/lib/utils'
+import type { PokemonType } from '@/types'
 
 // Props for the colored Type Badge
 export interface TypeBadgeProps {

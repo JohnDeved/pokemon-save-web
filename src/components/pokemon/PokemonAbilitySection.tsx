@@ -1,5 +1,5 @@
 import { usePokemonStore } from '@/stores'
-import { ScrollableContainer, Skeleton } from '../common'
+import { ScrollableContainer, Skeleton } from '@/components/common'
 
 interface PokemonAbilitySectionProps {
   isLoading?: boolean

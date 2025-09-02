@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { cn } from '../../lib/utils'
-import type { Pokemon } from '../../types'
-import { Card } from '../common'
+import { cn } from '@/lib/utils'
+import type { Pokemon } from '@/types'
+import { Card } from '@/components/common'
 
 // Health percentage thresholds for color coding
 const HP_THRESHOLDS = {

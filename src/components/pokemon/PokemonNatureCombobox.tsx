@@ -2,38 +2,19 @@ import * as React from 'react'
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { natures, natureEffects, statStrings } from '@/lib/parser/core/utils'
+import { natures, natureEffects, getStatAbbr } from '@/lib/parser/core/utils'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
-function statAbbr(index: number): string {
-  switch (index) {
-    case 0:
-      return 'HP'
-    case 1:
-      return 'Atk'
-    case 2:
-      return 'Def'
-    case 3:
-      return 'Spe'
-    case 4:
-      return 'SpA'
-    case 5:
-      return 'SpD'
-    default:
-      return statStrings[index] ?? ''
-  }
-}
-
-export interface NatureComboboxProps {
+export interface PokemonNatureComboboxProps {
   value?: string
   onChange: (value: string) => void
   disabled?: boolean
   triggerClassName?: string
 }
 
-export function NatureCombobox({ value, onChange, disabled = false, triggerClassName }: NatureComboboxProps) {
+export function PokemonNatureCombobox({ value, onChange, disabled = false, triggerClassName }: PokemonNatureComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
@@ -100,8 +81,8 @@ export function NatureCombobox({ value, onChange, disabled = false, triggerClass
                       <span className="ml-auto text-xs text-foreground/90 flex items-center gap-2 font-sans">
                         {effect ? (
                           <>
-                            <span className="text-emerald-400">↑ {statAbbr(effect.increased)}</span>
-                            <span className="text-rose-400">↓ {statAbbr(effect.decreased)}</span>
+                            <span className="text-emerald-400">↑ {getStatAbbr(effect.increased)}</span>
+                            <span className="text-rose-400">↓ {getStatAbbr(effect.decreased)}</span>
                           </>
                         ) : (
                           <span className="text-muted-foreground">Neutral</span>

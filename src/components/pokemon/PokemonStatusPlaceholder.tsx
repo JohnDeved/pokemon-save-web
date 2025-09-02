@@ -1,5 +1,5 @@
-import { cn } from '../../lib/utils'
-import { Card } from '../common'
+import { cn } from '@/lib/utils'
+import { Card } from '@/components/common'
 
 export const PokemonStatusPlaceholder: React.FC = () => {
   return (

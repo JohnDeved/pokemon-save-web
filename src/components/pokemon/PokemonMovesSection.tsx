@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { usePokemonStore } from '@/stores'
-import { Skeleton } from '../common'
-import { PokemonMoveButton } from './PokemonMoveButton'
-import { PokemonMovePlaceholder } from './PokemonMovePlaceholder'
+import { Skeleton } from '@/components/common'
+import { PokemonMoveButton } from '@/components/pokemon/PokemonMoveButton'
+import { PokemonMovePlaceholder } from '@/components/pokemon/PokemonMovePlaceholder'
 
 interface PokemonMovesProps {
   isLoading?: boolean

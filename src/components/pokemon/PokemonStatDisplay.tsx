@@ -1,13 +1,10 @@
-import { calculateTotalStatsDirect } from '../../lib/parser/core/utils'
+import { calculateTotalStatsDirect, MAX_EV, MAX_IV, statAbbreviations } from '@/lib/parser/core/utils'
 import { usePokemonStore } from '@/stores'
-import { Skeleton } from '../common'
-import { Slider } from '../ui/slider'
+import { Skeleton } from '@/components/common'
+import { Slider } from '@/components/ui/slider'
 import { useState } from 'react'
 
-// Constants for stat calculations
-const MAX_EV = 252
-const MAX_IV = 31
-const STAT_NAMES = ['HP', 'ATK', 'DEF', 'SPE', 'SpA', 'SpD'] as const
+// Labels come from shared utils to avoid hardcoding
 
 export interface PokemonStatDisplayProps {
   isLoading?: boolean
@@ -74,7 +71,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoadin
           <div className="text-center">BASE</div>
           <div className="text-right col-span-2">TOTAL</div>
         </div>
-        {STAT_NAMES.map((statName, index) => {
+        {statAbbreviations.map((statName, index) => {
           const iv = ivs?.[index] ?? 0
           const base = baseStats?.[index] ?? 0
           const total = totalStats?.[index] ?? 0
@@ -131,7 +128,7 @@ export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoadin
                       }
                     : undefined
                 }
-                title={iv !== MAX_IV ? 'Click to set to max (31)' : undefined}
+                title={iv !== MAX_IV ? `Click to set to max (${MAX_IV})` : undefined}
               >
                 {isHovered && iv !== MAX_IV ? MAX_IV : iv}
               </div>

@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { cn } from '../../lib/utils'
-import type { MoveWithDetails } from '../../types'
-import { ScrollableContainer } from '../common'
-import { PokemonTypeBadge } from './PokemonTypeBadge'
+import { cn } from '@/lib/utils'
+import type { MoveWithDetails } from '@/types'
+import { ScrollableContainer } from '@/components/common'
+import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
 
 const damageClassIcons: Record<'physical' | 'special' | 'status', string> = {
   physical: '/damage-type-icons/physical.png',

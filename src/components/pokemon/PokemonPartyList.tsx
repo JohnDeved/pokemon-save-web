@@ -1,7 +1,7 @@
-import { QuetzalConfig } from '../../lib/parser/games/quetzal/config'
+import { QuetzalConfig } from '@/lib/parser/games/quetzal/config'
 import { usePokemonStore } from '@/stores'
-import { PokemonStatus } from './PokemonStatus'
-import { PokemonStatusPlaceholder } from './PokemonStatusPlaceholder'
+import { PokemonStatus } from '@/components/pokemon/PokemonStatus'
+import { PokemonStatusPlaceholder } from '@/components/pokemon/PokemonStatusPlaceholder'
 
 // Use Quetzal config for constants since that's what most users will be using
 const config = new QuetzalConfig()

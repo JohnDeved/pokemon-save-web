@@ -1,6 +1,6 @@
-import { cn } from '../../lib/utils'
+import { cn } from '@/lib/utils'
 import { usePokemonStore } from '@/stores'
-import { Card } from '../common'
+import { Card } from '@/components/common'
 
 export const CompactPokemonSelector: React.FC = () => {
   const { partyList, activePokemonId, setActivePokemonId } = usePokemonStore()

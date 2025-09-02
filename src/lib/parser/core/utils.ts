@@ -110,6 +110,18 @@ export function formatPlayTime(hours: number, minutes: number, seconds: number):
 
 export const statStrings: string[] = ['HP', 'Attack', 'Defense', 'Speed', 'Special Attack', 'Special Defense']
 
+// Shared stat abbreviations used across UI components
+export const statAbbreviations: readonly string[] = ['HP', 'Atk', 'Def', 'Spe', 'SpA', 'SpD'] as const
+
+export function getStatAbbr(index: number): string {
+  return statAbbreviations[index] ?? statStrings[index] ?? ''
+}
+
+// Shared gameplay constants
+export const MAX_IV = 31
+export const MAX_EV = 252
+export const MAX_TOTAL_EV = 510
+
 export const natures = ['Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax', 'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive', 'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash', 'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky']
 /**
  * Get Pokemon nature from the first byte of the personality value

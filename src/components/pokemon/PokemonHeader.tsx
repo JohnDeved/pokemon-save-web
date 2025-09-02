@@ -2,11 +2,11 @@ import { getItemSpriteUrl } from '@/lib/parser/core/utils'
 import { usePokemonStore } from '@/stores'
 import { FaHashtag, FaWandMagicSparkles } from 'react-icons/fa6'
 import { IoSparkles } from 'react-icons/io5'
-import { Skeleton } from '../common'
+import { Skeleton } from '@/components/common'
 // import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
-import { PokemonTypeBadge } from './PokemonTypeBadge'
-import { NatureCombobox } from './NatureCombobox'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
+import { PokemonNatureCombobox } from '@/components/pokemon/PokemonNatureCombobox'
 
 interface PokemonHeaderProps {
   isLoading?: boolean
@@ -58,7 +58,7 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({ isLoading = false 
           </Skeleton.Container>
           <div className="flex items-center gap-2 min-w-8">
             {pokemon?.data.itemIdName && <img src={getItemSpriteUrl(pokemon.data.itemIdName)} alt={pokemon.data.itemIdName} className="w-6 h-6" />}
-            <NatureCombobox
+            <PokemonNatureCombobox
               value={pokemon?.data.nature}
               onChange={nature => {
                 if (typeof pokemon?.id === 'undefined') return
