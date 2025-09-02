@@ -20,6 +20,16 @@ export interface PokemonNatureComboboxProps {
 export function PokemonNatureCombobox({ value, onChange, disabled = false, triggerClassName, buttonVariant = 'outline', buttonSize = 'sm', hideIcon = false, asText = false }: PokemonNatureComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const [side, setSide] = React.useState<'top' | 'bottom'>('top')
+
+  function decideSideFromEl(el: HTMLElement | null) {
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const viewportH = window.innerHeight
+    const spaceBelow = viewportH - rect.bottom
+    const spaceAbove = rect.top
+    setSide(spaceBelow >= spaceAbove ? 'bottom' : 'top')
+  }
 
   const label = value && natures.includes(value) ? value : undefined
 
@@ -32,8 +42,11 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
             role="combobox"
             aria-expanded={open}
             disabled={disabled}
-            onClick={() => {
-              if (!disabled) setOpen(true)
+            onClick={e => {
+              if (!disabled) {
+                decideSideFromEl(e.currentTarget)
+                setOpen(true)
+              }
             }}
             className={cn(
               'group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-slate-200 focus-visible:ring-0 focus-visible:border-transparent',
@@ -52,8 +65,11 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
             role="combobox"
             aria-expanded={open}
             disabled={disabled}
-            onClick={() => {
-              if (!disabled) setOpen(true)
+            onClick={e => {
+              if (!disabled) {
+                decideSideFromEl(e.currentTarget as unknown as HTMLElement)
+                setOpen(true)
+              }
             }}
             className={cn(
               // Match menubar look & feel: use default button text size and geist font
@@ -67,7 +83,9 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
         )}
       </PopoverTrigger>
       <PopoverContent
-        className="w-[260px] p-0 geist-font"
+        side={side}
+        avoidCollisions={false}
+        className="w-[260px] p-0 geist-font group"
         onOpenAutoFocus={e => {
           // Ensure input receives focus when opened
           e.preventDefault()
@@ -78,7 +96,9 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
           if (document.activeElement !== inputRef.current) inputRef.current?.focus()
         }}
       >
-        <Command>
+        <Command
+          className="group-data-[side=top]:flex-col-reverse [&_[data-slot=command-input-wrapper]]:border-b group-data-[side=top]:[&_[data-slot=command-input-wrapper]]:border-t group-data-[side=top]:[&_[data-slot=command-input-wrapper]]:border-b-0"
+        >
           <CommandInput ref={inputRef} autoFocus placeholder="Search nature..." />
           <CommandList className="custom-scrollbar">
             <CommandEmpty>No nature found.</CommandEmpty>
