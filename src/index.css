@@ -5,7 +5,11 @@
 
 /* Custom pixel font class */
 .font-pixel {
-  font-family: "Press Start 2P";
+  font-family: 'Press Start 2P', cursive;
+
+  /* turn off Chrome’s sub‑pixel smoothing */
+  -webkit-font-smoothing: none;        /* Chrome/Safari */
+  -moz-osx-font-smoothing: grayscale;  /* macOS Firefox */
 }
 
 .geist-font {
