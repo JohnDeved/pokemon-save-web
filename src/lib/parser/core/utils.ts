@@ -165,6 +165,18 @@ export const natureEffects: Record<string, { increased: number; decreased: numbe
   Sassy: { increased: 5, decreased: 3 },
   Careful: { increased: 5, decreased: 4 },
 }
+
+/**
+ * Find the nature name that raises one stat index and lowers another.
+ * Returns 'Serious' (neutral) when indices are invalid or identical.
+ */
+export function findNatureForEffects(increased: number, decreased: number): string {
+  if (increased === decreased || increased <= 0 || decreased <= 0) return 'Serious'
+  for (const [name, eff] of Object.entries(natureEffects)) {
+    if (eff.increased === increased && eff.decreased === decreased) return name
+  }
+  return 'Serious'
+}
 /**
  * Get nature modifier for a given stat
  * @param nature The Pokemon's nature
