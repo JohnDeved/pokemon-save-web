@@ -1,7 +1,7 @@
 import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
 import { ScrollableContainer, Skeleton } from '@/components/common'
 import { PokemonNatureCombobox } from '@/components/pokemon/PokemonNatureCombobox'
-import { getStatAbbr, statAbbreviations, natureEffects } from '@/lib/parser/core/utils'
+import { getStatAbbr, statAbbreviations, natureEffects, calculateTotalStatsDirect } from '@/lib/parser/core/utils'
 import { usePokemonStore } from '@/stores'
 import { useState } from 'react'
 
@@ -11,6 +11,7 @@ export const NatureTab: React.FC = () => {
   const natureName = pokemon?.data.nature ?? 'Unknown'
   const natureMods = pokemon?.data.natureModifiers
   const [chooseMode, setChooseMode] = useState<null | 'raise' | 'lower'>(null)
+  const [hoveredStat, setHoveredStat] = useState<number | null>(null)
 
 
   function findNatureForEffects(increased: number, decreased: number): string {
@@ -34,6 +35,40 @@ export const NatureTab: React.FC = () => {
     setChooseMode(null)
   }
 
+  // Calculate nature-only deltas for increased/decreased stats
+  let raisedDelta = 0
+  let loweredDelta = 0
+  const baseStats = pokemon?.details?.baseStats
+  const ivs = pokemon?.data?.ivs
+  const evs = pokemon?.data?.evs
+  const level = pokemon?.data?.level ?? 100
+  const currentTotals = pokemon?.data?.stats ?? []
+  if (baseStats && ivs && evs && natureMods) {
+    const neutralTotals = calculateTotalStatsDirect([...baseStats], [...ivs], [...evs], level, 'Serious')
+    const inc = natureMods.increased
+    const dec = natureMods.decreased
+    if (inc > 0 && currentTotals[inc] !== undefined && neutralTotals[inc] !== undefined) {
+      raisedDelta = Math.max(0, (currentTotals[inc] ?? 0) - (neutralTotals[inc] ?? 0))
+    }
+    if (dec > 0 && currentTotals[dec] !== undefined && neutralTotals[dec] !== undefined) {
+      loweredDelta = Math.max(0, (neutralTotals[dec] ?? 0) - (currentTotals[dec] ?? 0))
+    }
+  }
+
+  function getPreviewDelta(index: number): number | null {
+    if (!chooseMode || !natureMods || !baseStats || !ivs || !evs || !pokemon) return null
+    if (index === 0) return null
+    const incCurrent = natureMods.increased >= 0 ? natureMods.increased : 1
+    const decCurrent = natureMods.decreased >= 0 ? natureMods.decreased : 1
+    const inc = chooseMode === 'raise' ? index : incCurrent
+    const dec = chooseMode === 'lower' ? index : decCurrent
+    if (inc === dec) return 0
+    const nextNature = findNatureForEffects(inc, dec)
+    const newTotals = calculateTotalStatsDirect([...baseStats], [...ivs], [...evs], pokemon.data.level, nextNature)
+    const delta = (newTotals[index] ?? 0) - (currentTotals[index] ?? 0)
+    return delta
+  }
+
   return (
     <div className="flex-1 flex flex-col">
       <div className="relative flex-1">
@@ -49,9 +84,13 @@ export const NatureTab: React.FC = () => {
                   type="button"
                   onClick={() => setChooseMode(prev => (prev === 'raise' ? null : 'raise'))}
                   title="Click to change raised stat"
-                  className="inline-flex items-center gap-1 rounded-md border border-emerald-700/60 bg-emerald-900/30 text-emerald-300 px-2 py-1 text-xs hover:ring-1 hover:ring-emerald-300/40 transition-all duration-150 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-md"
+                  aria-pressed={chooseMode === 'raise'}
+                  className={`inline-flex items-center gap-1 rounded-md border border-emerald-700/60 bg-emerald-900/30 text-emerald-300 px-2 py-1 text-xs transition-all duration-150 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-emerald-300/40 ${
+                    chooseMode === 'raise' ? 'ring-2 ring-emerald-400/60 hover:ring-2 hover:ring-emerald-400/60 shadow-lg -translate-y-0.5 animate-glow-emerald' : ''
+                  }`}
                 >
                   <IoCaretUp className="text-emerald-300" /> Raises {getStatAbbr(natureMods.increased)}
+                  {raisedDelta > 0 && <span className="ml-1 text-emerald-200/90">+{raisedDelta}</span>}
                 </button>
               )}
               {natureMods && natureMods.decreased >= 0 && (
@@ -59,9 +98,13 @@ export const NatureTab: React.FC = () => {
                   type="button"
                   onClick={() => setChooseMode(prev => (prev === 'lower' ? null : 'lower'))}
                   title="Click to change lowered stat"
-                  className="inline-flex items-center gap-1 rounded-md border border-rose-700/60 bg-rose-900/30 text-rose-300 px-2 py-1 text-xs hover:ring-1 hover:ring-rose-300/40 transition-all duration-150 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-md"
+                  aria-pressed={chooseMode === 'lower'}
+                  className={`inline-flex items-center gap-1 rounded-md border border-rose-700/60 bg-rose-900/30 text-rose-300 px-2 py-1 text-xs transition-all duration-150 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-rose-300/40 ${
+                    chooseMode === 'lower' ? 'ring-2 ring-rose-400/60 hover:ring-2 hover:ring-rose-400/60 shadow-lg -translate-y-0.5 animate-glow-rose' : ''
+                  }`}
                 >
                   <IoCaretDown className="text-rose-300" /> Lowers {getStatAbbr(natureMods.decreased)}
+                  {loweredDelta > 0 && <span className="ml-1 text-rose-200/90">-{loweredDelta}</span>}
                 </button>
               )}
               {(!natureMods || (natureMods.increased === -1 && natureMods.decreased === -1)) && <div className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800/40 text-slate-300 px-2 py-1 text-xs">Neutral nature</div>}
@@ -94,15 +137,35 @@ export const NatureTab: React.FC = () => {
                       : 'opacity-40 cursor-not-allowed'
                     : 'transition-all duration-150 ease-out'
 
+                  const preview = hoveredStat === i ? getPreviewDelta(i) : null
+                  let displayDelta: number | null = null
+                  if (chooseMode && hoveredStat === i) {
+                    if (preview === 0) {
+                      if (chooseMode === 'raise' && natureMods?.increased === i && raisedDelta > 0) {
+                        displayDelta = raisedDelta
+                      } else if (chooseMode === 'lower' && natureMods?.decreased === i && loweredDelta > 0) {
+                        displayDelta = -loweredDelta
+                      }
+                    } else if (typeof preview === 'number' && preview !== 0) {
+                      displayDelta = preview
+                    }
+                  }
                   return (
                     <div
                       key={`nature-stat-${i}`}
                       className={`${base} ${color} ${interactiveCls}`}
                       onClick={() => chooseMode && interactive && handleSelectCounterpart(i)}
+                      onMouseEnter={() => (chooseMode && interactive ? setHoveredStat(i) : undefined)}
+                      onMouseLeave={() => (hoveredStat === i ? setHoveredStat(null) : undefined)}
                       role={chooseMode ? 'button' : undefined}
                       aria-disabled={chooseMode && !interactive ? true : undefined}
                     >
                       {abbr}
+                      {displayDelta !== null && (
+                        <span className={`ml-1 ${displayDelta > 0 ? 'text-emerald-200/90' : 'text-rose-200/90'}`}>
+                          {displayDelta > 0 ? `+${displayDelta}` : `${displayDelta}`}
+                        </span>
+                      )}
                     </div>
                   )
                 })}
