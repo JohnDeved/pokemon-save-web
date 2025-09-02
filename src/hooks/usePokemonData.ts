@@ -1,8 +1,22 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 import type { z } from 'zod'
-import { AbilityApiResponseSchema, MoveApiResponseSchema, PokeApiFlavorTextEntrySchema, PokemonApiResponseSchema, PokemonTypeSchema, type Ability, type AbilityApiResponse, type MoveApiResponse, type MoveWithDetails, type PokeApiFlavorTextEntry, type PokemonType, type UIPokemonData } from '../types'
-import { usePokemonStore, buildPartyListFromSaveData, useSaveFileStore } from '../stores'
+import { buildPartyListFromSaveData, usePokemonStore, useSaveFileStore } from '../stores'
+import {
+  type Ability,
+  type AbilityApiResponse,
+  AbilityApiResponseSchema,
+  type ItemApiResponse,
+  ItemApiResponseSchema,
+  type MoveApiResponse,
+  MoveApiResponseSchema,
+  type MoveWithDetails,
+  PokeApiFlavorTextEntrySchema,
+  PokemonApiResponseSchema,
+  type PokemonType,
+  PokemonTypeSchema,
+  type UIPokemonData,
+} from '../types'
 
 // --- Constants ---
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN'
@@ -39,7 +53,7 @@ async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T
 /**
  * Helper to get the best English description from effect_entries or flavor_text_entries.
  */
-function getBestEnglishDescription(apiObj: MoveApiResponse | AbilityApiResponse): string {
+function getBestEnglishDescription(apiObj: MoveApiResponse | AbilityApiResponse | ItemApiResponse): string {
   // Prefer effect_entries in English
   const effectEntry = apiObj.effect_entries?.find(e => e.language.name === 'en')
   if (effectEntry?.effect) return effectEntry.effect
@@ -47,19 +61,34 @@ function getBestEnglishDescription(apiObj: MoveApiResponse | AbilityApiResponse)
   // Fallback to latest English flavor_text_entry using Zod schema, but only keep the latest
   if (!Array.isArray(apiObj.flavor_text_entries)) return 'No description available.'
 
-  let latest: PokeApiFlavorTextEntry | undefined
+  let latestText: string | undefined
   let latestId = -1
-  for (const entry of apiObj.flavor_text_entries) {
-    const parsed = PokeApiFlavorTextEntrySchema.safeParse(entry)
-    if (!(parsed.success && parsed.data.language.name === 'en')) continue
-    const match = parsed.data.version_group.url.match(/\/(\d+)\/?$/)
+  for (const entry of apiObj.flavor_text_entries as unknown[]) {
+    // Try move/ability schema first (flavor_text)
+    const parsedMoveFlavor = PokeApiFlavorTextEntrySchema.safeParse(entry)
+    let text: string | undefined
+    let url: string | undefined
+    if (parsedMoveFlavor.success) {
+      if (parsedMoveFlavor.data.language.name !== 'en') continue
+      text = parsedMoveFlavor.data.flavor_text
+      url = parsedMoveFlavor.data.version_group.url
+    } else {
+      // Try item flavor schema (text)
+      const maybeItem = entry as any
+      if (!(maybeItem && maybeItem.language && maybeItem.language.name)) continue
+      if (maybeItem.language.name !== 'en') continue
+      text = typeof maybeItem.text === 'string' ? maybeItem.text : undefined
+      url = maybeItem.version_group?.url
+    }
+    if (!text) continue
+    const match = typeof url === 'string' ? url.match(/\/(\d+)\/?$/) : null
     const id = match ? parseInt(match[1]!, 10) : 0
     if (id > latestId) {
-      latest = parsed.data
+      latestText = text
       latestId = id
     }
   }
-  if (latest) return latest.flavor_text.replace(/\s+/g, ' ').trim()
+  if (latestText) return latestText.replace(/\s+/g, ' ').trim()
   return 'No description available.'
 }
 
@@ -117,7 +146,24 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
       accuracy: null,
     }
   })
-  return { types, abilities, moves, baseStats }
+  // Fetch held item details if any (by id_name only)
+  let item: { name: string; description: string } | undefined
+  if (data.itemIdName) {
+    try {
+      const itemResp = await fetchAndValidate<ItemApiResponse>(`https://pokeapi.co/api/v2/item/${data.itemIdName}`, ItemApiResponseSchema)
+      item = {
+        name: formatName(itemResp.name),
+        description: getBestEnglishDescription(itemResp),
+      }
+    } catch {
+      item = {
+        name: formatName(data.itemIdName),
+        description: 'Could not fetch item data.',
+      }
+    }
+  }
+
+  return { types, abilities, moves, baseStats, item }
 }
 
 /**

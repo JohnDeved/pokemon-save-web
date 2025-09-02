@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Card } from '@/components/common'
+import { getItemSpriteUrl } from '@/lib/parser/core/utils'
 import { cn } from '@/lib/utils'
 import type { Pokemon } from '@/types'
-import { Card } from '@/components/common'
 
 // Health percentage thresholds for color coding
 const HP_THRESHOLDS = {
@@ -64,7 +65,8 @@ const PokemonSprite: React.FC<{
   fallbackSrc: string
   alt?: string
   paused?: boolean
-}> = ({ src, fallbackSrc, alt, paused }) => {
+  children?: React.ReactNode
+}> = ({ src, fallbackSrc, alt, paused, children }) => {
   // Determine if the src is a GIF
   const isGif = src && src.toLowerCase().endsWith('.gif')
   // Use the useGifFrame hook only for GIFs
@@ -81,6 +83,7 @@ const PokemonSprite: React.FC<{
       <img src={imgSrc} className={cn('absolute z-0 opacity-80 blur-md object-contain', '[image-rendering:pixelated]', 'max-w-[96px] max-h-[96px]')} onError={handleError} aria-hidden="true" />
       {/* Main sprite image, not upscaled */}
       <img src={imgSrc} className={cn('z-10 object-contain transition-transform duration-300', '[image-rendering:pixelated]', 'max-w-[96px] max-h-[96px]', 'drop-shadow-[2px_2px_2px_black]')} onError={handleError} alt={alt} />
+      {children}
     </div>
   )
 }
@@ -103,7 +106,9 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
 
   return (
     <Card className={cn('flex items-center p-3 transition-all duration-300', containerClasses)}>
-      <PokemonSprite src={pokemon.spriteAniUrl} fallbackSrc={pokemon.spriteUrl} alt={pokemon.data.nickname} paused={!isActive} />
+      <PokemonSprite src={pokemon.spriteAniUrl} fallbackSrc={pokemon.spriteUrl} alt={pokemon.data.nickname} paused={!isActive}>
+        {pokemon.data.itemIdName ? <img src={getItemSpriteUrl(pokemon.data.itemIdName)} alt={pokemon.data.itemIdName} className="absolute bottom-0 right-0 z-20 w-5 h-5 rounded-sm border border-slate-900 shadow-md image-pixelate bg-slate-950/70" /> : null}
+      </PokemonSprite>
       <div className="flex-grow">
         <div className="flex justify-between items-center text-sm">
           <h3 className="text-white">{pokemon.data.nickname}</h3>

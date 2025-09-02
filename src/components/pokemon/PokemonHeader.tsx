@@ -1,4 +1,3 @@
-import { getItemSpriteUrl } from '@/lib/parser/core/utils'
 import { usePokemonStore } from '@/stores'
 import { FaHashtag, FaWandMagicSparkles } from 'react-icons/fa6'
 import { IoSparkles } from 'react-icons/io5'
@@ -57,7 +56,6 @@ export const PokemonHeader: React.FC<PokemonHeaderProps> = ({ isLoading = false 
             ))}
           </Skeleton.Container>
           <div className="flex items-center gap-2 min-w-8">
-            {pokemon?.data.itemIdName && <img src={getItemSpriteUrl(pokemon.data.itemIdName)} alt={pokemon.data.itemIdName} className="w-6 h-6" />}
             <PokemonNatureCombobox
               value={pokemon?.data.nature}
               onChange={nature => {

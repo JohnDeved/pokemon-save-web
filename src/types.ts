@@ -111,6 +111,26 @@ export const AbilityApiResponseSchema = z
   .passthrough()
 export type AbilityApiResponse = z.infer<typeof AbilityApiResponseSchema>
 
+export const ItemApiResponseSchema = z
+  .object({
+    name: z.string(),
+    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
+    // Items use `text` instead of `flavor_text` in flavor entries
+    flavor_text_entries: z
+      .array(
+        z
+          .object({
+            text: z.string(),
+            language: z.object({ name: z.string(), url: z.string() }),
+            version_group: PokeApiVersionGroupSchema,
+          })
+          .passthrough()
+      )
+      .optional(),
+  })
+  .passthrough()
+export type ItemApiResponse = z.infer<typeof ItemApiResponseSchema>
+
 // --- Interfaces ---
 export interface BaseMove {
   name: string
@@ -155,4 +175,5 @@ export interface PokemonDetails {
   abilities: Ability[]
   moves: MoveWithDetails[]
   baseStats: number[]
+  item?: { name: string; description: string }
 }

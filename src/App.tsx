@@ -2,7 +2,7 @@ import { Suspense, useRef } from 'react'
 import { Card } from './components/common'
 import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
 import { ShaderBackground } from './components/common/ShaderBackground'
-import { CompactPokemonSelector, PokemonAbilitySection, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, SaveFileDropzone } from './components/pokemon'
+import { CompactPokemonSelector, PokemonTraitsSection, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, SaveFileDropzone } from './components/pokemon'
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
 import { usePokemonData } from './hooks'
@@ -131,7 +131,7 @@ export const App: React.FC = () => {
                   <PokemonStatDisplay isLoading={!activePokemon?.details || isLoading} />
                 </Card>
                 <Card className="z-10">
-                  <PokemonAbilitySection isLoading={!activePokemon?.details || isLoading} />
+                  <PokemonTraitsSection isLoading={!activePokemon?.details || isLoading} />
                 </Card>
               </div>
             </div>
