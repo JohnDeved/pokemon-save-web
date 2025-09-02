@@ -72,6 +72,11 @@
   .image-pixelate {
     image-rendering: pixelated;
   }
+
+  /* Align numbers to avoid layout jitter */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 @theme inline {
