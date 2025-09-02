@@ -17,6 +17,10 @@
   font-family: "Geist", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
+
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  font-smooth: auto;
 }
 
 /* Custom scrollbar styles */
