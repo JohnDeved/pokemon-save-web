@@ -10,6 +10,7 @@
   /* turn off Chrome’s sub‑pixel smoothing */
   -webkit-font-smoothing: none;        /* Chrome/Safari */
   -moz-osx-font-smoothing: grayscale;  /* macOS Firefox */
+  font-smooth: never;
 }
 
 .geist-font {
