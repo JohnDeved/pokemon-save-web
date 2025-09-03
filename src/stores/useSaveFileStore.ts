@@ -15,7 +15,8 @@ export interface SaveFileState {
 }
 
 export interface SaveFileActions {
-  parse: (file: File) => Promise<SaveData>
+  // Accept same inputs as PokemonSaveParser.parse to preserve file handle where possible
+  parse: (input: File | ArrayBuffer | FileSystemFileHandle) => Promise<SaveData>
   clearSaveFile: () => void
   reconstructAndDownload: (method?: 'download' | 'saveAs' | 'save') => Promise<void>
 }
@@ -32,18 +33,21 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
   parser: null,
 
   // Actions
-  parse: async (file: File) => {
+  parse: async (input: File | ArrayBuffer | FileSystemFileHandle) => {
     set({ isLoading: true, error: null, lastParseFailed: false })
     try {
-      const parser = new PokemonSaveParser()
-      const saveData = await parser.parse(file)
+      // Reuse existing parser instance to preserve fileHandle (for Save button)
+      let parser = get().parser
+      if (!parser) parser = new PokemonSaveParser()
+
+      const saveData = await parser.parse(input)
       set({
         saveData,
         isLoading: false,
         error: null,
         hasFile: true,
         lastParseFailed: false,
-        parser,
+        parser, // keep the same instance so fileHandle persists
       })
       return saveData
     } catch (error) {
