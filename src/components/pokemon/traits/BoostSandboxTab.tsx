@@ -39,10 +39,10 @@ export const BoostSandboxTab: React.FC = () => {
                   <div className="w-12 text-white font-pixel text-[11px] leading-none">{abbr}</div>
                   <div className="flex items-center gap-1.5">
                     <div className="flex flex-col overflow-hidden rounded-md border border-slate-700/70">
-                      <button type="button" className="bg-slate-900/40 text-slate-200 h-6 w-6 flex items-center justify-center hover:bg-slate-800/60" onClick={() => inc(i, +1)} aria-label={`Increase ${abbr}`}>
+                      <button type="button" className="bg-slate-900/40 text-slate-200 h-6 w-6 flex items-center justify-center hover:bg-slate-800/60 cursor-pointer" onClick={() => inc(i, +1)} aria-label={`Increase ${abbr}`}>
                         <IoCaretUp />
                       </button>
-                      <button type="button" className="bg-slate-900/40 text-slate-200 h-6 w-6 flex items-center justify-center hover:bg-slate-800/60 border-t border-slate-700/70" onClick={() => inc(i, -1)} aria-label={`Decrease ${abbr}`}>
+                      <button type="button" className="bg-slate-900/40 text-slate-200 h-6 w-6 flex items-center justify-center hover:bg-slate-800/60 border-t border-slate-700/70 cursor-pointer" onClick={() => inc(i, -1)} aria-label={`Decrease ${abbr}`}>
                         <IoCaretDown />
                       </button>
                     </div>

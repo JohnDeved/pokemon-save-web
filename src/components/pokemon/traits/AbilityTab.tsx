@@ -23,7 +23,7 @@ export const AbilityTab: React.FC = () => {
                   <button
                     key={`ability-${opt.slot}`}
                     type="button"
-                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors duration-150 ${isActive ? 'border-cyan-400/60 bg-cyan-900/20 text-cyan-200' : 'border-slate-700 bg-slate-800/40 text-slate-300 hover:border-cyan-400/40 hover:text-cyan-200'}`}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors duration-150 cursor-pointer ${isActive ? 'border-cyan-400/60 bg-cyan-900/20 text-cyan-200' : 'border-slate-700 bg-slate-800/40 text-slate-300 hover:border-cyan-400/40 hover:text-cyan-200'}`}
                     onClick={() => setAbilitySlot(pokemon.id, opt.slot)}
                   >
                     <span className="font-sans text-xs">{opt.name}</span>
