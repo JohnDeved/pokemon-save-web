@@ -19,6 +19,7 @@ export interface PokemonActions {
   setEvIndex: (pokemonId: number, statIndex: number, evValue: number) => void
   setIvIndex: (pokemonId: number, statIndex: number, ivValue: number) => void
   setNature: (pokemonId: number, nature: string) => void
+  setAbilitySlot: (pokemonId: number, slot: number) => void
   getRemainingEvs: (pokemonId: number) => number
   resetPokemonData: () => void
 }
@@ -94,6 +95,18 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         p.data.setNatureRaw(natureValue)
         // Optionally, recalculate stats if needed
         p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
+        return { ...p }
+      }),
+    }))
+  },
+
+  setAbilitySlot: (pokemonId: number, slot: number) => {
+    set(state => ({
+      partyList: state.partyList.map(p => {
+        if (p.id !== pokemonId || !p.details) return p
+        const desired = Math.max(0, Math.min(2, slot - 1))
+        if (p.data.abilityNumber === desired) return p
+        p.data.abilityNumber = desired
         return { ...p }
       }),
     }))

@@ -566,6 +566,18 @@ export class PokemonBase {
     return 0
   }
 
+  set abilityNumber(value: number) {
+    // Clamp to [0,2] and update encoded bits in status byte while preserving other flags
+    const clamped = Math.max(0, Math.min(2, value | 0))
+    const statusOffset = this.offsets.status
+    const current = this.view.getUint8(statusOffset)
+    // Clear ability bits (0x10 and 0x20), then set according to value
+    let next = current & ~(0x10 | 0x20)
+    if (clamped === 1) next |= 0x10
+    else if (clamped === 2) next |= 0x20
+    this.view.setUint8(statusOffset, next)
+  }
+
   get stats(): readonly number[] {
     return [this.maxHp, this.attack, this.defense, this.speed, this.spAttack, this.spDefense]
   }
