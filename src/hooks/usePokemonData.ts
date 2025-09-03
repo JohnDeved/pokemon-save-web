@@ -177,6 +177,7 @@ export const usePokemonData = () => {
   // Get save file state
   const saveData = useSaveFileStore(state => state.saveData)
   const saveFileParser = useSaveFileStore()
+  const saveSessionId = useSaveFileStore(state => state.saveSessionId)
 
   const queryClient = useQueryClient()
 
@@ -204,7 +205,8 @@ export const usePokemonData = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ['pokemon', 'details', String(activePokemonId)],
+    // Include saveSessionId and speciesId to isolate per loaded save/species
+    queryKey: ['pokemon', 'details', saveSessionId, activePokemon?.data?.speciesId ?? 'none', String(activePokemonId)],
     queryFn: () => (activePokemon ? getPokemonDetails(activePokemon) : Promise.reject(new Error('No active Pokémon'))),
     enabled: activePokemonId >= 0 && !!activePokemon,
     staleTime: 1000 * 60 * 60, // 1 hour
@@ -224,12 +226,12 @@ export const usePokemonData = () => {
       const pokemon = partyList.find((p: UIPokemonData) => p.id === id)
       if (!pokemon) return
       await queryClient.prefetchQuery({
-        queryKey: ['pokemon', 'details', String(id)],
+        queryKey: ['pokemon', 'details', saveSessionId, pokemon.data.speciesId, String(id)],
         queryFn: () => getPokemonDetails(pokemon),
         staleTime: 1000 * 60 * 60,
       })
     },
-    [partyList, queryClient]
+    [partyList, queryClient, saveSessionId]
   )
 
   return {

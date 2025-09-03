@@ -3,10 +3,11 @@ import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
 import { ScrollableContainer, Skeleton } from '@/components/common'
 import { PokemonNatureCombobox } from '@/components/pokemon/PokemonNatureCombobox'
 import { calculateTotalStatsDirect, findNatureForEffects, getStatAbbr, statAbbreviations } from '@/lib/parser/core/utils'
-import { usePokemonStore } from '@/stores'
+import { usePokemonStore, useSaveFileStore } from '@/stores'
 
 export const NatureTab: React.FC = () => {
   const { partyList, activePokemonId, setNature } = usePokemonStore()
+  const saveSessionId = useSaveFileStore(s => s.saveSessionId)
   const pokemon = partyList.find(p => p.id === activePokemonId)
   const natureName = pokemon?.data.nature ?? 'Unknown'
   const natureMods = pokemon?.data.natureModifiers
@@ -20,7 +21,7 @@ export const NatureTab: React.FC = () => {
   useEffect(() => {
     setChooseMode(null)
     setHoveredStat(null)
-  }, [activePokemonId])
+  }, [activePokemonId, saveSessionId])
 
   function handleSelectCounterpart(index: number) {
     if (!pokemon || !natureMods) return

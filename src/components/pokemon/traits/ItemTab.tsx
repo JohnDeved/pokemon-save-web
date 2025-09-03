@@ -3,15 +3,17 @@ import { getItemSpriteUrl } from '@/lib/parser/core/utils'
 import { usePokemonStore } from '@/stores'
 import { PokemonItemCombobox } from '@/components/pokemon/PokemonItemCombobox'
 import { useIsFetching, useQueryClient } from '@tanstack/react-query'
+import { useSaveFileStore } from '@/stores'
 
 export const ItemTab: React.FC = () => {
   const { partyList, activePokemonId, setItemId } = usePokemonStore()
+  const saveSessionId = useSaveFileStore(s => s.saveSessionId)
   const pokemon = partyList.find(p => p.id === activePokemonId)
   const itemIdName = pokemon?.data.itemIdName
   const item = pokemon?.details?.item
   const itemName = item?.name ?? (itemIdName ? itemIdName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'None')
   const queryClient = useQueryClient()
-  const isRefetching = useIsFetching({ queryKey: ['pokemon', 'details', String(pokemon?.id ?? -1)] }) > 0
+  const isRefetching = useIsFetching({ queryKey: ['pokemon', 'details', saveSessionId, pokemon?.data.speciesId ?? 'none', String(pokemon?.id ?? -1)] }) > 0
   const FALLBACK_BIG = '/pokemon_item_placeholder_32x32.png'
 
   return (
@@ -39,8 +41,8 @@ export const ItemTab: React.FC = () => {
                       if (!sel) setItemId(pokemon.id, 0)
                       else setItemId(pokemon.id, sel.id)
                       // Refresh details to update description
-                      void queryClient.invalidateQueries({ queryKey: ['pokemon', 'details', String(pokemon.id)] })
-                      void queryClient.refetchQueries({ queryKey: ['pokemon', 'details', String(pokemon.id)] })
+                      void queryClient.invalidateQueries({ queryKey: ['pokemon', 'details', saveSessionId, pokemon.data.speciesId, String(pokemon.id)] })
+                      void queryClient.refetchQueries({ queryKey: ['pokemon', 'details', saveSessionId, pokemon.data.speciesId, String(pokemon.id)] })
                     }}
                     asText
                     triggerClassName="font-pixel text-base sm:text-lg text-white"

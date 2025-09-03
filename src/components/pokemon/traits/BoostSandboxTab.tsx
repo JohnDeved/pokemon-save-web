@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
 import { ScrollableContainer } from '@/components/common'
 import { statAbbreviations } from '@/lib/parser/core/utils'
-import { usePokemonStore } from '@/stores'
+import { usePokemonStore, useSaveFileStore } from '@/stores'
 
 // Helpers
 const clampStage = (v: number) => Math.max(-6, Math.min(6, Math.trunc(v)))
@@ -11,13 +11,14 @@ const fmtDelta = (n: number) => (n === 0 ? '±0' : n > 0 ? `+${n}` : `${n}`)
 
 export const BoostSandboxTab: React.FC = () => {
   const { partyList, activePokemonId } = usePokemonStore()
+  const saveSessionId = useSaveFileStore(s => s.saveSessionId)
   const pokemon = partyList.find(p => p.id === activePokemonId)
   const baseTotals = pokemon?.data?.stats ?? [0, 0, 0, 0, 0, 0]
 
   const [stages, setStages] = useState<number[]>([0, 0, 0, 0, 0, 0])
   useEffect(() => {
     setStages([0, 0, 0, 0, 0, 0])
-  }, [activePokemonId])
+  }, [activePokemonId, saveSessionId])
 
   const setStage = (i: number, value: number) => setStages(prev => prev.map((v, idx) => (idx === i ? clampStage(value) : v)))
   const inc = (i: number, d: number) => setStage(i, (stages[i] ?? 0) + d)

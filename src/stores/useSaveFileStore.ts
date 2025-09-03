@@ -2,6 +2,7 @@ import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import { create } from 'zustand'
 import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
+import { usePokemonStore } from './usePokemonStore'
 import type { SaveData } from '../lib/parser/core/types'
 import type { GlobalThisWithFileSystemAPI } from '../types/global'
 
@@ -12,6 +13,8 @@ export interface SaveFileState {
   hasFile: boolean
   lastParseFailed: boolean
   parser: PokemonSaveParser | null
+  // Increments each time a new save file is successfully loaded or cleared
+  saveSessionId: number
 }
 
 export interface SaveFileActions {
@@ -31,10 +34,15 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
   hasFile: false,
   lastParseFailed: false,
   parser: null,
+  saveSessionId: 0,
 
   // Actions
   parse: async (input: File | ArrayBuffer | FileSystemFileHandle) => {
-    set({ isLoading: true, error: null, lastParseFailed: false })
+    // Clear derived UI details immediately and bump session to isolate caches
+    try {
+      usePokemonStore.getState().clearPokemonDetails()
+    } catch {}
+    set(state => ({ isLoading: true, error: null, lastParseFailed: false, saveSessionId: state.saveSessionId + 1 }))
     try {
       // Reuse existing parser instance to preserve fileHandle (for Save button)
       let parser = get().parser
@@ -69,6 +77,8 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
       hasFile: false,
       lastParseFailed: false,
       parser: null,
+      // Also bump session to ensure UI clears any derived local state
+      saveSessionId: get().saveSessionId + 1,
     })
   },
 

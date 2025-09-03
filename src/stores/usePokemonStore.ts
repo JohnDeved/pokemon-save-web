@@ -23,6 +23,7 @@ export interface PokemonActions {
   setItemId: (pokemonId: number, itemId: number | null) => void
   getRemainingEvs: (pokemonId: number) => number
   resetPokemonData: () => void
+  clearPokemonDetails: () => void
 }
 
 export type PokemonStore = PokemonState & PokemonActions
@@ -143,6 +144,12 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
       activePokemonId: 0,
       partyList: [],
     })
+  },
+
+  clearPokemonDetails: () => {
+    set(state => ({
+      partyList: state.partyList.map(p => ({ ...p, details: undefined })),
+    }))
   },
 }))
 

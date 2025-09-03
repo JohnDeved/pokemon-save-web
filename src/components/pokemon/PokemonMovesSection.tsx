@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { usePokemonStore } from '@/stores'
+import { useSaveFileStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { PokemonMoveButton } from '@/components/pokemon/PokemonMoveButton'
 import { PokemonMovePlaceholder } from '@/components/pokemon/PokemonMovePlaceholder'
@@ -10,9 +11,13 @@ interface PokemonMovesProps {
 
 export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({ isLoading = false }) => {
   const { partyList, activePokemonId } = usePokemonStore()
+  const saveSessionId = useSaveFileStore(s => s.saveSessionId)
   const pokemon = partyList.find(p => p.id === activePokemonId)
   const moves = pokemon?.details?.moves ?? []
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
+  useEffect(() => {
+    setExpandedMoveIndex(null)
+  }, [activePokemonId, saveSessionId])
   const totalSlots = 4
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
