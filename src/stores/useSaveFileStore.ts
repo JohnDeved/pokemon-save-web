@@ -101,6 +101,15 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
         const writable = await handle.createWritable()
         await writable.write(blob)
         await writable.close()
+        // Persist the new handle so subsequent 'Save' is enabled
+        parser.fileHandle = handle as any
+        // Update display name if available
+        try {
+          // @ts-ignore name exists on FileSystemFileHandle
+          if ((handle as any).name) parser.saveFileName = (handle as any).name as string
+        } catch {}
+        // Trigger store update with current parser reference
+        set({ parser })
         return
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error'
