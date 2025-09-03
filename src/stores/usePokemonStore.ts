@@ -149,12 +149,18 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 // Helper function to build party list from save data
 export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] => {
   return saveData.party_pokemon.map((parsedPokemon: PokemonBase, index: number) => {
-    const { isShiny } = parsedPokemon
+    const { isShiny, isRadiant } = parsedPokemon
+    // Treat Radiant as using shiny sprite assets
+    const useAltSprite = isShiny || isRadiant
     const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
-    const spriteUrl = isShiny ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png` : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
+    const spriteUrl = useAltSprite
+      ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
+      : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
 
     const SPRITE_ANI_BASE_URL = '/sprites'
-    const spriteAniUrl = isShiny ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif` : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
+    const spriteAniUrl = useAltSprite
+      ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif`
+      : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
     return {
       id: index,
       spriteUrl,
