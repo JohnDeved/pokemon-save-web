@@ -2,14 +2,19 @@ import { Suspense, useRef } from 'react'
 import { Card } from './components/common'
 import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
 import { ShaderBackground } from './components/common/ShaderBackground'
-import { CompactPokemonSelector, PokemonTraitsSection, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, SaveFileDropzone } from './components/pokemon'
-import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
+import { CompactPokemonSelector, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, PokemonTraitsSection, SaveFileDropzone } from './components/pokemon'
+import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
 import { usePokemonData } from './hooks'
+import { useSettingsStore } from './stores'
 import type { GlobalThisWithFileSystemAPI } from './types/global'
 
 export const App: React.FC = () => {
   const { partyList, activePokemon, isLoading, saveFileParser, preloadPokemonDetails } = usePokemonData()
+
+  // UI preferences from persisted store
+  const shaderEnabled = useSettingsStore(s => s.shaderEnabled)
+  const setShaderEnabled = useSettingsStore(s => s.setShaderEnabled)
 
   // Check if the browser supports the File System Access API
   const canSaveAs = typeof globalThis !== 'undefined' && !!(globalThis as unknown as GlobalThisWithFileSystemAPI).showSaveFilePicker
@@ -25,9 +30,11 @@ export const App: React.FC = () => {
       {/* Background pattern appears immediately */}
       <div className="fixed inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]" />
       {/* Shader overlay fades in after pattern */}
-      <Suspense fallback={null}>
-        <ShaderBackground />
-      </Suspense>
+      {shaderEnabled && (
+        <Suspense fallback={null}>
+          <ShaderBackground />
+        </Suspense>
+      )}
       <Toaster richColors position="bottom-center" />
       <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
         <SaveFileDropzone
@@ -105,6 +112,10 @@ export const App: React.FC = () => {
                   <MenubarMenu>
                     <MenubarTrigger>Help</MenubarTrigger>
                     <MenubarContent>
+                      <MenubarCheckboxItem checked={shaderEnabled} onCheckedChange={v => setShaderEnabled(Boolean(v))}>
+                        Shader Background
+                      </MenubarCheckboxItem>
+                      <MenubarSeparator />
                       <MenubarItem
                         onClick={() => {
                           location.reload()
