@@ -3,6 +3,7 @@ import { AbilityTab } from '@/components/pokemon/traits/AbilityTab'
 import { ItemTab } from '@/components/pokemon/traits/ItemTab'
 import { NatureTab } from '@/components/pokemon/traits/NatureTab'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { BoostSandboxTab } from '@/components/pokemon/traits/BoostSandboxTab'
 
 interface PokemonAbilitySectionProps {
   isLoading?: boolean
@@ -26,10 +27,17 @@ export const PokemonTraitsSection: React.FC<PokemonAbilitySectionProps> = ({ isL
                   <TabsTrigger value="item" className="font-pixel text-[10px] sm:text-xs">
                     Held Item
                   </TabsTrigger>
+                  <TabsTrigger value="boosts" className="font-pixel text-[10px] sm:text-xs">
+                    Boosts
+                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
           </div>
+
+          <TabsContent value="nature" className="flex-1 flex flex-col">
+            <NatureTab />
+          </TabsContent>
 
           <TabsContent value="ability" className="flex-1 flex flex-col">
             <AbilityTab />
@@ -39,8 +47,8 @@ export const PokemonTraitsSection: React.FC<PokemonAbilitySectionProps> = ({ isL
             <ItemTab />
           </TabsContent>
 
-          <TabsContent value="nature" className="flex-1 flex flex-col">
-            <NatureTab />
+          <TabsContent value="boosts" className="flex-1 flex flex-col">
+            <BoostSandboxTab />
           </TabsContent>
         </Tabs>
       </div>

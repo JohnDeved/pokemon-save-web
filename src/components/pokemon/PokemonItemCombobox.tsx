@@ -6,7 +6,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import itemMapData from '@/lib/parser/games/quetzal/data/item_map.json'
 import { cn } from '@/lib/utils'
 import { getItemSpriteUrl } from '@/lib/parser/core/utils'
-import { useSaveFileStore } from '@/stores'
 
 type ItemEntry = { id: number; name: string; id_name: string }
 
@@ -30,7 +29,6 @@ export function PokemonItemCombobox({ valueIdName, onChange, disabled = false, t
   const [open, setOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [side, setSide] = React.useState<'top' | 'bottom'>('top')
-  const parser = useSaveFileStore(state => state.parser)
 
   function decideSideFromEl(el: HTMLElement | null) {
     if (!el) return
@@ -39,23 +37,7 @@ export function PokemonItemCombobox({ valueIdName, onChange, disabled = false, t
     setSide(viewportH - rect.bottom >= rect.top ? 'bottom' : 'top')
   }
 
-  // Build item options from current game config when available; fallback to default Quetzal map
-  const items: ItemEntry[] = React.useMemo(() => {
-    const config = parser?.getGameConfig?.()
-    const map = config?.mappings?.items
-    if (map && map.size > 0) {
-      const arr: ItemEntry[] = []
-      for (const entry of map.values()) {
-        const id = (entry as any).id as number | null
-        if (id == null) continue
-        arr.push({ id, name: (entry as any).name as string, id_name: (entry as any).id_name as string })
-      }
-      return arr.sort((a, b) => a.name.localeCompare(b.name))
-    }
-    return ITEMS
-  }, [parser])
-
-  const selected = valueIdName ? items.find(i => i.id_name === valueIdName) : undefined
+  const selected = valueIdName ? ITEMS.find(i => i.id_name === valueIdName) : undefined
   const label = selected?.name ?? 'None'
 
   const commonTriggerProps = {
@@ -129,7 +111,7 @@ export function PokemonItemCombobox({ valueIdName, onChange, disabled = false, t
               </CommandItem>
             </CommandGroup>
             <CommandGroup heading="Items">
-              {items.map(item => {
+              {ITEMS.map(item => {
                 const isSelected = selected?.id === item.id
                 return (
                   <CommandItem
