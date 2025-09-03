@@ -48,7 +48,7 @@ export const BoostSandboxTab: React.FC = () => {
                     </div>
                     <div className="flex flex-col items-center leading-none min-w-[40px]">
                       <span
-                        className={`px-1 py-0.5 rounded-md text-[9px] tabular-nums ${stage > 0 ? 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/60' : stage < 0 ? 'bg-rose-900/30 text-rose-300 border border-rose-700/60' : 'bg-slate-800/40 text-slate-300 border border-slate-700/70'}`}
+                        className={`px-1 py-0.5 mb-0.5 rounded-md text-[9px] tabular-nums ${stage > 0 ? 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/60' : stage < 0 ? 'bg-rose-900/30 text-rose-300 border border-rose-700/60' : 'bg-slate-800/40 text-slate-300 border border-slate-700/70'}`}
                       >
                         {stage > 0 ? `+${stage}` : stage}
                       </span>
@@ -61,7 +61,7 @@ export const BoostSandboxTab: React.FC = () => {
                     <div />
                     <div className="text-slate-500">Result</div>
                     <div className={`text-right tabular-nums w-14 leading-none ${delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-rose-300' : 'text-slate-300'}`}>{effective}</div>
-                    <div className={`tabular-nums leading-none ${delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-rose-300' : 'text-slate-500'}`}>{fmtDelta(delta)}</div>
+                    <div className={`tabular-nums text-right w-[5ch] whitespace-nowrap leading-none ${delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-rose-300' : 'text-slate-500'}`}>{fmtDelta(delta)}</div>
                   </div>
                 </div>
               )
