@@ -1,17 +1,17 @@
-import { Button } from '@/components/ui/button'
-import { HiOutlineCloudDownload } from 'react-icons/hi'
-import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+import { useEffect, useState } from 'react'
+import { HiOutlineCloudDownload } from 'react-icons/hi'
+import { Button } from '@/components/ui/button'
+import { useSettingsStore } from '@/stores'
+import type { BeforeInstallPromptEvent } from '@/types/pwa'
 
 export const PWAInstallPrompt: React.FC = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
   const [dismissedForDev, setDismissedForDev] = useState(false)
+  const deferredPrompt = useSettingsStore(s => s.deferredPrompt)
+  const setDeferredPrompt = useSettingsStore(s => s.setDeferredPrompt)
+  const pwaDismissed = useSettingsStore(s => s.pwaInstall?.dismissed ?? false)
+  const setPwaDismissed = useSettingsStore(s => s.setPwaDismissed)
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -19,14 +19,17 @@ export const PWAInstallPrompt: React.FC = () => {
       e.preventDefault()
       // Store the event so it can be triggered later
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setShowPrompt(true)
+      // Only auto-show if not previously dismissed
+      if (!pwaDismissed) {
+        setShowPrompt(true)
+      }
     }
 
     globalThis.addEventListener('beforeinstallprompt', handler)
 
     // Debug: Simulate the prompt on localhost if not already shown and not dismissed (session only)
     const isLocalhost = globalThis.location.hostname === 'localhost' || globalThis.location.hostname === '127.0.0.1'
-    if (isLocalhost && !deferredPrompt && !showPrompt && !dismissedForDev) {
+    if (isLocalhost && !deferredPrompt && !showPrompt && !dismissedForDev && !pwaDismissed) {
       // Fake BeforeInstallPromptEvent for debug
       const fakePrompt: BeforeInstallPromptEvent = {
         prompt: async () => {},
@@ -40,7 +43,7 @@ export const PWAInstallPrompt: React.FC = () => {
     return () => {
       globalThis.removeEventListener('beforeinstallprompt', handler)
     }
-  }, [deferredPrompt, showPrompt, dismissedForDev])
+  }, [deferredPrompt, showPrompt, dismissedForDev, pwaDismissed, setDeferredPrompt])
 
   const handleInstall = async () => {
     if (!deferredPrompt) return
@@ -63,6 +66,8 @@ export const PWAInstallPrompt: React.FC = () => {
     if (globalThis.location.hostname === 'localhost' || globalThis.location.hostname === '127.0.0.1') {
       setDismissedForDev(true)
     }
+    // Persist dismissal across sessions
+    setPwaDismissed(true)
   }
 
   return (
@@ -97,4 +102,13 @@ export const PWAInstallPrompt: React.FC = () => {
       )}
     </AnimatePresence>
   )
+}
+
+export const triggerPWAInstall = async () => {
+  const prompt = useSettingsStore.getState().deferredPrompt
+  if (!prompt) return false
+  await prompt.prompt()
+  await prompt.userChoice
+  useSettingsStore.getState().setDeferredPrompt(null)
+  return true
 }

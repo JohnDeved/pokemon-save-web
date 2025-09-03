@@ -1,6 +1,6 @@
 import { Suspense, useRef } from 'react'
 import { Card } from './components/common'
-import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
+import { PWAInstallPrompt, triggerPWAInstall } from './components/common/PWAInstallPrompt'
 import { ShaderBackground } from './components/common/ShaderBackground'
 import { CompactPokemonSelector, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, PokemonTraitsSection, SaveFileDropzone } from './components/pokemon'
 import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
@@ -24,6 +24,7 @@ export const App: React.FC = () => {
   const shouldShowDropzone = !hasSaveData && !saveFileParser.lastParseFailed
   // Store the file picker function from SaveFileDropzone using a ref to avoid update loops
   const filePickerRef = useRef<() => void>(null)
+  const hasInstallAvailable = useSettingsStore(s => !!s.deferredPrompt)
 
   return (
     <>
@@ -126,6 +127,9 @@ export const App: React.FC = () => {
                       <MenubarSeparator />
                       <MenubarItem disabled>Github</MenubarItem>
                       <MenubarItem disabled>About</MenubarItem>
+                      <MenubarItem disabled={!hasInstallAvailable} onClick={() => void triggerPWAInstall()}>
+                        Install App
+                      </MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>
                 </Menubar>
