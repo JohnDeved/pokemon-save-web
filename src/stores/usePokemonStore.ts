@@ -20,6 +20,7 @@ export interface PokemonActions {
   setIvIndex: (pokemonId: number, statIndex: number, ivValue: number) => void
   setNature: (pokemonId: number, nature: string) => void
   setAbilitySlot: (pokemonId: number, slot: number) => void
+  setItemId: (pokemonId: number, itemId: number | null) => void
   getRemainingEvs: (pokemonId: number) => number
   resetPokemonData: () => void
 }
@@ -107,6 +108,23 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         const desired = Math.max(0, Math.min(2, slot - 1))
         if (p.data.abilityNumber === desired) return p
         p.data.abilityNumber = desired
+        return { ...p }
+      }),
+    }))
+  },
+
+  setItemId: (pokemonId: number, itemId: number | null) => {
+    set(state => ({
+      partyList: state.partyList.map(p => {
+        if (p.id !== pokemonId) return p
+        p.data.setItem(itemId ?? 0)
+        // Update details immediately for name (description will refetch separately elsewhere)
+        const idName = p.data.itemIdName
+        if (p.details) {
+          const prettyName = idName ? idName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'None'
+          const newDetails = { ...p.details, item: idName ? { name: prettyName, description: p.details.item?.description ?? 'No description available.' } : undefined }
+          return { ...p, details: newDetails }
+        }
         return { ...p }
       }),
     }))

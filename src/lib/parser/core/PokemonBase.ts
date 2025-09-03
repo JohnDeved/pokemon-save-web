@@ -226,6 +226,31 @@ export class PokemonBase {
     return this.config.mappings?.items?.get(rawItem)?.id_name
   }
 
+  setItem(value: number | null): void {
+    const mappedId = value ?? 0
+    if (this.config.setItem) {
+      // Delegate to config-specific implementation
+      this.config.setItem(this.data, this.view, mappedId)
+      return
+    }
+    // Vanilla: write to bytes 2-3 of decrypted substruct 0
+    const substruct0 = this.getDecryptedSubstruct(this.data, 0)
+    const subView = new DataView(substruct0.buffer, substruct0.byteOffset, substruct0.byteLength)
+    // Convert mapped (external) ID back to raw internal using mapping if available
+    let rawValue = mappedId
+    const items = this.config.mappings?.items
+    if (items) {
+      for (const [raw, entry] of items.entries()) {
+        if (entry.id === mappedId) {
+          rawValue = raw
+          break
+        }
+      }
+    }
+    subView.setUint16(2, rawValue, true)
+    this.setEncryptedSubstruct(0, substruct0)
+  }
+
   get move1() {
     if (this.config.getMove) {
       const rawMove = this.config.getMove(this.data, this.view, 0)

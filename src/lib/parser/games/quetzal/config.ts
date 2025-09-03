@@ -123,6 +123,18 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
     return this.mappings.items.get(rawItem)?.id_name
   }
 
+  setItem(_data: Uint8Array, view: DataView, value: number): void {
+    // Convert mapped (external) ID back to internal raw ID if a mapping exists
+    let raw = value
+    for (const [rawKey, entry] of this.mappings.items.entries()) {
+      if (entry.id === value) {
+        raw = rawKey
+        break
+      }
+    }
+    view.setUint16(this.quetzalOffsets.item, raw, true)
+  }
+
   getMove(_data: Uint8Array, view: DataView, index: number): number {
     const moveOffsets = [this.quetzalOffsets.move1, this.quetzalOffsets.move2, this.quetzalOffsets.move3, this.quetzalOffsets.move4]
     const rawMove = view.getUint16(moveOffsets[index]!, true)

@@ -204,6 +204,7 @@ export interface GameConfig {
   getPokemonName?(data: Uint8Array, view: DataView): string | undefined
   getItem?(data: Uint8Array, view: DataView): number
   getItemName?(data: Uint8Array, view: DataView): string | undefined
+  setItem?(data: Uint8Array, view: DataView, value: number): void
   getMove?(data: Uint8Array, view: DataView, index: number): number
   getPP?(data: Uint8Array, view: DataView, index: number): number
   getEV?(data: Uint8Array, view: DataView, index: number): number
