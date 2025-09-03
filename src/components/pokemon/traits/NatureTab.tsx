@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
 import { ScrollableContainer, Skeleton } from '@/components/common'
 import { PokemonNatureCombobox } from '@/components/pokemon/PokemonNatureCombobox'
@@ -15,6 +15,12 @@ export const NatureTab: React.FC = () => {
   const isNeutralNature = !natureMods || (incIndex === -1 && decIndex === -1)
   const [chooseMode, setChooseMode] = useState<null | 'raise' | 'lower'>(null)
   const [hoveredStat, setHoveredStat] = useState<number | null>(null)
+
+  // Exit editing mode when switching to a different Pokemon
+  useEffect(() => {
+    setChooseMode(null)
+    setHoveredStat(null)
+  }, [activePokemonId])
 
   function handleSelectCounterpart(index: number) {
     if (!pokemon || !natureMods) return
