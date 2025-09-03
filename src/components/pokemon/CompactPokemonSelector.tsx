@@ -3,7 +3,9 @@ import { usePokemonStore } from '@/stores'
 import { Card } from '@/components/common'
 
 export const CompactPokemonSelector: React.FC = () => {
-  const { partyList, activePokemonId, setActivePokemonId } = usePokemonStore()
+  const partyList = usePokemonStore(s => s.partyList)
+  const activePokemonId = usePokemonStore(s => s.activePokemonId)
+  const setActivePokemonId = usePokemonStore(s => s.setActivePokemonId)
   const selectedPokemon = partyList.find(p => p.id === activePokemonId)
   if (!selectedPokemon) return null
 

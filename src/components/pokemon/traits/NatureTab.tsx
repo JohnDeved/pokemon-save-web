@@ -6,9 +6,10 @@ import { calculateTotalStatsDirect, findNatureForEffects, getStatAbbr, statAbbre
 import { usePokemonStore, useSaveFileStore } from '@/stores'
 
 export const NatureTab: React.FC = () => {
-  const { partyList, activePokemonId, setNature } = usePokemonStore()
+  const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
+  const activePokemonId = pokemon?.id ?? -1
+  const setNature = usePokemonStore(s => s.setNature)
   const saveSessionId = useSaveFileStore(s => s.saveSessionId)
-  const pokemon = partyList.find(p => p.id === activePokemonId)
   const natureName = pokemon?.data.nature ?? 'Unknown'
   const natureMods = pokemon?.data.natureModifiers
   const incIndex = natureMods?.increased ?? -1

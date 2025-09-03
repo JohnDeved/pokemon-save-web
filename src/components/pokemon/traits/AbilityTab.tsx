@@ -2,8 +2,8 @@ import { ScrollableContainer, Skeleton } from '@/components/common'
 import { usePokemonStore } from '@/stores'
 
 export const AbilityTab: React.FC = () => {
-  const { partyList, activePokemonId, setAbilitySlot } = usePokemonStore()
-  const pokemon = partyList.find(p => p.id === activePokemonId)
+  const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
+  const setAbilitySlot = usePokemonStore(s => s.setAbilitySlot)
   const ability = !pokemon?.details ? null : pokemon.details.abilities.find(a => a.slot === pokemon.data.abilityNumber + 1)
 
   return (

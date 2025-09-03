@@ -2,18 +2,16 @@ import { ScrollableContainer, Skeleton } from '@/components/common'
 import { getItemSpriteUrl } from '@/lib/parser/core/utils'
 import { usePokemonStore } from '@/stores'
 import { PokemonItemCombobox } from '@/components/pokemon/PokemonItemCombobox'
-import { useIsFetching, useQueryClient } from '@tanstack/react-query'
-import { useSaveFileStore } from '@/stores'
+import { useQueryClient } from '@tanstack/react-query'
+import { useActiveItemDetails } from '@/hooks'
 
 export const ItemTab: React.FC = () => {
-  const { partyList, activePokemonId, setItemId } = usePokemonStore()
-  const saveSessionId = useSaveFileStore(s => s.saveSessionId)
-  const pokemon = partyList.find(p => p.id === activePokemonId)
+  const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
+  const setItemId = usePokemonStore(s => s.setItemId)
   const itemIdName = pokemon?.data.itemIdName
-  const item = pokemon?.details?.item
-  const itemName = item?.name ?? (itemIdName ? itemIdName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'None')
+  const { itemDetails, isFetching, queryKey } = useActiveItemDetails()
+  const itemName = itemDetails?.name ?? (itemIdName ? itemIdName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'None')
   const queryClient = useQueryClient()
-  const isRefetching = useIsFetching({ queryKey: ['pokemon', 'details', saveSessionId, pokemon?.data.speciesId ?? 'none', String(pokemon?.id ?? -1)] }) > 0
   const FALLBACK_BIG = '/pokemon_item_placeholder_32x32.png'
 
   return (
@@ -40,9 +38,9 @@ export const ItemTab: React.FC = () => {
                     onChange={sel => {
                       if (!sel) setItemId(pokemon.id, 0)
                       else setItemId(pokemon.id, sel.id)
-                      // Refresh details to update description
-                      void queryClient.invalidateQueries({ queryKey: ['pokemon', 'details', saveSessionId, pokemon.data.speciesId, String(pokemon.id)] })
-                      void queryClient.refetchQueries({ queryKey: ['pokemon', 'details', saveSessionId, pokemon.data.speciesId, String(pokemon.id)] })
+                      // Refresh item details only for the active pokemon/item
+                      void queryClient.invalidateQueries({ queryKey })
+                      void queryClient.refetchQueries({ queryKey })
                     }}
                     asText
                     triggerClassName="font-pixel text-base sm:text-lg text-white"
@@ -52,8 +50,8 @@ export const ItemTab: React.FC = () => {
                 )}
               </div>
               <div className="geist-font text-xs text-slate-400 leading-relaxed mt-2">
-                <Skeleton.Text loading={isRefetching}>
-                  {item?.description ?? (itemIdName ? 'No description available.' : 'No held item.')}
+                <Skeleton.Text loading={isFetching}>
+                  {itemDetails?.description ?? (itemIdName ? 'No description available.' : 'No held item.')}
                 </Skeleton.Text>
               </div>
             </div>

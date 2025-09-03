@@ -10,9 +10,9 @@ const stageMultiplier = (stage: number) => (stage >= 0 ? (2 + clampStage(stage))
 const fmtDelta = (n: number) => (n === 0 ? '±0' : n > 0 ? `+${n}` : `${n}`)
 
 export const BoostSandboxTab: React.FC = () => {
-  const { partyList, activePokemonId } = usePokemonStore()
+  const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
+  const activePokemonId = pokemon?.id ?? -1
   const saveSessionId = useSaveFileStore(s => s.saveSessionId)
-  const pokemon = partyList.find(p => p.id === activePokemonId)
   const baseTotals = pokemon?.data?.stats ?? [0, 0, 0, 0, 0, 0]
 
   const [stages, setStages] = useState<number[]>([0, 0, 0, 0, 0, 0])

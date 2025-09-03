@@ -4,12 +4,10 @@ import { ItemTab } from '@/components/pokemon/traits/ItemTab'
 import { NatureTab } from '@/components/pokemon/traits/NatureTab'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BoostSandboxTab } from '@/components/pokemon/traits/BoostSandboxTab'
+import { useActivePokemonLoading } from '@/hooks'
 
-interface PokemonAbilitySectionProps {
-  isLoading?: boolean
-}
-
-export const PokemonTraitsSection: React.FC<PokemonAbilitySectionProps> = ({ isLoading = false }) => {
+export const PokemonTraitsSection: React.FC = () => {
+  const isLoading = useActivePokemonLoading()
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="flex flex-col h-full">

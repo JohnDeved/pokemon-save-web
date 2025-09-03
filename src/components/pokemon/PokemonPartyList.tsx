@@ -12,7 +12,9 @@ interface PokemonPartyListProps {
 }
 
 export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, onPokemonHover }) => {
-  const { partyList, activePokemonId, setActivePokemonId } = usePokemonStore()
+  const partyList = usePokemonStore(s => s.partyList)
+  const activePokemonId = usePokemonStore(s => s.activePokemonId)
+  const setActivePokemonId = usePokemonStore(s => s.setActivePokemonId)
   const emptySlots = Array.from({ length: Math.max(0, config.maxPartySize - partyList.length) })
 
   return (

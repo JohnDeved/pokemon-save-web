@@ -6,11 +6,12 @@ import { CompactPokemonSelector, PokemonHeader, PokemonMovesSection, PokemonPart
 import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
 import { usePokemonData } from './hooks'
+import { useSaveFileStore } from './stores'
 import { useSettingsStore } from './stores'
 import type { GlobalThisWithFileSystemAPI } from './types/global'
 
 export const App: React.FC = () => {
-  const { partyList, activePokemon, isLoading, saveFileParser, preloadPokemonDetails } = usePokemonData()
+  const { partyList, preloadPokemonDetails } = usePokemonData()
 
   // UI preferences from persisted store
   const shaderEnabled = useSettingsStore(s => s.shaderEnabled)
@@ -18,10 +19,18 @@ export const App: React.FC = () => {
 
   // Check if the browser supports the File System Access API
   const canSaveAs = typeof globalThis !== 'undefined' && !!(globalThis as unknown as GlobalThisWithFileSystemAPI).showSaveFilePicker
+  // Save file store selectors
+  const parse = useSaveFileStore(s => s.parse)
+  const error = useSaveFileStore(s => s.error)
+  const hasFile = useSaveFileStore(s => s.hasFile)
+  const lastParseFailed = useSaveFileStore(s => s.lastParseFailed)
+  const reconstructAndDownload = useSaveFileStore(s => s.reconstructAndDownload)
+  const parser = useSaveFileStore(s => s.parser)
+  const playerName = useSaveFileStore(s => s.saveData?.player_name)
   // Determine if there is save data to display
-  const hasSaveData = saveFileParser.hasFile && partyList.length > 0
+  const hasSaveData = hasFile && partyList.length > 0
   // Only show dropzone if there is no save data and last parse did not fail
-  const shouldShowDropzone = !hasSaveData && !saveFileParser.lastParseFailed
+  const shouldShowDropzone = !hasSaveData && !lastParseFailed
   // Store the file picker function from SaveFileDropzone using a ref to avoid update loops
   const filePickerRef = useRef<() => void>(null)
   const hasInstallAvailable = useSettingsStore(s => !!s.deferredPrompt)
@@ -39,8 +48,8 @@ export const App: React.FC = () => {
       <Toaster richColors position="bottom-center" />
       <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
         <SaveFileDropzone
-          onFileLoad={saveFileParser.parse}
-          error={saveFileParser.error}
+          onFileLoad={parse}
+          error={error}
           showDropzone={shouldShowDropzone}
           onOpenFilePicker={fn => {
             filePickerRef.current = fn
@@ -64,13 +73,13 @@ export const App: React.FC = () => {
                       </MenubarItem>
                       <MenubarItem disabled>Open Recent</MenubarItem>
                       <MenubarSeparator />
-                      <MenubarItem disabled={!saveFileParser.parser?.fileHandle} onClick={() => saveFileParser.reconstructAndDownload('save')}>
+                      <MenubarItem disabled={!parser?.fileHandle} onClick={() => reconstructAndDownload('save')}>
                         Save <MenubarShortcut>Ctrl+S</MenubarShortcut>
                       </MenubarItem>
-                      <MenubarItem onClick={() => saveFileParser.reconstructAndDownload('saveAs')} disabled={!canSaveAs}>
+                      <MenubarItem onClick={() => reconstructAndDownload('saveAs')} disabled={!canSaveAs}>
                         Save As
                       </MenubarItem>
-                      <MenubarItem onClick={() => saveFileParser.reconstructAndDownload()}>Download</MenubarItem>
+                      <MenubarItem onClick={() => reconstructAndDownload()}>Download</MenubarItem>
                       <MenubarSeparator />
                       <MenubarSub>
                         <MenubarSubTrigger>Party</MenubarSubTrigger>
@@ -88,7 +97,7 @@ export const App: React.FC = () => {
                         <MenubarSubTrigger>Player</MenubarSubTrigger>
                         <MenubarSubContent>
                           <MenubarItem disabled>
-                            Info <MenubarShortcut>{saveFileParser.saveData?.player_name}</MenubarShortcut>
+                            Info <MenubarShortcut>{playerName}</MenubarShortcut>
                           </MenubarItem>
                           <MenubarItem disabled>Rename</MenubarItem>
                         </MenubarSubContent>
@@ -139,14 +148,14 @@ export const App: React.FC = () => {
               </div>
               <div className="grid grid-rows-[auto_auto_1fr] gap-4">
                 <Card className="z-30">
-                  <PokemonHeader isLoading={isLoading} />
-                  <PokemonMovesSection isLoading={!activePokemon?.details || isLoading} />
+                  <PokemonHeader />
+                  <PokemonMovesSection />
                 </Card>
                 <Card className="z-20">
-                  <PokemonStatDisplay isLoading={!activePokemon?.details || isLoading} />
+                  <PokemonStatDisplay />
                 </Card>
                 <Card className="z-10">
-                  <PokemonTraitsSection isLoading={!activePokemon?.details || isLoading} />
+                  <PokemonTraitsSection />
                 </Card>
               </div>
             </div>

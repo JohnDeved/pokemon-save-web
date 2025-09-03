@@ -4,16 +4,24 @@ import { useSaveFileStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { PokemonMoveButton } from '@/components/pokemon/PokemonMoveButton'
 import { PokemonMovePlaceholder } from '@/components/pokemon/PokemonMovePlaceholder'
+import { useActivePokemonLoading } from '@/hooks'
+import type { MoveWithDetails, PokemonType } from '@/types'
 
-interface PokemonMovesProps {
-  isLoading?: boolean
-}
-
-export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({ isLoading = false }) => {
-  const { partyList, activePokemonId } = usePokemonStore()
+export const PokemonMovesSection: React.FC = () => {
+  const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
+  const activePokemonId = pokemon?.id ?? -1
   const saveSessionId = useSaveFileStore(s => s.saveSessionId)
-  const pokemon = partyList.find(p => p.id === activePokemonId)
+  const isLoading = useActivePokemonLoading()
   const moves = pokemon?.details?.moves ?? []
+  const EMPTY_MOVE: MoveWithDetails = {
+    id: 0,
+    name: 'None',
+    pp: 0,
+    type: 'UNKNOWN' as PokemonType,
+    description: 'No move assigned.',
+    power: null,
+    accuracy: null,
+  }
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
   useEffect(() => {
     setExpandedMoveIndex(null)
@@ -23,7 +31,7 @@ export const PokemonMovesSection: React.FC<PokemonMovesProps> = ({ isLoading = f
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-2 sm:p-3 grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2">
         {Array.from({ length: totalSlots }).map((_, i) => {
-          const move = moves[i]!
+          const move = moves[i] ?? EMPTY_MOVE
           if (!isLoading && move.id === 0) {
             // Show placeholder for empty slot or move id 0
             return (

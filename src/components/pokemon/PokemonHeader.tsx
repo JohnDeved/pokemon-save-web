@@ -2,18 +2,15 @@ import { usePokemonStore } from '@/stores'
 import { FaHashtag, FaWandMagicSparkles } from 'react-icons/fa6'
 import { IoSparkles } from 'react-icons/io5'
 import { Skeleton } from '@/components/common'
+import { useActivePokemonLoading } from '@/hooks'
 // import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
 // Nature editing moved to Traits section's Nature tab
 
-interface PokemonHeaderProps {
-  isLoading?: boolean
-}
-
-export const PokemonHeader: React.FC<PokemonHeaderProps> = ({ isLoading = false }) => {
-  const { partyList, activePokemonId } = usePokemonStore()
-  const pokemon = partyList.find(p => p.id === activePokemonId)
+export const PokemonHeader: React.FC = () => {
+  const isLoading = useActivePokemonLoading()
+  const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-3 border-b border-slate-800">

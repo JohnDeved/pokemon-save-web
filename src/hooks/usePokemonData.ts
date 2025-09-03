@@ -2,21 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 import type { z } from 'zod'
 import { buildPartyListFromSaveData, usePokemonStore, useSaveFileStore } from '../stores'
-import {
-  type Ability,
-  type AbilityApiResponse,
-  AbilityApiResponseSchema,
-  type ItemApiResponse,
-  ItemApiResponseSchema,
-  type MoveApiResponse,
-  MoveApiResponseSchema,
-  type MoveWithDetails,
-  PokeApiFlavorTextEntrySchema,
-  PokemonApiResponseSchema,
-  type PokemonType,
-  PokemonTypeSchema,
-  type UIPokemonData,
-} from '../types'
+import { type Ability, type AbilityApiResponse, AbilityApiResponseSchema, type MoveApiResponse, MoveApiResponseSchema, type MoveWithDetails, PokeApiFlavorTextEntrySchema, PokemonApiResponseSchema, type PokemonType, PokemonTypeSchema, type UIPokemonData } from '../types'
 
 // --- Constants ---
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN'
@@ -53,9 +39,9 @@ async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T
 /**
  * Helper to get the best English description from effect_entries or flavor_text_entries.
  */
-function getBestEnglishDescription(apiObj: MoveApiResponse | AbilityApiResponse | ItemApiResponse): string {
+function getBestEnglishDescription(apiObj: any): string {
   // Prefer effect_entries in English
-  const effectEntry = apiObj.effect_entries?.find(e => e.language.name === 'en')
+  const effectEntry = Array.isArray(apiObj.effect_entries) ? apiObj.effect_entries.find((e: any) => e.language?.name === 'en') : undefined
   if (effectEntry?.effect) return effectEntry.effect
 
   // Fallback to latest English flavor_text_entry using Zod schema, but only keep the latest
@@ -146,24 +132,8 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
       accuracy: null,
     }
   })
-  // Fetch held item details if any (by id_name only)
-  let item: { name: string; description: string } | undefined
-  if (data.itemIdName) {
-    try {
-      const itemResp = await fetchAndValidate<ItemApiResponse>(`https://pokeapi.co/api/v2/item/${data.itemIdName}`, ItemApiResponseSchema)
-      item = {
-        name: formatName(itemResp.name),
-        description: getBestEnglishDescription(itemResp),
-      }
-    } catch {
-      item = {
-        name: formatName(data.itemIdName),
-        description: 'Could not fetch item data.',
-      }
-    }
-  }
-
-  return { types, abilities, moves, baseStats, item }
+  // Item details are fetched separately for fine-grained loading states
+  return { types, abilities, moves, baseStats }
 }
 
 /**
@@ -171,12 +141,19 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
  * This is a compatibility layer that uses Zustand stores but maintains the same API.
  */
 export const usePokemonData = () => {
-  // Get state from Zustand stores
-  const { activePokemonId, partyList, setActivePokemonId, setPartyList, setEvIndex, setIvIndex, setNature, getRemainingEvs, resetPokemonData } = usePokemonStore()
+  // Get state from Zustand stores using selectors to avoid over-subscribing
+  const activePokemonId = usePokemonStore(s => s.activePokemonId)
+  const partyList = usePokemonStore(s => s.partyList)
+  const setActivePokemonId = usePokemonStore(s => s.setActivePokemonId)
+  const setPartyList = usePokemonStore(s => s.setPartyList)
+  const setEvIndex = usePokemonStore(s => s.setEvIndex)
+  const setIvIndex = usePokemonStore(s => s.setIvIndex)
+  const setNature = usePokemonStore(s => s.setNature)
+  const getRemainingEvs = usePokemonStore(s => s.getRemainingEvs)
+  const resetPokemonData = usePokemonStore(s => s.resetPokemonData)
 
   // Get save file state
   const saveData = useSaveFileStore(state => state.saveData)
-  const saveFileParser = useSaveFileStore()
   const saveSessionId = useSaveFileStore(state => state.saveSessionId)
 
   const queryClient = useQueryClient()
@@ -212,11 +189,20 @@ export const usePokemonData = () => {
     staleTime: 1000 * 60 * 60, // 1 hour
   })
 
+  // Update partyList with detailed data — moved below after itemDetails is declared to avoid TDZ issues
+
+  // Item details are handled in a dedicated hook (useActiveItemDetails)
+
   // Update partyList with detailed data
   useEffect(() => {
     if (!detailedData || activePokemonId < 0) return
     usePokemonStore.setState(prevState => ({
-      partyList: prevState.partyList.map(p => (p.id === activePokemonId ? { ...p, details: detailedData } : p)),
+      partyList: prevState.partyList.map(p => {
+        if (p.id !== activePokemonId) return p
+        // Preserve any existing item info set by setItemId, but don't depend on item query
+        const prevItem = p.details?.item
+        return { ...p, details: { ...detailedData, item: prevItem } }
+      }),
     }))
   }, [detailedData, activePokemonId])
 
@@ -242,7 +228,6 @@ export const usePokemonData = () => {
     isLoading,
     isError,
     error,
-    saveFileParser,
     setEvIndex,
     setIvIndex,
     setNature,

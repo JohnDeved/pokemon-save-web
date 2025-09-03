@@ -3,12 +3,9 @@ import { usePokemonStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { Slider } from '@/components/ui/slider'
 import { useState } from 'react'
+import { useActivePokemonLoading } from '@/hooks'
 
 // Labels come from shared utils to avoid hardcoding
-
-export interface PokemonStatDisplayProps {
-  isLoading?: boolean
-}
 
 // Move EVSliderProps to top-level
 interface EVSliderProps {
@@ -26,9 +23,12 @@ const EVSlider: React.FC<EVSliderProps> = ({ value, onChange, maxVisualValue }) 
   )
 }
 
-export const PokemonStatDisplay: React.FC<PokemonStatDisplayProps> = ({ isLoading = false }) => {
-  const { partyList, activePokemonId, setEvIndex, setIvIndex, getRemainingEvs } = usePokemonStore()
-  const pokemon = partyList.find(p => p.id === activePokemonId)
+export const PokemonStatDisplay: React.FC = () => {
+  const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
+  const setEvIndex = usePokemonStore(s => s.setEvIndex)
+  const setIvIndex = usePokemonStore(s => s.setIvIndex)
+  const getRemainingEvs = usePokemonStore(s => s.getRemainingEvs)
+  const isLoading = useActivePokemonLoading()
   const ivs = pokemon?.data.ivs
   const evs = pokemon?.data.evs
   const baseStats = pokemon?.details?.baseStats
