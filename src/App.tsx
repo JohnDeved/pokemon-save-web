@@ -165,17 +165,6 @@ export const App: React.FC = () => {
                     </DialogHeader>
                     <div className="text-sm leading-relaxed space-y-3">
                       <div>
-                        <span className="text-muted-foreground">Repository:</span>{' '}
-                        <a
-                          href="https://github.com/JohnDeved/pokemon-save-web"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline underline-offset-4 hover:no-underline"
-                        >
-                          github.com/JohnDeved/pokemon-save-web
-                        </a>
-                      </div>
-                      <div>
                         <span className="text-muted-foreground">Version:</span> {COMMIT_HASH}
                       </div>
                       <div>
