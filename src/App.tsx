@@ -1,10 +1,12 @@
-import { Suspense, useRef } from 'react'
+import { Suspense, useRef, useState } from 'react'
+import { ExternalLinkIcon } from 'lucide-react'
 import { Card } from './components/common'
 import { PWAInstallPrompt, triggerPWAInstall } from './components/common/PWAInstallPrompt'
 import { ShaderBackground } from './components/common/ShaderBackground'
 import { CompactPokemonSelector, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, PokemonTraitsSection, SaveFileDropzone } from './components/pokemon'
 import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './components/ui/dialog'
 import { usePokemonData } from './hooks'
 import { useSaveFileStore } from './stores'
 import { useSettingsStore } from './stores'
@@ -12,6 +14,8 @@ import type { GlobalThisWithFileSystemAPI } from './types/global'
 
 export const App: React.FC = () => {
   const { partyList, preloadPokemonDetails } = usePokemonData()
+  // Safe commit hash for runtime, even if Vite define not loaded yet
+  const COMMIT_HASH = typeof __COMMIT_HASH__ === 'string' ? __COMMIT_HASH__ : 'dev'
 
   // UI preferences from persisted store
   const shaderEnabled = useSettingsStore(s => s.shaderEnabled)
@@ -34,6 +38,7 @@ export const App: React.FC = () => {
   // Store the file picker function from SaveFileDropzone using a ref to avoid update loops
   const filePickerRef = useRef<() => void>(null)
   const hasInstallAvailable = useSettingsStore(s => !!s.deferredPrompt)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   return (
     <>
@@ -134,14 +139,52 @@ export const App: React.FC = () => {
                         Restart
                       </MenubarItem>
                       <MenubarSeparator />
-                      <MenubarItem disabled>Github</MenubarItem>
-                      <MenubarItem disabled>About</MenubarItem>
+                      <MenubarItem asChild>
+                        <a
+                          href="https://github.com/JohnDeved/pokemon-save-web"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          GitHub <ExternalLinkIcon className="ml-1" />
+                        </a>
+                      </MenubarItem>
+                      <MenubarItem onSelect={() => setAboutOpen(true)}>About</MenubarItem>
                       <MenubarItem disabled={!hasInstallAvailable} onClick={() => void triggerPWAInstall()}>
                         Install App
                       </MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>
                 </Menubar>
+                <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+                  <DialogContent className="geist-font">
+                    <DialogHeader>
+                      <DialogTitle>Pokemon Save Editor</DialogTitle>
+                      <DialogDescription>
+                        A web-based save editor for Pokemon games and ROM hacks.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="text-sm leading-relaxed space-y-3">
+                      <div>
+                        <span className="text-muted-foreground">Repository:</span>{' '}
+                        <a
+                          href="https://github.com/JohnDeved/pokemon-save-web"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-4 hover:no-underline"
+                        >
+                          github.com/JohnDeved/pokemon-save-web
+                        </a>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Version:</span> {COMMIT_HASH}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Credits (Discord):</span>{' '}
+                        can_not_read_properties_of
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <div className="hidden lg:block">
                   <PokemonPartyList isRenaming={false} onPokemonHover={preloadPokemonDetails} />
                 </div>
