@@ -16,7 +16,10 @@ const fadeClassMap: Record<ScrollState, string> = {
 }
 
 // Scrollable container with dynamic fade effects
-export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ children, className }) => {
+export const ScrollableContainer = React.forwardRef<HTMLDivElement, ScrollableContainerProps>(function ScrollableContainer(
+  { children, className },
+  forwardedRef,
+) {
   const [scrollState, setScrollState] = useState<ScrollState>('none')
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -62,8 +65,15 @@ export const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ childr
   }, [checkScroll])
 
   return (
-    <div ref={containerRef} className={cn('scroll-container geist-font', className, fadeClassMap[scrollState])}>
+    <div
+      ref={node => {
+        containerRef.current = node
+        if (typeof forwardedRef === 'function') forwardedRef(node)
+        else if (forwardedRef) (forwardedRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+      }}
+      className={cn('scroll-container geist-font', className, fadeClassMap[scrollState])}
+    >
       {children}
     </div>
   )
-}
+})

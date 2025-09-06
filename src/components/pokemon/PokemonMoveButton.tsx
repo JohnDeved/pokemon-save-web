@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type { MoveWithDetails } from '@/types'
 import { ScrollableContainer } from '@/components/common'
 import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
+import { useSmoothWheelScroll } from '@/hooks/useSmoothWheelScroll'
 
 const damageClassIcons: Record<'physical' | 'special' | 'status', string> = {
   physical: '/damage-type-icons/physical.png',
@@ -15,30 +17,26 @@ export interface MoveButtonProps {
   move: MoveWithDetails
   isExpanded: boolean
   opensUpward: boolean
-  isPinned?: boolean
   onHoverStart?: () => void
   onHoverEnd?: () => void
-  onClick?: () => void
 }
 
 // Component for a single move in the list
-export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward, isPinned = false, onHoverStart, onHoverEnd, onClick }) => {
+export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward, onHoverStart, onHoverEnd }) => {
   const popoverDirectionClass = opensUpward ? 'bottom-full mb-1' : 'top-full mt-1'
   const animationY = opensUpward ? 10 : -10
+  const rootRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const { onWheel } = useSmoothWheelScroll(scrollRef, { enabled: isExpanded })
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative" onWheel={onWheel}>
       <div
         className={cn(
-          'w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 border shadow-lg transition-all duration-200 cursor-pointer',
-          isPinned ? 'border-cyan-400' : 'border-slate-700',
+          'w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 border border-slate-700 shadow-lg transition-all duration-200',
         )}
         onMouseEnter={onHoverStart}
         onMouseLeave={onHoverEnd}
-        onClick={onClick}
-        role="button"
-        tabIndex={0}
-        aria-pressed={isPinned}
       >
         <div className="flex items-center justify-between">
           <span className="text-sm text-white truncate w-full block" title={move.name}>
@@ -75,7 +73,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
                 </div>
               </div>
             </div>
-            <ScrollableContainer className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-slate-400 leading-relaxed text-xs">
+            <ScrollableContainer ref={scrollRef} className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-slate-400 leading-relaxed text-xs">
               Targets: {move.target ?? ''} <br />
               {move.description || 'Loading description...'}
             </ScrollableContainer>

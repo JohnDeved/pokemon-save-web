@@ -7,26 +7,26 @@ import { PokemonMovePlaceholder } from '@/components/pokemon/PokemonMovePlacehol
 import { useActivePokemonLoading } from '@/hooks'
 import type { MoveWithDetails, PokemonType } from '@/types'
 
+const EMPTY_MOVE: MoveWithDetails = {
+  id: 0,
+  name: 'None',
+  pp: 0,
+  type: 'UNKNOWN' as PokemonType,
+  description: 'No move assigned.',
+  power: null,
+  accuracy: null,
+}
+
 export const PokemonMovesSection: React.FC = () => {
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
   const activePokemonId = pokemon?.id ?? -1
   const saveSessionId = useSaveFileStore(s => s.saveSessionId)
   const isLoading = useActivePokemonLoading()
   const moves = pokemon?.details?.moves ?? []
-  const EMPTY_MOVE: MoveWithDetails = {
-    id: 0,
-    name: 'None',
-    pp: 0,
-    type: 'UNKNOWN' as PokemonType,
-    description: 'No move assigned.',
-    power: null,
-    accuracy: null,
-  }
+  
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
-  const [pinnedMoveIndex, setPinnedMoveIndex] = useState<number | null>(null)
   useEffect(() => {
     setExpandedMoveIndex(null)
-    setPinnedMoveIndex(null)
   }, [activePokemonId, saveSessionId])
   const totalSlots = 4
   return (
@@ -63,26 +63,15 @@ export const PokemonMovesSection: React.FC = () => {
               ) : (
                 <PokemonMoveButton
                   move={move}
-                  isExpanded={expandedMoveIndex === i || pinnedMoveIndex === i}
-                  isPinned={pinnedMoveIndex === i}
-                  opensUpward={i < 2}
+                  isExpanded={expandedMoveIndex === i}
+                  opensUpward={i < totalSlots / 2}
                   onHoverStart={() => {
                     if (isLoading) return
-                    if (pinnedMoveIndex !== null) return
                     setExpandedMoveIndex(i)
                   }}
                   onHoverEnd={() => {
                     if (isLoading) return
-                    if (pinnedMoveIndex !== null) return
                     setExpandedMoveIndex(null)
-                  }}
-                  onClick={() => {
-                    if (isLoading) return
-                    setPinnedMoveIndex(prev => {
-                      const next = prev === i ? null : i
-                      setExpandedMoveIndex(next)
-                      return next
-                    })
                   }}
                 />
               )}
