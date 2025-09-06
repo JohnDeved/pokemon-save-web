@@ -2,6 +2,7 @@ import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import { create } from 'zustand'
 import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
+import { addRecent } from '@/lib/recentFiles'
 import { usePokemonStore } from './usePokemonStore'
 import type { SaveData } from '../lib/parser/core/types'
 import type { GlobalThisWithFileSystemAPI } from '../types/global'
@@ -57,6 +58,11 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
         lastParseFailed: false,
         parser, // keep the same instance so fileHandle persists
       })
+      try {
+        if (parser.fileHandle) {
+          await addRecent(parser.fileHandle as FileSystemFileHandle, parser.saveFileName ?? 'Save file')
+        }
+      } catch {}
       return saveData
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to parse save file'

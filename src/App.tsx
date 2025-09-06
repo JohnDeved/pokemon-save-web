@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { ExternalLinkIcon } from 'lucide-react'
 import { Card } from './components/common'
 import { PWAInstallPrompt, triggerPWAInstall } from './components/common/PWAInstallPrompt'
@@ -6,8 +6,11 @@ import { ShaderBackground } from './components/common/ShaderBackground'
 import { CompactPokemonSelector, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, PokemonTraitsSection, SaveFileDropzone } from './components/pokemon'
 import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
+import { toast } from 'sonner'
+import { listRecents } from '@/lib/recentFiles'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './components/ui/dialog'
 import { usePokemonData } from './hooks'
+import { useRecentFiles } from './hooks/useRecentFiles'
 import { useSaveFileStore } from './stores'
 import { useSettingsStore } from './stores'
 import type { GlobalThisWithFileSystemAPI } from './types/global'
@@ -16,6 +19,7 @@ export const App: React.FC = () => {
   const { partyList, preloadPokemonDetails } = usePokemonData()
   // Safe commit hash for runtime, even if Vite define not loaded yet
   const COMMIT_HASH = typeof __COMMIT_HASH__ === 'string' ? __COMMIT_HASH__ : 'dev'
+  const DEFAULT_TITLE = 'Pokemon Save Editor - Edit Pokemon Save Files Online'
 
   // UI preferences from persisted store
   const shaderEnabled = useSettingsStore(s => s.shaderEnabled)
@@ -30,6 +34,7 @@ export const App: React.FC = () => {
   const lastParseFailed = useSaveFileStore(s => s.lastParseFailed)
   const reconstructAndDownload = useSaveFileStore(s => s.reconstructAndDownload)
   const parser = useSaveFileStore(s => s.parser)
+  const saveFileName = useSaveFileStore(s => s.parser?.saveFileName)
   const playerName = useSaveFileStore(s => s.saveData?.player_name)
   // Determine if there is save data to display
   const hasSaveData = hasFile && partyList.length > 0
@@ -39,6 +44,65 @@ export const App: React.FC = () => {
   const filePickerRef = useRef<() => void>(null)
   const hasInstallAvailable = useSettingsStore(s => !!s.deferredPrompt)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const { recents, clear: clearRecents } = useRecentFiles()
+  const triedRestore = useRef(false)
+
+  const openRecent = async (handle: FileSystemFileHandle) => {
+    try {
+      const anyHandle = handle as any
+      if (typeof anyHandle.queryPermission === 'function') {
+        const status = await anyHandle.queryPermission({ mode: 'read' })
+        if (status !== 'granted' && typeof anyHandle.requestPermission === 'function') {
+          const res = await anyHandle.requestPermission({ mode: 'read' })
+          if (res !== 'granted') {
+            toast.error('Permission to read this file was denied.', { position: 'bottom-center', duration: 3500 })
+            return
+          }
+        }
+      }
+      await parse(handle)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to load save file'
+      toast.error(message, { position: 'bottom-center', duration: 4500 })
+    }
+  }
+
+  // Try to restore the most recent file on load
+  useEffect(() => {
+    if (triedRestore.current) return
+    triedRestore.current = true
+    ;(async () => {
+      try {
+        const items = await listRecents()
+        if (!items.length) return
+        const handle = items[0].handle as any
+        if (typeof handle.queryPermission === 'function') {
+          let status = await handle.queryPermission({ mode: 'read' })
+          if (status !== 'granted' && typeof handle.requestPermission === 'function') {
+            try {
+              status = await handle.requestPermission({ mode: 'read' })
+            } catch {
+              return
+            }
+          }
+          if (status !== 'granted') return
+        }
+        await parse(items[0].handle)
+      } catch (e) {
+        // Silently ignore, user can still open via menu
+        console.warn('Auto-restore last file failed:', e)
+      }
+    })()
+  }, [parse])
+
+  // Update document title with file name
+  useEffect(() => {
+    if (hasFile && saveFileName) {
+      document.title = `${saveFileName} — Pokemon Save Editor`
+    } else {
+      document.title = DEFAULT_TITLE
+    }
+  }, [hasFile, saveFileName])
 
   return (
     <>
@@ -76,7 +140,23 @@ export const App: React.FC = () => {
                       >
                         Open
                       </MenubarItem>
-                      <MenubarItem disabled>Open Recent</MenubarItem>
+                      <MenubarSub>
+                        <MenubarSubTrigger>Open Recent</MenubarSubTrigger>
+                        <MenubarSubContent>
+                          {recents.length === 0 && (
+                            <MenubarItem disabled>No recent files</MenubarItem>
+                          )}
+                          {recents.map(r => (
+                            <MenubarItem key={r.id} onSelect={async () => { await openRecent(r.handle) }}>
+                              {r.name}
+                            </MenubarItem>
+                          ))}
+                          <MenubarSeparator />
+                          <MenubarItem disabled={recents.length === 0} onClick={() => void clearRecents()}>
+                            Clear Recents
+                          </MenubarItem>
+                        </MenubarSubContent>
+                      </MenubarSub>
                       <MenubarSeparator />
                       <MenubarItem disabled={!parser?.fileHandle} onClick={() => reconstructAndDownload('save')}>
                         Save <MenubarShortcut>Ctrl+S</MenubarShortcut>
