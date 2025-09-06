@@ -74,8 +74,9 @@ export const App: React.FC = () => {
     ;(async () => {
       try {
         const items = await listRecents()
-        if (!items.length) return
-        const handle = items[0].handle as any
+        const first = items[0]
+        if (!first) return
+        const handle = first.handle as any
         if (typeof handle.queryPermission === 'function') {
           let status = await handle.queryPermission({ mode: 'read' })
           if (status !== 'granted' && typeof handle.requestPermission === 'function') {
@@ -87,7 +88,7 @@ export const App: React.FC = () => {
           }
           if (status !== 'granted') return
         }
-        await parse(items[0].handle)
+        await parse(first.handle)
       } catch (e) {
         // Silently ignore, user can still open via menu
         console.warn('Auto-restore last file failed:', e)

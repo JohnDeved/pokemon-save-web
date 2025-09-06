@@ -1,3 +1,7 @@
 import 'vite/client'
 
-declare const __COMMIT_HASH__: string
+declare global {
+  const __COMMIT_HASH__: string
+}
+
+export {}

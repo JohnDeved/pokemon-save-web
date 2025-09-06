@@ -5,7 +5,9 @@ type Options = {
   enabled?: boolean
 }
 
-export function useSmoothWheelScroll(scrollRef: React.RefObject<HTMLDivElement>, { enabled = true }: Options = {}) {
+type AnyRef<T> = { current: T | null }
+
+export function useSmoothWheelScroll(scrollRef: AnyRef<HTMLDivElement>, { enabled = true }: Options = {}) {
   const rafRef = useRef<number | null>(null)
   const targetRef = useRef<number | null>(null)
   const prefersReducedMotionRef = useRef(false)
