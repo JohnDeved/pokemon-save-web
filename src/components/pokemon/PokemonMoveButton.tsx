@@ -15,16 +15,31 @@ export interface MoveButtonProps {
   move: MoveWithDetails
   isExpanded: boolean
   opensUpward: boolean
+  isPinned?: boolean
+  onHoverStart?: () => void
+  onHoverEnd?: () => void
+  onClick?: () => void
 }
 
 // Component for a single move in the list
-export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward }) => {
+export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward, isPinned = false, onHoverStart, onHoverEnd, onClick }) => {
   const popoverDirectionClass = opensUpward ? 'bottom-full mb-1' : 'top-full mt-1'
   const animationY = opensUpward ? 10 : -10
 
   return (
     <div className="relative">
-      <div className="w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 border border-slate-700 shadow-lg transition-all duration-200">
+      <div
+        className={cn(
+          'w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 border shadow-lg transition-all duration-200 cursor-pointer',
+          isPinned ? 'border-cyan-400' : 'border-slate-700',
+        )}
+        onMouseEnter={onHoverStart}
+        onMouseLeave={onHoverEnd}
+        onClick={onClick}
+        role="button"
+        tabIndex={0}
+        aria-pressed={isPinned}
+      >
         <div className="flex items-center justify-between">
           <span className="text-sm text-white truncate w-full block" title={move.name}>
             {move.name}
@@ -37,7 +52,13 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
       </div>
       <AnimatePresence>
         {isExpanded && (
-          <motion.div layout initial={{ opacity: 0, y: animationY }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: animationY }} className={cn('absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-800 rounded-lg shadow-xl text-xs', popoverDirectionClass)}>
+          <motion.div
+            layout
+            initial={{ opacity: 0, y: animationY }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: animationY }}
+            className={cn('absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-800 rounded-lg shadow-xl text-xs', popoverDirectionClass)}
+          >
             <div className="flex justify-between text-slate-400 mb-2 pb-2 border-b border-slate-700/50">
               <div>
                 <div>

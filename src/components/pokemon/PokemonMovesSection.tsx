@@ -23,8 +23,10 @@ export const PokemonMovesSection: React.FC = () => {
     accuracy: null,
   }
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
+  const [pinnedMoveIndex, setPinnedMoveIndex] = useState<number | null>(null)
   useEffect(() => {
     setExpandedMoveIndex(null)
+    setPinnedMoveIndex(null)
   }, [activePokemonId, saveSessionId])
   const totalSlots = 4
   return (
@@ -43,13 +45,7 @@ export const PokemonMovesSection: React.FC = () => {
           return (
             <div
               key={i}
-              className="group cursor-pointer"
-              onMouseEnter={() => {
-                !isLoading && setExpandedMoveIndex(i)
-              }}
-              onMouseLeave={() => {
-                !isLoading && setExpandedMoveIndex(null)
-              }}
+              className="group"
             >
               {isLoading ? (
                 <div className="w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200">
@@ -65,7 +61,30 @@ export const PokemonMovesSection: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <PokemonMoveButton move={move} isExpanded={expandedMoveIndex === i} opensUpward={i < 2} />
+                <PokemonMoveButton
+                  move={move}
+                  isExpanded={expandedMoveIndex === i || pinnedMoveIndex === i}
+                  isPinned={pinnedMoveIndex === i}
+                  opensUpward={i < 2}
+                  onHoverStart={() => {
+                    if (isLoading) return
+                    if (pinnedMoveIndex !== null) return
+                    setExpandedMoveIndex(i)
+                  }}
+                  onHoverEnd={() => {
+                    if (isLoading) return
+                    if (pinnedMoveIndex !== null) return
+                    setExpandedMoveIndex(null)
+                  }}
+                  onClick={() => {
+                    if (isLoading) return
+                    setPinnedMoveIndex(prev => {
+                      const next = prev === i ? null : i
+                      setExpandedMoveIndex(next)
+                      return next
+                    })
+                  }}
+                />
               )}
             </div>
           )
