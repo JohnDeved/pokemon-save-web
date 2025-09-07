@@ -178,17 +178,22 @@ export const usePokemonData = () => {
     if (lastUpdateTransient) {
       // Preserve existing details to avoid flashing during undo/redo/reset
       const prev = usePokemonStore.getState().partyList
-      const merged = initialPartyList.map((p, i) => {
-        const prevP = prev[i]
-        if (prevP && prevP.data?.speciesId === p.data.speciesId) {
-          return { ...p, details: prevP.details }
-        }
-        return p
+      const prevById = new Map(prev.map(p => [p.id, p]))
+      const merged = initialPartyList.map(p => {
+        const prevP = prevById.get(p.id)
+        return prevP && prevP.details ? { ...p, details: prevP.details } : p
       })
       setPartyList(merged)
+      // Ensure active selection remains valid after history navigation
+      const currentActive = usePokemonStore.getState().activePokemonId
+      if (!merged.some(p => p.id === currentActive)) {
+        setActivePokemonId(merged[0]?.id ?? -1)
+      }
       // Do not clear queries on transient updates
     } else {
       setPartyList(initialPartyList)
+      // Default selection to the first Pokémon when loading a new file
+      setActivePokemonId(initialPartyList[0]?.id ?? -1)
       // Clear cached pokemon details to avoid stale data after loading a new file
       queryClient.removeQueries({ queryKey: ['pokemon', 'details'] })
     }

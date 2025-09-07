@@ -1,13 +1,19 @@
 import { create } from 'zustand'
 import { useSaveFileStore } from './useSaveFileStore'
+import { usePokemonStore } from './usePokemonStore'
+
+interface HistorySnapshot {
+  bytes: Uint8Array
+  idsBySlot: number[]
+}
 
 interface HistoryState {
-  // Snapshots of full save bytes
-  past: Uint8Array[]
-  future: Uint8Array[]
-  initial: Uint8Array | null
+  // Snapshots of full save bytes + UI ids per party slot
+  past: HistorySnapshot[]
+  future: HistorySnapshot[]
+  initial: HistorySnapshot | null
   isApplying: boolean
-  queuedSnapshot: Uint8Array | null
+  queuedSnapshot: HistorySnapshot | null
   queueTimer: ReturnType<typeof setTimeout> | null
 }
 
@@ -15,7 +21,7 @@ interface HistoryActions {
   // Capture current state into past and clear future
   snapshot: () => void
   // Debounced leading-edge snapshot (coalesces rapid changes)
-  queueSnapshot: (delayMs?: number) => void
+  queueSnapshot: (delayMs?: number, idsBySlotOverride?: number[]) => void
   // Reset stacks and set initial from current state
   initFromCurrent: () => void
   // Clear all history (used when clearing file)
@@ -28,12 +34,14 @@ interface HistoryActions {
 
 export type HistoryStore = HistoryState & HistoryActions
 
-// Helper to get current save bytes via parser
-function getCurrentSaveBytes(): Uint8Array | null {
+// Helper to get current snapshot (save bytes + UI ids by slot)
+function getCurrentSnapshot(idsBySlotOverride?: number[]): HistorySnapshot | null {
   const { saveData, parser } = useSaveFileStore.getState()
   if (!saveData || !parser) return null
   try {
-    return parser.reconstructSaveFile(saveData.party_pokemon)
+    const bytes = parser.reconstructSaveFile(saveData.party_pokemon)
+    const idsBySlot = idsBySlotOverride ?? usePokemonStore.getState().partyList.map(p => p.id)
+    return { bytes, idsBySlot }
   } catch {
     return null
   }
@@ -48,19 +56,19 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
   queueTimer: null,
 
   snapshot: () => {
-    const bytes = getCurrentSaveBytes()
-    if (!bytes) return
+    const snap = getCurrentSnapshot()
+    if (!snap) return
     // Avoid duplicate snapshots if the latest past equals current
     const { past } = get()
     const last = past[past.length - 1]
-    if (last && last.length === bytes.length) {
+    if (last && last.bytes.length === snap.bytes.length) {
       // Quick byte-by-byte equality check on first and last few bytes to avoid heavy comparisons
       let same = true
-      if (bytes[0] !== last[0] || bytes[bytes.length - 1] !== last[last.length - 1]) same = false
+      if (snap.bytes[0] !== last.bytes[0] || snap.bytes[snap.bytes.length - 1] !== last.bytes[last.bytes.length - 1]) same = false
       if (same) {
         // fall back to shallow compare of small prefix
-        for (let i = 0; i < 16 && i < bytes.length; i++) {
-          if (bytes[i] !== last[i]) {
+        for (let i = 0; i < 16 && i < snap.bytes.length; i++) {
+          if (snap.bytes[i] !== last.bytes[i]) {
             same = false
             break
           }
@@ -70,15 +78,15 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
         // still push to keep behavior predictable — but optionally skip
       }
     }
-    set({ past: [...past, bytes], future: [] })
+    set({ past: [...past, snap], future: [] })
   },
 
-  queueSnapshot: (delayMs = 350) => {
+  queueSnapshot: (delayMs = 350, idsBySlotOverride?: number[]) => {
     const state = get()
     if (state.isApplying) return
     if (state.queuedSnapshot) return
-    const bytes = getCurrentSaveBytes()
-    if (!bytes) return
+    const snap = getCurrentSnapshot(idsBySlotOverride)
+    if (!snap) return
     const timer = setTimeout(() => {
       const { queuedSnapshot, past } = get()
       if (queuedSnapshot) {
@@ -87,15 +95,15 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
         set({ queueTimer: null })
       }
     }, delayMs)
-    set({ queuedSnapshot: bytes, queueTimer: timer })
+    set({ queuedSnapshot: snap, queueTimer: timer })
   },
 
   initFromCurrent: () => {
-    const bytes = getCurrentSaveBytes()
+    const snap = getCurrentSnapshot()
     // Clear any queued snapshot timer
     const { queueTimer } = get()
     if (queueTimer) clearTimeout(queueTimer)
-    set({ initial: bytes, past: [], future: [], queuedSnapshot: null, queueTimer: null })
+    set({ initial: snap, past: [], future: [], queuedSnapshot: null, queueTimer: null })
   },
 
   clear: () => {
@@ -114,7 +122,7 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     }
     const currentPast = get().past
     if (currentPast.length === 0) return
-    const current = getCurrentSaveBytes()
+    const current = getCurrentSnapshot()
     if (!current) return
     const previous = currentPast[currentPast.length - 1]!
     set({ isApplying: true })
@@ -122,7 +130,11 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
       // Move current to future, pop previous from past, then parse previous
       set(state => ({ future: [...state.future, current], past: state.past.slice(0, -1) }))
       const { parse } = useSaveFileStore.getState()
-      await parse(previous.buffer.slice(previous.byteOffset, previous.byteOffset + previous.byteLength), { transient: true })
+      // Provide UI ids for slot mapping during rebuild
+      try {
+        usePokemonStore.getState().setPendingIdsBySlot(previous.idsBySlot)
+      } catch {}
+      await parse(previous.bytes.buffer.slice(previous.bytes.byteOffset, previous.bytes.byteOffset + previous.bytes.byteLength), { transient: true })
     } finally {
       set({ isApplying: false })
     }
@@ -138,7 +150,7 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     }
     const { future } = get()
     if (future.length === 0) return
-    const current = getCurrentSaveBytes()
+    const current = getCurrentSnapshot()
     if (!current) return
     const next = future[future.length - 1]!
     set({ isApplying: true })
@@ -146,7 +158,10 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
       // Move current to past, pop next from future, then parse next
       set(state => ({ past: [...state.past, current], future: state.future.slice(0, -1) }))
       const { parse } = useSaveFileStore.getState()
-      await parse(next.buffer.slice(next.byteOffset, next.byteOffset + next.byteLength), { transient: true })
+      try {
+        usePokemonStore.getState().setPendingIdsBySlot(next.idsBySlot)
+      } catch {}
+      await parse(next.bytes.buffer.slice(next.bytes.byteOffset, next.bytes.byteOffset + next.bytes.byteLength), { transient: true })
     } finally {
       set({ isApplying: false })
     }
@@ -165,7 +180,10 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     set({ isApplying: true })
     try {
       const { parse } = useSaveFileStore.getState()
-      await parse(initial.buffer.slice(initial.byteOffset, initial.byteOffset + initial.byteLength), { transient: true })
+      try {
+        usePokemonStore.getState().setPendingIdsBySlot(initial.idsBySlot)
+      } catch {}
+      await parse(initial.bytes.buffer.slice(initial.bytes.byteOffset, initial.bytes.byteOffset + initial.bytes.byteLength), { transient: true })
       // After reset, clear history to reflect fresh baseline
       set(() => ({ past: [], future: [] }))
     } finally {

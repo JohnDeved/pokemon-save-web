@@ -28,7 +28,7 @@ export const MovesSchema = z.object({
 export type Moves = z.infer<typeof MovesSchema>
 
 export interface UIPokemonData {
-  readonly id: number // UI index for React keys
+  readonly id: number // Stable UI id (Pokemon personality)
   readonly spriteUrl: string // UI sprite URL
   readonly spriteAniUrl: string // UI animated sprite URL
   readonly data: PokemonBase

@@ -23,6 +23,7 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, 
   const emptySlots = Array.from({ length: Math.max(0, config.maxPartySize - partyList.length) })
   const constraintsRef = useRef<HTMLDivElement>(null)
   const [draggingId, setDraggingId] = useState<number | null>(null)
+  const preDragIdsRef = useRef<number[] | null>(null)
 
   const handleReorder = useCallback(
     (newOrder: UIPokemonData[]) => {
@@ -35,10 +36,6 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, 
   const syncSaveOrder = useCallback(() => {
     const currentList = usePokemonStore.getState().partyList
     const bases = currentList.map(p => p.data)
-    // Snapshot before applying change for undo/redo
-    try {
-      useHistoryStore.getState().queueSnapshot()
-    } catch {}
     useSaveFileStore.setState(state => {
       if (!state.saveData) return state
       return {
@@ -60,9 +57,18 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, 
             drag={!isRenaming}
             animate={draggingId === pokemon.id ? { scale: 1.05 } : { scale: 1 }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            onDragStart={() => setDraggingId(pokemon.id)}
+            onDragStart={() => {
+              setDraggingId(pokemon.id)
+              // Capture pre-drag UI ids in slot order for a correct undo snapshot
+              preDragIdsRef.current = usePokemonStore.getState().partyList.map(p => p.id)
+            }}
             onDragEnd={() => {
               setDraggingId(null)
+              // Snapshot the pre-change state for accurate undo (idsBySlot before reorder)
+              try {
+                const ids = preDragIdsRef.current ?? undefined
+                useHistoryStore.getState().queueSnapshot(350, ids)
+              } catch {}
               syncSaveOrder()
             }}
             className="cursor-pointer group"

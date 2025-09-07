@@ -47,6 +47,8 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
     if (!transient) {
       try {
         usePokemonStore.getState().clearPokemonDetails()
+        // Reset UI identity map when loading a brand new file
+        usePokemonStore.getState().resetUiIdentities()
       } catch {}
       set(state => ({ isLoading: true, error: null, lastParseFailed: false, saveSessionId: state.saveSessionId + 1 }))
     } else {
@@ -94,6 +96,9 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
   },
 
   clearSaveFile: () => {
+    try {
+      usePokemonStore.getState().resetUiIdentities()
+    } catch {}
     set({
       saveData: null,
       isLoading: false,
