@@ -26,6 +26,8 @@ export const App: React.FC = () => {
   const setShaderEnabled = useSettingsStore(s => s.setShaderEnabled)
   const theme = useSettingsStore(s => s.theme)
   const setTheme = useSettingsStore(s => s.setTheme)
+  const suppressAutoRestore = useSettingsStore(s => s.suppressAutoRestore)
+  const setSuppressAutoRestore = useSettingsStore(s => s.setSuppressAutoRestore)
 
   // Check if the browser supports the File System Access API
   const canSaveAs = typeof showSaveFilePicker === 'function'
@@ -35,13 +37,15 @@ export const App: React.FC = () => {
   const hasFile = useSaveFileStore(s => s.hasFile)
   const lastParseFailed = useSaveFileStore(s => s.lastParseFailed)
   const reconstructAndDownload = useSaveFileStore(s => s.reconstructAndDownload)
+  const clearSaveFile = useSaveFileStore(s => s.clearSaveFile)
   const parser = useSaveFileStore(s => s.parser)
   const saveFileName = useSaveFileStore(s => s.parser?.saveFileName)
   const playerName = useSaveFileStore(s => s.saveData?.player_name)
+  const [attemptingRestore, setAttemptingRestore] = useState(true)
   // Determine if there is save data to display
   const hasSaveData = hasFile && partyList.length > 0
-  // Only show dropzone if there is no save data and last parse did not fail
-  const shouldShowDropzone = !hasSaveData && !lastParseFailed
+  // Only show dropzone if there is no save data and last parse did not fail, and not during auto-restore
+  const shouldShowDropzone = !hasSaveData && !lastParseFailed && !attemptingRestore
   // Store the file picker function from SaveFileDropzone using a ref to avoid update loops
   const filePickerRef = useRef<() => void>(null)
   const hasInstallAvailable = useSettingsStore(s => !!s.deferredPrompt)
@@ -81,6 +85,8 @@ export const App: React.FC = () => {
     triedRestore.current = true
     ;(async () => {
       try {
+        // If user unloaded previously, suppress auto-restore until a new file is opened
+        if (suppressAutoRestore) return
         const items = await listRecents()
         const [first] = items
         if (!first) return
@@ -100,9 +106,11 @@ export const App: React.FC = () => {
       } catch (e) {
         // Silently ignore, user can still open via menu
         console.warn('Auto-restore last file failed:', e)
+      } finally {
+        setAttemptingRestore(false)
       }
     })()
-  }, [parse])
+  }, [parse, suppressAutoRestore])
 
   // Apply theme class to body and update document title
   useEffect(() => {
@@ -214,6 +222,14 @@ export const App: React.FC = () => {
                           </MenubarItem>
                         </MenubarSubContent>
                       </MenubarSub>
+                      <MenubarItem
+                        onClick={() => {
+                          setSuppressAutoRestore(true)
+                          clearSaveFile()
+                        }}
+                      >
+                        Unload
+                      </MenubarItem>
                       <MenubarSeparator />
                       <MenubarItem disabled={!parser?.fileHandle} onClick={() => reconstructAndDownload('save')}>
                         Save <MenubarShortcut>Ctrl+S</MenubarShortcut>

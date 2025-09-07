@@ -5,6 +5,7 @@ import { addRecent } from '@/lib/recentFiles'
 import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
 import type { SaveData } from '../lib/parser/core/types'
 import { usePokemonStore } from './usePokemonStore'
+import { useSettingsStore } from './useSettingsStore'
 
 export interface SaveFileState {
   saveData: SaveData | null
@@ -67,6 +68,12 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
         parser, // keep the same instance so fileHandle persists
         lastUpdateTransient: transient,
       })
+      // Opening a new file re-enables auto-restore behavior
+      if (!transient) {
+        try {
+          useSettingsStore.getState().setSuppressAutoRestore(false)
+        } catch {}
+      }
       if (!transient) {
         try {
           if (parser.fileHandle) {
