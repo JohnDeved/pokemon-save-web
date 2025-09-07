@@ -113,7 +113,7 @@ export const NatureTab: React.FC = () => {
                   {loweredDelta > 0 && <span className="ml-1 text-rose-200/90">-{loweredDelta}</span>}
                 </button>
               )}
-              {isNeutralNature && <div className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800/40 text-slate-300 px-2 py-1 text-xs">Neutral nature</div>}
+              {isNeutralNature && <div className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-800/40 text-zinc-300 px-2 py-1 text-xs">Neutral nature</div>}
             </div>
 
             <div className="mt-2">
@@ -121,14 +121,14 @@ export const NatureTab: React.FC = () => {
                 let headerText = 'Affected Stats'
                 if (chooseMode === 'raise') headerText = 'Select stat to Raise'
                 else if (chooseMode === 'lower') headerText = 'Select stat to Lower'
-                return <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">{headerText}</div>
+                return <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">{headerText}</div>
               })()}
               <div className="flex flex-wrap gap-1.5">
                 {statAbbreviations.map((abbr, i) => {
                   const isUp = incIndex === i
                   const isDown = decIndex === i
                   const base = 'relative px-2 py-1 rounded-md border text-xs leading-none transition-[padding] duration-200 ease-out'
-                  let color = 'bg-slate-800/40 border-slate-700 text-slate-300'
+                  let color = 'bg-zinc-800/40 border-zinc-700 text-zinc-300'
                   if (isUp) color = 'bg-emerald-900/30 border-emerald-700/60 text-emerald-300'
                   else if (isDown) color = 'bg-rose-900/30 border-rose-700/60 text-rose-300'
 
@@ -136,7 +136,7 @@ export const NatureTab: React.FC = () => {
                   if (chooseMode === 'raise') interactive = i !== 0 && i !== decIndex
                   if (chooseMode === 'lower') interactive = i !== 0 && i !== incIndex
 
-                  let ringColor = 'hover:ring-slate-400/30'
+                  let ringColor = 'hover:ring-zinc-400/30'
                   if (chooseMode === 'raise') ringColor = 'hover:ring-emerald-300/40'
                   else if (chooseMode === 'lower') ringColor = 'hover:ring-rose-300/40'
 

@@ -10,7 +10,7 @@ const Menubar = ({ className, ...props }: React.ComponentProps<typeof MenubarPri
       data-slot="menubar"
       className={cn(
         // Card styles
-        'bg-slate-800/50 backdrop-blur-lg rounded-md shadow-2xl border border-slate-800 relative flex h-9 items-center gap-1 p-1',
+        'bg-zinc-800/50 backdrop-blur-lg rounded-md shadow-2xl border border-zinc-800 relative flex h-9 items-center gap-1 p-1',
         className
       )}
       {...props}

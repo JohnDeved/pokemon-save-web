@@ -14,7 +14,7 @@ export const PokemonHeader: React.FC = () => {
   const { supportsMega, hasMegaForms, megaPreviewEnabled, setMegaPreviewEnabled, forms, selectedForm, setSelectedForm, statsLoading } = useMegaPreview()
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
-      <div className="p-3 border-b border-slate-800">
+      <div className="p-3 border-b border-zinc-800">
         {/* Row 1: Name (+ Mega controls) and Dex ID */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -45,7 +45,7 @@ export const PokemonHeader: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className={`cursor-pointer px-1.5 py-1.5 rounded-sm border text-[10px] leading-none ${megaPreviewEnabled ? 'bg-cyan-900/50 border-cyan-800 text-cyan-300' : 'bg-slate-900/30 border-slate-800 text-slate-300'}`}
+                  className={`cursor-pointer px-1.5 py-1.5 rounded-sm border text-[10px] leading-none ${megaPreviewEnabled ? 'bg-cyan-900/50 border-cyan-800 text-cyan-300' : 'bg-zinc-900/30 border-zinc-800 text-zinc-300'}`}
                   onClick={() => setMegaPreviewEnabled(!megaPreviewEnabled)}
                   disabled={statsLoading}
                   title={megaPreviewEnabled ? 'Disable Mega Preview' : 'Enable Mega Preview'}

@@ -31,7 +31,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
 
   return (
     <div ref={rootRef} className="relative" onWheel={onWheel}>
-      <div className={cn('w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 border border-slate-700 shadow-lg transition-all duration-200')} onMouseEnter={onHoverStart} onMouseLeave={onHoverEnd}>
+      <div className={cn('w-full text-left p-3 rounded-lg bg-zinc-800/50 group-hover:bg-zinc-700/70 border border-zinc-700 shadow-lg transition-all duration-200')} onMouseEnter={onHoverStart} onMouseLeave={onHoverEnd}>
         <div className="flex items-center justify-between">
           <span className="text-sm text-white truncate w-full block" title={move.name}>
             {move.name}
@@ -39,13 +39,13 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
         </div>
         <div className="flex items-center justify-between mt-2">
           <PokemonTypeBadge type={move.type} />
-          <span className="text-xs text-slate-300">{move.pp}/--</span>
+          <span className="text-xs text-zinc-300">{move.pp}/--</span>
         </div>
       </div>
       <AnimatePresence>
         {isExpanded && (
-          <motion.div layout initial={{ opacity: 0, y: animationY }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: animationY }} className={cn('absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-800 rounded-lg shadow-xl text-xs', popoverDirectionClass)}>
-            <div className="flex justify-between text-slate-400 mb-2 pb-2 border-b border-slate-700/50">
+          <motion.div layout initial={{ opacity: 0, y: animationY }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: animationY }} className={cn('absolute left-0 right-0 z-50 p-3 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl text-xs', popoverDirectionClass)}>
+            <div className="flex justify-between text-zinc-400 mb-2 pb-2 border-b border-zinc-700/50">
               <div>
                 <div>
                   Power:
@@ -65,7 +65,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
                 </div>
               </div>
             </div>
-            <ScrollableContainer ref={scrollRef} className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-slate-400 leading-relaxed text-xs">
+            <ScrollableContainer ref={scrollRef} className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-zinc-400 leading-relaxed text-xs">
               Targets: {move.target ?? ''} <br />
               {move.description || 'Loading description...'}
             </ScrollableContainer>

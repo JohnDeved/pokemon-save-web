@@ -118,7 +118,7 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
     hpColor = 'from-red-500 to-rose-600'
   }
 
-  const containerClasses = isActive ? 'bg-slate-800/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30' : 'hover:bg-slate-800/80'
+  const containerClasses = isActive ? 'bg-zinc-800/80 ring-2 ring-cyan-400 shadow-lg shadow-cyan-500/30' : 'hover:bg-zinc-800/80'
 
   return (
     <Card className={cn('flex items-center p-3 transition-all duration-300', containerClasses)}>
@@ -127,7 +127,7 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
           <img
             src={getItemSpriteUrl(pokemon.data.itemIdName)}
             alt={pokemon.data.itemIdName}
-            className="absolute bottom-0 right-0 z-20 w-5 h-5 rounded-sm border border-slate-900 shadow-md image-pixelate bg-slate-950/70 select-none"
+            className="absolute bottom-0 right-0 z-20 w-5 h-5 rounded-sm border border-zinc-900 shadow-md image-pixelate bg-zinc-950/70 select-none"
             draggable={false}
             onDragStart={e => e.preventDefault()}
             onError={e => {
@@ -142,12 +142,12 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
       <div className="flex-grow">
         <div className="flex justify-between items-center text-sm">
           <h3 className="text-white">{pokemon.data.nickname}</h3>
-          <span className="text-slate-300">Lv.{pokemon.data.level}</span>
+          <span className="text-zinc-300">Lv.{pokemon.data.level}</span>
         </div>
-        <div className="w-full bg-slate-900/30 border border-slate-700 border-x-2 rounded-sm h-2.5 mt-2 overflow-hidden">
+        <div className="w-full bg-zinc-900/30 border border-zinc-700 border-x-2 rounded-sm h-2.5 mt-2 overflow-hidden">
           <div className={cn('bg-gradient-to-r h-full transition-all duration-500', hpColor)} style={{ width: `${hpPercentage}%` }} />
         </div>
-        <p className="text-right text-xs mt-1 text-slate-400">
+        <p className="text-right text-xs mt-1 text-zinc-400">
           {pokemon.data.currentHp}/{pokemon.data.maxHp}
         </p>
       </div>

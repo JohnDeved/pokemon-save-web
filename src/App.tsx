@@ -146,7 +146,7 @@ export const App: React.FC = () => {
   return (
     <>
       {/* Background pattern appears immediately */}
-      <div className="fixed inset-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]" />
+      <div className="fixed inset-0 z-[-2] bg-zinc-900 bg-[linear-gradient(to_bottom,theme(colors.zinc.900)_20%,transparent),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]" />
       {/* Shader overlay fades in after pattern */}
       {shaderEnabled && (
         <Suspense fallback={null}>
@@ -154,7 +154,7 @@ export const App: React.FC = () => {
         </Suspense>
       )}
       <Toaster richColors position="bottom-center" />
-      <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-slate-100">
+      <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-zinc-100">
         <SaveFileDropzone
           onFileLoad={parse}
           error={error}

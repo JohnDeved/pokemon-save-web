@@ -6,7 +6,13 @@ interface CardProps extends React.HTMLAttributes<HTMLElement> {
 
 export const Card: React.FC<CardProps> = ({ children, className, ...props }) => {
   return (
-    <section {...props} className={cn('bg-slate-800/50 backdrop-blur-lg rounded-xl shadow-2xl border border-slate-800 relative', className)}>
+    <section
+      {...props}
+      className={cn(
+        'bg-zinc-800/50 backdrop-blur-lg rounded-xl shadow-2xl border border-zinc-800 relative',
+        className
+      )}
+    >
       {children}
     </section>
   )

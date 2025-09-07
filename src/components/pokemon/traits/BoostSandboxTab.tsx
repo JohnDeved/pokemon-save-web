@@ -45,7 +45,7 @@ export const BoostSandboxTab: React.FC = () => {
     <div className="flex-1 flex flex-col">
       <div className="relative flex-1">
         <ScrollableContainer className="absolute inset-0 px-4 pb-4 overflow-y-auto custom-scrollbar">
-          <div className="mt-0.5 flex flex-col divide-y divide-slate-800/50">
+          <div className="mt-0.5 flex flex-col divide-y divide-zinc-800/50">
             {[1, 2, 3, 4, 5].map(i => {
               const abbr = statAbbreviations[i]!
               const base = baseTotals[i] ?? 0
@@ -57,32 +57,32 @@ export const BoostSandboxTab: React.FC = () => {
                 <div key={`boost-sbx-${i}`} className="py-0.5 flex items-center gap-2">
                   <div className="w-12 text-white font-pixel text-[11px] leading-none">{abbr}</div>
                   <div className="flex items-center gap-1.5">
-                    <div className="flex flex-col overflow-hidden rounded-md border border-slate-700/70">
-                      <button type="button" className="bg-slate-900/40 text-slate-200 h-6 w-6 flex items-center justify-center hover:bg-slate-800/60 cursor-pointer" onClick={() => inc(i, +1)} aria-label={`Increase ${abbr}`}>
+                    <div className="flex flex-col overflow-hidden rounded-md border border-zinc-700/70">
+                      <button type="button" className="bg-zinc-900/40 text-zinc-200 h-6 w-6 flex items-center justify-center hover:bg-zinc-800/60 cursor-pointer" onClick={() => inc(i, +1)} aria-label={`Increase ${abbr}`}>
                         <IoCaretUp />
                       </button>
-                      <button type="button" className="bg-slate-900/40 text-slate-200 h-6 w-6 flex items-center justify-center hover:bg-slate-800/60 border-t border-slate-700/70 cursor-pointer" onClick={() => inc(i, -1)} aria-label={`Decrease ${abbr}`}>
+                      <button type="button" className="bg-zinc-900/40 text-zinc-200 h-6 w-6 flex items-center justify-center hover:bg-zinc-800/60 border-t border-zinc-700/70 cursor-pointer" onClick={() => inc(i, -1)} aria-label={`Decrease ${abbr}`}>
                         <IoCaretDown />
                       </button>
                     </div>
                     <div className="flex flex-col items-center leading-none min-w-[40px]">
                       {(() => {
-                        let stageCls = 'bg-slate-800/40 text-slate-300 border border-slate-700/70'
+                        let stageCls = 'bg-zinc-800/40 text-zinc-300 border border-zinc-700/70'
                         if (stage > 0) stageCls = 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/60'
                         else if (stage < 0) stageCls = 'bg-rose-900/30 text-rose-300 border border-rose-700/60'
                         return <span className={`px-1 py-0.5 mb-0.5 rounded-md text-[9px] tabular-nums ${stageCls}`}>{stage > 0 ? `+${stage}` : stage}</span>
                       })()}
-                      <span className="mt-0 text-[10px] text-slate-400">×{mult.toFixed(2)}</span>
+                      <span className="mt-0 text-[10px] text-zinc-400">×{mult.toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="ml-auto grid grid-cols-[auto_auto_auto] items-baseline gap-x-3 gap-y-0 text-[11px] geist-font pr-1">
-                    <div className="text-slate-500">Base</div>
-                    <div className="text-right text-slate-300 tabular-nums w-14 leading-none">{base}</div>
+                    <div className="text-zinc-500">Base</div>
+                    <div className="text-right text-zinc-300 tabular-nums w-14 leading-none">{base}</div>
                     <div />
-                    <div className="text-slate-500">Result</div>
+                    <div className="text-zinc-500">Result</div>
                     {(() => {
-                      let effCls = 'text-slate-300'
-                      let deltaCls = 'text-slate-500'
+                      let effCls = 'text-zinc-300'
+                      let deltaCls = 'text-zinc-500'
                       if (delta > 0) {
                         effCls = 'text-emerald-300'
                         deltaCls = 'text-emerald-300'

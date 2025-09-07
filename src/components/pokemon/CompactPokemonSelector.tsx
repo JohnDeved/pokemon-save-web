@@ -29,13 +29,13 @@ export const CompactPokemonSelector: React.FC = () => {
         />
         <div>
           <h3 className="text-white font-semibold">{selectedPokemon.data.nickname}</h3>
-          <span className="text-slate-300 text-sm">Lv.{selectedPokemon.data.level}</span>
+          <span className="text-zinc-300 text-sm">Lv.{selectedPokemon.data.level}</span>
         </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto">
         {partyList.map(pokemon => (
-          <button key={pokemon.id} onClick={() => setActivePokemonId(pokemon.id)} className={cn('flex-shrink-0 w-12 h-12 rounded border-2 transition-colors', pokemon.id === selectedPokemon.id ? 'border-cyan-400 bg-cyan-500/20' : 'border-slate-600 hover:border-slate-500')}>
+          <button key={pokemon.id} onClick={() => setActivePokemonId(pokemon.id)} className={cn('flex-shrink-0 w-12 h-12 rounded border-2 transition-colors', pokemon.id === selectedPokemon.id ? 'border-cyan-400 bg-cyan-500/20' : 'border-zinc-600 hover:border-zinc-500')}>
             <img
               src={pokemon.id === selectedPokemon.id && megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : pokemon.spriteUrl}
               onError={e => {

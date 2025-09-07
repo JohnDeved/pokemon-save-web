@@ -15,7 +15,7 @@ export const Popover: React.FC<PopoverProps> = ({ isOpen, opensUpward = false, c
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div layout initial={{ opacity: 0, y: animationY }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: animationY }} className={cn('absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-700 rounded-lg shadow-xl text-xs', popoverDirectionClass, className)}>
+        <motion.div layout initial={{ opacity: 0, y: animationY }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: animationY }} className={cn('absolute left-0 right-0 z-50 p-3 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl text-xs', popoverDirectionClass, className)}>
           {children}
         </motion.div>
       )}

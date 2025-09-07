@@ -19,7 +19,7 @@ const EVSlider: React.FC<EVSliderProps> = ({ value, onChange, maxVisualValue }) 
     onChange(val[0]!)
   }
   return (
-    <Slider value={[value]} max={MAX_EV} onValueChange={handleValueChange} className="[&_[data-slot=slider-track]]:bg-slate-700/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500" maxVisualValue={maxVisualValue} />
+    <Slider value={[value]} max={MAX_EV} onValueChange={handleValueChange} className="[&_[data-slot=slider-track]]:bg-zinc-700/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500" maxVisualValue={maxVisualValue} />
   )
 }
 
@@ -80,7 +80,7 @@ export const PokemonStatDisplay: React.FC = () => {
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-3 sm:p-4 space-y-1 sm:space-y-2 text-xs w-full">
         {/* Mega preview controls moved to PokemonHeader to prevent layout shift */}
-        <div className="grid grid-cols-10 gap-1 sm:gap-2 text-slate-400">
+        <div className="grid grid-cols-10 gap-1 sm:gap-2 text-zinc-400">
           <div className="col-span-1">STAT</div>
           <div className="col-span-5 text-end">EV</div>
           <div className="text-center">IV</div>
@@ -92,7 +92,7 @@ export const PokemonStatDisplay: React.FC = () => {
           const base = displayBaseStats?.[index] ?? baseStats?.[index] ?? 0
           const total = displayTotals?.[index] ?? 0
           const natureMod = natureModifier?.[index] ?? 1
-          let statClass = 'text-slate-500'
+          let statClass = 'text-zinc-500'
           if (natureMod > 1) statClass = 'text-green-400/50 font-bold'
           else if (natureMod < 1) statClass = 'text-red-400/50 font-bold'
           // IV color: bright cyan for max IV (31), slightly dimmed for non-max
@@ -148,7 +148,7 @@ export const PokemonStatDisplay: React.FC = () => {
               >
                 {isHovered && iv !== MAX_IV ? MAX_IV : iv}
               </div>
-              <div className="text-slate-700 text-center text-sm">
+              <div className="text-zinc-700 text-center text-sm">
                 <Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text>
               </div>
               <div className={`col-span-2 text-right text-sm ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}>
