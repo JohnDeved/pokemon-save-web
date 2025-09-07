@@ -48,11 +48,7 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
                 setOpen(true)
               }
             }}
-            className={cn(
-              'group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-slate-200 focus-visible:ring-0 focus-visible:border-transparent',
-              'transition-colors',
-              triggerClassName
-            )}
+            className={cn('group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-slate-200 focus-visible:ring-0 focus-visible:border-transparent', 'transition-colors', triggerClassName)}
             aria-label="Edit nature"
           >
             <span className="leading-none">{label ?? 'Nature'}</span>
@@ -67,7 +63,7 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
             disabled={disabled}
             onClick={e => {
               if (!disabled) {
-                decideSideFromEl(e.currentTarget as unknown as HTMLElement)
+                decideSideFromEl(e.currentTarget)
                 setOpen(true)
               }
             }}
@@ -96,9 +92,7 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
           if (document.activeElement !== inputRef.current) inputRef.current?.focus()
         }}
       >
-        <Command
-          className="group-data-[side=top]:flex-col-reverse [&_[data-slot=command-input-wrapper]]:border-b group-data-[side=top]:[&_[data-slot=command-input-wrapper]]:border-t group-data-[side=top]:[&_[data-slot=command-input-wrapper]]:border-b-0"
-        >
+        <Command className="group-data-[side=top]:flex-col-reverse [&_[data-slot=command-input-wrapper]]:border-b group-data-[side=top]:[&_[data-slot=command-input-wrapper]]:border-t group-data-[side=top]:[&_[data-slot=command-input-wrapper]]:border-b-0">
           <CommandInput ref={inputRef} autoFocus placeholder="Search nature..." />
           <CommandList className="custom-scrollbar">
             <CommandEmpty>No nature found.</CommandEmpty>

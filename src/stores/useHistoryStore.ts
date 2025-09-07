@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import type { PokemonBase } from '@/lib/parser/core/PokemonBase'
 import { useSaveFileStore } from './useSaveFileStore'
 
 interface HistoryState {
@@ -34,7 +33,7 @@ function getCurrentSaveBytes(): Uint8Array | null {
   const { saveData, parser } = useSaveFileStore.getState()
   if (!saveData || !parser) return null
   try {
-    return parser.reconstructSaveFile(saveData.party_pokemon as readonly PokemonBase[])
+    return parser.reconstructSaveFile(saveData.party_pokemon)
   } catch {
     return null
   }
@@ -122,7 +121,7 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     try {
       // Move current to future, pop previous from past, then parse previous
       set(state => ({ future: [...state.future, current], past: state.past.slice(0, -1) }))
-      const parse = useSaveFileStore.getState().parse
+      const { parse } = useSaveFileStore.getState()
       await parse(previous.buffer.slice(previous.byteOffset, previous.byteOffset + previous.byteLength), { transient: true })
     } finally {
       set({ isApplying: false })
@@ -146,7 +145,7 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     try {
       // Move current to past, pop next from future, then parse next
       set(state => ({ past: [...state.past, current], future: state.future.slice(0, -1) }))
-      const parse = useSaveFileStore.getState().parse
+      const { parse } = useSaveFileStore.getState()
       await parse(next.buffer.slice(next.byteOffset, next.byteOffset + next.byteLength), { transient: true })
     } finally {
       set({ isApplying: false })
@@ -165,7 +164,7 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     if (!initial) return
     set({ isApplying: true })
     try {
-      const parse = useSaveFileStore.getState().parse
+      const { parse } = useSaveFileStore.getState()
       await parse(initial.buffer.slice(initial.byteOffset, initial.byteOffset + initial.byteLength), { transient: true })
       // After reset, clear history to reflect fresh baseline
       set(() => ({ past: [], future: [] }))

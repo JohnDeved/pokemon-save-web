@@ -21,7 +21,7 @@ export const AbilityTab: React.FC = () => {
           <div className="flex flex-wrap gap-1.5 mb-2">
             {pokemon.details.abilities
               .sort((a, b) => a.slot - b.slot)
-              .map(opt => {
+              .map((opt: { slot: number; name: string }) => {
                 const isActive = opt.slot === pokemon.data.abilityNumber + 1
                 return (
                   <button

@@ -2,7 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 import type { z } from 'zod'
 import { buildPartyListFromSaveData, usePokemonStore, useSaveFileStore } from '../stores'
-import { type Ability, type AbilityApiResponse, AbilityApiResponseSchema, type MoveApiResponse, MoveApiResponseSchema, type MoveWithDetails, PokeApiFlavorTextEntrySchema, PokemonApiResponseSchema, type PokemonType, PokemonTypeSchema, type UIPokemonData } from '../types'
+import { DamageClassNameSchema, type Ability as UiAbility, type MoveWithDetails, type PokemonType, PokemonTypeSchema, type UIPokemonData } from '../types'
+import type { PokeAPI } from 'pokeapi-types/dist/index'
 
 // --- Constants ---
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN'
@@ -27,10 +28,11 @@ const parsePokemonType = (apiType: string): PokemonType => {
 /**
  * Fetch and validate JSON from a URL using a Zod schema.
  */
-async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T> {
+async function fetchAndValidate<T>(url: string, schema?: z.ZodType<T>): Promise<T> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Failed to fetch from ${url}: ${response.statusText}`)
   const data = await response.json()
+  if (!schema) return data as T
   const result = schema.safeParse(data)
   if (!result.success) throw new Error(`Invalid API response format for ${url}`)
   return result.data
@@ -39,32 +41,31 @@ async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T
 /**
  * Helper to get the best English description from effect_entries or flavor_text_entries.
  */
-function getBestEnglishDescription(apiObj: any): string {
+function getBestEnglishDescription(apiObj: unknown): string {
   // Prefer effect_entries in English
-  const effectEntry = Array.isArray(apiObj.effect_entries) ? apiObj.effect_entries.find((e: any) => e.language?.name === 'en') : undefined
+  const effectEntries = (apiObj as { effect_entries?: { language?: { name?: string }; effect?: string }[] }).effect_entries
+  const effectEntry = Array.isArray(effectEntries) ? effectEntries.find(e => e.language?.name === 'en') : undefined
   if (effectEntry?.effect) return effectEntry.effect
 
   // Fallback to latest English flavor_text_entry using Zod schema, but only keep the latest
-  if (!Array.isArray(apiObj.flavor_text_entries)) return 'No description available.'
+  const flavorEntries = (apiObj as { flavor_text_entries?: unknown[] }).flavor_text_entries
+  if (!Array.isArray(flavorEntries)) return 'No description available.'
 
   let latestText: string | undefined
   let latestId = -1
-  for (const entry of apiObj.flavor_text_entries as unknown[]) {
-    // Try move/ability schema first (flavor_text)
-    const parsedMoveFlavor = PokeApiFlavorTextEntrySchema.safeParse(entry)
+  for (const entry of flavorEntries as unknown[]) {
     let text: string | undefined
     let url: string | undefined
-    if (parsedMoveFlavor.success) {
-      if (parsedMoveFlavor.data.language.name !== 'en') continue
-      text = parsedMoveFlavor.data.flavor_text
-      url = parsedMoveFlavor.data.version_group.url
+    const lang = (entry as { language?: { name?: string } }).language
+    if (!lang || lang.name !== 'en') continue
+    if ('flavor_text' in (entry as { flavor_text?: string })) {
+      const e = entry as { flavor_text?: string; version_group?: { url?: string }; version?: { url?: string } }
+      text = e.flavor_text
+      url = e.version_group?.url ?? e.version?.url
     } else {
-      // Try item flavor schema (text)
-      const maybeItem = entry as any
-      if (!(maybeItem && maybeItem.language && maybeItem.language.name)) continue
-      if (maybeItem.language.name !== 'en') continue
-      text = typeof maybeItem.text === 'string' ? maybeItem.text : undefined
-      url = maybeItem.version_group?.url
+      const { text: t, version_group } = entry as { text?: string; version_group?: { url?: string } }
+      text = t
+      url = version_group?.url
     }
     if (!text) continue
     const match = typeof url === 'string' ? url.match(/\/(\d+)\/?$/) : null
@@ -83,14 +84,14 @@ function getBestEnglishDescription(apiObj: any): string {
  */
 async function getPokemonDetails(pokemon: UIPokemonData) {
   const { data } = pokemon
-  const pokeData = await fetchAndValidate(`https://pokeapi.co/api/v2/pokemon/${data.speciesId}`, PokemonApiResponseSchema)
+  const pokeData = await fetchAndValidate<PokeAPI.Pokemon>(`https://pokeapi.co/api/v2/pokemon/${data.speciesId}`)
   const moveSources = [data.moves.move1, data.moves.move2, data.moves.move3, data.moves.move4]
-  const moveResults = await Promise.all(moveSources.map(move => (move.id === 0 ? null : fetchAndValidate<MoveApiResponse>(`https://pokeapi.co/api/v2/move/${move.id}`, MoveApiResponseSchema).catch(() => null))))
+  const moveResults = await Promise.all(moveSources.map(move => (move.id === 0 ? null : fetchAndValidate<PokeAPI.Move>(`https://pokeapi.co/api/v2/move/${move.id}`).catch(() => null))))
   const abilityEntries = pokeData.abilities
-  const abilities: Ability[] = await Promise.all(
+  const abilities: UiAbility[] = await Promise.all(
     abilityEntries.map(async entry => {
       try {
-        const abilityData = await fetchAndValidate<AbilityApiResponse>(entry.ability.url, AbilityApiResponseSchema)
+        const abilityData = await fetchAndValidate<PokeAPI.Ability>(entry.ability.url)
         return {
           slot: entry.slot,
           name: formatName(abilityData.name),
@@ -103,13 +104,14 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
   )
   const types = pokeData.types.map(t => parsePokemonType(t.type.name))
   // Extract base stats in correct order
-  const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense'].map(stat => pokeData.stats.find(s => s.stat.name === stat)?.base_stat ?? 0)
+  const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense'].map(stat => pokeData.stats.find(s => s.stat?.name === stat)?.base_stat ?? 0)
   const moves: MoveWithDetails[] = moveSources.map((move, i) => {
     if (move.id === 0) {
       return { ...NO_MOVE }
     }
     const validMove = moveResults[i]
     if (validMove) {
+      const dcParsed = DamageClassNameSchema.safeParse(validMove.damage_class?.name)
       return {
         id: move.id,
         name: formatName(validMove.name),
@@ -118,7 +120,7 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
         description: getBestEnglishDescription(validMove),
         power: validMove.power ?? null,
         accuracy: validMove.accuracy ?? null,
-        damageClass: validMove.damage_class?.name,
+        damageClass: dcParsed.success ? dcParsed.data : undefined,
         target: validMove.target?.name,
       }
     }

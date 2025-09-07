@@ -25,8 +25,9 @@ export const ItemTab: React.FC = () => {
               alt={itemName}
               className="w-24 h-24 sm:w-28 sm:h-28 image-pixelate rounded-md border border-slate-800 bg-slate-900/70 p-2 shadow-lg"
               onError={e => {
-                const img = e.currentTarget as HTMLImageElement
-                img.onerror = null
+                const img = e.currentTarget
+                if (img.dataset.fallbackApplied === '1') return
+                img.dataset.fallbackApplied = '1'
                 img.src = FALLBACK_BIG
               }}
             />
@@ -50,9 +51,7 @@ export const ItemTab: React.FC = () => {
                 )}
               </div>
               <div className="geist-font text-xs text-slate-400 leading-relaxed mt-2">
-                <Skeleton.Text loading={isFetching}>
-                  {itemDetails?.description ?? (itemIdName ? 'No description available.' : 'No held item.')}
-                </Skeleton.Text>
+                <Skeleton.Text loading={isFetching}>{itemDetails?.description ?? (itemIdName ? 'No description available.' : 'No held item.')}</Skeleton.Text>
               </div>
             </div>
           </div>

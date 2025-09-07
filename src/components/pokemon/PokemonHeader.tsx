@@ -59,7 +59,7 @@ export const PokemonHeader: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {forms.map(f => (
+                        {forms.map((f: { value: string; label: string }) => (
                           <SelectItem key={f.value} value={f.value} className="text-xs">
                             {f.label}
                           </SelectItem>

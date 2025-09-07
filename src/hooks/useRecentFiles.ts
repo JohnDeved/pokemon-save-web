@@ -29,4 +29,3 @@ export function useRecentFiles() {
 
   return { recents, loading, refresh, clear }
 }
-

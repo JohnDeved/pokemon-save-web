@@ -117,21 +117,33 @@ export const NatureTab: React.FC = () => {
             </div>
 
             <div className="mt-2">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">{chooseMode === 'raise' ? 'Select stat to Raise' : chooseMode === 'lower' ? 'Select stat to Lower' : 'Affected Stats'}</div>
+              {(() => {
+                let headerText = 'Affected Stats'
+                if (chooseMode === 'raise') headerText = 'Select stat to Raise'
+                else if (chooseMode === 'lower') headerText = 'Select stat to Lower'
+                return <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">{headerText}</div>
+              })()}
               <div className="flex flex-wrap gap-1.5">
                 {statAbbreviations.map((abbr, i) => {
                   const isUp = incIndex === i
                   const isDown = decIndex === i
                   const base = 'relative px-2 py-1 rounded-md border text-xs leading-none transition-[padding] duration-200 ease-out'
-                  const color = isUp ? 'bg-emerald-900/30 border-emerald-700/60 text-emerald-300' : isDown ? 'bg-rose-900/30 border-rose-700/60 text-rose-300' : 'bg-slate-800/40 border-slate-700 text-slate-300'
+                  let color = 'bg-slate-800/40 border-slate-700 text-slate-300'
+                  if (isUp) color = 'bg-emerald-900/30 border-emerald-700/60 text-emerald-300'
+                  else if (isDown) color = 'bg-rose-900/30 border-rose-700/60 text-rose-300'
 
                   let interactive = false
                   if (chooseMode === 'raise') interactive = i !== 0 && i !== decIndex
                   if (chooseMode === 'lower') interactive = i !== 0 && i !== incIndex
 
-                  const ringColor = chooseMode === 'raise' ? 'hover:ring-emerald-300/40' : chooseMode === 'lower' ? 'hover:ring-rose-300/40' : 'hover:ring-slate-400/30'
+                  let ringColor = 'hover:ring-slate-400/30'
+                  if (chooseMode === 'raise') ringColor = 'hover:ring-emerald-300/40'
+                  else if (chooseMode === 'lower') ringColor = 'hover:ring-rose-300/40'
 
-                  const interactiveCls = chooseMode ? (interactive ? `cursor-pointer hover:ring-1 ${ringColor} transition-all duration-150 ease-out` : 'opacity-40 cursor-not-allowed') : 'transition-all duration-150 ease-out'
+                  let interactiveCls = 'transition-all duration-150 ease-out'
+                  if (chooseMode) {
+                    interactiveCls = interactive ? `cursor-pointer hover:ring-1 ${ringColor} transition-all duration-150 ease-out` : 'opacity-40 cursor-not-allowed'
+                  }
 
                   const preview = hoveredStat === i ? getPreviewDelta(i) : null
                   let displayDelta: number | null = null

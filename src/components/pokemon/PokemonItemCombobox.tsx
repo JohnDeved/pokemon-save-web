@@ -7,11 +7,20 @@ import itemMapData from '@/lib/parser/games/quetzal/data/item_map.json'
 import { cn } from '@/lib/utils'
 import { getItemSpriteUrl } from '@/lib/parser/core/utils'
 
-type ItemEntry = { id: number; name: string; id_name: string }
+interface ItemEntry {
+  id: number
+  name: string
+  id_name: string
+}
 
-const ITEMS: ItemEntry[] = Object.values(itemMapData as Record<string, any>)
-  .filter((v: any) => v && typeof v.id === 'number' && v.id !== null)
-  .map((v: any) => ({ id: v.id as number, name: v.name as string, id_name: v.id_name as string }))
+interface RawItem {
+  id: number | null
+  name: string
+  id_name: string
+}
+const ITEMS: ItemEntry[] = (Object.values(itemMapData) as RawItem[])
+  .filter((v): v is { id: number; name: string; id_name: string } => v !== null && typeof v === 'object' && typeof v.id === 'number')
+  .map(v => ({ id: v.id, name: v.name, id_name: v.id_name }))
   .sort((a, b) => a.name.localeCompare(b.name))
 
 export interface PokemonItemComboboxProps {
@@ -44,7 +53,7 @@ export function PokemonItemCombobox({ valueIdName, onChange, disabled = false, t
     role: 'combobox' as const,
     'aria-expanded': open,
     disabled,
-    onClick: (e: any) => {
+    onClick: (e: React.MouseEvent<HTMLElement>) => {
       if (!disabled) {
         decideSideFromEl(e.currentTarget)
         setOpen(true)
@@ -68,12 +77,7 @@ export function PokemonItemCombobox({ valueIdName, onChange, disabled = false, t
             <Pencil className="ml-2 h-3.5 w-3.5 opacity-40 group-hover:opacity-80 group-focus:opacity-80 transition-opacity duration-150" />
           </button>
         ) : (
-          <Button
-            variant={buttonVariant}
-            size={buttonSize}
-            {...commonTriggerProps}
-            className={cn('justify-between w-[220px] border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50 geist-font', triggerClassName)}
-          >
+          <Button variant={buttonVariant} size={buttonSize} {...commonTriggerProps} className={cn('justify-between w-[220px] border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50 geist-font', triggerClassName)}>
             <span className="font-sans font-normal">{label}</span>
             {!hideIcon && <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
           </Button>
@@ -134,8 +138,9 @@ export function PokemonItemCombobox({ valueIdName, onChange, disabled = false, t
                         alt=""
                         className="w-5 h-5 image-pixelate"
                         onError={e => {
-                          const img = e.currentTarget as HTMLImageElement
-                          img.onerror = null
+                          const img = e.currentTarget
+                          if (img.dataset.fallbackApplied === '1') return
+                          img.dataset.fallbackApplied = '1'
                           img.src = FALLBACK_URL
                         }}
                       />

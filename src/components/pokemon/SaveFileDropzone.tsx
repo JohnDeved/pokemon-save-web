@@ -12,6 +12,12 @@ interface SaveFileDropzoneProps {
   onOpenFilePicker?: (fn: () => void) => void
 }
 
+function isFsFileHandle(obj: unknown): obj is FileSystemFileHandle {
+  if (!obj || typeof obj !== 'object') return false
+  const anyObj = obj as { getFile?: unknown; createWritable?: unknown }
+  return typeof anyObj.getFile === 'function' && typeof anyObj.createWritable === 'function'
+}
+
 export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, error = null, showDropzone, onOpenFilePicker }) => {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null)
   const [lastModified, setLastModified] = useState<number | null>(null)
@@ -22,7 +28,7 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
       if (Array.isArray(event)) {
         // Handle file system access API
         const [handle] = event
-        if (!(handle instanceof FileSystemFileHandle)) {
+        if (!isFsFileHandle(handle)) {
           toast.error('Invalid file handle. Please try again.', {
             position: 'bottom-center',
             duration: 3000,

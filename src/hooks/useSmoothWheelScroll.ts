@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react'
-import type { WheelEventHandler } from 'react'
+import { useCallback, useEffect, useRef, type WheelEventHandler } from 'react'
 
-type Options = {
+interface Options {
   enabled?: boolean
 }
 
-type AnyRef<T> = { current: T | null }
+interface AnyRef<T> {
+  current: T | null
+}
 
 export function useSmoothWheelScroll(scrollRef: AnyRef<HTMLDivElement>, { enabled = true }: Options = {}) {
   const rafRef = useRef<number | null>(null)
@@ -46,7 +47,7 @@ export function useSmoothWheelScroll(scrollRef: AnyRef<HTMLDivElement>, { enable
 
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration)
-      const ease = 1 - Math.pow(1 - t, 3)
+      const ease = 1 - (1 - t) ** 3
       const next = from + (targetRef.current! - from) * ease
       el.scrollTop = next
       if (t < 1) rafRef.current = requestAnimationFrame(tick)
@@ -65,7 +66,7 @@ export function useSmoothWheelScroll(scrollRef: AnyRef<HTMLDivElement>, { enable
 
       // Normalize delta units and clamp
       let dy = Math.abs(e.deltaY) >= Math.abs(e.deltaX) || e.shiftKey ? e.deltaY : 0
-      const dm = (e as any).deltaMode
+      const dm = e.deltaMode
       if (dm === 1) dy *= 24
       else if (dm === 2) dy *= el.clientHeight
       const sign = Math.sign(dy || 1)

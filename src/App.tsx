@@ -13,7 +13,7 @@ import { usePokemonData } from './hooks'
 import { useRecentFiles } from './hooks/useRecentFiles'
 import { useSaveFileStore, useSettingsStore } from './stores'
 import { canRedoSelector, canUndoSelector, hasEditsSelector, useHistoryStore } from './stores/useHistoryStore'
-import type { GlobalThisWithFileSystemAPI } from './types/global'
+import { hasFsPermissions } from './types/fs'
 
 export const App: React.FC = () => {
   const { partyList, preloadPokemonDetails } = usePokemonData()
@@ -26,7 +26,7 @@ export const App: React.FC = () => {
   const setShaderEnabled = useSettingsStore(s => s.setShaderEnabled)
 
   // Check if the browser supports the File System Access API
-  const canSaveAs = typeof globalThis !== 'undefined' && !!(globalThis as unknown as GlobalThisWithFileSystemAPI).showSaveFilePicker
+  const canSaveAs = typeof showSaveFilePicker === 'function'
   // Save file store selectors
   const parse = useSaveFileStore(s => s.parse)
   const error = useSaveFileStore(s => s.error)
@@ -56,11 +56,10 @@ export const App: React.FC = () => {
 
   const openRecent = async (handle: FileSystemFileHandle) => {
     try {
-      const anyHandle = handle as any
-      if (typeof anyHandle.queryPermission === 'function') {
-        const status = await anyHandle.queryPermission({ mode: 'read' })
-        if (status !== 'granted' && typeof anyHandle.requestPermission === 'function') {
-          const res = await anyHandle.requestPermission({ mode: 'read' })
+      if (hasFsPermissions(handle) && typeof handle.queryPermission === 'function') {
+        const status = await handle.queryPermission({ mode: 'read' })
+        if (status !== 'granted' && typeof handle.requestPermission === 'function') {
+          const res = await handle.requestPermission({ mode: 'read' })
           if (res !== 'granted') {
             toast.error('Permission to read this file was denied.', { position: 'bottom-center', duration: 3500 })
             return
@@ -81,10 +80,10 @@ export const App: React.FC = () => {
     ;(async () => {
       try {
         const items = await listRecents()
-        const first = items[0]
+        const [first] = items
         if (!first) return
-        const handle = first.handle as any
-        if (typeof handle.queryPermission === 'function') {
+        const { handle } = first
+        if (hasFsPermissions(handle) && typeof handle.queryPermission === 'function') {
           let status = await handle.queryPermission({ mode: 'read' })
           if (status !== 'granted' && typeof handle.requestPermission === 'function') {
             try {
@@ -95,7 +94,7 @@ export const App: React.FC = () => {
           }
           if (status !== 'granted') return
         }
-        await parse(first.handle)
+        await parse(handle)
       } catch (e) {
         // Silently ignore, user can still open via menu
         console.warn('Auto-restore last file failed:', e)

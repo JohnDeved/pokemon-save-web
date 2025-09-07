@@ -8,7 +8,11 @@ import { useMegaPreview } from '@/hooks'
 // Helpers
 const clampStage = (v: number) => Math.max(-6, Math.min(6, Math.trunc(v)))
 const stageMultiplier = (stage: number) => (stage >= 0 ? (2 + clampStage(stage)) / 2 : 2 / (2 - clampStage(stage)))
-const fmtDelta = (n: number) => (n === 0 ? '±0' : n > 0 ? `+${n}` : `${n}`)
+const fmtDelta = (n: number) => {
+  if (n === 0) return '±0'
+  if (n > 0) return `+${n}`
+  return `${n}`
+}
 
 export const BoostSandboxTab: React.FC = () => {
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
@@ -18,8 +22,8 @@ export const BoostSandboxTab: React.FC = () => {
   const baseStats = pokemon?.details?.baseStats
   const level = pokemon?.data.level ?? 1
   const nature = pokemon?.data.nature ?? 'Serious'
-  const ivs = pokemon?.data.ivs ?? [0, 0, 0, 0, 0, 0]
-  const evs = pokemon?.data.evs ?? [0, 0, 0, 0, 0, 0]
+  const ivs = useMemo(() => pokemon?.data.ivs ?? [0, 0, 0, 0, 0, 0], [pokemon?.data?.ivs])
+  const evs = useMemo(() => pokemon?.data.evs ?? [0, 0, 0, 0, 0, 0], [pokemon?.data?.evs])
   const displayBaseStats = useMemo(() => {
     if (megaPreviewEnabled && megaBaseStats && megaBaseStats.length === 6) return megaBaseStats
     return baseStats
@@ -62,11 +66,12 @@ export const BoostSandboxTab: React.FC = () => {
                       </button>
                     </div>
                     <div className="flex flex-col items-center leading-none min-w-[40px]">
-                      <span
-                        className={`px-1 py-0.5 mb-0.5 rounded-md text-[9px] tabular-nums ${stage > 0 ? 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/60' : stage < 0 ? 'bg-rose-900/30 text-rose-300 border border-rose-700/60' : 'bg-slate-800/40 text-slate-300 border border-slate-700/70'}`}
-                      >
-                        {stage > 0 ? `+${stage}` : stage}
-                      </span>
+                      {(() => {
+                        let stageCls = 'bg-slate-800/40 text-slate-300 border border-slate-700/70'
+                        if (stage > 0) stageCls = 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/60'
+                        else if (stage < 0) stageCls = 'bg-rose-900/30 text-rose-300 border border-rose-700/60'
+                        return <span className={`px-1 py-0.5 mb-0.5 rounded-md text-[9px] tabular-nums ${stageCls}`}>{stage > 0 ? `+${stage}` : stage}</span>
+                      })()}
                       <span className="mt-0 text-[10px] text-slate-400">×{mult.toFixed(2)}</span>
                     </div>
                   </div>
@@ -75,8 +80,23 @@ export const BoostSandboxTab: React.FC = () => {
                     <div className="text-right text-slate-300 tabular-nums w-14 leading-none">{base}</div>
                     <div />
                     <div className="text-slate-500">Result</div>
-                    <div className={`text-right tabular-nums w-14 leading-none ${delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-rose-300' : 'text-slate-300'}`}>{effective}</div>
-                    <div className={`tabular-nums text-right w-[5ch] whitespace-nowrap leading-none ${delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-rose-300' : 'text-slate-500'}`}>{fmtDelta(delta)}</div>
+                    {(() => {
+                      let effCls = 'text-slate-300'
+                      let deltaCls = 'text-slate-500'
+                      if (delta > 0) {
+                        effCls = 'text-emerald-300'
+                        deltaCls = 'text-emerald-300'
+                      } else if (delta < 0) {
+                        effCls = 'text-rose-300'
+                        deltaCls = 'text-rose-300'
+                      }
+                      return (
+                        <>
+                          <div className={`text-right tabular-nums w-14 leading-none ${effCls}`}>{effective}</div>
+                          <div className={`tabular-nums text-right w-[5ch] whitespace-nowrap leading-none ${deltaCls}`}>{fmtDelta(delta)}</div>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
               )

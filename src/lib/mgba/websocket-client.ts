@@ -42,7 +42,8 @@ export class MgbaWebSocketClient {
         })
 
         this.ws.addEventListener('message', event => {
-          const data = event.data as string
+          const raw = event.data
+          const data = typeof raw === 'string' ? raw : String(raw)
           this.handleMessage(data)
         })
 

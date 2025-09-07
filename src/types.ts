@@ -7,143 +7,25 @@ export type SpriteType = 'normal' | 'shiny'
 export const PokemonTypeSchema = z.enum(['NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE', 'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG', 'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'UNKNOWN'])
 export type PokemonType = z.infer<typeof PokemonTypeSchema>
 
-// --- Damage Class ---
-export const DamageClassSchema = z.object({
-  name: z.enum(['physical', 'special', 'status']),
-  url: z.string(),
-})
-export type DamageClass = z.infer<typeof DamageClassSchema>
-
-export const TargetSchema = z.object({
-  name: z.string(),
-  url: z.string(),
-})
-export type Target = z.infer<typeof TargetSchema>
-
-// --- Move/Ability/Type API schemas ---
-export const PokeApiTypeSchema = z.object({
-  slot: z.number(),
-  type: z.object({
-    name: z.string(),
-    url: z.string(),
-  }),
-})
-export type PokeApiType = z.infer<typeof PokeApiTypeSchema>
-
-export const PokeApiStatSchema = z.object({
-  base_stat: z.number(),
-  effort: z.number(),
-  stat: z.object({
-    name: z.string(),
-    url: z.string(),
-  }),
-})
-export type PokeApiStat = z.infer<typeof PokeApiStatSchema>
-
-export const PokeApiAbilitySchema = z.object({
-  ability: z.object({
-    name: z.string(),
-    url: z.string(),
-  }),
-  is_hidden: z.boolean(),
-  slot: z.number(),
-})
-export type PokeApiAbility = z.infer<typeof PokeApiAbilitySchema>
-
-export const PokeApiEffectEntrySchema = z.object({
-  effect: z.string(),
-  language: z.object({
-    name: z.string(),
-    url: z.string(),
-  }),
-})
-export type PokeApiEffectEntry = z.infer<typeof PokeApiEffectEntrySchema>
-
-export const PokeApiVersionGroupSchema = z.object({
-  name: z.string(),
-  url: z.string(),
-})
-export type PokeApiVersionGroup = z.infer<typeof PokeApiVersionGroupSchema>
-
-export const PokeApiFlavorTextEntrySchema = z.object({
-  flavor_text: z.string(),
-  language: z.object({
-    name: z.string(),
-    url: z.string(),
-  }),
-  version_group: PokeApiVersionGroupSchema,
-})
-export type PokeApiFlavorTextEntry = z.infer<typeof PokeApiFlavorTextEntrySchema>
-
-export const PokemonApiResponseSchema = z
-  .object({
-    types: z.array(PokeApiTypeSchema),
-    stats: z.array(PokeApiStatSchema),
-    abilities: z.array(PokeApiAbilitySchema),
-  })
-  .passthrough() // Allow additional properties
-export type PokemonApiResponse = z.infer<typeof PokemonApiResponseSchema>
-
-export const MoveApiResponseSchema = z
-  .object({
-    name: z.string(),
-    type: z
-      .object({
-        name: z.string(),
-      })
-      .optional(),
-    damage_class: DamageClassSchema.optional(),
-    target: TargetSchema.optional(),
-    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
-    flavor_text_entries: z.array(PokeApiFlavorTextEntrySchema).optional(),
-    power: z.number().nullable().optional(),
-    accuracy: z.number().nullable().optional(),
-    effect_chance: z.number().nullable().optional(),
-  })
-  .passthrough()
-export type MoveApiResponse = z.infer<typeof MoveApiResponseSchema>
-
-export const AbilityApiResponseSchema = z
-  .object({
-    name: z.string(),
-    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
-  })
-  .passthrough()
-export type AbilityApiResponse = z.infer<typeof AbilityApiResponseSchema>
-
-export const ItemApiResponseSchema = z
-  .object({
-    name: z.string(),
-    effect_entries: z.array(PokeApiEffectEntrySchema).optional(),
-    // Items use `text` instead of `flavor_text` in flavor entries
-    flavor_text_entries: z
-      .array(
-        z
-          .object({
-            text: z.string(),
-            language: z.object({ name: z.string(), url: z.string() }),
-            version_group: PokeApiVersionGroupSchema,
-          })
-          .passthrough()
-      )
-      .optional(),
-  })
-  .passthrough()
-export type ItemApiResponse = z.infer<typeof ItemApiResponseSchema>
+// Narrowed damage class name that UI cares about; used for icons and labels
+export const DamageClassNameSchema = z.enum(['physical', 'special', 'status'])
+export type DamageClassName = z.infer<typeof DamageClassNameSchema>
 
 // --- Interfaces ---
-export interface BaseMove {
-  name: string
-  id: number
-  pp: number
-}
+export const BaseMoveSchema = z.object({
+  name: z.string(),
+  id: z.number(),
+  pp: z.number(),
+})
+export type BaseMove = z.infer<typeof BaseMoveSchema>
 
-export interface Moves {
-  move1: BaseMove
-  move2: BaseMove
-  move3: BaseMove
-  move4: BaseMove
-}
+export const MovesSchema = z.object({
+  move1: BaseMoveSchema,
+  move2: BaseMoveSchema,
+  move3: BaseMoveSchema,
+  move4: BaseMoveSchema,
+})
+export type Moves = z.infer<typeof MovesSchema>
 
 export interface UIPokemonData {
   readonly id: number // UI index for React keys
@@ -155,25 +37,33 @@ export interface UIPokemonData {
 
 export type Pokemon = UIPokemonData
 
-export interface MoveWithDetails extends BaseMove {
-  type: PokemonType
-  description: string
-  power: number | null
-  accuracy: number | null
-  damageClass?: DamageClass['name']
-  target?: Target['name']
-}
+export const MoveWithDetailsSchema = BaseMoveSchema.extend({
+  type: PokemonTypeSchema,
+  description: z.string(),
+  power: z.number().nullable(),
+  accuracy: z.number().nullable(),
+  damageClass: DamageClassNameSchema.optional(),
+  target: z.string().optional(),
+})
+export type MoveWithDetails = z.infer<typeof MoveWithDetailsSchema>
 
-export interface Ability {
-  slot: number
-  name: string
-  description: string
-}
+export const AbilitySchema = z.object({
+  slot: z.number(),
+  name: z.string(),
+  description: z.string(),
+})
+export type Ability = z.infer<typeof AbilitySchema>
 
-export interface PokemonDetails {
-  types: PokemonType[]
-  abilities: Ability[]
-  moves: MoveWithDetails[]
-  baseStats: number[]
-  item?: { name: string; description: string }
-}
+export const PokemonDetailsSchema = z.object({
+  types: z.array(PokemonTypeSchema),
+  abilities: z.array(AbilitySchema),
+  moves: z.array(MoveWithDetailsSchema),
+  baseStats: z.array(z.number()),
+  item: z
+    .object({
+      name: z.string(),
+      description: z.string(),
+    })
+    .optional(),
+})
+export type PokemonDetails = z.infer<typeof PokemonDetailsSchema>

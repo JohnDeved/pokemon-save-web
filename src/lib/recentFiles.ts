@@ -1,4 +1,4 @@
-export type RecentEntry = {
+export interface RecentEntry {
   id: number
   name: string
   handle: FileSystemFileHandle
@@ -12,15 +12,15 @@ const MAX_RECENTS = 5
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1)
-    req.onupgradeneeded = () => {
+    req.addEventListener('upgradeneeded', () => {
       const db = req.result
       if (!db.objectStoreNames.contains(STORE)) {
         const store = db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true })
         store.createIndex('updatedAt', 'updatedAt')
       }
-    }
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
+    })
+    req.addEventListener('success', () => resolve(req.result))
+    req.addEventListener('error', () => reject(req.error))
   })
 }
 
@@ -32,7 +32,7 @@ export async function listRecents(): Promise<RecentEntry[]> {
 
     const records: RecentEntry[] = []
     const cursorReq = store.openCursor()
-    cursorReq.onsuccess = () => {
+    cursorReq.addEventListener('success', () => {
       const cursor = cursorReq.result
       if (cursor) {
         records.push(cursor.value as RecentEntry)
@@ -42,8 +42,8 @@ export async function listRecents(): Promise<RecentEntry[]> {
         records.sort((a, b) => b.updatedAt - a.updatedAt)
         resolve(records.slice(0, MAX_RECENTS))
       }
-    }
-    cursorReq.onerror = () => reject(cursorReq.error)
+    })
+    cursorReq.addEventListener('error', () => reject(cursorReq.error))
   })
 }
 
@@ -53,8 +53,8 @@ export async function clearRecents(): Promise<void> {
     const tx = db.transaction(STORE, 'readwrite')
     const store = tx.objectStore(STORE)
     const req = store.clear()
-    req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
+    req.addEventListener('success', () => resolve())
+    req.addEventListener('error', () => reject(req.error))
   })
 }
 
@@ -64,8 +64,8 @@ async function putRecord(record: Omit<RecentEntry, 'id'> & Partial<Pick<RecentEn
     const tx = db.transaction(STORE, 'readwrite')
     const store = tx.objectStore(STORE)
     const req = store.put(record)
-    req.onsuccess = () => resolve(req.result as number)
-    req.onerror = () => reject(req.error)
+    req.addEventListener('success', () => resolve(req.result as number))
+    req.addEventListener('error', () => reject(req.error))
   })
 }
 
@@ -75,22 +75,22 @@ async function deleteRecord(id: number): Promise<void> {
     const tx = db.transaction(STORE, 'readwrite')
     const store = tx.objectStore(STORE)
     const req = store.delete(id)
-    req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
+    req.addEventListener('success', () => resolve())
+    req.addEventListener('error', () => reject(req.error))
   })
 }
 
 export async function addRecent(handle: FileSystemFileHandle, name: string): Promise<void> {
   try {
     // Normalize name
-    const displayName = name || (handle as any).name || 'Unknown file'
+    const displayName = name || handle.name || 'Unknown file'
 
     // Deduplicate by isSameEntry if possible
     const existing = await listRecents()
     for (const rec of existing) {
       try {
-        const same = typeof (rec.handle as any).isSameEntry === 'function' ? await (rec.handle as any).isSameEntry(handle) : undefined
-        if (same === true || ((rec.handle as any).name && (rec.handle as any).name === (handle as any).name)) {
+        const same = typeof rec.handle.isSameEntry === 'function' ? await rec.handle.isSameEntry(handle) : undefined
+        if (same === true || (rec.handle.name && rec.handle.name === handle.name)) {
           await putRecord({ id: rec.id, name: displayName, handle, updatedAt: Date.now() })
           return
         }

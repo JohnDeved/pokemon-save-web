@@ -7,9 +7,9 @@ export const CompactPokemonSelector: React.FC = () => {
   const partyList = usePokemonStore(s => s.partyList)
   const activePokemonId = usePokemonStore(s => s.activePokemonId)
   const setActivePokemonId = usePokemonStore(s => s.setActivePokemonId)
+  const { megaPreviewEnabled, megaSpriteAniUrl, megaSpritePngUrl } = useMegaPreview()
   const selectedPokemon = partyList.find(p => p.id === activePokemonId)
   if (!selectedPokemon) return null
-  const { megaPreviewEnabled, megaSpriteAniUrl, megaSpritePngUrl } = useMegaPreview()
 
   return (
     <Card className="p-3 lg:hidden">
@@ -17,9 +17,10 @@ export const CompactPokemonSelector: React.FC = () => {
         <img
           src={megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : selectedPokemon.spriteUrl}
           onError={e => {
-            const img = e.currentTarget as HTMLImageElement
+            const img = e.currentTarget
+            if (img.dataset.fallbackApplied === '1') return
             if (megaPreviewEnabled && megaSpritePngUrl) {
-              img.onerror = null
+              img.dataset.fallbackApplied = '1'
               img.src = megaSpritePngUrl
             }
           }}
@@ -38,9 +39,10 @@ export const CompactPokemonSelector: React.FC = () => {
             <img
               src={pokemon.id === selectedPokemon.id && megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : pokemon.spriteUrl}
               onError={e => {
-                const img = e.currentTarget as HTMLImageElement
+                const img = e.currentTarget
+                if (img.dataset.fallbackApplied === '1') return
                 if (pokemon.id === selectedPokemon.id && megaPreviewEnabled && megaSpritePngUrl) {
-                  img.onerror = null
+                  img.dataset.fallbackApplied = '1'
                   img.src = megaSpritePngUrl
                 }
               }}

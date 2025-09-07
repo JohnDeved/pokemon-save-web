@@ -1,18 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import { usePokemonStore, useSaveFileStore } from '@/stores'
-import { ItemApiResponseSchema, type ItemApiResponse } from '@/types'
+import type { PokeAPI } from 'pokeapi-types/dist/index'
 import type { z } from 'zod'
 
-async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>): Promise<T> {
+async function fetchAndValidate<T>(url: string, schema?: z.ZodType<T>): Promise<T> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Failed to fetch from ${url}: ${response.statusText}`)
   const data = await response.json()
+  if (!schema) return data as T
   const result = schema.safeParse(data)
   if (!result.success) throw new Error(`Invalid API response format for ${url}`)
   return result.data
 }
 
-function getBestEnglishItemDescription(apiObj: ItemApiResponse): string {
+function getBestEnglishItemDescription(apiObj: PokeAPI.Item): string {
   const effectEntry = apiObj.effect_entries?.find(e => e.language.name === 'en')
   if (effectEntry?.effect) return effectEntry.effect
 
@@ -21,8 +22,8 @@ function getBestEnglishItemDescription(apiObj: ItemApiResponse): string {
   let latestId = -1
   for (const entry of apiObj.flavor_text_entries) {
     if (entry.language.name !== 'en') continue
-    const text = entry.text
-    const url = entry.version_group?.url
+    const { text, version_group } = entry
+    const url = version_group?.url
     const match = typeof url === 'string' ? url.match(/\/(\d+)\/?$/) : null
     const id = match ? parseInt(match[1]!, 10) : 0
     if (id > latestId) {
@@ -47,7 +48,7 @@ export function useActiveItemDetails() {
     queryFn: async () => {
       if (!itemIdName) return null
       try {
-        const itemResp = await fetchAndValidate<ItemApiResponse>(`https://pokeapi.co/api/v2/item/${itemIdName}`, ItemApiResponseSchema)
+        const itemResp = await fetchAndValidate<PokeAPI.Item>(`https://pokeapi.co/api/v2/item/${itemIdName}`)
         return {
           name: formatName(itemResp.name),
           description: getBestEnglishItemDescription(itemResp),
@@ -65,4 +66,3 @@ export function useActiveItemDetails() {
 
   return { itemDetails: data, isFetching, queryKey }
 }
-

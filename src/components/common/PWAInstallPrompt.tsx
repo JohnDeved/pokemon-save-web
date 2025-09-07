@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { HiOutlineCloudDownload } from 'react-icons/hi'
 import { Button } from '@/components/ui/button'
 import { useSettingsStore } from '@/stores'
-import type { BeforeInstallPromptEvent } from '@/types/pwa'
+import { isBeforeInstallPromptEvent, type BeforeInstallPromptEvent } from '@/types/pwa'
 
 export const PWAInstallPrompt: React.FC = () => {
   const [showPrompt, setShowPrompt] = useState(false)
@@ -18,7 +18,9 @@ export const PWAInstallPrompt: React.FC = () => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault()
       // Store the event so it can be triggered later
-      setDeferredPrompt(e as BeforeInstallPromptEvent)
+      if (isBeforeInstallPromptEvent(e)) {
+        setDeferredPrompt(e)
+      }
       // Only auto-show if not previously dismissed
       if (!pwaDismissed) {
         setShowPrompt(true)

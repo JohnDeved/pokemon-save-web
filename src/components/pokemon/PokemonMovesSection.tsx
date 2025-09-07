@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { usePokemonStore } from '@/stores'
-import { useSaveFileStore } from '@/stores'
+import { usePokemonStore, useSaveFileStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { PokemonMoveButton } from '@/components/pokemon/PokemonMoveButton'
 import { PokemonMovePlaceholder } from '@/components/pokemon/PokemonMovePlaceholder'
 import { useActivePokemonLoading } from '@/hooks'
-import type { MoveWithDetails, PokemonType } from '@/types'
+import type { MoveWithDetails } from '@/types'
 
 const EMPTY_MOVE: MoveWithDetails = {
   id: 0,
   name: 'None',
   pp: 0,
-  type: 'UNKNOWN' as PokemonType,
+  type: 'UNKNOWN' as const,
   description: 'No move assigned.',
   power: null,
   accuracy: null,
@@ -23,7 +22,7 @@ export const PokemonMovesSection: React.FC = () => {
   const saveSessionId = useSaveFileStore(s => s.saveSessionId)
   const isLoading = useActivePokemonLoading()
   const moves = pokemon?.details?.moves ?? []
-  
+
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
   useEffect(() => {
     setExpandedMoveIndex(null)
@@ -43,10 +42,7 @@ export const PokemonMovesSection: React.FC = () => {
             )
           }
           return (
-            <div
-              key={i}
-              className="group"
-            >
+            <div key={i} className="group">
               {isLoading ? (
                 <div className="w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 backdrop-blur-sm border border-slate-700 shadow-lg transition-all duration-200">
                   <div className="flex items-center justify-between">

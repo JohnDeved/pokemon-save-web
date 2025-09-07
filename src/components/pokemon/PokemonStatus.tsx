@@ -108,20 +108,16 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
 
   return (
     <Card className={cn('flex items-center p-3 transition-all duration-300', containerClasses)}>
-      <PokemonSprite
-        src={isActive && megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : pokemon.spriteAniUrl}
-        fallbackSrc={isActive && megaPreviewEnabled && megaSpritePngUrl ? megaSpritePngUrl : pokemon.spriteUrl}
-        alt={pokemon.data.nickname}
-        paused={!isActive}
-      >
+      <PokemonSprite src={isActive && megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : pokemon.spriteAniUrl} fallbackSrc={isActive && megaPreviewEnabled && megaSpritePngUrl ? megaSpritePngUrl : pokemon.spriteUrl} alt={pokemon.data.nickname} paused={!isActive}>
         {pokemon.data.itemIdName ? (
           <img
             src={getItemSpriteUrl(pokemon.data.itemIdName)}
             alt={pokemon.data.itemIdName}
             className="absolute bottom-0 right-0 z-20 w-5 h-5 rounded-sm border border-slate-900 shadow-md image-pixelate bg-slate-950/70"
             onError={e => {
-              const img = e.currentTarget as HTMLImageElement
-              img.onerror = null
+              const img = e.currentTarget
+              if (img.dataset.fallbackApplied === '1') return
+              img.dataset.fallbackApplied = '1'
               img.src = '/pokemon_item_placeholder_32x32.png'
             }}
           />

@@ -31,13 +31,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
 
   return (
     <div ref={rootRef} className="relative" onWheel={onWheel}>
-      <div
-        className={cn(
-          'w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 border border-slate-700 shadow-lg transition-all duration-200',
-        )}
-        onMouseEnter={onHoverStart}
-        onMouseLeave={onHoverEnd}
-      >
+      <div className={cn('w-full text-left p-3 rounded-lg bg-slate-800/50 group-hover:bg-slate-700/70 border border-slate-700 shadow-lg transition-all duration-200')} onMouseEnter={onHoverStart} onMouseLeave={onHoverEnd}>
         <div className="flex items-center justify-between">
           <span className="text-sm text-white truncate w-full block" title={move.name}>
             {move.name}
@@ -50,19 +44,17 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
       </div>
       <AnimatePresence>
         {isExpanded && (
-          <motion.div
-            layout
-            initial={{ opacity: 0, y: animationY }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: animationY }}
-            className={cn('absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-800 rounded-lg shadow-xl text-xs', popoverDirectionClass)}
-          >
+          <motion.div layout initial={{ opacity: 0, y: animationY }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: animationY }} className={cn('absolute left-0 right-0 z-50 p-3 bg-slate-900 border border-slate-800 rounded-lg shadow-xl text-xs', popoverDirectionClass)}>
             <div className="flex justify-between text-slate-400 mb-2 pb-2 border-b border-slate-700/50">
               <div>
                 <div>
                   Power:
                   <div className="text-white flex items-center gap-1">
-                    {move.damageClass && <img src={damageClassIcons[move.damageClass]} alt={move.damageClass} className="w-3 h-3" />}
+                    {(() => {
+                      const dc = move.damageClass
+                      const isKnown = dc === 'physical' || dc === 'special' || dc === 'status'
+                      return isKnown ? <img src={damageClassIcons[dc]} alt={dc} className="w-3 h-3" /> : null
+                    })()}
                     {move.power ?? '—'}
                   </div>
                 </div>

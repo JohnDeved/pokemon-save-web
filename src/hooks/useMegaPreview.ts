@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { usePokemonStore, useSaveFileStore } from '@/stores'
 import type { z } from 'zod'
+import type { PokeAPI } from 'pokeapi-types/dist/index'
 
 // Local helpers
 const formatName = (name: string): string => name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
@@ -17,60 +18,58 @@ async function fetchAndValidate<T>(url: string, schema?: z.ZodType<T>): Promise<
 }
 
 // Minimal PokeAPI shapes we need
-type PokeSpeciesVariety = { is_default: boolean; pokemon: { name: string; url: string } }
-type PokeSpecies = { varieties: PokeSpeciesVariety[] }
-// type PokePokemonStat = { base_stat: number; stat: { name: string } }
+// Using types from pokeapi-types (PokemonSpecies, Pokemon, Ability)
 
 // Known Mega Stone to PokeAPI mega form slug map
 // Keyed by our item id_name, value is the pokemon form slug used by PokeAPI
 const STONE_TO_FORM: Record<string, string> = {
-  'venusaurite': 'venusaur-mega',
+  venusaurite: 'venusaur-mega',
   'charizardite-x': 'charizard-mega-x',
   'charizardite-y': 'charizard-mega-y',
-  'blastoisinite': 'blastoise-mega',
-  'beedrillite': 'beedrill-mega',
-  'pidgeotite': 'pidgeot-mega',
-  'alakazite': 'alakazam-mega',
-  'slowbronite': 'slowbro-mega',
-  'gengarite': 'gengar-mega',
-  'kangaskhanite': 'kangaskhan-mega',
-  'pinsirite': 'pinsir-mega',
-  'gyaradosite': 'gyarados-mega',
-  'aerodactylite': 'aerodactyl-mega',
+  blastoisinite: 'blastoise-mega',
+  beedrillite: 'beedrill-mega',
+  pidgeotite: 'pidgeot-mega',
+  alakazite: 'alakazam-mega',
+  slowbronite: 'slowbro-mega',
+  gengarite: 'gengar-mega',
+  kangaskhanite: 'kangaskhan-mega',
+  pinsirite: 'pinsir-mega',
+  gyaradosite: 'gyarados-mega',
+  aerodactylite: 'aerodactyl-mega',
   'mewtwonite-x': 'mewtwo-mega-x',
   'mewtwonite-y': 'mewtwo-mega-y',
-  'ampharosite': 'ampharos-mega',
-  'steelixite': 'steelix-mega',
-  'scizorite': 'scizor-mega',
-  'heracronite': 'heracross-mega',
-  'houndoominite': 'houndoom-mega',
-  'tyranitarite': 'tyranitar-mega',
-  'sceptilite': 'sceptile-mega',
-  'blazikenite': 'blaziken-mega',
-  'swampertite': 'swampert-mega',
-  'gardevoirite': 'gardevoir-mega',
-  'sablenite': 'sableye-mega',
-  'mawilite': 'mawile-mega',
-  'aggronite': 'aggron-mega',
-  'medichamite': 'medicham-mega',
-  'manectite': 'manectric-mega',
-  'sharpedonite': 'sharpedo-mega',
-  'cameruptite': 'camerupt-mega',
-  'altarianite': 'altaria-mega',
-  'banettite': 'banette-mega',
-  'absolite': 'absol-mega',
-  'glalitite': 'glalie-mega',
-  'salamencite': 'salamence-mega',
-  'metagrossite': 'metagross-mega',
-  'latiasite': 'latias-mega',
-  'latiosite': 'latios-mega',
-  'lopunnite': 'lopunny-mega',
-  'garchompite': 'garchomp-mega',
-  'lucarionite': 'lucario-mega',
-  'abomasite': 'abomasnow-mega',
-  'galladite': 'gallade-mega',
-  'audinite': 'audino-mega',
-  'diancite': 'diancie-mega',
+  ampharosite: 'ampharos-mega',
+  steelixite: 'steelix-mega',
+  scizorite: 'scizor-mega',
+  heracronite: 'heracross-mega',
+  houndoominite: 'houndoom-mega',
+  tyranitarite: 'tyranitar-mega',
+  sceptilite: 'sceptile-mega',
+  blazikenite: 'blaziken-mega',
+  swampertite: 'swampert-mega',
+  gardevoirite: 'gardevoir-mega',
+  sablenite: 'sableye-mega',
+  mawilite: 'mawile-mega',
+  aggronite: 'aggron-mega',
+  medichamite: 'medicham-mega',
+  manectite: 'manectric-mega',
+  sharpedonite: 'sharpedo-mega',
+  cameruptite: 'camerupt-mega',
+  altarianite: 'altaria-mega',
+  banettite: 'banette-mega',
+  absolite: 'absol-mega',
+  glalitite: 'glalie-mega',
+  salamencite: 'salamence-mega',
+  metagrossite: 'metagross-mega',
+  latiasite: 'latias-mega',
+  latiosite: 'latios-mega',
+  lopunnite: 'lopunny-mega',
+  garchompite: 'garchomp-mega',
+  lucarionite: 'lucario-mega',
+  abomasite: 'abomasnow-mega',
+  galladite: 'gallade-mega',
+  audinite: 'audino-mega',
+  diancite: 'diancie-mega',
 }
 
 function slugToLocalSpriteName(slug: string): string {
@@ -85,6 +84,8 @@ function slugToShowdownSpriteName(slug: string): string {
   //  - 'mewtwo-mega-y' -> 'mewtwo-megay'
   return slug.replace(/-mega-(x|y)$/i, '-meg$1')
 }
+
+// Read ability effect text from PokeAPI.Ability (fallback)
 
 export function useMegaPreview() {
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
@@ -104,13 +105,13 @@ export function useMegaPreview() {
     queryKey: ['pokemon', 'mega', 'forms', saveSessionId, speciesId ?? 'none'],
     enabled: supportsMega && !!speciesId,
     queryFn: async () => {
-      const species = await fetchAndValidate<PokeSpecies>(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`)
+      const species = await fetchAndValidate<PokeAPI.PokemonSpecies>(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`)
       const varieties = species.varieties || []
       // Filter varieties with 'mega' in the name
       const forms = varieties
-        .map(v => v.pokemon?.name)
-        .filter((n): n is string => typeof n === 'string')
-        .filter(n => /mega/.test(n))
+        .map((v: PokeAPI.PokemonSpeciesVariety) => v.pokemon?.name)
+        .filter((n: string | undefined): n is string => typeof n === 'string')
+        .filter((n: string) => /mega/.test(n))
       return forms
     },
     staleTime: 1000 * 60 * 60,
@@ -136,18 +137,18 @@ export function useMegaPreview() {
     queryKey: ['pokemon', 'mega', 'stats', saveSessionId, effectiveForm ?? 'none'],
     enabled: supportsMega && !!effectiveForm,
     queryFn: async () => {
-      const p = await fetchAndValidate<any>(`https://pokeapi.co/api/v2/pokemon/${effectiveForm}`)
+      const p = await fetchAndValidate<PokeAPI.Pokemon>(`https://pokeapi.co/api/v2/pokemon/${effectiveForm}`)
       // Extract base stats in our UI order: HP, Atk, Def, Spe, SpA, SpD
-      const get = (name: string) => p.stats.find((s: any) => s.stat?.name === name)?.base_stat ?? 0
+      const get = (name: string) => p.stats.find((s: PokeAPI.PokemonStat) => s.stat?.name === name)?.base_stat ?? 0
       const baseStats = [get('hp'), get('attack'), get('defense'), get('speed'), get('special-attack'), get('special-defense')]
       // Load ability descriptions (best-effort)
-      const abilitiesRaw: { slot: number; ability: { name: string; url: string } }[] = Array.isArray(p.abilities) ? p.abilities : []
+      const abilitiesRaw: PokeAPI.Pokemon['abilities'] = Array.isArray(p.abilities) ? p.abilities : []
       const abilityDetails = await Promise.all(
-        abilitiesRaw.map(async (a) => {
+        abilitiesRaw.map(async (a: PokeAPI.PokemonAbility) => {
           try {
-            const ad = await fetchAndValidate<any>(a.ability.url)
-            const entry = Array.isArray(ad.effect_entries) ? ad.effect_entries.find((e: any) => e.language?.name === 'en') : undefined
-            const desc = (entry?.effect as string) || 'No description available.'
+            const ad = await fetchAndValidate<PokeAPI.Ability>(a.ability.url)
+            const entry = Array.isArray(ad.effect_entries) ? ad.effect_entries.find((e: PokeAPI.VerboseEffect) => e.language?.name === 'en') : undefined
+            const desc = typeof entry?.effect === 'string' ? entry.effect : 'No description available.'
             return { slot: a.slot, name: formatName(a.ability.name), description: desc }
           } catch {
             return { slot: a.slot, name: formatName(a.ability.name), description: 'No description available.' }
@@ -174,13 +175,7 @@ export function useMegaPreview() {
     megaBaseStats,
     megaAbilities,
     // Sprite URLs for UI components
-    megaSpriteAniUrl:
-      pokemon && effectiveForm
-        ? `${(pokemon.data.isShiny || pokemon.data.isRadiant) ? '/sprites/shiny' : '/sprites'}/${slugToLocalSpriteName(effectiveForm)}.gif`
-        : undefined,
-    megaSpritePngUrl:
-      effectiveForm
-        ? `https://play.pokemonshowdown.com/sprites/${(pokemon?.data.isShiny || pokemon?.data.isRadiant) ? 'gen5-shiny' : 'gen5'}/${slugToShowdownSpriteName(effectiveForm)}.png`
-        : undefined,
+    megaSpriteAniUrl: pokemon && effectiveForm ? `${pokemon.data.isShiny || pokemon.data.isRadiant ? '/sprites/shiny' : '/sprites'}/${slugToLocalSpriteName(effectiveForm)}.gif` : undefined,
+    megaSpritePngUrl: effectiveForm ? `https://play.pokemonshowdown.com/sprites/${pokemon?.data.isShiny || pokemon?.data.isRadiant ? 'gen5-shiny' : 'gen5'}/${slugToShowdownSpriteName(effectiveForm)}.png` : undefined,
   }
 }

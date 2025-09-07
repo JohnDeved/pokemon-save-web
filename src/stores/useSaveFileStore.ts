@@ -4,7 +4,6 @@ import { create } from 'zustand'
 import { addRecent } from '@/lib/recentFiles'
 import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
 import type { SaveData } from '../lib/parser/core/types'
-import type { GlobalThisWithFileSystemAPI } from '../types/global'
 import { usePokemonStore } from './usePokemonStore'
 
 export interface SaveFileState {
@@ -55,7 +54,7 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
     }
     try {
       // Reuse existing parser instance to preserve fileHandle (for Save button)
-      let parser = get().parser
+      let { parser } = get()
       if (!parser) parser = new PokemonSaveParser()
 
       const saveData = await parser.parse(input)
@@ -71,7 +70,7 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
       if (!transient) {
         try {
           if (parser.fileHandle) {
-            await addRecent(parser.fileHandle as FileSystemFileHandle, parser.saveFileName ?? 'Save file')
+            await addRecent(parser.fileHandle, parser.saveFileName ?? 'Save file')
           }
         } catch {}
       }
@@ -114,11 +113,10 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
 
     if (method === 'saveAs') {
       try {
-        const globalAPI = globalThis as unknown as GlobalThisWithFileSystemAPI
-        if (!globalAPI.showSaveFilePicker) {
+        if (typeof showSaveFilePicker !== 'function') {
           throw new Error('File System Access API not supported')
         }
-        const handle = await globalAPI.showSaveFilePicker({
+        const handle = await showSaveFilePicker({
           suggestedName: defaultFileName,
           types: [
             {
@@ -131,12 +129,11 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
         await writable.write(blob)
         await writable.close()
         // Persist the new handle so subsequent 'Save' is enabled
-        parser.fileHandle = handle as any
-        // Update display name if available (property not in TS lib yet)
-        try {
-          const maybeName = (handle as unknown as { name?: string }).name
-          if (typeof maybeName === 'string' && maybeName) parser.saveFileName = maybeName
-        } catch {}
+        parser.fileHandle = handle
+        // Update display name if available
+        if (typeof handle.name === 'string' && handle.name) {
+          parser.saveFileName = handle.name
+        }
         // Trigger store update with current parser reference
         set({ parser })
         return
