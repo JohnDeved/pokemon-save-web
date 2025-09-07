@@ -9,6 +9,7 @@ A web-based Pokemon save file editor, CLI tool, and TypeScript parser core with 
 - **Real-time Editing**: Interactive Pokemon data visualization and editing
 - **File System Integration**: Modern browser file API support
 - **Cross-Platform**: Web, CLI, and library usage
+- **Mega Stats Preview**: Preview stats if a Mega Evolution exists (gated by game config)
 
 ## Quick Start
 
@@ -217,3 +218,9 @@ The app uses advanced optimization techniques:
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+### Mega Stats Preview
+
+- Visible only when the current game config supports Mega Evolutions (e.g., Pokemon Quetzal).
+- On the Stats panel, toggle "Mega Preview" to see recalculated totals using the Mega form's base stats.
+- If multiple Mega forms exist (e.g., Charizard X/Y), use the form selector. If holding a matching Mega Stone, the form is preselected.
+- This is a non-destructive preview; it does not change the saved Pokémon.

@@ -3,6 +3,7 @@ import { Card } from '@/components/common'
 import { getItemSpriteUrl } from '@/lib/parser/core/utils'
 import { cn } from '@/lib/utils'
 import type { Pokemon } from '@/types'
+import { useMegaPreview } from '@/hooks'
 
 // Health percentage thresholds for color coding
 const HP_THRESHOLDS = {
@@ -91,6 +92,7 @@ const PokemonSprite: React.FC<{
 // Component for a single Pokémon's status display on the left
 export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive }) => {
   const hpPercentage = (pokemon.data.currentHp / pokemon.data.maxHp) * 100
+  const { megaPreviewEnabled, megaSpriteAniUrl, megaSpritePngUrl } = useMegaPreview()
 
   // Fix nested ternary
   let hpColor: string
@@ -106,7 +108,12 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
 
   return (
     <Card className={cn('flex items-center p-3 transition-all duration-300', containerClasses)}>
-      <PokemonSprite src={pokemon.spriteAniUrl} fallbackSrc={pokemon.spriteUrl} alt={pokemon.data.nickname} paused={!isActive}>
+      <PokemonSprite
+        src={isActive && megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : pokemon.spriteAniUrl}
+        fallbackSrc={isActive && megaPreviewEnabled && megaSpritePngUrl ? megaSpritePngUrl : pokemon.spriteUrl}
+        alt={pokemon.data.nickname}
+        paused={!isActive}
+      >
         {pokemon.data.itemIdName ? (
           <img
             src={getItemSpriteUrl(pokemon.data.itemIdName)}

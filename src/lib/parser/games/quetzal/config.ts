@@ -17,6 +17,9 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   readonly pokemonSize = 104
   readonly maxPartySize = 6
 
+  // Quetzal includes Mega Evolution feature
+  readonly supportsMega = true
+
   // Override offsets for Quetzal's unencrypted structure
   readonly offsetOverrides: PokemonOffsetsOverride = {
     currentHp: 0x23,

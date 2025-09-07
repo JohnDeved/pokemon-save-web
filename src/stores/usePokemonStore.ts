@@ -11,6 +11,7 @@ const MAX_TOTAL_EVS = 508
 export interface PokemonState {
   activePokemonId: number
   partyList: UIPokemonData[]
+  megaPreview: Record<number, { enabled: boolean; form?: string }>
 }
 
 export interface PokemonActions {
@@ -21,6 +22,8 @@ export interface PokemonActions {
   setNature: (pokemonId: number, nature: string) => void
   setAbilitySlot: (pokemonId: number, slot: number) => void
   setItemId: (pokemonId: number, itemId: number | null) => void
+  setMegaPreviewEnabled: (pokemonId: number, enabled: boolean) => void
+  setMegaPreviewForm: (pokemonId: number, form: string | undefined) => void
   getRemainingEvs: (pokemonId: number) => number
   resetPokemonData: () => void
   clearPokemonDetails: () => void
@@ -32,6 +35,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
   // Initial state
   activePokemonId: 0,
   partyList: [],
+  megaPreview: {},
 
   // Actions
   setActivePokemonId: (id: number) => {
@@ -128,6 +132,18 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         }
         return { ...p }
       }),
+    }))
+  },
+
+  setMegaPreviewEnabled: (pokemonId: number, enabled: boolean) => {
+    set(state => ({
+      megaPreview: { ...state.megaPreview, [pokemonId]: { ...(state.megaPreview[pokemonId] ?? { enabled: false }), enabled } },
+    }))
+  },
+
+  setMegaPreviewForm: (pokemonId: number, form: string | undefined) => {
+    set(state => ({
+      megaPreview: { ...state.megaPreview, [pokemonId]: { ...(state.megaPreview[pokemonId] ?? { enabled: false }), form } },
     }))
   },
 

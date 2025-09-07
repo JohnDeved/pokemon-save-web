@@ -2,8 +2,8 @@ import { calculateTotalStatsDirect, MAX_EV, MAX_IV, statAbbreviations } from '@/
 import { usePokemonStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { Slider } from '@/components/ui/slider'
-import { useState } from 'react'
-import { useActivePokemonLoading } from '@/hooks'
+import { useMemo, useState } from 'react'
+import { useActivePokemonLoading, useMegaPreview } from '@/hooks'
 
 // Labels come from shared utils to avoid hardcoding
 
@@ -29,14 +29,17 @@ export const PokemonStatDisplay: React.FC = () => {
   const setIvIndex = usePokemonStore(s => s.setIvIndex)
   const getRemainingEvs = usePokemonStore(s => s.getRemainingEvs)
   const isLoading = useActivePokemonLoading()
+  const { megaBaseStats, megaPreviewEnabled } = useMegaPreview()
   const ivs = pokemon?.data.ivs
   const evs = pokemon?.data.evs
   const baseStats = pokemon?.details?.baseStats
-  const totalStats = pokemon?.data.stats
   const natureModifier = pokemon?.data.natureModifiersArray
+  const level = pokemon?.data.level ?? 1
+  const nature = pokemon?.data.nature ?? 'Serious'
 
   // Track which IV is being hovered for preview
   const [hoveredIvIndex, setHoveredIvIndex] = useState<number | null>(null)
+  // moved to store via useMegaPreview
 
   // Handler for EV changes - update parent state immediately
   function handleEvChange(statIndex: number, newValue: number) {
@@ -50,20 +53,33 @@ export const PokemonStatDisplay: React.FC = () => {
     setIvIndex(pokemon.id, statIndex, 31)
   }
 
+  // Determine which base stats to display (normal vs mega)
+  const displayBaseStats = useMemo(() => {
+    if (megaPreviewEnabled && megaBaseStats && megaBaseStats.length === 6) return megaBaseStats
+    return baseStats
+  }, [megaPreviewEnabled, megaBaseStats, baseStats])
+
+  // Calculate full totals for the current display base stats
+  const displayTotals = useMemo(() => {
+    if (!displayBaseStats || !ivs || !evs) return pokemon?.data.stats
+    return calculateTotalStatsDirect(displayBaseStats, ivs, evs, level, nature)
+  }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data.stats])
+
   // Calculate what the total stat would be with max IV (31)
   function calculatePreviewStat(statIndex: number, currentIv: number) {
-    if (currentIv === MAX_IV || !pokemon?.data || !baseStats) return null
+    if (currentIv === MAX_IV || !pokemon?.data || !displayBaseStats) return null
     // Create a copy of IVs with the selected stat set to MAX_IV
     const currentIvs = [...pokemon.data.ivs]
     currentIvs[statIndex] = MAX_IV
     // Use calculateTotalStatsDirect for stat calculation
-    const newStats = calculateTotalStatsDirect(baseStats, currentIvs, pokemon.data.evs, pokemon.data.level, pokemon.data.nature)
+    const newStats = calculateTotalStatsDirect(displayBaseStats, currentIvs, pokemon.data.evs, pokemon.data.level, pokemon.data.nature)
     return newStats[statIndex]
   }
 
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-3 sm:p-4 space-y-1 sm:space-y-2 text-xs w-full">
+        {/* Mega preview controls moved to PokemonHeader to prevent layout shift */}
         <div className="grid grid-cols-10 gap-1 sm:gap-2 text-slate-400">
           <div className="col-span-1">STAT</div>
           <div className="col-span-5 text-end">EV</div>
@@ -73,8 +89,8 @@ export const PokemonStatDisplay: React.FC = () => {
         </div>
         {statAbbreviations.map((statName, index) => {
           const iv = ivs?.[index] ?? 0
-          const base = baseStats?.[index] ?? 0
-          const total = totalStats?.[index] ?? 0
+          const base = displayBaseStats?.[index] ?? baseStats?.[index] ?? 0
+          const total = displayTotals?.[index] ?? 0
           const natureMod = natureModifier?.[index] ?? 1
           let statClass = 'text-slate-500'
           if (natureMod > 1) statClass = 'text-green-400/50 font-bold'

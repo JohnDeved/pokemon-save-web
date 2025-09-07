@@ -148,6 +148,9 @@ export interface GameConfig {
   /** Human-readable name of the Pokemon game/ROM hack */
   readonly name: string
 
+  /** Whether this game supports Mega Evolutions (for preview/UI gating) */
+  readonly supportsMega?: boolean
+
   /** Unique signature for game detection (defaults to vanilla Emerald) */
   readonly signature?: number
 

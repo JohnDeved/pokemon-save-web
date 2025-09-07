@@ -1,10 +1,14 @@
 import { ScrollableContainer, Skeleton } from '@/components/common'
 import { usePokemonStore } from '@/stores'
+import { useMegaPreview } from '@/hooks'
 
 export const AbilityTab: React.FC = () => {
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
   const setAbilitySlot = usePokemonStore(s => s.setAbilitySlot)
-  const ability = !pokemon?.details ? null : pokemon.details.abilities.find(a => a.slot === pokemon.data.abilityNumber + 1)
+  const { megaPreviewEnabled, megaAbilities } = useMegaPreview()
+  const baseAbility = !pokemon?.details ? null : pokemon.details.abilities.find(a => a.slot === pokemon.data.abilityNumber + 1)
+  const isMega = Boolean(megaPreviewEnabled && megaAbilities && megaAbilities.length)
+  const ability = isMega ? megaAbilities![0]! : baseAbility
 
   return (
     <div className="flex-1 flex flex-col">
@@ -13,7 +17,7 @@ export const AbilityTab: React.FC = () => {
           <Skeleton.Text className="font-pixel text-base sm:text-lg">{ability?.name ?? 'Ability'}</Skeleton.Text>
         </div>
         {/* Ability choices (if multiple) */}
-        {!!pokemon?.details?.abilities?.length && (
+        {!!pokemon?.details?.abilities?.length && !isMega && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {pokemon.details.abilities
               .sort((a, b) => a.slot - b.slot)
@@ -30,6 +34,15 @@ export const AbilityTab: React.FC = () => {
                   </button>
                 )
               })}
+          </div>
+        )}
+        {isMega && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {megaAbilities!.map(opt => (
+              <span key={`mega-ability-${opt.slot}`} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs border-cyan-400/60 bg-cyan-900/20 text-cyan-200">
+                <span className="font-sans text-xs">{opt.name}</span>
+              </span>
+            ))}
           </div>
         )}
       </div>

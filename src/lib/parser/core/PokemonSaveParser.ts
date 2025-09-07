@@ -61,6 +61,14 @@ export class PokemonSaveParser {
   }
 
   /**
+   * Expose a minimal set of config capabilities for UI feature gating
+   */
+  public getConfigFlags(): { supportsMega: boolean } {
+    const supportsMega = Boolean(this.config && this.config.supportsMega)
+    return { supportsMega }
+  }
+
+  /**
    * Load input data from a File, ArrayBuffer, or WebSocket connection
    * When WebSocket is provided, switches to memory mode
    */

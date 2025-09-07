@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
 import { ScrollableContainer } from '@/components/common'
-import { statAbbreviations } from '@/lib/parser/core/utils'
+import { calculateTotalStatsDirect, statAbbreviations } from '@/lib/parser/core/utils'
 import { usePokemonStore, useSaveFileStore } from '@/stores'
+import { useMegaPreview } from '@/hooks'
 
 // Helpers
 const clampStage = (v: number) => Math.max(-6, Math.min(6, Math.trunc(v)))
@@ -13,7 +14,20 @@ export const BoostSandboxTab: React.FC = () => {
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
   const activePokemonId = pokemon?.id ?? -1
   const saveSessionId = useSaveFileStore(s => s.saveSessionId)
-  const baseTotals = pokemon?.data?.stats ?? [0, 0, 0, 0, 0, 0]
+  const { megaPreviewEnabled, megaBaseStats } = useMegaPreview()
+  const baseStats = pokemon?.details?.baseStats
+  const level = pokemon?.data.level ?? 1
+  const nature = pokemon?.data.nature ?? 'Serious'
+  const ivs = pokemon?.data.ivs ?? [0, 0, 0, 0, 0, 0]
+  const evs = pokemon?.data.evs ?? [0, 0, 0, 0, 0, 0]
+  const displayBaseStats = useMemo(() => {
+    if (megaPreviewEnabled && megaBaseStats && megaBaseStats.length === 6) return megaBaseStats
+    return baseStats
+  }, [megaPreviewEnabled, megaBaseStats, baseStats])
+  const baseTotals = useMemo(() => {
+    if (!displayBaseStats) return pokemon?.data?.stats ?? [0, 0, 0, 0, 0, 0]
+    return calculateTotalStatsDirect(displayBaseStats, ivs, evs, level, nature)
+  }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data?.stats])
 
   const [stages, setStages] = useState<number[]>([0, 0, 0, 0, 0, 0])
   useEffect(() => {

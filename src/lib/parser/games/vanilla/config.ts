@@ -20,6 +20,9 @@ export class VanillaConfig extends GameConfigBase implements GameConfig {
   readonly pokemonSize = 100
   readonly maxPartySize = 6
 
+  // Vanilla Emerald does not support Mega Evolution
+  readonly supportsMega = false
+
   // Use default save layout with no overrides
   readonly saveLayout = VANILLA_SAVE_LAYOUT
 
