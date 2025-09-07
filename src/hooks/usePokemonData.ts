@@ -168,6 +168,11 @@ export const usePokemonData = () => {
       return
     }
 
+    // Skip rebuilding party list for transient reorder updates
+    if (lastUpdateTransient && saveData.__transient__) {
+      return
+    }
+
     const initialPartyList = buildPartyListFromSaveData(saveData)
 
     if (lastUpdateTransient) {

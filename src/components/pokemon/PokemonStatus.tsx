@@ -79,11 +79,25 @@ const PokemonSprite: React.FC<{
   const handleError = () => setImgSrc(fallbackSrc)
 
   return (
-    <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center relative">
+    <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center relative select-none">
       {/* Blurred background image, not upscaled */}
-      <img src={imgSrc} className={cn('absolute z-0 opacity-80 blur-md object-contain', '[image-rendering:pixelated]', 'max-w-[96px] max-h-[96px]')} onError={handleError} aria-hidden="true" />
+      <img
+        src={imgSrc}
+        className={cn('absolute z-0 opacity-80 blur-md object-contain', '[image-rendering:pixelated]', 'max-w-[96px] max-h-[96px]')}
+        onError={handleError}
+        aria-hidden="true"
+        draggable={false}
+        onDragStart={e => e.preventDefault()}
+      />
       {/* Main sprite image, not upscaled */}
-      <img src={imgSrc} className={cn('z-10 object-contain transition-transform duration-300', '[image-rendering:pixelated]', 'max-w-[96px] max-h-[96px]', 'drop-shadow-[2px_2px_2px_black]')} onError={handleError} alt={alt} />
+      <img
+        src={imgSrc}
+        className={cn('z-10 object-contain transition-transform duration-300', '[image-rendering:pixelated]', 'max-w-[96px] max-h-[96px]', 'drop-shadow-[2px_2px_2px_black]')}
+        onError={handleError}
+        alt={alt}
+        draggable={false}
+        onDragStart={e => e.preventDefault()}
+      />
       {children}
     </div>
   )
@@ -113,7 +127,9 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
           <img
             src={getItemSpriteUrl(pokemon.data.itemIdName)}
             alt={pokemon.data.itemIdName}
-            className="absolute bottom-0 right-0 z-20 w-5 h-5 rounded-sm border border-slate-900 shadow-md image-pixelate bg-slate-950/70"
+            className="absolute bottom-0 right-0 z-20 w-5 h-5 rounded-sm border border-slate-900 shadow-md image-pixelate bg-slate-950/70 select-none"
+            draggable={false}
+            onDragStart={e => e.preventDefault()}
             onError={e => {
               const img = e.currentTarget
               if (img.dataset.fallbackApplied === '1') return
