@@ -23,7 +23,7 @@ export const ItemTab: React.FC = () => {
               key={itemIdName ?? 'none'}
               src={itemIdName ? getItemSpriteUrl(itemIdName) : FALLBACK_BIG}
               alt={itemName}
-              className="w-24 h-24 sm:w-28 sm:h-28 image-pixelate rounded-md border border-zinc-800 bg-zinc-900/70 p-2 shadow-lg"
+              className="w-24 h-24 sm:w-28 sm:h-28 image-pixelate rounded-md border bg-background/70 p-2 shadow-lg"
               onError={e => {
                 const img = e.currentTarget
                 if (img.dataset.fallbackApplied === '1') return
@@ -50,7 +50,7 @@ export const ItemTab: React.FC = () => {
                   <Skeleton.Text className="font-pixel text-base sm:text-lg">{itemName}</Skeleton.Text>
                 )}
               </div>
-              <div className="geist-font text-xs text-zinc-400 leading-relaxed mt-2">
+              <div className="geist-font text-xs text-muted-foreground leading-relaxed mt-2">
                 <Skeleton.Text loading={isFetching}>{itemDetails?.description ?? (itemIdName ? 'No description available.' : 'No held item.')}</Skeleton.Text>
               </div>
             </div>

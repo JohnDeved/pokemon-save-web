@@ -110,11 +110,11 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     // Visibility
     isDragActive || showDropzone ? 'opacity-100' : 'opacity-0',
     // Base styling
-    showDropzone ? 'bg-zinc-900/50 border-zinc-700 shadow-2xl' : 'bg-transparent border-transparent',
+    showDropzone ? 'bg-background/50 border shadow-2xl' : 'bg-transparent border-transparent',
     // Active drag styling
-    isDragActive && 'bg-zinc-800/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
+    isDragActive && 'bg-background/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
     // Hover styling
-    !isDragActive && showDropzone && 'hover:border-zinc-600 hover:bg-zinc-900/70'
+    !isDragActive && showDropzone && 'hover:bg-background/70'
   )
 
   if (!shouldShowOverlay) {
@@ -134,9 +134,9 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
         <input {...getInputProps()} />
         <div className="text-center p-4 sm:p-6 lg:p-8 flex flex-col items-center">
           <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Pokeball" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 lg:mb-8" style={{ imageRendering: 'pixelated' }} />
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-zinc-100">{isDragActive ? 'Drop your Savegame to load!' : 'Drop your Savegame here'}</h2>
-          {showDropzone && <span className="text-zinc-400 mt-1 text-sm sm:text-base">or click to browse</span>}
-          <p className="text-xs text-zinc-500 mt-2">Supported: .sav, .sa2</p>
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{isDragActive ? 'Drop your Savegame to load!' : 'Drop your Savegame here'}</h2>
+          {showDropzone && <span className="text-muted-foreground mt-1 text-sm sm:text-base">or click to browse</span>}
+          <p className="text-xs text-muted-foreground mt-2">Supported: .sav, .sa2</p>
         </div>
       </div>
     </div>

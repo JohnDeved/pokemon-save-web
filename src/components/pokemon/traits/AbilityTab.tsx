@@ -27,7 +27,7 @@ export const AbilityTab: React.FC = () => {
                   <button
                     key={`ability-${opt.slot}`}
                     type="button"
-                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors duration-150 cursor-pointer ${isActive ? 'border-cyan-400/60 bg-cyan-900/20 text-cyan-200' : 'border-zinc-700 bg-zinc-800/40 text-zinc-300 hover:border-cyan-400/40 hover:text-cyan-200'}`}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors duration-150 cursor-pointer ${isActive ? 'border-cyan-400/60 bg-cyan-900/20 text-cyan-200' : 'bg-card/40 text-muted-foreground hover:border-cyan-400/40 hover:text-cyan-200'}`}
                     onClick={() => setAbilitySlot(pokemon.id, opt.slot)}
                   >
                     <span className="font-sans text-xs">{opt.name}</span>
@@ -47,7 +47,7 @@ export const AbilityTab: React.FC = () => {
         )}
       </div>
       <div className="relative flex-1">
-        <ScrollableContainer className="absolute inset-0 px-4 pb-4 text-xs text-zinc-400 leading-relaxed overflow-y-auto custom-scrollbar">
+        <ScrollableContainer className="absolute inset-0 px-4 pb-4 text-xs text-muted-foreground leading-relaxed overflow-y-auto custom-scrollbar">
           <Skeleton.Text>{ability?.description ?? 'This is a placeholder ability description that shows how the text will be laid out when the actual content loads. It mimics the typical length and structure of Pokemon ability descriptions.'}</Skeleton.Text>
         </ScrollableContainer>
       </div>

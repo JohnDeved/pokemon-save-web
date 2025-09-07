@@ -13,7 +13,7 @@ export const PokemonTraitsSection: React.FC = () => {
       <div className="flex flex-col h-full">
         <Tabs defaultValue="nature" className="flex-1 flex flex-col">
           <div className="flex-shrink-0">
-            <div className="w-full border-b border-zinc-800/60">
+            <div className="w-full border-b border-border/60">
               <div className="px-4">
                 <TabsList className="px-0">
                   <TabsTrigger value="nature" className="font-pixel text-[10px] sm:text-xs">

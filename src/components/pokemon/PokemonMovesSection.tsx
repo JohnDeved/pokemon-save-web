@@ -44,7 +44,7 @@ export const PokemonMovesSection: React.FC = () => {
           return (
             <div key={i} className="group">
               {isLoading ? (
-                <div className="w-full text-left p-3 rounded-lg bg-zinc-800/50 group-hover:bg-zinc-700/70 backdrop-blur-sm border border-zinc-700 shadow-lg transition-all duration-200">
+                <div className="w-full text-left p-3 rounded-lg bg-card/50 group-hover:bg-card/70 backdrop-blur-sm border shadow-lg transition-all duration-200">
                   <div className="flex items-center justify-between">
                     <Skeleton.Text className="text-sm text-white">Move Name</Skeleton.Text>
                   </div>
@@ -53,7 +53,7 @@ export const PokemonMovesSection: React.FC = () => {
                       <Skeleton.Image className="w-3 h-3" />
                       <Skeleton.Text>TYPE</Skeleton.Text>
                     </div>
-                    <Skeleton.Text className="text-xs text-zinc-300">25/25</Skeleton.Text>
+                    <Skeleton.Text className="text-xs text-muted-foreground">25/25</Skeleton.Text>
                   </div>
                 </div>
               ) : (

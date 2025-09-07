@@ -45,7 +45,7 @@ export const BoostSandboxTab: React.FC = () => {
     <div className="flex-1 flex flex-col">
       <div className="relative flex-1">
         <ScrollableContainer className="absolute inset-0 px-4 pb-4 overflow-y-auto custom-scrollbar">
-          <div className="mt-0.5 flex flex-col divide-y divide-zinc-800/50">
+          <div className="mt-0.5 flex flex-col divide-y divide-border/50">
             {[1, 2, 3, 4, 5].map(i => {
               const abbr = statAbbreviations[i]!
               const base = baseTotals[i] ?? 0
@@ -57,32 +57,32 @@ export const BoostSandboxTab: React.FC = () => {
                 <div key={`boost-sbx-${i}`} className="py-0.5 flex items-center gap-2">
                   <div className="w-12 text-white font-pixel text-[11px] leading-none">{abbr}</div>
                   <div className="flex items-center gap-1.5">
-                    <div className="flex flex-col overflow-hidden rounded-md border border-zinc-700/70">
-                      <button type="button" className="bg-zinc-900/40 text-zinc-200 h-6 w-6 flex items-center justify-center hover:bg-zinc-800/60 cursor-pointer" onClick={() => inc(i, +1)} aria-label={`Increase ${abbr}`}>
+                    <div className="flex flex-col overflow-hidden rounded-md border border-border/70">
+                      <button type="button" className="bg-background/40 text-foreground/80 h-6 w-6 flex items-center justify-center hover:bg-background/60 cursor-pointer" onClick={() => inc(i, +1)} aria-label={`Increase ${abbr}`}>
                         <IoCaretUp />
                       </button>
-                      <button type="button" className="bg-zinc-900/40 text-zinc-200 h-6 w-6 flex items-center justify-center hover:bg-zinc-800/60 border-t border-zinc-700/70 cursor-pointer" onClick={() => inc(i, -1)} aria-label={`Decrease ${abbr}`}>
+                      <button type="button" className="bg-background/40 text-foreground/80 h-6 w-6 flex items-center justify-center hover:bg-background/60 border-t border-border/70 cursor-pointer" onClick={() => inc(i, -1)} aria-label={`Decrease ${abbr}`}>
                         <IoCaretDown />
                       </button>
                     </div>
                     <div className="flex flex-col items-center leading-none min-w-[40px]">
                       {(() => {
-                        let stageCls = 'bg-zinc-800/40 text-zinc-300 border border-zinc-700/70'
+                        let stageCls = 'bg-card/40 text-muted-foreground border border-border/70'
                         if (stage > 0) stageCls = 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/60'
                         else if (stage < 0) stageCls = 'bg-rose-900/30 text-rose-300 border border-rose-700/60'
                         return <span className={`px-1 py-0.5 mb-0.5 rounded-md text-[9px] tabular-nums ${stageCls}`}>{stage > 0 ? `+${stage}` : stage}</span>
                       })()}
-                      <span className="mt-0 text-[10px] text-zinc-400">×{mult.toFixed(2)}</span>
+                      <span className="mt-0 text-[10px] text-muted-foreground">×{mult.toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="ml-auto grid grid-cols-[auto_auto_auto] items-baseline gap-x-3 gap-y-0 text-[11px] geist-font pr-1">
-                    <div className="text-zinc-500">Base</div>
-                    <div className="text-right text-zinc-300 tabular-nums w-14 leading-none">{base}</div>
+                    <div className="text-muted-foreground">Base</div>
+                    <div className="text-right text-muted-foreground tabular-nums w-14 leading-none">{base}</div>
                     <div />
-                    <div className="text-zinc-500">Result</div>
+                    <div className="text-muted-foreground">Result</div>
                     {(() => {
-                      let effCls = 'text-zinc-300'
-                      let deltaCls = 'text-zinc-500'
+                      let effCls = 'text-muted-foreground'
+                      let deltaCls = 'text-muted-foreground'
                       if (delta > 0) {
                         effCls = 'text-emerald-300'
                         deltaCls = 'text-emerald-300'

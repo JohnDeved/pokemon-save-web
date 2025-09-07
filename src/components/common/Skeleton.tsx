@@ -40,7 +40,7 @@ export const SkeletonText = ({
 
   // Create props object with proper typing
   const componentProps = {
-    className: cn('bg-zinc-700/50 animate-pulse rounded', className),
+    className: cn('bg-muted/50 animate-pulse rounded', className),
     'aria-hidden': true as const,
     ...props,
   }
@@ -58,7 +58,7 @@ export const SkeletonBox = ({ className, loading, children, ...props }: Skeleton
   if (!isLoading) {
     return children
   }
-  return <div className={cn('bg-zinc-700/50 animate-pulse rounded', className)} {...props} />
+  return <div className={cn('bg-muted/50 animate-pulse rounded', className)} {...props} />
 }
 
 // Button skeleton that preserves button dimensions exactly
@@ -68,7 +68,7 @@ export const SkeletonButton = ({ children, className, loading, ...props }: Skele
     return children
   }
   return (
-    <button className={cn('bg-zinc-700/50 animate-pulse', className)} disabled aria-hidden="true" {...props}>
+    <button className={cn('bg-muted/50 animate-pulse', className)} disabled aria-hidden="true" {...props}>
       <span className="invisible">{children}</span>
     </button>
   )
@@ -82,7 +82,7 @@ export const SkeletonImage = ({ className, loading, ...props }: SkeletonProps & 
     return <img className={className} {...props} />
   }
   // Render skeleton placeholder
-  return <div className={cn('bg-zinc-700/50 animate-pulse', className)} style={{ aspectRatio: props.width && props.height ? `${props.width} / ${props.height}` : undefined, ...props.style }} />
+  return <div className={cn('bg-muted/50 animate-pulse', className)} style={{ aspectRatio: props.width && props.height ? `${props.width} / ${props.height}` : undefined, ...props.style }} />
 }
 
 // with the Container we just take the children, but make them invisible and non-interactive, then make the container itself pulse with the skeleton class
@@ -96,7 +96,7 @@ export const SkeletonContainer = ({ className, children, loading, ...props }: Sk
     )
   }
 
-  return <div className={cn(className, 'bg-zinc-700/50 animate-pulse children-invisible rounded border-none')}>{children}</div>
+  return <div className={cn(className, 'bg-muted/50 animate-pulse children-invisible rounded border-none')}>{children}</div>
 }
 
 /*

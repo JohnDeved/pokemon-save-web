@@ -48,7 +48,7 @@ export function PokemonNatureCombobox({ value, onChange, disabled = false, trigg
                 setOpen(true)
               }
             }}
-            className={cn('group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-zinc-200 focus-visible:ring-0 focus-visible:border-transparent', 'transition-colors', triggerClassName)}
+            className={cn('group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-foreground/80 focus-visible:ring-0 focus-visible:border-transparent', 'transition-colors', triggerClassName)}
             aria-label="Edit nature"
           >
             <span className="leading-none">{label ?? 'Nature'}</span>

@@ -7,7 +7,7 @@ import { PWAInstallPrompt, triggerPWAInstall } from './components/common/PWAInst
 import { ShaderBackground } from './components/common/ShaderBackground'
 import { CompactPokemonSelector, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, PokemonTraitsSection, SaveFileDropzone } from './components/pokemon'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './components/ui/dialog'
-import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
+import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarMenu, MenubarRadioGroup, MenubarRadioItem, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
 import { usePokemonData } from './hooks'
 import { useRecentFiles } from './hooks/useRecentFiles'
@@ -24,6 +24,8 @@ export const App: React.FC = () => {
   // UI preferences from persisted store
   const shaderEnabled = useSettingsStore(s => s.shaderEnabled)
   const setShaderEnabled = useSettingsStore(s => s.setShaderEnabled)
+  const theme = useSettingsStore(s => s.theme)
+  const setTheme = useSettingsStore(s => s.setTheme)
 
   // Check if the browser supports the File System Access API
   const canSaveAs = typeof showSaveFilePicker === 'function'
@@ -102,14 +104,19 @@ export const App: React.FC = () => {
     })()
   }, [parse])
 
-  // Update document title with file name
+  // Apply theme class to body and update document title
   useEffect(() => {
+    // Theme class handling
+    const body = document.body
+    body.classList.remove('theme-zinc', 'theme-slate')
+    body.classList.add(theme === 'slate' ? 'theme-slate' : 'theme-zinc')
+
     if (hasFile && saveFileName) {
       document.title = `${saveFileName} — Pokemon Save Editor`
     } else {
       document.title = DEFAULT_TITLE
     }
-  }, [hasFile, saveFileName])
+  }, [hasFile, saveFileName, theme])
 
   // Global keyboard shortcuts for Undo/Redo
   useEffect(() => {
@@ -146,7 +153,15 @@ export const App: React.FC = () => {
   return (
     <>
       {/* Background pattern appears immediately */}
-      <div className="fixed inset-0 z-[-2] bg-zinc-900 bg-[linear-gradient(to_bottom,theme(colors.zinc.900)_20%,transparent),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]" />
+      <div
+        className={
+          `fixed inset-0 z-[-2] ` +
+          (theme === 'slate'
+            ? 'bg-slate-900 bg-[linear-gradient(to_bottom,theme(colors.slate.900)_20%,transparent),radial-gradient(theme(colors.slate.700)_1px,transparent_1px),radial-gradient(theme(colors.slate.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]'
+            : 'bg-zinc-900 bg-[linear-gradient(to_bottom,theme(colors.zinc.900)_20%,transparent),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]'
+          )
+        }
+      />
       {/* Shader overlay fades in after pattern */}
       {shaderEnabled && (
         <Suspense fallback={null}>
@@ -154,7 +169,7 @@ export const App: React.FC = () => {
         </Suspense>
       )}
       <Toaster richColors position="bottom-center" />
-      <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-zinc-100">
+      <div className="min-h-screen flex items-center justify-center p-4 font-pixel text-foreground">
         <SaveFileDropzone
           onFileLoad={parse}
           error={error}
@@ -249,12 +264,21 @@ export const App: React.FC = () => {
                     </MenubarContent>
                   </MenubarMenu>
                   <MenubarMenu>
-                    <MenubarTrigger>Help</MenubarTrigger>
+                    <MenubarTrigger>Theme</MenubarTrigger>
                     <MenubarContent>
                       <MenubarCheckboxItem checked={shaderEnabled} onCheckedChange={v => setShaderEnabled(Boolean(v))}>
-                        Shader Background
+                        Animated Background
                       </MenubarCheckboxItem>
                       <MenubarSeparator />
+                      <MenubarRadioGroup value={theme} onValueChange={v => setTheme(v as 'zinc' | 'slate')}>
+                        <MenubarRadioItem value="zinc">Zinc</MenubarRadioItem>
+                        <MenubarRadioItem value="slate">Slate</MenubarRadioItem>
+                      </MenubarRadioGroup>
+                    </MenubarContent>
+                  </MenubarMenu>
+                  <MenubarMenu>
+                    <MenubarTrigger>Help</MenubarTrigger>
+                    <MenubarContent>
                       <MenubarItem
                         onClick={() => {
                           location.reload()

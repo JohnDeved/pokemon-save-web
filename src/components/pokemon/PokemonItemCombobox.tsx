@@ -70,7 +70,7 @@ export function PokemonItemCombobox({ valueIdName, onChange, disabled = false, t
           <button
             type="button"
             {...commonTriggerProps}
-            className={cn('group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-zinc-200 focus-visible:ring-0 focus-visible:border-transparent', 'transition-colors', triggerClassName)}
+            className={cn('group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-foreground/80 focus-visible:ring-0 focus-visible:border-transparent', 'transition-colors', triggerClassName)}
             aria-label="Edit held item"
           >
             <span className="leading-none">{label}</span>

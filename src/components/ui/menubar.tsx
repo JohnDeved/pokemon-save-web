@@ -3,16 +3,15 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
+import { useSettingsStore } from '@/stores'
 
 const Menubar = ({ className, ...props }: React.ComponentProps<typeof MenubarPrimitive.Root>) => {
+  const theme = useSettingsStore(s => s.theme)
+  const base = theme === 'slate' ? 'bg-slate-800/50 border-slate-800' : 'bg-zinc-800/50 border-zinc-800'
   return (
     <MenubarPrimitive.Root
       data-slot="menubar"
-      className={cn(
-        // Card styles
-        'bg-zinc-800/50 backdrop-blur-lg rounded-md shadow-2xl border border-zinc-800 relative flex h-9 items-center gap-1 p-1',
-        className
-      )}
+      className={cn(base, 'backdrop-blur-lg rounded-md shadow-2xl relative flex h-9 items-center gap-1 p-1', className)}
       {...props}
     />
   )
