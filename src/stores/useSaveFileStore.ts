@@ -1,11 +1,11 @@
 import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import { create } from 'zustand'
-import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
 import { addRecent } from '@/lib/recentFiles'
-import { usePokemonStore } from './usePokemonStore'
+import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
 import type { SaveData } from '../lib/parser/core/types'
 import type { GlobalThisWithFileSystemAPI } from '../types/global'
+import { usePokemonStore } from './usePokemonStore'
 
 export interface SaveFileState {
   saveData: SaveData | null
@@ -16,11 +16,13 @@ export interface SaveFileState {
   parser: PokemonSaveParser | null
   // Increments each time a new save file is successfully loaded or cleared
   saveSessionId: number
+  // True when last parse was a transient state update (e.g. undo/redo/reset)
+  lastUpdateTransient: boolean
 }
 
 export interface SaveFileActions {
   // Accept same inputs as PokemonSaveParser.parse to preserve file handle where possible
-  parse: (input: File | ArrayBuffer | FileSystemFileHandle) => Promise<SaveData>
+  parse: (input: File | ArrayBuffer | FileSystemFileHandle, options?: { transient?: boolean }) => Promise<SaveData>
   clearSaveFile: () => void
   reconstructAndDownload: (method?: 'download' | 'saveAs' | 'save') => Promise<void>
 }
@@ -36,14 +38,21 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
   lastParseFailed: false,
   parser: null,
   saveSessionId: 0,
+  lastUpdateTransient: false,
 
   // Actions
-  parse: async (input: File | ArrayBuffer | FileSystemFileHandle) => {
-    // Clear derived UI details immediately and bump session to isolate caches
-    try {
-      usePokemonStore.getState().clearPokemonDetails()
-    } catch {}
-    set(state => ({ isLoading: true, error: null, lastParseFailed: false, saveSessionId: state.saveSessionId + 1 }))
+  parse: async (input: File | ArrayBuffer | FileSystemFileHandle, options?: { transient?: boolean }) => {
+    const transient = Boolean(options?.transient)
+    // For non-transient parses (i.e., loading a new file), clear details and bump session
+    if (!transient) {
+      try {
+        usePokemonStore.getState().clearPokemonDetails()
+      } catch {}
+      set(state => ({ isLoading: true, error: null, lastParseFailed: false, saveSessionId: state.saveSessionId + 1 }))
+    } else {
+      // Keep UI steady; do not toggle isLoading or bump session
+      set({ error: null, lastParseFailed: false })
+    }
     try {
       // Reuse existing parser instance to preserve fileHandle (for Save button)
       let parser = get().parser
@@ -57,12 +66,15 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
         hasFile: true,
         lastParseFailed: false,
         parser, // keep the same instance so fileHandle persists
+        lastUpdateTransient: transient,
       })
-      try {
-        if (parser.fileHandle) {
-          await addRecent(parser.fileHandle as FileSystemFileHandle, parser.saveFileName ?? 'Save file')
-        }
-      } catch {}
+      if (!transient) {
+        try {
+          if (parser.fileHandle) {
+            await addRecent(parser.fileHandle as FileSystemFileHandle, parser.saveFileName ?? 'Save file')
+          }
+        } catch {}
+      }
       return saveData
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to parse save file'
@@ -85,6 +97,7 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
       parser: null,
       // Also bump session to ensure UI clears any derived local state
       saveSessionId: get().saveSessionId + 1,
+      lastUpdateTransient: false,
     })
   },
 
@@ -119,10 +132,10 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
         await writable.close()
         // Persist the new handle so subsequent 'Save' is enabled
         parser.fileHandle = handle as any
-        // Update display name if available
+        // Update display name if available (property not in TS lib yet)
         try {
-          // @ts-ignore name exists on FileSystemFileHandle
-          if ((handle as any).name) parser.saveFileName = (handle as any).name as string
+          const maybeName = (handle as unknown as { name?: string }).name
+          if (typeof maybeName === 'string' && maybeName) parser.saveFileName = maybeName
         } catch {}
         // Trigger store update with current parser reference
         set({ parser })

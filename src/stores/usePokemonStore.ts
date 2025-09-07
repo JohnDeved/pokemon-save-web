@@ -1,8 +1,9 @@
 import { create } from 'zustand'
+import type { PokemonBase } from '@/lib/parser/core/PokemonBase'
+import type { SaveData } from '@/lib/parser/core/types'
 import { calculateTotalStats, natures } from '@/lib/parser/core/utils'
 import type { UIPokemonData } from '../types'
-import type { SaveData } from '@/lib/parser/core/types'
-import type { PokemonBase } from '@/lib/parser/core/PokemonBase'
+import { useHistoryStore } from './useHistoryStore'
 
 // Constants
 const MAX_EV_PER_STAT = 252
@@ -64,6 +65,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
         // Only update if the value actually changed
         if (currentEvs[statIndex] === finalEvValue) return p
+        useHistoryStore.getState().queueSnapshot()
 
         // Directly mutate the class instance
         p.data.setEvByIndex(statIndex, finalEvValue)
@@ -81,6 +83,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
         // Only update if the value actually changed
         if (p.data.ivs[statIndex] === ivValue) return p
+        useHistoryStore.getState().queueSnapshot()
 
         // Directly mutate the class instance
         p.data.setIvByIndex(statIndex, ivValue)
@@ -98,6 +101,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         if (p.id !== pokemonId || !p.details) return p
         // Only update if the value actually changed
         if (p.data.natureRaw === natureValue) return p
+        useHistoryStore.getState().queueSnapshot()
         p.data.setNatureRaw(natureValue)
         // Optionally, recalculate stats if needed
         p.data.setStats(calculateTotalStats(p.data, p.details.baseStats))
@@ -112,6 +116,7 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         if (p.id !== pokemonId || !p.details) return p
         const desired = Math.max(0, Math.min(2, slot - 1))
         if (p.data.abilityNumber === desired) return p
+        useHistoryStore.getState().queueSnapshot()
         p.data.abilityNumber = desired
         return { ...p }
       }),
@@ -122,7 +127,13 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
     set(state => ({
       partyList: state.partyList.map(p => {
         if (p.id !== pokemonId) return p
-        p.data.setItem(itemId ?? 0)
+        // Skip if same item
+        const desired = itemId ?? 0
+        // PokemonBase.item is mapped external id
+        // If equal, no change
+        if (p.data.item === desired) return p
+        useHistoryStore.getState().queueSnapshot()
+        p.data.setItem(desired)
         // Update details immediately for name (description will refetch separately elsewhere)
         const idName = p.data.itemIdName
         if (p.details) {
@@ -176,14 +187,10 @@ export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] 
     // Treat Radiant as using shiny sprite assets
     const useAltSprite = isShiny || isRadiant
     const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
-    const spriteUrl = useAltSprite
-      ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
-      : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
+    const spriteUrl = useAltSprite ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png` : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
 
     const SPRITE_ANI_BASE_URL = '/sprites'
-    const spriteAniUrl = useAltSprite
-      ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif`
-      : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
+    const spriteAniUrl = useAltSprite ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif` : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
     return {
       id: index,
       spriteUrl,

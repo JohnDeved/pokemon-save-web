@@ -155,6 +155,7 @@ export const usePokemonData = () => {
   // Get save file state
   const saveData = useSaveFileStore(state => state.saveData)
   const saveSessionId = useSaveFileStore(state => state.saveSessionId)
+  const lastUpdateTransient = useSaveFileStore(state => state.lastUpdateTransient)
 
   const queryClient = useQueryClient()
 
@@ -166,11 +167,25 @@ export const usePokemonData = () => {
     }
 
     const initialPartyList = buildPartyListFromSaveData(saveData)
-    setPartyList(initialPartyList)
 
-    // Clear cached pokemon details to avoid stale data after loading a new file
-    queryClient.removeQueries({ queryKey: ['pokemon', 'details'] })
-  }, [saveData, setPartyList, resetPokemonData, queryClient])
+    if (lastUpdateTransient) {
+      // Preserve existing details to avoid flashing during undo/redo/reset
+      const prev = usePokemonStore.getState().partyList
+      const merged = initialPartyList.map((p, i) => {
+        const prevP = prev[i]
+        if (prevP && prevP.data?.speciesId === p.data.speciesId) {
+          return { ...p, details: prevP.details }
+        }
+        return p
+      })
+      setPartyList(merged)
+      // Do not clear queries on transient updates
+    } else {
+      setPartyList(initialPartyList)
+      // Clear cached pokemon details to avoid stale data after loading a new file
+      queryClient.removeQueries({ queryKey: ['pokemon', 'details'] })
+    }
+  }, [saveData, setPartyList, resetPokemonData, queryClient, lastUpdateTransient])
 
   // Get the current active Pokémon
   const activePokemon = partyList.find((p: UIPokemonData) => p.id === activePokemonId)

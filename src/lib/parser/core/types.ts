@@ -67,6 +67,8 @@ export interface SaveData {
   readonly active_slot: number
   readonly sector_map?: ReadonlyMap<number, number> // Undefined for memory mode
   readonly rawSaveData?: Uint8Array | null // Undefined for memory mode
+  // Optional marker so UI can avoid heavy refetches on transient updates (undo/redo/reset)
+  readonly __transient__?: boolean
 }
 
 // Mapping interfaces for ID translation

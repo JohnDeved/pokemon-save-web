@@ -1,18 +1,18 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
 import { ExternalLinkIcon } from 'lucide-react'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { listRecents } from '@/lib/recentFiles'
 import { Card } from './components/common'
 import { PWAInstallPrompt, triggerPWAInstall } from './components/common/PWAInstallPrompt'
 import { ShaderBackground } from './components/common/ShaderBackground'
 import { CompactPokemonSelector, PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, PokemonTraitsSection, SaveFileDropzone } from './components/pokemon'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './components/ui/dialog'
 import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from './components/ui/menubar'
 import { Toaster } from './components/ui/sonner'
-import { toast } from 'sonner'
-import { listRecents } from '@/lib/recentFiles'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './components/ui/dialog'
 import { usePokemonData } from './hooks'
 import { useRecentFiles } from './hooks/useRecentFiles'
-import { useSaveFileStore } from './stores'
-import { useSettingsStore } from './stores'
+import { useSaveFileStore, useSettingsStore } from './stores'
+import { canRedoSelector, canUndoSelector, hasEditsSelector, useHistoryStore } from './stores/useHistoryStore'
 import type { GlobalThisWithFileSystemAPI } from './types/global'
 
 export const App: React.FC = () => {
@@ -46,6 +46,13 @@ export const App: React.FC = () => {
   const [aboutOpen, setAboutOpen] = useState(false)
   const { recents, clear: clearRecents } = useRecentFiles()
   const triedRestore = useRef(false)
+  // History store selectors and actions
+  const canUndo = useHistoryStore(canUndoSelector)
+  const canRedo = useHistoryStore(canRedoSelector)
+  const hasEdits = useHistoryStore(hasEditsSelector)
+  const undo = useHistoryStore(s => s.undo)
+  const redo = useHistoryStore(s => s.redo)
+  const reset = useHistoryStore(s => s.reset)
 
   const openRecent = async (handle: FileSystemFileHandle) => {
     try {
@@ -105,6 +112,38 @@ export const App: React.FC = () => {
     }
   }, [hasFile, saveFileName])
 
+  // Global keyboard shortcuts for Undo/Redo
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod) return
+      const key = e.key.toLowerCase()
+      if (key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) void redo()
+        else void undo()
+      } else if (key === 'y') {
+        e.preventDefault()
+        void redo()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [undo, redo])
+
+  // Initialize or clear history based on file load/clear events, but skip during undo/redo/reset
+  useEffect(() => {
+    const hist = useHistoryStore.getState()
+    if (!hasFile) {
+      hist.clear()
+      return
+    }
+    if (!hist.isApplying) {
+      hist.initFromCurrent()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasFile, parser, saveFileName])
+
   return (
     <>
       {/* Background pattern appears immediately */}
@@ -144,11 +183,14 @@ export const App: React.FC = () => {
                       <MenubarSub>
                         <MenubarSubTrigger>Open Recent</MenubarSubTrigger>
                         <MenubarSubContent>
-                          {recents.length === 0 && (
-                            <MenubarItem disabled>No recent files</MenubarItem>
-                          )}
+                          {recents.length === 0 && <MenubarItem disabled>No recent files</MenubarItem>}
                           {recents.map(r => (
-                            <MenubarItem key={r.id} onSelect={async () => { await openRecent(r.handle) }}>
+                            <MenubarItem
+                              key={r.id}
+                              onSelect={async () => {
+                                await openRecent(r.handle)
+                              }}
+                            >
                               {r.name}
                             </MenubarItem>
                           ))}
@@ -195,14 +237,16 @@ export const App: React.FC = () => {
                   <MenubarMenu>
                     <MenubarTrigger>Edit</MenubarTrigger>
                     <MenubarContent>
-                      <MenubarItem disabled>
+                      <MenubarItem disabled={!canUndo} onClick={() => void undo()}>
                         Undo <MenubarShortcut>Ctrl+Z</MenubarShortcut>
                       </MenubarItem>
-                      <MenubarItem disabled>
-                        Redo <MenubarShortcut>Ctrl+Shift+Y</MenubarShortcut>
+                      <MenubarItem disabled={!canRedo} onClick={() => void redo()}>
+                        Redo <MenubarShortcut>Ctrl+Shift+Z</MenubarShortcut>
                       </MenubarItem>
                       <MenubarSeparator />
-                      <MenubarItem disabled>Reset</MenubarItem>
+                      <MenubarItem disabled={!hasFile || !hasEdits} onClick={() => void reset()}>
+                        Reset
+                      </MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>
                   <MenubarMenu>
@@ -221,11 +265,7 @@ export const App: React.FC = () => {
                       </MenubarItem>
                       <MenubarSeparator />
                       <MenubarItem asChild>
-                        <a
-                          href="https://github.com/JohnDeved/pokemon-save-web"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                        <a href="https://github.com/JohnDeved/pokemon-save-web" target="_blank" rel="noopener noreferrer">
                           GitHub <ExternalLinkIcon className="ml-1" />
                         </a>
                       </MenubarItem>
@@ -240,17 +280,14 @@ export const App: React.FC = () => {
                   <DialogContent className="geist-font">
                     <DialogHeader>
                       <DialogTitle>Pokemon Save Editor</DialogTitle>
-                      <DialogDescription>
-                        A web-based save editor for Pokemon games and ROM hacks.
-                      </DialogDescription>
+                      <DialogDescription>A web-based save editor for Pokemon games and ROM hacks.</DialogDescription>
                     </DialogHeader>
                     <div className="text-sm leading-relaxed space-y-3">
                       <div>
                         <span className="text-muted-foreground">Version:</span> {COMMIT_HASH}
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Credits (Discord):</span>{' '}
-                        can_not_read_properties_of
+                        <span className="text-muted-foreground">Credits (Discord):</span> can_not_read_properties_of
                       </div>
                     </div>
                   </DialogContent>
