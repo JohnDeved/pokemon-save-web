@@ -55,7 +55,7 @@ export const BoostSandboxTab: React.FC = () => {
               const delta = effective - base
               return (
                 <div key={`boost-sbx-${i}`} className="py-0.5 flex items-center gap-2">
-                  <div className="w-12 text-white font-pixel text-[11px] leading-none">{abbr}</div>
+                  <div className="w-12 text-foreground font-pixel text-[11px] leading-none">{abbr}</div>
                   <div className="flex items-center gap-1.5">
                     <div className="flex flex-col overflow-hidden rounded-md border border-border/70">
                       <button type="button" className="bg-background/40 text-foreground/80 h-6 w-6 flex items-center justify-center hover:bg-background/60 cursor-pointer" onClick={() => inc(i, +1)} aria-label={`Increase ${abbr}`}>
@@ -67,9 +67,11 @@ export const BoostSandboxTab: React.FC = () => {
                     </div>
                     <div className="flex flex-col items-center leading-none min-w-[40px]">
                       {(() => {
-                        let stageCls = 'bg-card/40 text-muted-foreground border border-border/70'
-                        if (stage > 0) stageCls = 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/60'
-                        else if (stage < 0) stageCls = 'bg-rose-900/30 text-rose-300 border border-rose-700/60'
+                        let stageCls = 'bg-card/50 text-muted-foreground border border-border/70'
+                        if (stage > 0)
+                          stageCls = 'dark:bg-emerald-900/30 bg-emerald-100 dark:text-emerald-300 text-emerald-800 border dark:border-emerald-700/60 border-emerald-300'
+                        else if (stage < 0)
+                          stageCls = 'dark:bg-rose-900/30 bg-rose-100 dark:text-rose-300 text-rose-800 border dark:border-rose-700/60 border-rose-300'
                         return <span className={`px-1 py-0.5 mb-0.5 rounded-md text-[9px] tabular-nums ${stageCls}`}>{stage > 0 ? `+${stage}` : stage}</span>
                       })()}
                       <span className="mt-0 text-[10px] text-muted-foreground">×{mult.toFixed(2)}</span>
@@ -84,11 +86,11 @@ export const BoostSandboxTab: React.FC = () => {
                       let effCls = 'text-muted-foreground'
                       let deltaCls = 'text-muted-foreground'
                       if (delta > 0) {
-                        effCls = 'text-emerald-300'
-                        deltaCls = 'text-emerald-300'
+                        effCls = 'dark:text-emerald-300 text-emerald-700'
+                        deltaCls = 'dark:text-emerald-300 text-emerald-700'
                       } else if (delta < 0) {
-                        effCls = 'text-rose-300'
-                        deltaCls = 'text-rose-300'
+                        effCls = 'dark:text-rose-300 text-rose-700'
+                        deltaCls = 'dark:text-rose-300 text-rose-700'
                       }
                       return (
                         <>

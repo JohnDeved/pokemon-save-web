@@ -32,7 +32,7 @@ export const ItemTab: React.FC = () => {
               }}
             />
             <div className="flex-1">
-              <div className="text-white">
+              <div className="text-foreground">
                 {pokemon ? (
                   <PokemonItemCombobox
                     valueIdName={itemIdName}
@@ -44,7 +44,7 @@ export const ItemTab: React.FC = () => {
                       void queryClient.refetchQueries({ queryKey })
                     }}
                     asText
-                    triggerClassName="font-pixel text-base sm:text-lg text-white"
+                    triggerClassName="font-pixel text-base sm:text-lg text-foreground"
                   />
                 ) : (
                   <Skeleton.Text className="font-pixel text-base sm:text-lg">{itemName}</Skeleton.Text>

@@ -82,7 +82,14 @@ const Slider = ({
       <SliderPrimitive.Track data-slot="slider-track" className={cn('bg-muted relative grow overflow-hidden rounded-full cursor-pointer data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5')}>
         {/* Visual remaining bar */}
         {typeof maxVisualValue === 'number' && maxVisualValue > min && (
-          <div className={cn('absolute left-0 top-0 h-full pointer-events-none text-white/5 bg-white/3 bg-[size:8px_8px] bg-top-left', 'bg-[image:repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_1px,transparent_50%)]')} style={{ width: `${visualPercent}%` }} />
+          <div
+            className={cn(
+              'absolute left-0 top-0 h-full pointer-events-none bg-[size:8px_8px] bg-top-left',
+              'dark:text-white/5 dark:bg-white/3 text-black/10 bg-black/5',
+              'bg-[image:repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_1px,transparent_50%)]'
+            )}
+            style={{ width: `${visualPercent}%` }}
+          />
         )}
         <SliderPrimitive.Range data-slot="slider-range" className={cn('bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full')} />
       </SliderPrimitive.Track>

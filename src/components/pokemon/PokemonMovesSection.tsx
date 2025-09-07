@@ -46,10 +46,10 @@ export const PokemonMovesSection: React.FC = () => {
               {isLoading ? (
                 <div className="w-full text-left p-3 rounded-lg bg-card/50 group-hover:bg-card/70 backdrop-blur-sm border shadow-lg transition-all duration-200">
                   <div className="flex items-center justify-between">
-                    <Skeleton.Text className="text-sm text-white">Move Name</Skeleton.Text>
+                    <Skeleton.Text className="text-sm text-foreground">Move Name</Skeleton.Text>
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <div className="inline-flex items-center justify-center gap-1.5 rounded-md text-white bg-gradient-to-br px-2 py-1 text-[8px] shadow-md">
+                    <div className="inline-flex items-center justify-center gap-1.5 rounded-md text-foreground bg-gradient-to-br px-2 py-1 text-[8px] shadow-md">
                       <Skeleton.Image className="w-3 h-3" />
                       <Skeleton.Text>TYPE</Skeleton.Text>
                     </div>

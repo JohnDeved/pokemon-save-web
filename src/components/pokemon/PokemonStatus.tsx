@@ -139,7 +139,7 @@ export const PokemonStatus: React.FC<PokemonStatusProps> = ({ pokemon, isActive 
       </PokemonSprite>
       <div className="flex-grow">
         <div className="flex justify-between items-center text-sm">
-          <h3 className="text-white">{pokemon.data.nickname}</h3>
+          <h3 className="text-foreground">{pokemon.data.nickname}</h3>
           <span className="text-muted-foreground">Lv.{pokemon.data.level}</span>
         </div>
         <div className="w-full bg-background/30 border border-border border-x-2 rounded-sm h-2.5 mt-2 overflow-hidden">

@@ -18,7 +18,7 @@ export const PokemonHeader: React.FC = () => {
         {/* Row 1: Name (+ Mega controls) and Dex ID */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="font-pixel text-lg sm:text-xl text-white leading-none flex items-center gap-2">
+            <h2 className="font-pixel text-lg sm:text-xl text-foreground leading-none flex items-center gap-2">
               {pokemon?.data.nickname}
               {pokemon?.data.isShiny && (
                 <Tooltip disableHoverableContent>
@@ -46,7 +46,9 @@ export const PokemonHeader: React.FC = () => {
                 <button
                   type="button"
                   className={`cursor-pointer px-1.5 py-1.5 rounded-sm border text-[10px] leading-none ${
-                    megaPreviewEnabled ? 'bg-cyan-900/50 border-cyan-800 text-cyan-300' : 'bg-background/30 border-input text-muted-foreground'
+                    megaPreviewEnabled
+                      ? 'dark:bg-cyan-900/50 bg-cyan-100 dark:border-cyan-800 border-cyan-300 dark:text-cyan-200 text-cyan-800'
+                      : 'bg-background/30 border-input text-muted-foreground'
                   }`}
                   onClick={() => setMegaPreviewEnabled(!megaPreviewEnabled)}
                   disabled={statsLoading}
@@ -73,7 +75,7 @@ export const PokemonHeader: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border border-cyan-800">
+          <div className="dark:bg-cyan-900/50 bg-cyan-100 dark:text-cyan-300 text-cyan-800 text-xs px-2 py-1 rounded-md flex items-center gap-1.5 border dark:border-cyan-800 border-cyan-300">
             <FaHashtag size={12} />
             <span>{String(pokemon?.data.speciesId).padStart(3, '0')}</span>
           </div>

@@ -112,12 +112,25 @@ export const App: React.FC = () => {
     })()
   }, [parse, suppressAutoRestore])
 
-  // Apply theme class to body and update document title
+  // Apply theme class to body and update document title + theme color
   useEffect(() => {
     // Theme class handling
     const body = document.body
-    body.classList.remove('theme-zinc', 'theme-slate')
-    body.classList.add(theme === 'slate' ? 'theme-slate' : 'theme-zinc')
+    body.classList.remove('theme-zinc', 'theme-slate', 'theme-light')
+    if (theme === 'slate') body.classList.add('theme-slate')
+    else if (theme === 'light') body.classList.add('theme-light')
+    else body.classList.add('theme-zinc')
+
+    // Toggle dark mode class
+    if (theme === 'light') body.classList.remove('dark')
+    else body.classList.add('dark')
+
+    // Update meta theme-color for PWA/address bar
+    const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
+    if (meta) {
+      const color = theme === 'slate' ? '#0f172a' : theme === 'light' ? '#fafafa' : '#09090b'
+      meta.content = color
+    }
 
     if (hasFile && saveFileName) {
       document.title = `${saveFileName} — Pokemon Save Editor`
@@ -166,14 +179,16 @@ export const App: React.FC = () => {
           `fixed inset-0 z-[-2] ` +
           (theme === 'slate'
             ? 'bg-slate-900 bg-[linear-gradient(to_bottom,theme(colors.slate.900)_20%,transparent),radial-gradient(theme(colors.slate.700)_1px,transparent_1px),radial-gradient(theme(colors.slate.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]'
-            : 'bg-zinc-900 bg-[linear-gradient(to_bottom,theme(colors.zinc.900)_20%,transparent),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]'
+            : theme === 'light'
+              ? 'bg-zinc-100 bg-[linear-gradient(to_bottom,theme(colors.zinc.100)_20%,transparent),radial-gradient(theme(colors.zinc.300)_1px,transparent_1px),radial-gradient(theme(colors.zinc.300)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]'
+              : 'bg-zinc-900 bg-[linear-gradient(to_bottom,theme(colors.zinc.900)_20%,transparent),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]'
           )
         }
       />
       {/* Shader overlay fades in after pattern */}
       {shaderEnabled && (
         <Suspense fallback={null}>
-          <ShaderBackground />
+          <ShaderBackground inverted={theme === 'light'} />
         </Suspense>
       )}
       <Toaster richColors position="bottom-center" />
@@ -286,9 +301,10 @@ export const App: React.FC = () => {
                         Animated Background
                       </MenubarCheckboxItem>
                       <MenubarSeparator />
-                      <MenubarRadioGroup value={theme} onValueChange={v => setTheme(v as 'zinc' | 'slate')}>
+                      <MenubarRadioGroup value={theme} onValueChange={v => setTheme(v as 'zinc' | 'slate' | 'light')}>
                         <MenubarRadioItem value="zinc">Zinc</MenubarRadioItem>
                         <MenubarRadioItem value="slate">Slate</MenubarRadioItem>
+                        <MenubarRadioItem value="light">Light</MenubarRadioItem>
                       </MenubarRadioGroup>
                     </MenubarContent>
                   </MenubarMenu>

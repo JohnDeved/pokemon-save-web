@@ -110,7 +110,7 @@ export const PokemonStatDisplay: React.FC = () => {
 
           return (
             <div key={statName} className="grid grid-cols-10 gap-1 sm:gap-2 items-center">
-              <div className="text-white">{statName}</div>
+              <div className="text-foreground">{statName}</div>
               <div className="col-span-5 flex items-center gap-1 sm:gap-2">
                 <EVSlider
                   value={evs?.[index] ?? 0}
@@ -119,7 +119,7 @@ export const PokemonStatDisplay: React.FC = () => {
                   }}
                   maxVisualValue={maxVisualValue}
                 />
-                <span className="text-white w-6 sm:w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
+                <span className="text-foreground w-6 sm:w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
               </div>
               <div
                 className={`text-center text-sm ${ivClass} ${iv !== MAX_IV ? 'cursor-pointer hover:text-cyan-300 transition-colors' : ''}`}

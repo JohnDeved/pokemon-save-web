@@ -33,7 +33,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
     <div ref={rootRef} className="relative" onWheel={onWheel}>
       <div className={cn('w-full text-left p-3 rounded-lg bg-card/50 group-hover:bg-card/70 border shadow-lg transition-all duration-200')} onMouseEnter={onHoverStart} onMouseLeave={onHoverEnd}>
         <div className="flex items-center justify-between">
-          <span className="text-sm text-white truncate w-full block" title={move.name}>
+          <span className="text-sm text-foreground truncate w-full block" title={move.name}>
             {move.name}
           </span>
         </div>
@@ -49,7 +49,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
               <div>
                 <div>
                   Power:
-                  <div className="text-white flex items-center gap-1">
+                  <div className="text-foreground flex items-center gap-1">
                     {(() => {
                       const dc = move.damageClass
                       const isKnown = dc === 'physical' || dc === 'special' || dc === 'status'
@@ -61,7 +61,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
               </div>
               <div>
                 <div>
-                  Accuracy: <div className="text-white">{move.accuracy ? `${move.accuracy}%` : '—'}</div>
+                  Accuracy: <div className="text-foreground">{move.accuracy ? `${move.accuracy}%` : '—'}</div>
                 </div>
               </div>
             </div>

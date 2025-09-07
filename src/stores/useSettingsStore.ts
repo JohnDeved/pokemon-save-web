@@ -4,7 +4,7 @@ import type { BeforeInstallPromptEvent } from '@/types/pwa'
 
 export interface UISettingsState {
   shaderEnabled: boolean
-  theme: 'zinc' | 'slate'
+  theme: 'zinc' | 'slate' | 'light'
   // When true, suppress auto-restore of last used save across reloads
   suppressAutoRestore: boolean
   pwaInstall:
@@ -18,7 +18,7 @@ export interface UISettingsState {
 export interface UISettingsActions {
   setShaderEnabled: (enabled: boolean) => void
   toggleShaderEnabled: () => void
-  setTheme: (theme: 'zinc' | 'slate') => void
+  setTheme: (theme: 'zinc' | 'slate' | 'light') => void
   setDeferredPrompt: (e: BeforeInstallPromptEvent | null) => void
   setPwaDismissed: (dismissed: boolean) => void
   setSuppressAutoRestore: (suppress: boolean) => void
@@ -36,7 +36,7 @@ export const useSettingsStore = create<UISettingsStore>()(
       deferredPrompt: null,
       setShaderEnabled: (enabled: boolean) => set({ shaderEnabled: enabled }),
       toggleShaderEnabled: () => set({ shaderEnabled: !get().shaderEnabled }),
-      setTheme: (theme: 'zinc' | 'slate') => set({ theme }),
+      setTheme: (theme: 'zinc' | 'slate' | 'light') => set({ theme }),
       setDeferredPrompt: (e: BeforeInstallPromptEvent | null) => set({ deferredPrompt: e }),
       setPwaDismissed: (dismissed: boolean) => set({ pwaInstall: { dismissed } }),
       setSuppressAutoRestore: (suppress: boolean) => set({ suppressAutoRestore: suppress }),

@@ -31,7 +31,7 @@ const Scene = memo(() => {
 
 Scene.displayName = 'Scene'
 
-export const ShaderBackground = memo(() => {
+export const ShaderBackground = memo(({ inverted = false }: { inverted?: boolean }) => {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export const ShaderBackground = memo(() => {
   }, [])
 
   return (
-    <div className={`fixed inset-0 transition-opacity duration-500 pointer-events-none z-[-1] ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`fixed inset-0 transition-opacity duration-500 pointer-events-none z-[-1] ${isLoaded ? 'opacity-100' : 'opacity-0'} ${inverted ? 'invert' : ''}`}>
       <Canvas gl={{ antialias: false, powerPreference: 'high-performance' }}>
         <Scene />
       </Canvas>

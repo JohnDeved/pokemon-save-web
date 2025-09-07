@@ -13,7 +13,7 @@ export const AbilityTab: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col">
       <div className="px-4 pt-3 flex-shrink-0">
-        <div className="text-white mb-2">
+        <div className="text-foreground mb-2">
           <Skeleton.Text className="font-pixel text-base sm:text-lg">{ability?.name ?? 'Ability'}</Skeleton.Text>
         </div>
         {/* Ability choices (if multiple) */}
@@ -27,7 +27,11 @@ export const AbilityTab: React.FC = () => {
                   <button
                     key={`ability-${opt.slot}`}
                     type="button"
-                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors duration-150 cursor-pointer ${isActive ? 'border-cyan-400/60 bg-cyan-900/20 text-cyan-200' : 'bg-card/40 text-muted-foreground hover:border-cyan-400/40 hover:text-cyan-200'}`}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors duration-150 cursor-pointer ${
+                      isActive
+                        ? 'dark:bg-cyan-900/20 bg-cyan-100 dark:text-cyan-200 text-cyan-800 dark:border-cyan-700/60 border-cyan-300'
+                        : 'bg-card/50 text-muted-foreground hover:dark:text-cyan-200 hover:text-cyan-700 hover:dark:border-cyan-700/40 hover:border-cyan-300/60'
+                    }`}
                     onClick={() => setAbilitySlot(pokemon.id, opt.slot)}
                   >
                     <span className="font-sans text-xs">{opt.name}</span>
@@ -39,7 +43,7 @@ export const AbilityTab: React.FC = () => {
         {isMega && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {megaAbilities!.map(opt => (
-              <span key={`mega-ability-${opt.slot}`} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs border-cyan-400/60 bg-cyan-900/20 text-cyan-200">
+              <span key={`mega-ability-${opt.slot}`} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs dark:border-cyan-700/60 border-cyan-300 dark:bg-cyan-900/20 bg-cyan-100 dark:text-cyan-200 text-cyan-800">
                 <span className="font-sans text-xs">{opt.name}</span>
               </span>
             ))}

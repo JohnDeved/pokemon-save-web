@@ -28,7 +28,7 @@ export const CompactPokemonSelector: React.FC = () => {
           alt={selectedPokemon.data.nickname}
         />
         <div>
-          <h3 className="text-white font-semibold">{selectedPokemon.data.nickname}</h3>
+          <h3 className="text-foreground font-semibold">{selectedPokemon.data.nickname}</h3>
           <span className="text-muted-foreground text-sm">Lv.{selectedPokemon.data.level}</span>
         </div>
       </div>
