@@ -9,6 +9,7 @@ import { useSmoothWheelScroll } from '@/hooks/useSmoothWheelScroll'
 import { useMegaPreview } from '@/hooks'
 import { cn } from '@/lib/utils'
 import type { MoveWithDetails } from '@/types'
+import { computeMovePowerPreview } from '@/lib/battle'
 
 const damageClassIcons: Record<'physical' | 'special' | 'status', string> = {
   physical: '/damage-type-icons/physical.png',
@@ -34,9 +35,31 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
   const scrollRef = useRef<HTMLDivElement>(null)
   const { onWheel } = useSmoothWheelScroll(scrollRef, { enabled: isExpanded })
   const baseTypes = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId)?.details?.types ?? [])
-  const { megaPreviewEnabled, megaTypes } = useMegaPreview()
+  const activePokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
+  const heldItemIdName = activePokemon?.data.itemIdName
+  const { megaPreviewEnabled, megaTypes, megaAbilities } = useMegaPreview()
   const effectiveTypes = (megaPreviewEnabled && Array.isArray(megaTypes) && megaTypes.length > 0) ? megaTypes : baseTypes
-  const stabPower = typeof move.power === 'number' && effectiveTypes.includes(move.type) ? Math.floor(move.power * 1.5) : null
+  // Determine effective ability name (prefer Mega ability if previewing)
+  const effectiveAbilityName = (() => {
+    if (megaPreviewEnabled && Array.isArray(megaAbilities) && megaAbilities.length > 0) {
+      const sorted = [...megaAbilities].sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0))
+      return sorted[0]?.name
+    }
+    const abilities = activePokemon?.details?.abilities ?? []
+    if (abilities.length === 0) return undefined
+    const sorted = [...abilities].sort((a, b) => a.slot - b.slot)
+    const idx = activePokemon?.data.abilityNumber ?? 0
+    return sorted[idx]?.name ?? sorted[0]?.name
+  })()
+  const { finalPower, boosted: showBoost } = computeMovePowerPreview({
+    basePower: move.power,
+    moveType: move.type,
+    userTypes: effectiveTypes,
+    abilityName: effectiveAbilityName,
+    itemIdName: heldItemIdName,
+    currentHp: activePokemon?.data.currentHp,
+    maxHp: activePokemon?.data.maxHp,
+  })
 
   return (
     <div ref={rootRef} className="relative" onWheel={onWheel}>
@@ -64,11 +87,11 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
                       const isKnown = dc === 'physical' || dc === 'special' || dc === 'status'
                       return isKnown ? <img src={damageClassIcons[dc]} alt={dc} className="w-3 h-3" /> : null
                     })()}
-                    {typeof move.power === 'number' && typeof stabPower === 'number' ? (
+                    {typeof move.power === 'number' && showBoost ? (
                       <>
                         <span>{move.power}</span>
                         <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-green-500">{stabPower}</span>
+                        <span className="text-green-500">{finalPower}</span>
                       </>
                     ) : (
                       <span>{move.power ?? '—'}</span>
