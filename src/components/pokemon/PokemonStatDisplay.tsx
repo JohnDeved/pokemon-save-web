@@ -3,8 +3,9 @@ import { applyHeldItemStatBoosts, computeTotalsWithHeldItem } from '@/lib/battle
 import { usePokemonStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { Slider } from '@/components/ui/slider'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useActivePokemonLoading, useMegaPreview } from '@/hooks'
+import { CursorFollowHint } from '@/components/common/CursorFollowHint'
 
 // Labels come from shared utils to avoid hardcoding
 
@@ -48,6 +49,14 @@ export const PokemonStatDisplay: React.FC = () => {
 
   // Track which IV is being hovered for preview
   const [hoveredIvIndex, setHoveredIvIndex] = useState<number | null>(null)
+  const ivCellRefs = useRef<Array<HTMLDivElement | null>>([])
+
+  // Helper to adapt stored element to a RefObject that CursorFollowHint expects
+  const getIvAnchorRef = (idx: number): React.RefObject<HTMLElement | null> => {
+    return { current: (ivCellRefs.current[idx] ?? null) as HTMLElement | null } as React.RefObject<
+      HTMLElement | null
+    >
+  }
   // moved to store via useMegaPreview
 
   // Handler for EV changes - update parent state immediately
@@ -159,13 +168,23 @@ export const PokemonStatDisplay: React.FC = () => {
                 </span>
               </div>
               <div
-                className={`text-center text-sm ${ivClass} cursor-pointer hover:text-cyan-300 transition-colors`}
+                className={`relative text-center text-sm ${ivClass} cursor-pointer hover:text-cyan-300 transition-colors`}
                 onClick={() => handleIvClick(index, iv)}
                 onMouseEnter={() => setHoveredIvIndex(index)}
                 onMouseLeave={() => setHoveredIvIndex(null)}
-                title={iv !== MAX_IV ? `Click to set to max (${MAX_IV})` : 'Click to set to 0'}
+                ref={el => {
+                  ivCellRefs.current[index] = el
+                }}
               >
                 {isHovered ? (iv !== MAX_IV ? MAX_IV : 0) : iv}
+                <CursorFollowHint
+                  anchorRef={getIvAnchorRef(index)}
+                  enabled={isHovered}
+                  requireOverflow={false}
+                  once={false}
+                  label={iv !== MAX_IV ? `Click to set to max (${MAX_IV})` : 'Click to set to 0'}
+                  offsetY={-10}
+                />
               </div>
               <div className="text-muted-foreground text-center text-sm">
                 <Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text>
