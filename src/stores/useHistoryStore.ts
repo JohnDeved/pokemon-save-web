@@ -64,7 +64,11 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     if (last && last.bytes.length === snap.bytes.length) {
       // Quick byte-by-byte equality check on first and last few bytes to avoid heavy comparisons
       let same = true
-      if (snap.bytes[0] !== last.bytes[0] || snap.bytes[snap.bytes.length - 1] !== last.bytes[last.bytes.length - 1]) same = false
+      if (
+        snap.bytes[0] !== last.bytes[0] ||
+        snap.bytes[snap.bytes.length - 1] !== last.bytes[last.bytes.length - 1]
+      )
+        same = false
       if (same) {
         // fall back to shallow compare of small prefix
         for (let i = 0; i < 16 && i < snap.bytes.length; i++) {
@@ -118,7 +122,11 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     const stateBefore = get()
     if (stateBefore.queuedSnapshot) {
       if (stateBefore.queueTimer) clearTimeout(stateBefore.queueTimer)
-      set({ past: [...stateBefore.past, stateBefore.queuedSnapshot], queuedSnapshot: null, queueTimer: null })
+      set({
+        past: [...stateBefore.past, stateBefore.queuedSnapshot],
+        queuedSnapshot: null,
+        queueTimer: null,
+      })
     }
     const currentPast = get().past
     if (currentPast.length === 0) return
@@ -134,7 +142,13 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
       try {
         usePokemonStore.getState().setPendingIdsBySlot(previous.idsBySlot)
       } catch {}
-      await parse(previous.bytes.buffer.slice(previous.bytes.byteOffset, previous.bytes.byteOffset + previous.bytes.byteLength), { transient: true })
+      await parse(
+        previous.bytes.buffer.slice(
+          previous.bytes.byteOffset,
+          previous.bytes.byteOffset + previous.bytes.byteLength
+        ),
+        { transient: true }
+      )
     } finally {
       set({ isApplying: false })
     }
@@ -146,7 +160,11 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     const stateBefore = get()
     if (stateBefore.queuedSnapshot) {
       if (stateBefore.queueTimer) clearTimeout(stateBefore.queueTimer)
-      set({ past: [...stateBefore.past, stateBefore.queuedSnapshot], queuedSnapshot: null, queueTimer: null })
+      set({
+        past: [...stateBefore.past, stateBefore.queuedSnapshot],
+        queuedSnapshot: null,
+        queueTimer: null,
+      })
     }
     const { future } = get()
     if (future.length === 0) return
@@ -161,7 +179,13 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
       try {
         usePokemonStore.getState().setPendingIdsBySlot(next.idsBySlot)
       } catch {}
-      await parse(next.bytes.buffer.slice(next.bytes.byteOffset, next.bytes.byteOffset + next.bytes.byteLength), { transient: true })
+      await parse(
+        next.bytes.buffer.slice(
+          next.bytes.byteOffset,
+          next.bytes.byteOffset + next.bytes.byteLength
+        ),
+        { transient: true }
+      )
     } finally {
       set({ isApplying: false })
     }
@@ -173,7 +197,11 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     const stateBefore = get()
     if (stateBefore.queuedSnapshot) {
       if (stateBefore.queueTimer) clearTimeout(stateBefore.queueTimer)
-      set({ past: [...stateBefore.past, stateBefore.queuedSnapshot], queuedSnapshot: null, queueTimer: null })
+      set({
+        past: [...stateBefore.past, stateBefore.queuedSnapshot],
+        queuedSnapshot: null,
+        queueTimer: null,
+      })
     }
     const { initial } = get()
     if (!initial) return
@@ -183,7 +211,13 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
       try {
         usePokemonStore.getState().setPendingIdsBySlot(initial.idsBySlot)
       } catch {}
-      await parse(initial.bytes.buffer.slice(initial.bytes.byteOffset, initial.bytes.byteOffset + initial.bytes.byteLength), { transient: true })
+      await parse(
+        initial.bytes.buffer.slice(
+          initial.bytes.byteOffset,
+          initial.bytes.byteOffset + initial.bytes.byteLength
+        ),
+        { transient: true }
+      )
       // After reset, clear history to reflect fresh baseline
       set(() => ({ past: [], future: [] }))
     } finally {

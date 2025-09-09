@@ -64,7 +64,10 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
         // Calculate current total EVs excluding the stat being changed
         const currentEvs = p.data.evs
-        const otherEvsTotal = currentEvs.reduce((sum, ev, index) => (index === statIndex ? sum : sum + ev), 0)
+        const otherEvsTotal = currentEvs.reduce(
+          (sum, ev, index) => (index === statIndex ? sum : sum + ev),
+          0
+        )
 
         // Ensure total EVs don't exceed limit
         const maxAllowedForThisStat = Math.min(MAX_EV_PER_STAT, MAX_TOTAL_EVS - otherEvsTotal)
@@ -144,8 +147,18 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         // Update details immediately for name (description will refetch separately elsewhere)
         const idName = p.data.itemIdName
         if (p.details) {
-          const prettyName = idName ? idName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'None'
-          const newDetails = { ...p.details, item: idName ? { name: prettyName, description: p.details.item?.description ?? 'No description available.' } : undefined }
+          const prettyName = idName
+            ? idName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+            : 'None'
+          const newDetails = {
+            ...p.details,
+            item: idName
+              ? {
+                  name: prettyName,
+                  description: p.details.item?.description ?? 'No description available.',
+                }
+              : undefined,
+          }
           return { ...p, details: newDetails }
         }
         return { ...p }
@@ -155,13 +168,19 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
   setMegaPreviewEnabled: (pokemonId: number, enabled: boolean) => {
     set(state => ({
-      megaPreview: { ...state.megaPreview, [pokemonId]: { ...(state.megaPreview[pokemonId] ?? { enabled: false }), enabled } },
+      megaPreview: {
+        ...state.megaPreview,
+        [pokemonId]: { ...(state.megaPreview[pokemonId] ?? { enabled: false }), enabled },
+      },
     }))
   },
 
   setMegaPreviewForm: (pokemonId: number, form: string | undefined) => {
     set(state => ({
-      megaPreview: { ...state.megaPreview, [pokemonId]: { ...(state.megaPreview[pokemonId] ?? { enabled: false }), form } },
+      megaPreview: {
+        ...state.megaPreview,
+        [pokemonId]: { ...(state.megaPreview[pokemonId] ?? { enabled: false }), form },
+      },
     }))
   },
 
@@ -207,11 +226,16 @@ export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] 
     const { isShiny, isRadiant } = parsedPokemon
     // Treat Radiant as using shiny sprite assets
     const useAltSprite = isShiny || isRadiant
-    const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
-    const spriteUrl = useAltSprite ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png` : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
+    const SPRITE_BASE_URL =
+      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
+    const spriteUrl = useAltSprite
+      ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
+      : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
 
     const SPRITE_ANI_BASE_URL = '/sprites'
-    const spriteAniUrl = useAltSprite ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif` : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
+    const spriteAniUrl = useAltSprite
+      ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif`
+      : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
 
     // 1) If history provided ids for this slot, use it
     let uiId: number | undefined = Array.isArray(pending) ? pending[index] : undefined

@@ -5,7 +5,8 @@ import type { z } from 'zod'
 import type { PokeAPI } from 'pokeapi-types/dist/index'
 
 // Local helpers
-const formatName = (name: string): string => name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatName = (name: string): string =>
+  name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 
 async function fetchAndValidate<T>(url: string, schema?: z.ZodType<T>): Promise<T> {
   const resp = await fetch(url)
@@ -105,7 +106,9 @@ export function useMegaPreview() {
     queryKey: ['pokemon', 'mega', 'forms', saveSessionId, speciesId ?? 'none'],
     enabled: supportsMega && !!speciesId,
     queryFn: async () => {
-      const species = await fetchAndValidate<PokeAPI.PokemonSpecies>(`https://pokeapi.co/api/v2/pokemon-species/${speciesId}`)
+      const species = await fetchAndValidate<PokeAPI.PokemonSpecies>(
+        `https://pokeapi.co/api/v2/pokemon-species/${speciesId}`
+      )
       const varieties = species.varieties || []
       // Filter varieties with 'mega' in the name
       const forms = varieties
@@ -137,21 +140,40 @@ export function useMegaPreview() {
     queryKey: ['pokemon', 'mega', 'stats', saveSessionId, effectiveForm ?? 'none'],
     enabled: supportsMega && !!effectiveForm,
     queryFn: async () => {
-      const p = await fetchAndValidate<PokeAPI.Pokemon>(`https://pokeapi.co/api/v2/pokemon/${effectiveForm}`)
+      const p = await fetchAndValidate<PokeAPI.Pokemon>(
+        `https://pokeapi.co/api/v2/pokemon/${effectiveForm}`
+      )
       // Extract base stats in our UI order: HP, Atk, Def, Spe, SpA, SpD
-      const get = (name: string) => p.stats.find((s: PokeAPI.PokemonStat) => s.stat?.name === name)?.base_stat ?? 0
-      const baseStats = [get('hp'), get('attack'), get('defense'), get('speed'), get('special-attack'), get('special-defense')]
+      const get = (name: string) =>
+        p.stats.find((s: PokeAPI.PokemonStat) => s.stat?.name === name)?.base_stat ?? 0
+      const baseStats = [
+        get('hp'),
+        get('attack'),
+        get('defense'),
+        get('speed'),
+        get('special-attack'),
+        get('special-defense'),
+      ]
       // Load ability descriptions (best-effort)
-      const abilitiesRaw: PokeAPI.Pokemon['abilities'] = Array.isArray(p.abilities) ? p.abilities : []
+      const abilitiesRaw: PokeAPI.Pokemon['abilities'] = Array.isArray(p.abilities)
+        ? p.abilities
+        : []
       const abilityDetails = await Promise.all(
         abilitiesRaw.map(async (a: PokeAPI.PokemonAbility) => {
           try {
             const ad = await fetchAndValidate<PokeAPI.Ability>(a.ability.url)
-            const entry = Array.isArray(ad.effect_entries) ? ad.effect_entries.find((e: PokeAPI.VerboseEffect) => e.language?.name === 'en') : undefined
-            const desc = typeof entry?.effect === 'string' ? entry.effect : 'No description available.'
+            const entry = Array.isArray(ad.effect_entries)
+              ? ad.effect_entries.find((e: PokeAPI.VerboseEffect) => e.language?.name === 'en')
+              : undefined
+            const desc =
+              typeof entry?.effect === 'string' ? entry.effect : 'No description available.'
             return { slot: a.slot, name: formatName(a.ability.name), description: desc }
           } catch {
-            return { slot: a.slot, name: formatName(a.ability.name), description: 'No description available.' }
+            return {
+              slot: a.slot,
+              name: formatName(a.ability.name),
+              description: 'No description available.',
+            }
           }
         })
       )
@@ -167,7 +189,10 @@ export function useMegaPreview() {
     formsLoading,
     statsLoading,
     hasMegaForms: Boolean(megaForms && megaForms.length > 0),
-    forms: (megaForms || []).map(f => ({ value: f, label: formatName(f.replace(/-mega(-x|-y)?$/, '-mega$1')) })),
+    forms: (megaForms || []).map(f => ({
+      value: f,
+      label: formatName(f.replace(/-mega(-x|-y)?$/, '-mega$1')),
+    })),
     selectedForm: effectiveForm,
     setSelectedForm: (val: string | undefined) => setMegaPreviewForm(activePokemonId, val),
     megaPreviewEnabled,
@@ -175,7 +200,12 @@ export function useMegaPreview() {
     megaBaseStats,
     megaAbilities,
     // Sprite URLs for UI components
-    megaSpriteAniUrl: pokemon && effectiveForm ? `${pokemon.data.isShiny || pokemon.data.isRadiant ? '/sprites/shiny' : '/sprites'}/${slugToLocalSpriteName(effectiveForm)}.gif` : undefined,
-    megaSpritePngUrl: effectiveForm ? `https://play.pokemonshowdown.com/sprites/${pokemon?.data.isShiny || pokemon?.data.isRadiant ? 'gen5-shiny' : 'gen5'}/${slugToShowdownSpriteName(effectiveForm)}.png` : undefined,
+    megaSpriteAniUrl:
+      pokemon && effectiveForm
+        ? `${pokemon.data.isShiny || pokemon.data.isRadiant ? '/sprites/shiny' : '/sprites'}/${slugToLocalSpriteName(effectiveForm)}.gif`
+        : undefined,
+    megaSpritePngUrl: effectiveForm
+      ? `https://play.pokemonshowdown.com/sprites/${pokemon?.data.isShiny || pokemon?.data.isRadiant ? 'gen5-shiny' : 'gen5'}/${slugToShowdownSpriteName(effectiveForm)}.png`
+      : undefined,
   }
 }

@@ -5,13 +5,29 @@ import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useActivePokemonLoading, useMegaPreview } from '@/hooks'
 import { usePokemonStore } from '@/stores'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
 // Nature editing moved to Traits section's Nature tab
 
 export const PokemonHeader: React.FC = () => {
   const isLoading = useActivePokemonLoading()
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
-  const { supportsMega, hasMegaForms, megaPreviewEnabled, setMegaPreviewEnabled, forms, selectedForm, setSelectedForm, statsLoading } = useMegaPreview()
+  const {
+    supportsMega,
+    hasMegaForms,
+    megaPreviewEnabled,
+    setMegaPreviewEnabled,
+    forms,
+    selectedForm,
+    setSelectedForm,
+    statsLoading,
+  } = useMegaPreview()
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-3 border-b border-border">
@@ -57,7 +73,11 @@ export const PokemonHeader: React.FC = () => {
                   {megaPreviewEnabled ? 'Mega: ON' : 'Mega: OFF'}
                 </button>
                 {forms && forms.length > 1 && (
-                  <Select value={selectedForm} onValueChange={val => setSelectedForm(val)} disabled={!megaPreviewEnabled || statsLoading}>
+                  <Select
+                    value={selectedForm}
+                    onValueChange={val => setSelectedForm(val)}
+                    disabled={!megaPreviewEnabled || statsLoading}
+                  >
                     <SelectTrigger className="h-7 w-[150px] text-xs">
                       <SelectValue placeholder="Choose Mega Form" />
                     </SelectTrigger>

@@ -52,7 +52,10 @@ describe('Vanilla Emerald Save Parser', () => {
       // Load emerald test save file
       const savePath = resolve(__dirname, 'test_data', 'emerald.sav')
       const saveBuffer = readFileSync(savePath)
-      testSaveData = saveBuffer.buffer.slice(saveBuffer.byteOffset, saveBuffer.byteOffset + saveBuffer.byteLength)
+      testSaveData = saveBuffer.buffer.slice(
+        saveBuffer.byteOffset,
+        saveBuffer.byteOffset + saveBuffer.byteLength
+      )
 
       // Load emerald ground truth data
       const groundTruthPath = resolve(__dirname, 'test_data', 'emerald_ground_truth.json')
@@ -87,7 +90,12 @@ describe('Vanilla Emerald Save Parser', () => {
       // Load Quetzal test data and verify it's detected as Quetzal, not Vanilla
       const quetzalPath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const quetzalBuffer = readFileSync(quetzalPath)
-      const quetzalData = new Uint8Array(quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength))
+      const quetzalData = new Uint8Array(
+        quetzalBuffer.buffer.slice(
+          quetzalBuffer.byteOffset,
+          quetzalBuffer.byteOffset + quetzalBuffer.byteLength
+        )
+      )
 
       const vanillaConfig = new VanillaConfig()
       const quetzalConfig = new QuetzalConfig()
@@ -99,7 +107,10 @@ describe('Vanilla Emerald Save Parser', () => {
 
       // Auto-detection should pick Quetzal for quetzal.sav
       const autoParser = new PokemonSaveParser()
-      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
+      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(
+        quetzalBuffer.byteOffset,
+        quetzalBuffer.byteOffset + quetzalBuffer.byteLength
+      )
       const autoResult = await autoParser.parse(quetzalArrayBuffer)
       expect(autoParser.gameConfig?.name).toBe('Pokemon Quetzal')
       expect(autoResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon

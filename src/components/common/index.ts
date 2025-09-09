@@ -1,8 +1,15 @@
-import { SkeletonBox, SkeletonButton, SkeletonContainer, SkeletonImage, SkeletonLoadingProvider, SkeletonText } from './Skeleton'
+import {
+  SkeletonBox,
+  SkeletonButton,
+  SkeletonContainer,
+  SkeletonImage,
+  SkeletonLoadingProvider,
+  SkeletonText,
+} from './Skeleton'
 
 export { Card } from './Card'
-export { ScrollableContainer } from './ScrollableContainer'
 export { PWAInstallPrompt } from './PWAInstallPrompt'
+export { ScrollableContainer } from './ScrollableContainer'
 
 const Skeleton = {
   Text: SkeletonText,

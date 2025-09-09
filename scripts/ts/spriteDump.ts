@@ -9,7 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const BASE_URLS = [
   { url: 'https://play.pokemonshowdown.com/sprites/gen5ani/', folder: 'sprites' },
-  { url: 'https://play.pokemonshowdown.com/sprites/gen5ani-shiny/', folder: path.join('sprites', 'shiny') },
+  {
+    url: 'https://play.pokemonshowdown.com/sprites/gen5ani-shiny/',
+    folder: path.join('sprites', 'shiny'),
+  },
 ]
 
 const CONCURRENCY = 8
@@ -22,7 +25,11 @@ function renderProgressBar(completed: number, total: number, label = '') {
   process.stdout.write(`\r${label}[${bar}] ${completed}/${total} (${(percent * 100).toFixed(1)}%)`)
 }
 
-async function downloadSprite(url: string, destDir: string, progress: { completed: number; total: number; label: string }) {
+async function downloadSprite(
+  url: string,
+  destDir: string,
+  progress: { completed: number; total: number; label: string }
+) {
   const filename = url.split('/').pop()
   if (!filename) return
   const dest = path.join(destDir, filename)

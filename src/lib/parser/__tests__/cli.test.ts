@@ -77,7 +77,9 @@ describe('Parser CLI Tests', () => {
     })
 
     it('should convert PIKACHU hex bytes back to string with --toString', () => {
-      const result = execSync(`tsx "${cliPath}" --toString="ca c3 c5 bb bd c2 cf"`, { encoding: 'utf8' })
+      const result = execSync(`tsx "${cliPath}" --toString="ca c3 c5 bb bd c2 cf"`, {
+        encoding: 'utf8',
+      })
       expect(result).toContain('String for bytes [ca c3 c5 bb bd c2 cf]:')
       expect(result).toContain('PIKACHU')
     })
@@ -129,7 +131,9 @@ describe('Parser CLI Tests', () => {
 
   describe('CLI flag combinations', () => {
     it('should prioritize string conversion over file parsing', () => {
-      const result = execSync(`tsx "${cliPath}" "${testSavePath}" --toBytes=PIKACHU`, { encoding: 'utf8' })
+      const result = execSync(`tsx "${cliPath}" "${testSavePath}" --toBytes=PIKACHU`, {
+        encoding: 'utf8',
+      })
       expect(result).toContain('GBA bytes for "PIKACHU":')
       // Should not contain save file parsing output
       expect(result).not.toContain('Active save slot:')

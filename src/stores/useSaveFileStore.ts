@@ -22,7 +22,10 @@ export interface SaveFileState {
 
 export interface SaveFileActions {
   // Accept same inputs as PokemonSaveParser.parse to preserve file handle where possible
-  parse: (input: File | ArrayBuffer | FileSystemFileHandle, options?: { transient?: boolean }) => Promise<SaveData>
+  parse: (
+    input: File | ArrayBuffer | FileSystemFileHandle,
+    options?: { transient?: boolean }
+  ) => Promise<SaveData>
   clearSaveFile: () => void
   reconstructAndDownload: (method?: 'download' | 'saveAs' | 'save') => Promise<void>
 }
@@ -41,7 +44,10 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
   lastUpdateTransient: false,
 
   // Actions
-  parse: async (input: File | ArrayBuffer | FileSystemFileHandle, options?: { transient?: boolean }) => {
+  parse: async (
+    input: File | ArrayBuffer | FileSystemFileHandle,
+    options?: { transient?: boolean }
+  ) => {
     const transient = Boolean(options?.transient)
     // For non-transient parses (i.e., loading a new file), clear details and bump session
     if (!transient) {
@@ -50,7 +56,12 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
         // Reset UI identity map when loading a brand new file
         usePokemonStore.getState().resetUiIdentities()
       } catch {}
-      set(state => ({ isLoading: true, error: null, lastParseFailed: false, saveSessionId: state.saveSessionId + 1 }))
+      set(state => ({
+        isLoading: true,
+        error: null,
+        lastParseFailed: false,
+        saveSessionId: state.saveSessionId + 1,
+      }))
     } else {
       // Keep UI steady; do not toggle isLoading or bump session
       set({ error: null, lastParseFailed: false })

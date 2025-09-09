@@ -2,7 +2,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 import type { z } from 'zod'
 import { buildPartyListFromSaveData, usePokemonStore, useSaveFileStore } from '../stores'
-import { DamageClassNameSchema, type Ability as UiAbility, type MoveWithDetails, type PokemonType, PokemonTypeSchema, type UIPokemonData } from '../types'
+import {
+  DamageClassNameSchema,
+  type Ability as UiAbility,
+  type MoveWithDetails,
+  type PokemonType,
+  PokemonTypeSchema,
+  type UIPokemonData,
+} from '../types'
 import type { PokeAPI } from 'pokeapi-types/dist/index'
 
 // --- Constants ---
@@ -18,7 +25,8 @@ const NO_MOVE: MoveWithDetails = {
 }
 
 // --- Utility Functions ---
-const formatName = (name: string): string => name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatName = (name: string): string =>
+  name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 
 const parsePokemonType = (apiType: string): PokemonType => {
   const result = PokemonTypeSchema.safeParse(apiType.toUpperCase())
@@ -43,8 +51,12 @@ async function fetchAndValidate<T>(url: string, schema?: z.ZodType<T>): Promise<
  */
 function getBestEnglishDescription(apiObj: unknown): string {
   // Prefer effect_entries in English
-  const effectEntries = (apiObj as { effect_entries?: { language?: { name?: string }; effect?: string }[] }).effect_entries
-  const effectEntry = Array.isArray(effectEntries) ? effectEntries.find(e => e.language?.name === 'en') : undefined
+  const effectEntries = (
+    apiObj as { effect_entries?: { language?: { name?: string }; effect?: string }[] }
+  ).effect_entries
+  const effectEntry = Array.isArray(effectEntries)
+    ? effectEntries.find(e => e.language?.name === 'en')
+    : undefined
   if (effectEntry?.effect) return effectEntry.effect
 
   // Fallback to latest English flavor_text_entry using Zod schema, but only keep the latest
@@ -59,11 +71,18 @@ function getBestEnglishDescription(apiObj: unknown): string {
     const lang = (entry as { language?: { name?: string } }).language
     if (!lang || lang.name !== 'en') continue
     if ('flavor_text' in (entry as { flavor_text?: string })) {
-      const e = entry as { flavor_text?: string; version_group?: { url?: string }; version?: { url?: string } }
+      const e = entry as {
+        flavor_text?: string
+        version_group?: { url?: string }
+        version?: { url?: string }
+      }
       text = e.flavor_text
       url = e.version_group?.url ?? e.version?.url
     } else {
-      const { text: t, version_group } = entry as { text?: string; version_group?: { url?: string } }
+      const { text: t, version_group } = entry as {
+        text?: string
+        version_group?: { url?: string }
+      }
       text = t
       url = version_group?.url
     }
@@ -84,9 +103,19 @@ function getBestEnglishDescription(apiObj: unknown): string {
  */
 async function getPokemonDetails(pokemon: UIPokemonData) {
   const { data } = pokemon
-  const pokeData = await fetchAndValidate<PokeAPI.Pokemon>(`https://pokeapi.co/api/v2/pokemon/${data.speciesId}`)
+  const pokeData = await fetchAndValidate<PokeAPI.Pokemon>(
+    `https://pokeapi.co/api/v2/pokemon/${data.speciesId}`
+  )
   const moveSources = [data.moves.move1, data.moves.move2, data.moves.move3, data.moves.move4]
-  const moveResults = await Promise.all(moveSources.map(move => (move.id === 0 ? null : fetchAndValidate<PokeAPI.Move>(`https://pokeapi.co/api/v2/move/${move.id}`).catch(() => null))))
+  const moveResults = await Promise.all(
+    moveSources.map(move =>
+      move.id === 0
+        ? null
+        : fetchAndValidate<PokeAPI.Move>(`https://pokeapi.co/api/v2/move/${move.id}`).catch(
+            () => null
+          )
+    )
+  )
   const abilityEntries = pokeData.abilities
   const abilities: UiAbility[] = await Promise.all(
     abilityEntries.map(async entry => {
@@ -98,13 +127,19 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
           description: getBestEnglishDescription(abilityData),
         }
       } catch {
-        return { slot: entry.slot, name: entry.ability.name, description: 'Could not fetch ability data.' }
+        return {
+          slot: entry.slot,
+          name: entry.ability.name,
+          description: 'Could not fetch ability data.',
+        }
       }
     })
   )
   const types = pokeData.types.map(t => parsePokemonType(t.type.name))
   // Extract base stats in correct order
-  const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense'].map(stat => pokeData.stats.find(s => s.stat?.name === stat)?.base_stat ?? 0)
+  const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense'].map(
+    stat => pokeData.stats.find(s => s.stat?.name === stat)?.base_stat ?? 0
+  )
   const moves: MoveWithDetails[] = moveSources.map((move, i) => {
     if (move.id === 0) {
       return { ...NO_MOVE }
@@ -210,8 +245,17 @@ export const usePokemonData = () => {
     error,
   } = useQuery({
     // Include saveSessionId and speciesId to isolate per loaded save/species
-    queryKey: ['pokemon', 'details', saveSessionId, activePokemon?.data?.speciesId ?? 'none', String(activePokemonId)],
-    queryFn: () => (activePokemon ? getPokemonDetails(activePokemon) : Promise.reject(new Error('No active Pokémon'))),
+    queryKey: [
+      'pokemon',
+      'details',
+      saveSessionId,
+      activePokemon?.data?.speciesId ?? 'none',
+      String(activePokemonId),
+    ],
+    queryFn: () =>
+      activePokemon
+        ? getPokemonDetails(activePokemon)
+        : Promise.reject(new Error('No active Pokémon')),
     enabled: activePokemonId >= 0 && !!activePokemon,
     staleTime: 1000 * 60 * 60, // 1 hour
   })

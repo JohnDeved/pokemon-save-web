@@ -82,13 +82,17 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
     it('should throw error when starting watch without connection', async () => {
       const regions = [{ address: 0x20244e9, size: 4 }]
 
-      await expect(client.startWatching(regions)).rejects.toThrow('Not connected to mGBA WebSocket server')
+      await expect(client.startWatching(regions)).rejects.toThrow(
+        'Not connected to mGBA WebSocket server'
+      )
     })
 
     it('should throw error when starting watch without regions', async () => {
       // Mock connection state
       ;(client as unknown as { connected: boolean; ws: { readyState: number } }).connected = true
-      ;(client as unknown as { connected: boolean; ws: { readyState: number } }).ws = { readyState: 1 }
+      ;(client as unknown as { connected: boolean; ws: { readyState: number } }).ws = {
+        readyState: 1,
+      }
 
       await expect(client.startWatching([])).rejects.toThrow('No regions to watch')
     })
@@ -96,7 +100,9 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
     it('should throw error when starting watch with empty regions', async () => {
       // Mock connection state
       ;(client as unknown as { connected: boolean; ws: { readyState: number } }).connected = true
-      ;(client as unknown as { connected: boolean; ws: { readyState: number } }).ws = { readyState: 1 }
+      ;(client as unknown as { connected: boolean; ws: { readyState: number } }).ws = {
+        readyState: 1,
+      }
 
       await expect(client.startWatching([])).rejects.toThrow('No regions to watch')
     })

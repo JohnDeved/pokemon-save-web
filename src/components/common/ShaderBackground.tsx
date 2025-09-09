@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useMemo, memo, useState, useEffect } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { ShaderMaterial } from 'three'
 
 import fragmentShader from '../../glsl/shader.glsl?raw'
@@ -41,7 +41,9 @@ export const ShaderBackground = memo(({ inverted = false }: { inverted?: boolean
   }, [])
 
   return (
-    <div className={`fixed inset-0 transition-opacity duration-500 pointer-events-none z-[-1] ${isLoaded ? 'opacity-100' : 'opacity-0'} ${inverted ? 'invert' : ''}`}>
+    <div
+      className={`fixed inset-0 transition-opacity duration-500 pointer-events-none z-[-1] ${isLoaded ? 'opacity-100' : 'opacity-0'} ${inverted ? 'invert' : ''}`}
+    >
       <Canvas gl={{ antialias: false, powerPreference: 'high-performance' }}>
         <Scene />
       </Canvas>

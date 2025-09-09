@@ -1,5 +1,5 @@
-import { cn } from '../../lib/utils'
 import { useSettingsStore } from '@/stores'
+import { cn } from '../../lib/utils'
 
 interface CardProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode
@@ -15,7 +15,10 @@ export const Card: React.FC<CardProps> = ({ children, className, ...props }) => 
         : 'bg-zinc-800/50 border-zinc-800'
   const shadow = theme === 'light' ? 'shadow-md' : 'shadow-2xl'
   return (
-    <section {...props} className={cn(base, shadow, 'backdrop-blur-lg rounded-xl border relative', className)}>
+    <section
+      {...props}
+      className={cn(base, shadow, 'backdrop-blur-lg rounded-xl border relative', className)}
+    >
       {children}
     </section>
   )

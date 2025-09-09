@@ -114,7 +114,9 @@ describe('WebSocket Watch Mode Regression Tests', () => {
     })
 
     // Simulate message directly
-    const handleMessage = (client as unknown as { handleMessage: (data: string) => void }).handleMessage.bind(client)
+    const handleMessage = (
+      client as unknown as { handleMessage: (data: string) => void }
+    ).handleMessage.bind(client)
     expect(() => handleMessage(watchUpdate)).not.toThrow()
 
     // Verify memory change was triggered
@@ -127,7 +129,9 @@ describe('WebSocket Watch Mode Regression Tests', () => {
 
   test('should handle invalid messages gracefully without crashing', () => {
     const client = new MgbaWebSocketClient('ws://test:7102/ws')
-    const handleMessage = (client as unknown as { handleMessage: (data: string) => void }).handleMessage.bind(client)
+    const handleMessage = (
+      client as unknown as { handleMessage: (data: string) => void }
+    ).handleMessage.bind(client)
 
     // These should not throw errors (they should log warnings but not crash)
     expect(() => handleMessage('invalid json')).not.toThrow()

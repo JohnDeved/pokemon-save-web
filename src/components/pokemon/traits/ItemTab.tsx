@@ -10,7 +10,9 @@ export const ItemTab: React.FC = () => {
   const setItemId = usePokemonStore(s => s.setItemId)
   const itemIdName = pokemon?.data.itemIdName
   const { itemDetails, isFetching, queryKey } = useActiveItemDetails()
-  const itemName = itemDetails?.name ?? (itemIdName ? itemIdName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'None')
+  const itemName =
+    itemDetails?.name ??
+    (itemIdName ? itemIdName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'None')
   const queryClient = useQueryClient()
   const FALLBACK_BIG = '/pokemon_item_placeholder_32x32.png'
 
@@ -47,11 +49,16 @@ export const ItemTab: React.FC = () => {
                     triggerClassName="font-pixel text-base sm:text-lg text-foreground"
                   />
                 ) : (
-                  <Skeleton.Text className="font-pixel text-base sm:text-lg">{itemName}</Skeleton.Text>
+                  <Skeleton.Text className="font-pixel text-base sm:text-lg">
+                    {itemName}
+                  </Skeleton.Text>
                 )}
               </div>
               <div className="geist-font text-xs text-muted-foreground leading-relaxed mt-2">
-                <Skeleton.Text loading={isFetching}>{itemDetails?.description ?? (itemIdName ? 'No description available.' : 'No held item.')}</Skeleton.Text>
+                <Skeleton.Text loading={isFetching}>
+                  {itemDetails?.description ??
+                    (itemIdName ? 'No description available.' : 'No held item.')}
+                </Skeleton.Text>
               </div>
             </div>
           </div>

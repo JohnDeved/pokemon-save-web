@@ -18,7 +18,12 @@ function isFsFileHandle(obj: unknown): obj is FileSystemFileHandle {
   return typeof anyObj.getFile === 'function' && typeof anyObj.createWritable === 'function'
 }
 
-export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, error = null, showDropzone, onOpenFilePicker }) => {
+export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({
+  onFileLoad,
+  error = null,
+  showDropzone,
+  onOpenFilePicker,
+}) => {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null)
   const [lastModified, setLastModified] = useState<number | null>(null)
   const pollInterval = useRef<NodeJS.Timeout | null>(null)
@@ -101,9 +106,15 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
   const shouldShowOverlay = isDragActive || showDropzone
 
   // Define reusable style constants
-  const overlayClasses = cn('fixed inset-0 z-50 transition-colors duration-200', isDragActive ? 'bg-black/20' : 'bg-transparent', showDropzone ? 'p-4 sm:p-8 lg:p-48' : 'p-0', !showDropzone && !isDragActive && 'pointer-events-none')
+  const overlayClasses = cn(
+    'fixed inset-0 z-50 transition-colors duration-200',
+    isDragActive ? 'bg-black/20' : 'bg-transparent',
+    showDropzone ? 'p-4 sm:p-8 lg:p-48' : 'p-0',
+    !showDropzone && !isDragActive && 'pointer-events-none'
+  )
 
-  const dropzoneBaseClasses = 'group w-full h-full flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all duration-300 ease-in-out border-2 border-dashed'
+  const dropzoneBaseClasses =
+    'group w-full h-full flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all duration-300 ease-in-out border-2 border-dashed'
 
   const dropzoneStateClasses = cn(
     dropzoneBaseClasses,
@@ -112,7 +123,8 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     // Base styling
     showDropzone ? 'bg-background/50 border shadow-2xl' : 'bg-transparent border-transparent',
     // Active drag styling
-    isDragActive && 'bg-background/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
+    isDragActive &&
+      'bg-background/80 border-cyan-400 ring-4 ring-cyan-300/60 shadow-[0_0_32px_8px_rgba(34,211,238,0.4)] backdrop-blur-xs',
     // Hover styling
     !isDragActive && showDropzone && 'hover:bg-background/70'
   )
@@ -130,12 +142,26 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
 
   return (
     <div className={overlayClasses}>
-      <div {...getRootProps({ onClick: showDropzone ? open : undefined })} className={dropzoneStateClasses}>
+      <div
+        {...getRootProps({ onClick: showDropzone ? open : undefined })}
+        className={dropzoneStateClasses}
+      >
         <input {...getInputProps()} />
         <div className="text-center p-4 sm:p-6 lg:p-8 flex flex-col items-center">
-          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Pokeball" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 lg:mb-8" style={{ imageRendering: 'pixelated' }} />
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{isDragActive ? 'Drop your Savegame to load!' : 'Drop your Savegame here'}</h2>
-          {showDropzone && <span className="text-muted-foreground mt-1 text-sm sm:text-base">or click to browse</span>}
+          <img
+            src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
+            alt="Pokeball"
+            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 lg:mb-8"
+            style={{ imageRendering: 'pixelated' }}
+          />
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+            {isDragActive ? 'Drop your Savegame to load!' : 'Drop your Savegame here'}
+          </h2>
+          {showDropzone && (
+            <span className="text-muted-foreground mt-1 text-sm sm:text-base">
+              or click to browse
+            </span>
+          )}
           <p className="text-xs text-muted-foreground mt-2">Supported: .sav, .sa2</p>
         </div>
       </div>

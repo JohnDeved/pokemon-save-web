@@ -10,7 +10,13 @@ interface SkeletonProps {
 // Context for loading state
 const SkeletonLoadingContext = createContext<boolean | undefined>(undefined)
 
-export const SkeletonLoadingProvider = ({ loading, children }: { loading: boolean; children: React.ReactNode }) => <SkeletonLoadingContext.Provider value={loading}>{children}</SkeletonLoadingContext.Provider>
+export const SkeletonLoadingProvider = ({
+  loading,
+  children,
+}: {
+  loading: boolean
+  children: React.ReactNode
+}) => <SkeletonLoadingContext.Provider value={loading}>{children}</SkeletonLoadingContext.Provider>
 
 function useSkeletonLoading(loading?: boolean) {
   const contextLoading = useContext(SkeletonLoadingContext)
@@ -68,21 +74,38 @@ export const SkeletonButton = ({ children, className, loading, ...props }: Skele
     return children
   }
   return (
-    <button className={cn('bg-foreground/5 animate-pulse', className)} disabled aria-hidden="true" {...props}>
+    <button
+      className={cn('bg-foreground/5 animate-pulse', className)}
+      disabled
+      aria-hidden="true"
+      {...props}
+    >
       <span className="invisible">{children}</span>
     </button>
   )
 }
 
 // Image skeleton that maintains aspect ratio and forwards img props
-export const SkeletonImage = ({ className, loading, ...props }: SkeletonProps & React.ImgHTMLAttributes<HTMLImageElement>) => {
+export const SkeletonImage = ({
+  className,
+  loading,
+  ...props
+}: SkeletonProps & React.ImgHTMLAttributes<HTMLImageElement>) => {
   const isLoading = useSkeletonLoading(loading)
   if (!isLoading) {
     // Render actual image with all img props
     return <img className={className} {...props} />
   }
   // Render skeleton placeholder
-  return <div className={cn('bg-foreground/5 animate-pulse', className)} style={{ aspectRatio: props.width && props.height ? `${props.width} / ${props.height}` : undefined, ...props.style }} />
+  return (
+    <div
+      className={cn('bg-foreground/5 animate-pulse', className)}
+      style={{
+        aspectRatio: props.width && props.height ? `${props.width} / ${props.height}` : undefined,
+        ...props.style,
+      }}
+    />
+  )
 }
 
 // with the Container we just take the children, but make them invisible and non-interactive, then make the container itself pulse with the skeleton class
@@ -96,7 +119,16 @@ export const SkeletonContainer = ({ className, children, loading, ...props }: Sk
     )
   }
 
-  return <div className={cn(className, 'bg-foreground/5 animate-pulse children-invisible rounded border-none')}>{children}</div>
+  return (
+    <div
+      className={cn(
+        className,
+        'bg-foreground/5 animate-pulse children-invisible rounded border-none'
+      )}
+    >
+      {children}
+    </div>
+  )
 }
 
 /*
