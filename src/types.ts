@@ -28,24 +28,14 @@ export const PokemonTypeSchema = z.enum([
 export type PokemonType = z.infer<typeof PokemonTypeSchema>
 
 // Narrowed damage class name that UI cares about; used for icons and labels
-export const DamageClassNameSchema = z.enum(['physical', 'special', 'status'])
-export type DamageClassName = z.infer<typeof DamageClassNameSchema>
+export type DamageClassName = 'physical' | 'special' | 'status'
 
 // --- Interfaces ---
-export const BaseMoveSchema = z.object({
-  name: z.string(),
-  id: z.number(),
-  pp: z.number(),
-})
-export type BaseMove = z.infer<typeof BaseMoveSchema>
-
-export const MovesSchema = z.object({
-  move1: BaseMoveSchema,
-  move2: BaseMoveSchema,
-  move3: BaseMoveSchema,
-  move4: BaseMoveSchema,
-})
-export type Moves = z.infer<typeof MovesSchema>
+export interface BaseMove {
+  name: string
+  id: number
+  pp: number
+}
 
 export interface UIPokemonData {
   readonly id: number // Stable UI id (Pokemon personality)
@@ -57,33 +47,25 @@ export interface UIPokemonData {
 
 export type Pokemon = UIPokemonData
 
-export const MoveWithDetailsSchema = BaseMoveSchema.extend({
-  type: PokemonTypeSchema,
-  description: z.string(),
-  power: z.number().nullable(),
-  accuracy: z.number().nullable(),
-  damageClass: DamageClassNameSchema.optional(),
-  target: z.string().optional(),
-})
-export type MoveWithDetails = z.infer<typeof MoveWithDetailsSchema>
+export interface MoveWithDetails extends BaseMove {
+  type: PokemonType
+  description: string
+  power: number | null
+  accuracy: number | null
+  damageClass?: DamageClassName
+  target?: string
+}
 
-export const AbilitySchema = z.object({
-  slot: z.number(),
-  name: z.string(),
-  description: z.string(),
-})
-export type Ability = z.infer<typeof AbilitySchema>
+export interface Ability {
+  slot: number
+  name: string
+  description: string
+}
 
-export const PokemonDetailsSchema = z.object({
-  types: z.array(PokemonTypeSchema),
-  abilities: z.array(AbilitySchema),
-  moves: z.array(MoveWithDetailsSchema),
-  baseStats: z.array(z.number()),
-  item: z
-    .object({
-      name: z.string(),
-      description: z.string(),
-    })
-    .optional(),
-})
-export type PokemonDetails = z.infer<typeof PokemonDetailsSchema>
+export interface PokemonDetails {
+  types: PokemonType[]
+  abilities: Ability[]
+  moves: MoveWithDetails[]
+  baseStats: number[]
+  item?: { name: string; description: string }
+}
