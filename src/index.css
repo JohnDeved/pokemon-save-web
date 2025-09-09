@@ -54,24 +54,30 @@ html, body {
 
 /* Scroll fade effects using mask-image (not animatable) */
 .scroll-fade-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
-  -webkit-mask-composite: add;
-  mask-image: linear-gradient(to bottom, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
-  mask-composite: add;
+  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
 }
 
 .scroll-fade-top {
-  -webkit-mask-image: linear-gradient(to top, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
-  -webkit-mask-composite: add;
-  mask-image: linear-gradient(to top, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
-  mask-composite: add;
+  -webkit-mask-image: linear-gradient(to top, black 85%, transparent 100%);
+  mask-image: linear-gradient(to top, black 85%, transparent 100%);
 }
 
 .scroll-fade-both {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
-  -webkit-mask-composite: add;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
-  mask-composite: add;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
 }
 
 /* Utility: Hide all children (if used) */

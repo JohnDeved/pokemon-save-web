@@ -13,9 +13,6 @@ interface CursorFollowHintProps {
   icon?: React.ReactNode
   once?: boolean
   onAcknowledge?: () => void
-  flashTargetRef?: React.RefObject<HTMLElement | null>
-  flashClass?: string
-  flashDurationMs?: number
 }
 
 /**
@@ -35,9 +32,6 @@ export function CursorFollowHint({
   icon,
   once = true,
   onAcknowledge,
-  flashTargetRef,
-  flashClass = 'ring-2 ring-primary/40 rounded-sm',
-  flashDurationMs = 250,
 }: CursorFollowHintProps) {
   const { visible, style } = useCursorFollow({
     anchorRef,
@@ -47,9 +41,6 @@ export function CursorFollowHint({
     offsetY,
     once,
     onAcknowledge,
-    flashTargetRef,
-    flashClass,
-    flashDurationMs,
   })
 
   const Icon = useMemo(() => icon ?? <MouseIcon className="w-3.5 h-3.5" strokeWidth={2} />, [icon])
@@ -92,9 +83,6 @@ export interface UseCursorFollowOptions {
   offsetY?: number
   once?: boolean
   onAcknowledge?: () => void
-  flashTargetRef?: React.RefObject<HTMLElement | null>
-  flashClass?: string
-  flashDurationMs?: number
 }
 
 export function useCursorFollow({
@@ -105,9 +93,6 @@ export function useCursorFollow({
   offsetY = -24,
   once = true,
   onAcknowledge,
-  flashTargetRef,
-  flashClass = 'ring-2 ring-primary/40 rounded-sm',
-  flashDurationMs = 250,
 }: UseCursorFollowOptions) {
   const x = useMotionValue(0)
   const y = useMotionValue(0)
@@ -153,13 +138,7 @@ export function useCursorFollow({
       setAck(true)
       onAcknowledge?.()
     }
-    // Flash target visual
-    const t = flashTargetRef?.current
-    if (t) {
-      t.classList.add(...flashClass.split(' '))
-      globalThis.setTimeout(() => t.classList.remove(...flashClass.split(' ')), flashDurationMs)
-    }
-  }, [ack, once, onAcknowledge, flashClass, flashDurationMs, flashTargetRef])
+  }, [ack, once, onAcknowledge])
 
   useEffect(() => {
     const root = anchorRef.current

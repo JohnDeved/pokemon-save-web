@@ -63,7 +63,6 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({
         anchorRef={rootRef as React.RefObject<HTMLElement | null>}
         targetRef={scrollRef as React.RefObject<HTMLElement | null>}
         enabled={isExpanded}
-        flashTargetRef={scrollRef as React.RefObject<HTMLElement | null>}
       />
       <AnimatePresence>
         {isExpanded && (
