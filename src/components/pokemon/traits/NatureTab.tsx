@@ -103,10 +103,10 @@ export const NatureTab: React.FC = () => {
                   value={pokemon.data.nature}
                   onChange={nature => setNature(pokemon.id, nature)}
                   asText
-                  triggerClassName="font-pixel text-lg sm:text-xl text-foreground"
+                  triggerClassName="font-pixel text-xl text-foreground"
                 />
               ) : (
-                <Skeleton.Text className="font-pixel text-lg sm:text-xl">
+                <Skeleton.Text className="font-pixel text-xl">
                   {natureName}
                 </Skeleton.Text>
               )}
