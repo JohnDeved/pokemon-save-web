@@ -58,10 +58,12 @@ export const PokemonStatDisplay: React.FC = () => {
     setEvIndex(pokemon.id, statIndex, newValue)
   }
 
-  // Handler for IV clicks - set to max (31) when clicked
+  // Handler for IV clicks - toggle between max (31) and 0
   function handleIvClick(statIndex: number) {
     if (typeof pokemon?.id !== 'number') return
-    setIvIndex(pokemon.id, statIndex, 31)
+    const currentIv = ivs?.[statIndex] ?? 0
+    const newIv = currentIv === MAX_IV ? 0 : MAX_IV
+    setIvIndex(pokemon.id, statIndex, newIv)
   }
 
   // Determine which base stats to display (normal vs mega)
@@ -76,12 +78,12 @@ export const PokemonStatDisplay: React.FC = () => {
     return calculateTotalStatsDirect(displayBaseStats, ivs, evs, level, nature)
   }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data.stats])
 
-  // Calculate what the total stat would be with max IV (31)
-  function calculatePreviewStat(statIndex: number, currentIv: number) {
-    if (currentIv === MAX_IV || !pokemon?.data || !displayBaseStats) return null
-    // Create a copy of IVs with the selected stat set to MAX_IV
+  // Calculate what the total stat would be with a specific IV value
+  function calculatePreviewStat(statIndex: number, targetIv: number) {
+    if (!pokemon?.data || !displayBaseStats) return null
+    // Create a copy of IVs with the selected stat set to targetIv
     const currentIvs = [...pokemon.data.ivs]
-    currentIvs[statIndex] = MAX_IV
+    currentIvs[statIndex] = targetIv
     // Use calculateTotalStatsDirect for stat calculation
     const newStats = calculateTotalStatsDirect(
       displayBaseStats,
@@ -114,10 +116,11 @@ export const PokemonStatDisplay: React.FC = () => {
           else if (natureMod < 1) statClass = 'text-red-400/50 font-bold'
           // IV color: bright cyan for max IV (31), slightly dimmed for non-max
           const ivClass = iv === MAX_IV ? 'text-cyan-400' : 'text-cyan-800'
-          // Calculate preview stat if this IV is hovered and not at max
+          // Calculate preview stat if this IV is hovered
           const isHovered = hoveredIvIndex === index
-          const previewTotal = isHovered && iv !== MAX_IV ? calculatePreviewStat(index, iv) : null
-          const isShowingPreview = isHovered && iv !== MAX_IV && previewTotal !== null
+          const previewIv = isHovered ? (iv === MAX_IV ? 0 : MAX_IV) : iv
+          const previewTotal = isHovered && iv !== previewIv ? calculatePreviewStat(index, previewIv) : null
+          const isShowingPreview = isHovered && iv !== previewIv && previewTotal !== null
           // Calculate how many more EVs can be assigned to this stat
           let maxVisualValue = MAX_EV
           if (
@@ -145,31 +148,19 @@ export const PokemonStatDisplay: React.FC = () => {
                 </span>
               </div>
               <div
-                className={`text-center text-sm ${ivClass} ${iv !== MAX_IV ? 'cursor-pointer hover:text-cyan-300 transition-colors' : ''}`}
-                onClick={
-                  iv !== MAX_IV
-                    ? () => {
-                        handleIvClick(index)
-                      }
-                    : undefined
-                }
-                onMouseEnter={
-                  iv !== MAX_IV
-                    ? () => {
-                        setHoveredIvIndex(index)
-                      }
-                    : undefined
-                }
-                onMouseLeave={
-                  iv !== MAX_IV
-                    ? () => {
-                        setHoveredIvIndex(null)
-                      }
-                    : undefined
-                }
-                title={iv !== MAX_IV ? `Click to set to max (${MAX_IV})` : undefined}
+                className={`text-center text-sm ${ivClass} cursor-pointer hover:text-cyan-300 transition-colors`}
+                onClick={() => {
+                  handleIvClick(index)
+                }}
+                onMouseEnter={() => {
+                  setHoveredIvIndex(index)
+                }}
+                onMouseLeave={() => {
+                  setHoveredIvIndex(null)
+                }}
+                title={iv === MAX_IV ? `Click to set to 0` : `Click to set to max (${MAX_IV})`}
               >
-                {isHovered && iv !== MAX_IV ? MAX_IV : iv}
+                {isHovered ? previewIv : iv}
               </div>
               <div className="text-muted-foreground text-center text-sm">
                 <Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text>

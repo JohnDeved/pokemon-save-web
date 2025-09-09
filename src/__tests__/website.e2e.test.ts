@@ -58,19 +58,26 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await expect(page.getByText('DEF')).toBeVisible()
   })
 
-  test('should allow editing Pokemon IVs', async ({ page }) => {
+  test('should allow editing Pokemon IVs with toggle behavior', async ({ page }) => {
     // Load save file first
     await loadTestSaveFile(page)
 
     // Wait for Pokemon data to be visible
     await expect(page.getByText('TREECKO')).toBeVisible({ timeout: 10000 })
 
-    // Find and click on HP IV value to maximize it
-    const hpIvElement = page.locator('text="Click to set to max (31)"').first()
-    await hpIvElement.click()
+    // Find an IV element that is not at max (31) and click to set to max
+    const ivElement = page.locator('[title*="Click to set to max"]').first()
+    await ivElement.click()
 
-    // Verify the IV changed to 31 (or appropriate max value)
+    // Verify the IV changed to 31
     await expect(page.getByText('31')).toBeVisible()
+
+    // Now click on the 31 IV to toggle it back to 0
+    const maxIvElement = page.locator('[title*="Click to set to 0"]').first()
+    await maxIvElement.click()
+
+    // Verify the IV changed to 0
+    await expect(page.getByText('0')).toBeVisible()
   })
 
   test('should allow changing Pokemon nature', async ({ page }) => {
