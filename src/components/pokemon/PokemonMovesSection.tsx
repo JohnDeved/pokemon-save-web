@@ -58,14 +58,7 @@ export const PokemonMovesSection: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <PokemonMoveButton
-                  move={move}
-                  pokemonTypes={pokemonTypes}
-                  isExpanded={expandedMoveIndex === i}
-                  opensUpward={i < totalSlots / 2}
-                  onHoverStart={() => setExpandedMoveIndex(i)}
-                  onHoverEnd={() => setExpandedMoveIndex(null)}
-                />
+                <PokemonMoveButton move={move} pokemonTypes={pokemonTypes} isExpanded={expandedMoveIndex === i} opensUpward={i < totalSlots / 2} onHoverStart={() => setExpandedMoveIndex(i)} onHoverEnd={() => setExpandedMoveIndex(null)} />
               )}
             </div>
           )

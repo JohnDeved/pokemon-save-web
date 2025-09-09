@@ -73,9 +73,7 @@ describe('Pokemon Save Parser - Unit Tests', () => {
     it('should fail auto-detection without config', async () => {
       const parserWithoutConfig = new PokemonSaveParser()
       const buffer = new ArrayBuffer(131072)
-      await expect(parserWithoutConfig.loadInputData(buffer)).rejects.toThrow(
-        'Unable to detect game type from save file'
-      )
+      await expect(parserWithoutConfig.loadInputData(buffer)).rejects.toThrow('Unable to detect game type from save file')
     })
   })
 

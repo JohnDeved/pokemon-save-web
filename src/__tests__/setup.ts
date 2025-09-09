@@ -83,11 +83,7 @@ declare global {
 
 beforeEach(() => {
   console.warn = (...args: unknown[]) => {
-    if (
-      typeof args[0] === 'string' &&
-      (args[0].includes('ReactDOM.render is no longer supported') ||
-        args[0].includes('Warning: Function components cannot be given refs'))
-    ) {
+    if (typeof args[0] === 'string' && (args[0].includes('ReactDOM.render is no longer supported') || args[0].includes('Warning: Function components cannot be given refs'))) {
       return
     }
     originalConsoleWarn(...args)

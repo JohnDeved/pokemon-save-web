@@ -99,10 +99,7 @@ describe('Pokemon Save Web - Integration Workflow', () => {
       const mockClient = new MgbaWebSocketClient()
 
       // Test that parser can identify WebSocket client
-      const isWebSocketLike =
-        typeof mockClient.isConnected === 'function' &&
-        typeof mockClient.eval === 'function' &&
-        !(mockClient instanceof ArrayBuffer)
+      const isWebSocketLike = typeof mockClient.isConnected === 'function' && typeof mockClient.eval === 'function' && !(mockClient instanceof ArrayBuffer)
 
       expect(isWebSocketLike).toBe(true)
     })

@@ -31,17 +31,11 @@ describe('Value Isolation Tests', () => {
       // Load test save files
       const quetzalPath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const quetzalBuffer = readFileSync(quetzalPath)
-      quetzalSaveData = quetzalBuffer.buffer.slice(
-        quetzalBuffer.byteOffset,
-        quetzalBuffer.byteOffset + quetzalBuffer.byteLength
-      )
+      quetzalSaveData = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
 
       const vanillaPath = resolve(__dirname, 'test_data', 'emerald.sav')
       const vanillaBuffer = readFileSync(vanillaPath)
-      vanillaSaveData = vanillaBuffer.buffer.slice(
-        vanillaBuffer.byteOffset,
-        vanillaBuffer.byteOffset + vanillaBuffer.byteLength
-      )
+      vanillaSaveData = vanillaBuffer.buffer.slice(vanillaBuffer.byteOffset, vanillaBuffer.byteOffset + vanillaBuffer.byteLength)
     } catch (error) {
       console.warn('Could not load test data files:', error)
     }
@@ -352,16 +346,7 @@ describe('Value Isolation Tests', () => {
         const initialOtName = pokemon.otName
 
         // Test setting different natures
-        const testNatures = [
-          'Hardy',
-          'Lonely',
-          'Brave',
-          'Adamant',
-          'Naughty',
-          'Bold',
-          'Timid',
-          'Modest',
-        ]
+        const testNatures = ['Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Timid', 'Modest']
 
         for (const targetNature of testNatures) {
           const targetNatureIndex = natures.indexOf(targetNature)

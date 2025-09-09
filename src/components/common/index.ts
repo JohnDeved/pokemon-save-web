@@ -1,11 +1,4 @@
-import {
-  SkeletonBox,
-  SkeletonButton,
-  SkeletonContainer,
-  SkeletonImage,
-  SkeletonLoadingProvider,
-  SkeletonText,
-} from './Skeleton'
+import { SkeletonBox, SkeletonButton, SkeletonContainer, SkeletonImage, SkeletonLoadingProvider, SkeletonText } from './Skeleton'
 
 export { Card } from './Card'
 export { PWAInstallPrompt } from './PWAInstallPrompt'

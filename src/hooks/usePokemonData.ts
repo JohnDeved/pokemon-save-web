@@ -17,8 +17,7 @@ const NO_MOVE: MoveWithDetails = {
 }
 
 // --- Utility Functions ---
-const formatName = (name: string): string =>
-  name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatName = (name: string): string => name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 
 const parsePokemonType = (apiType: string): PokemonType => {
   const result = PokemonTypeSchema.safeParse(apiType.toUpperCase())
@@ -40,11 +39,7 @@ function pickEnglishEffect(entries: PokeAPI.VerboseEffect[] | undefined): string
 }
 
 // Pick latest English flavor text (based on trailing numeric id in version/version_group URL)
-function pickLatestEnglishFlavorText(
-  entries:
-    | { flavor_text: string; language: { name: string }; version_group?: { url: string }; version?: { url: string } }[]
-    | undefined
-): string | undefined {
+function pickLatestEnglishFlavorText(entries: { flavor_text: string; language: { name: string }; version_group?: { url: string }; version?: { url: string } }[] | undefined): string | undefined {
   if (!Array.isArray(entries)) return undefined
   let best: { text: string; id: number } | undefined
   for (const entry of entries) {
@@ -62,19 +57,11 @@ function pickLatestEnglishFlavorText(
 }
 
 function getAbilityDescription(ability: PokeAPI.Ability): string {
-  return (
-    pickEnglishEffect(ability.effect_entries) ||
-    pickLatestEnglishFlavorText(ability.flavor_text_entries) ||
-    'No description available.'
-  )
+  return pickEnglishEffect(ability.effect_entries) || pickLatestEnglishFlavorText(ability.flavor_text_entries) || 'No description available.'
 }
 
 function getMoveDescription(move: PokeAPI.Move): string {
-  return (
-    pickEnglishEffect(move.effect_entries) ||
-    pickLatestEnglishFlavorText(move.flavor_text_entries) ||
-    'No description available.'
-  )
+  return pickEnglishEffect(move.effect_entries) || pickLatestEnglishFlavorText(move.flavor_text_entries) || 'No description available.'
 }
 
 /**
@@ -82,19 +69,9 @@ function getMoveDescription(move: PokeAPI.Move): string {
  */
 async function getPokemonDetails(pokemon: UIPokemonData) {
   const { data } = pokemon
-  const pokeData = await fetchJson<PokeAPI.Pokemon>(
-    `https://pokeapi.co/api/v2/pokemon/${data.speciesId}`
-  )
+  const pokeData = await fetchJson<PokeAPI.Pokemon>(`https://pokeapi.co/api/v2/pokemon/${data.speciesId}`)
   const moveSources = [data.moves.move1, data.moves.move2, data.moves.move3, data.moves.move4]
-  const moveResults = await Promise.all(
-    moveSources.map(move =>
-      move.id === 0
-        ? null
-        : fetchJson<PokeAPI.Move>(`https://pokeapi.co/api/v2/move/${move.id}`).catch(
-            () => null
-          )
-    )
-  )
+  const moveResults = await Promise.all(moveSources.map(move => (move.id === 0 ? null : fetchJson<PokeAPI.Move>(`https://pokeapi.co/api/v2/move/${move.id}`).catch(() => null))))
   const abilityEntries = pokeData.abilities
   const abilities: UiAbility[] = await Promise.all(
     abilityEntries.map(async entry => {
@@ -116,9 +93,7 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
   )
   const types = pokeData.types.map(t => parsePokemonType(t.type.name))
   // Extract base stats in correct order
-  const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense'].map(
-    stat => pokeData.stats.find(s => s.stat?.name === stat)?.base_stat ?? 0
-  )
+  const baseStats = ['hp', 'attack', 'defense', 'speed', 'special-attack', 'special-defense'].map(stat => pokeData.stats.find(s => s.stat?.name === stat)?.base_stat ?? 0)
   const moves: MoveWithDetails[] = moveSources.map((move, i) => {
     if (move.id === 0) {
       return { ...NO_MOVE }
@@ -130,17 +105,12 @@ async function getPokemonDetails(pokemon: UIPokemonData) {
         name: formatName(validMove.name),
         pp: move.pp,
         type: validMove.type?.name ? parsePokemonType(validMove.type.name) : UNKNOWN_TYPE,
-          description: getMoveDescription(validMove),
-          power: validMove.power ?? null,
-          accuracy: validMove.accuracy ?? null,
-        damageClass:
-          validMove.damage_class?.name === 'physical' ||
-          validMove.damage_class?.name === 'special' ||
-          validMove.damage_class?.name === 'status'
-            ? validMove.damage_class.name
-            : undefined,
-          target: validMove.target?.name,
-        }
+        description: getMoveDescription(validMove),
+        power: validMove.power ?? null,
+        accuracy: validMove.accuracy ?? null,
+        damageClass: validMove.damage_class?.name === 'physical' || validMove.damage_class?.name === 'special' || validMove.damage_class?.name === 'status' ? validMove.damage_class.name : undefined,
+        target: validMove.target?.name,
+      }
     }
     return {
       id: move.id,
@@ -215,14 +185,7 @@ export const usePokemonData = () => {
       // Clear cached pokemon details to avoid stale data after loading a new file
       queryClient.removeQueries({ queryKey: ['pokemon', 'details'] })
     }
-  }, [
-    saveData,
-    setPartyList,
-    resetPokemonData,
-    queryClient,
-    lastUpdateTransient,
-    setActivePokemonId,
-  ])
+  }, [saveData, setPartyList, resetPokemonData, queryClient, lastUpdateTransient, setActivePokemonId])
 
   // Get the current active Pokémon
   const activePokemon = partyList.find((p: UIPokemonData) => p.id === activePokemonId)
@@ -235,17 +198,8 @@ export const usePokemonData = () => {
     error,
   } = useQuery({
     // Include saveSessionId and speciesId to isolate per loaded save/species
-    queryKey: [
-      'pokemon',
-      'details',
-      saveSessionId,
-      activePokemon?.data?.speciesId ?? 'none',
-      String(activePokemonId),
-    ],
-    queryFn: () =>
-      activePokemon
-        ? getPokemonDetails(activePokemon)
-        : Promise.reject(new Error('No active Pokémon')),
+    queryKey: ['pokemon', 'details', saveSessionId, activePokemon?.data?.speciesId ?? 'none', String(activePokemonId)],
+    queryFn: () => (activePokemon ? getPokemonDetails(activePokemon) : Promise.reject(new Error('No active Pokémon'))),
     enabled: activePokemonId >= 0 && !!activePokemon,
     staleTime: 1000 * 60 * 60, // 1 hour
   })

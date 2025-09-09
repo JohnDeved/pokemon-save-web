@@ -1,14 +1,7 @@
 import { CheckIcon, ChevronsUpDownIcon, Pencil } from 'lucide-react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import itemMapData from '@/lib/parser/games/quetzal/data/item_map.json'
 import { cn } from '@/lib/utils'
@@ -26,10 +19,7 @@ interface RawItem {
   id_name: string
 }
 const ITEMS: ItemEntry[] = (Object.values(itemMapData) as RawItem[])
-  .filter(
-    (v): v is { id: number; name: string; id_name: string } =>
-      v !== null && typeof v === 'object' && typeof v.id === 'number'
-  )
+  .filter((v): v is { id: number; name: string; id_name: string } => v !== null && typeof v === 'object' && typeof v.id === 'number')
   .map(v => ({ id: v.id, name: v.name, id_name: v.id_name }))
   .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -44,16 +34,7 @@ export interface PokemonItemComboboxProps {
   asText?: boolean
 }
 
-export function PokemonItemCombobox({
-  valueIdName,
-  onChange,
-  disabled = false,
-  triggerClassName,
-  buttonVariant = 'outline',
-  buttonSize = 'sm',
-  hideIcon = false,
-  asText = false,
-}: PokemonItemComboboxProps) {
+export function PokemonItemCombobox({ valueIdName, onChange, disabled = false, triggerClassName, buttonVariant = 'outline', buttonSize = 'sm', hideIcon = false, asText = false }: PokemonItemComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [side, setSide] = React.useState<'top' | 'bottom'>('top')
@@ -89,26 +70,14 @@ export function PokemonItemCombobox({
           <button
             type="button"
             {...commonTriggerProps}
-            className={cn(
-              'group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-foreground/80 focus-visible:ring-0 focus-visible:border-transparent',
-              'transition-colors',
-              triggerClassName
-            )}
+            className={cn('group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-foreground/80 focus-visible:ring-0 focus-visible:border-transparent', 'transition-colors', triggerClassName)}
             aria-label="Edit held item"
           >
             <span className="leading-none">{label}</span>
             <Pencil className="ml-2 h-3.5 w-3.5 opacity-40 group-hover:opacity-80 group-focus:opacity-80 transition-opacity duration-150" />
           </button>
         ) : (
-          <Button
-            variant={buttonVariant}
-            size={buttonSize}
-            {...commonTriggerProps}
-            className={cn(
-              'justify-between w-[220px] border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50 geist-font',
-              triggerClassName
-            )}
-          >
+          <Button variant={buttonVariant} size={buttonSize} {...commonTriggerProps} className={cn('justify-between w-[220px] border-input bg-transparent dark:bg-input/30 dark:hover:bg-input/50 geist-font', triggerClassName)}>
             <span className="font-sans font-normal">{label}</span>
             {!hideIcon && <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
           </Button>
@@ -140,12 +109,7 @@ export function PokemonItemCombobox({
                 }}
               >
                 <div className="flex w-full items-center">
-                  <CheckIcon
-                    className={cn(
-                      'mr-2 h-4 w-4 text-muted-foreground',
-                      !selected ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
+                  <CheckIcon className={cn('mr-2 h-4 w-4 text-muted-foreground', !selected ? 'opacity-100' : 'opacity-0')} />
                   <span className="mr-2 font-sans font-normal leading-5">None</span>
                 </div>
               </CommandItem>
@@ -168,12 +132,7 @@ export function PokemonItemCombobox({
                     }}
                   >
                     <div className="flex w-full items-center gap-2">
-                      <CheckIcon
-                        className={cn(
-                          'h-4 w-4 text-muted-foreground',
-                          isSelected ? 'opacity-100' : 'opacity-0'
-                        )}
-                      />
+                      <CheckIcon className={cn('h-4 w-4 text-muted-foreground', isSelected ? 'opacity-100' : 'opacity-0')} />
                       <img
                         src={getItemSpriteUrl(item.id_name)}
                         alt=""

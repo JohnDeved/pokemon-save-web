@@ -44,10 +44,7 @@ describe('Pokemon Quetzal Tests', () => {
       // Load Quetzal test save file
       const savePath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const saveBuffer = readFileSync(savePath)
-      testSaveData = saveBuffer.buffer.slice(
-        saveBuffer.byteOffset,
-        saveBuffer.byteOffset + saveBuffer.byteLength
-      )
+      testSaveData = saveBuffer.buffer.slice(saveBuffer.byteOffset, saveBuffer.byteOffset + saveBuffer.byteLength)
 
       // Load Quetzal ground truth data
       const groundTruthPath = resolve(__dirname, 'test_data', 'quetzal_ground_truth.json')
@@ -80,12 +77,7 @@ describe('Pokemon Quetzal Tests', () => {
       // Load vanilla test data for comparison
       const vanillaPath = resolve(__dirname, 'test_data', 'emerald.sav')
       const vanillaBuffer = readFileSync(vanillaPath)
-      const vanillaData = new Uint8Array(
-        vanillaBuffer.buffer.slice(
-          vanillaBuffer.byteOffset,
-          vanillaBuffer.byteOffset + vanillaBuffer.byteLength
-        )
-      )
+      const vanillaData = new Uint8Array(vanillaBuffer.buffer.slice(vanillaBuffer.byteOffset, vanillaBuffer.byteOffset + vanillaBuffer.byteLength))
 
       const vanillaConfig = new VanillaConfig()
       const quetzalConfig = new QuetzalConfig()
@@ -101,10 +93,7 @@ describe('Pokemon Quetzal Tests', () => {
       expect(quetzalResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon
 
       const vanillaParser = new PokemonSaveParser()
-      const vanillaArrayBuffer = vanillaBuffer.buffer.slice(
-        vanillaBuffer.byteOffset,
-        vanillaBuffer.byteOffset + vanillaBuffer.byteLength
-      )
+      const vanillaArrayBuffer = vanillaBuffer.buffer.slice(vanillaBuffer.byteOffset, vanillaBuffer.byteOffset + vanillaBuffer.byteLength)
       const vanillaResult = await vanillaParser.parse(vanillaArrayBuffer)
       expect(vanillaParser.gameConfig?.name).toBe('Pokemon Emerald (Vanilla)')
       expect(vanillaResult.party_pokemon.length).toBe(1) // Vanilla has one Pokemon
@@ -150,29 +139,10 @@ describe('Pokemon Quetzal Tests', () => {
         expect(pokemon.otId).toBe(expected.otId)
 
         // Moves
-        expect([pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]).toEqual([
-          expected.move1,
-          expected.move2,
-          expected.move3,
-          expected.move4,
-        ])
+        expect([pokemon.move1, pokemon.move2, pokemon.move3, pokemon.move4]).toEqual([expected.move1, expected.move2, expected.move3, expected.move4])
 
         // EVs
-        expect([
-          pokemon.hpEV,
-          pokemon.atkEV,
-          pokemon.defEV,
-          pokemon.speEV,
-          pokemon.spaEV,
-          pokemon.spdEV,
-        ]).toEqual([
-          expected.hpEV,
-          expected.atkEV,
-          expected.defEV,
-          expected.speEV,
-          expected.spaEV,
-          expected.spdEV,
-        ])
+        expect([pokemon.hpEV, pokemon.atkEV, pokemon.defEV, pokemon.speEV, pokemon.spaEV, pokemon.spdEV]).toEqual([expected.hpEV, expected.atkEV, expected.defEV, expected.speEV, expected.spaEV, expected.spdEV])
 
         // IVs
         expect([...pokemon.ivs]).toEqual(expected.ivs)
@@ -182,9 +152,7 @@ describe('Pokemon Quetzal Tests', () => {
     it('should have valid sector mapping', () => {
       expect(parsedData.sector_map).toBeDefined()
       expect(parsedData.sector_map!.size).toBeGreaterThan(0)
-      const expectedSectorMap = new Map(
-        Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v])
-      )
+      const expectedSectorMap = new Map(Object.entries(groundTruth.sector_map).map(([k, v]) => [parseInt(k), v]))
       expect(parsedData.sector_map).toEqual(expectedSectorMap)
     })
 
@@ -209,24 +177,11 @@ describe('Pokemon Quetzal Tests', () => {
             const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`)
             if (!response.ok) continue
             const speciesData = await response.json()
-            const apiStats: Record<string, number> = speciesData.stats.reduce(
-              (
-                acc: Record<string, number>,
-                stat: { stat: { name: string }; base_stat: number }
-              ) => {
-                acc[stat.stat.name] = stat.base_stat
-                return acc
-              },
-              {}
-            )
-            baseStatsCache[speciesId.toString()] = [
-              apiStats.hp!,
-              apiStats.attack!,
-              apiStats.defense!,
-              apiStats.speed!,
-              apiStats['special-attack']!,
-              apiStats['special-defense']!,
-            ]
+            const apiStats: Record<string, number> = speciesData.stats.reduce((acc: Record<string, number>, stat: { stat: { name: string }; base_stat: number }) => {
+              acc[stat.stat.name] = stat.base_stat
+              return acc
+            }, {})
+            baseStatsCache[speciesId.toString()] = [apiStats.hp!, apiStats.attack!, apiStats.defense!, apiStats.speed!, apiStats['special-attack']!, apiStats['special-defense']!]
           } catch (error) {
             console.warn(`Failed to fetch base stats for species ${speciesId}:`, error)
           }
@@ -324,14 +279,7 @@ describe('Pokemon Quetzal Tests', () => {
       // Modify EVs for all Pokemon in party
       parsedData.party_pokemon.forEach((pokemon, index) => {
         const baseValue = (index + 1) * 10
-        pokemon.evs = [
-          baseValue,
-          baseValue + 1,
-          baseValue + 2,
-          baseValue + 3,
-          baseValue + 4,
-          baseValue + 5,
-        ]
+        pokemon.evs = [baseValue, baseValue + 1, baseValue + 2, baseValue + 3, baseValue + 4, baseValue + 5]
       })
 
       // Reconstruct and reparse
@@ -341,14 +289,7 @@ describe('Pokemon Quetzal Tests', () => {
       // Verify all Pokemon have correct EVs
       reparsed.party_pokemon.forEach((pokemon, index) => {
         const baseValue = (index + 1) * 10
-        const expectedEvs = [
-          baseValue,
-          baseValue + 1,
-          baseValue + 2,
-          baseValue + 3,
-          baseValue + 4,
-          baseValue + 5,
-        ]
+        const expectedEvs = [baseValue, baseValue + 1, baseValue + 2, baseValue + 3, baseValue + 4, baseValue + 5]
         expect(pokemon.evs).toEqual(expectedEvs)
       })
     })
@@ -466,12 +407,8 @@ describe('Pokemon Quetzal Tests', () => {
       const reparsed = await parser.parse(reconstructed)
 
       // Verify the swap was preserved
-      expect(reparsed.party_pokemon[0]!.speciesId).toBe(
-        parsed.party_pokemon[parsed.party_pokemon.length - 1]!.speciesId
-      )
-      expect(reparsed.party_pokemon[reparsed.party_pokemon.length - 1]!.speciesId).toBe(
-        parsed.party_pokemon[0]!.speciesId
-      )
+      expect(reparsed.party_pokemon[0]!.speciesId).toBe(parsed.party_pokemon[parsed.party_pokemon.length - 1]!.speciesId)
+      expect(reparsed.party_pokemon[reparsed.party_pokemon.length - 1]!.speciesId).toBe(parsed.party_pokemon[0]!.speciesId)
     })
 
     it('should maintain data integrity when modifying Pokemon stats and EVs/IVs', async () => {

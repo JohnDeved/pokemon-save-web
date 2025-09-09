@@ -2,36 +2,40 @@ import { describe, expect, test } from 'vitest'
 import type { PokemonType } from '@/types'
 
 // Extract STAB calculation logic for testing
-function calculateStab(moveType: PokemonType, pokemonTypes: PokemonType[], basePower: number | null): {
+function calculateStab(
+  moveType: PokemonType,
+  pokemonTypes: PokemonType[],
+  basePower: number | null
+): {
   hasStab: boolean
   adjustedPower: number | null
 } {
   if (basePower === null) return { hasStab: false, adjustedPower: null }
-  
+
   const hasStab = pokemonTypes.some(pokemonType => pokemonType === moveType)
   const adjustedPower = hasStab ? Math.floor(basePower * 1.5) : basePower
-  
+
   return { hasStab, adjustedPower }
 }
 
 describe('STAB (Same Type Attack Bonus) Calculation', () => {
   test('should not apply STAB when move type does not match Pokemon types', () => {
     const result = calculateStab('GRASS', ['FIRE', 'WATER'], 45)
-    
+
     expect(result.hasStab).toBe(false)
     expect(result.adjustedPower).toBe(45)
   })
 
   test('should apply STAB when move type matches Pokemon type', () => {
     const result = calculateStab('GRASS', ['GRASS', 'POISON'], 45)
-    
+
     expect(result.hasStab).toBe(true)
     expect(result.adjustedPower).toBe(67) // 45 * 1.5 = 67.5, floored to 67
   })
 
   test('should handle null power values correctly', () => {
     const result = calculateStab('NORMAL', ['NORMAL'], null)
-    
+
     expect(result.hasStab).toBe(false)
     expect(result.adjustedPower).toBe(null)
   })
@@ -46,7 +50,7 @@ describe('STAB (Same Type Attack Bonus) Calculation', () => {
 
     testCases.forEach(({ basePower, expectedStab }) => {
       const result = calculateStab('FIRE', ['FIRE'], basePower)
-      
+
       expect(result.hasStab).toBe(true)
       expect(result.adjustedPower).toBe(expectedStab)
     })
@@ -66,7 +70,7 @@ describe('STAB (Same Type Attack Bonus) Calculation', () => {
 
   test('should handle edge cases with single-type Pokemon', () => {
     const result = calculateStab('ELECTRIC', ['ELECTRIC'], 100)
-    
+
     expect(result.hasStab).toBe(true)
     expect(result.adjustedPower).toBe(150) // 100 * 1.5 = 150
   })
@@ -80,7 +84,7 @@ describe('STAB (Same Type Attack Bonus) Calculation', () => {
 
     testCases.forEach(({ moveType, pokemonTypes, basePower }) => {
       const result = calculateStab(moveType as PokemonType, pokemonTypes as PokemonType[], basePower)
-      
+
       expect(result.hasStab).toBe(false)
       expect(result.adjustedPower).toBe(basePower)
     })
