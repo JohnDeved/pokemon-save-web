@@ -10,11 +10,7 @@ export interface SimpleMessage {
   data: string[]
 }
 
-export type MemoryChangeListener = (
-  address: number,
-  size: number,
-  data: Uint8Array
-) => void | Promise<void>
+export type MemoryChangeListener = (address: number, size: number, data: Uint8Array) => void | Promise<void>
 
 // --- WebSocket message schemas ---
 export const WebSocketMemoryUpdateSchema = z.object({

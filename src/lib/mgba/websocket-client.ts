@@ -4,13 +4,7 @@
  */
 
 import WebSocket from 'isomorphic-ws'
-import {
-  WebSocketResponseSchema,
-  type SimpleMessage,
-  type MemoryChangeListener,
-  type WebSocketResponse,
-  type WebSocketEvalResult,
-} from './types'
+import { WebSocketResponseSchema, type SimpleMessage, type MemoryChangeListener, type WebSocketResponse, type WebSocketEvalResult } from './types'
 
 // Re-export types for consumers
 export type { MemoryChangeListener } from './types'
@@ -250,12 +244,7 @@ export class MgbaWebSocketClient {
       const [watchedAddressStr, watchedSizeStr] = cacheKey.split('-')
       const watchedAddress = Number(watchedAddressStr)
       const watchedSize = Number(watchedSizeStr)
-      if (
-        Number.isNaN(watchedAddress) ||
-        Number.isNaN(watchedSize) ||
-        address < watchedAddress ||
-        address + size > watchedAddress + watchedSize
-      ) {
+      if (Number.isNaN(watchedAddress) || Number.isNaN(watchedSize) || address < watchedAddress || address + size > watchedAddress + watchedSize) {
         continue
       }
       const start = address - watchedAddress

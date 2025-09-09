@@ -13,8 +13,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // URLs for pokeemerald source files
-const POKEEMERALD_BASE =
-  'https://raw.githubusercontent.com/pret/pokeemerald/6f8a1bbdb8a5ef75c4372cc625164a41e95ec2a4/include/constants'
+const POKEEMERALD_BASE = 'https://raw.githubusercontent.com/pret/pokeemerald/6f8a1bbdb8a5ef75c4372cc625164a41e95ec2a4/include/constants'
 const POKEEMERALD_URLS = {
   species: `${POKEEMERALD_BASE}/species.h`,
   moves: `${POKEEMERALD_BASE}/moves.h`,
@@ -290,11 +289,7 @@ async function main() {
 
     // Fetch pokeemerald source files
     console.log('Fetching pokeemerald source files...')
-    const [speciesContent, movesContent, itemsContent] = await Promise.all([
-      fetchText(POKEEMERALD_URLS.species),
-      fetchText(POKEEMERALD_URLS.moves),
-      fetchText(POKEEMERALD_URLS.items),
-    ])
+    const [speciesContent, movesContent, itemsContent] = await Promise.all([fetchText(POKEEMERALD_URLS.species), fetchText(POKEEMERALD_URLS.moves), fetchText(POKEEMERALD_URLS.items)])
 
     // Parse pokeemerald constants
     console.log('Parsing pokeemerald constants...')
@@ -304,15 +299,9 @@ async function main() {
 
     // Fetch PokeAPI data
     console.log('Fetching PokeAPI data...')
-    const [pokeapiPokemon, pokeapiMoves, pokeapiItems] = await Promise.all([
-      fetchJson(POKEAPI_URLS.pokemon),
-      fetchJson(POKEAPI_URLS.move),
-      fetchJson(POKEAPI_URLS.item),
-    ])
+    const [pokeapiPokemon, pokeapiMoves, pokeapiItems] = await Promise.all([fetchJson(POKEAPI_URLS.pokemon), fetchJson(POKEAPI_URLS.move), fetchJson(POKEAPI_URLS.item)])
 
-    console.log(
-      `PokeAPI: ${pokeapiPokemon.results.length} pokemon, ${pokeapiMoves.results.length} moves, ${pokeapiItems.results.length} items`
-    )
+    console.log(`PokeAPI: ${pokeapiPokemon.results.length} pokemon, ${pokeapiMoves.results.length} moves, ${pokeapiItems.results.length} items`)
 
     // Create mappings
     console.log('Creating mappings...')
@@ -326,10 +315,7 @@ async function main() {
     // Write mapping files
     console.log('Writing mapping files...')
     await Promise.all([
-      fs.writeFile(
-        path.join(OUTPUT_DIR, 'pokemon_map.json'),
-        JSON.stringify(pokemonMapping, null, 2)
-      ),
+      fs.writeFile(path.join(OUTPUT_DIR, 'pokemon_map.json'), JSON.stringify(pokemonMapping, null, 2)),
       fs.writeFile(path.join(OUTPUT_DIR, 'move_map.json'), JSON.stringify(moveMapping, null, 2)),
       fs.writeFile(path.join(OUTPUT_DIR, 'item_map.json'), JSON.stringify(itemMapping, null, 2)),
     ])

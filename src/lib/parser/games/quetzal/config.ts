@@ -3,15 +3,7 @@
  * Only overrides differences from vanilla Emerald baseline
  */
 
-import {
-  VANILLA_SAVE_LAYOUT,
-  type GameConfig,
-  type ItemMapping,
-  type MoveMapping,
-  type PokemonMapping,
-  type PokemonOffsetsOverride,
-  type SaveLayoutOverride,
-} from '../../core/types'
+import { VANILLA_SAVE_LAYOUT, type GameConfig, type ItemMapping, type MoveMapping, type PokemonMapping, type PokemonOffsetsOverride, type SaveLayoutOverride } from '../../core/types'
 import { createMapping, natures } from '../../core/utils'
 import { GameConfigBase } from '../../core/GameConfigBase'
 import itemMapData from './data/item_map.json'
@@ -147,48 +139,24 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
   }
 
   getMove(_data: Uint8Array, view: DataView, index: number): number {
-    const moveOffsets = [
-      this.quetzalOffsets.move1,
-      this.quetzalOffsets.move2,
-      this.quetzalOffsets.move3,
-      this.quetzalOffsets.move4,
-    ]
+    const moveOffsets = [this.quetzalOffsets.move1, this.quetzalOffsets.move2, this.quetzalOffsets.move3, this.quetzalOffsets.move4]
     const rawMove = view.getUint16(moveOffsets[index]!, true)
     // Apply ID mapping using the base mapping system
     return this.mappings.moves.get(rawMove)?.id ?? rawMove
   }
 
   getPP(_data: Uint8Array, view: DataView, index: number): number {
-    const ppOffsets = [
-      this.quetzalOffsets.pp1,
-      this.quetzalOffsets.pp2,
-      this.quetzalOffsets.pp3,
-      this.quetzalOffsets.pp4,
-    ]
+    const ppOffsets = [this.quetzalOffsets.pp1, this.quetzalOffsets.pp2, this.quetzalOffsets.pp3, this.quetzalOffsets.pp4]
     return view.getUint8(ppOffsets[index]!)
   }
 
   getEV(_data: Uint8Array, view: DataView, index: number): number {
-    const evOffsets = [
-      this.quetzalOffsets.hpEV,
-      this.quetzalOffsets.atkEV,
-      this.quetzalOffsets.defEV,
-      this.quetzalOffsets.speEV,
-      this.quetzalOffsets.spaEV,
-      this.quetzalOffsets.spdEV,
-    ]
+    const evOffsets = [this.quetzalOffsets.hpEV, this.quetzalOffsets.atkEV, this.quetzalOffsets.defEV, this.quetzalOffsets.speEV, this.quetzalOffsets.spaEV, this.quetzalOffsets.spdEV]
     return view.getUint8(evOffsets[index]!)
   }
 
   setEV(_data: Uint8Array, view: DataView, index: number, value: number): void {
-    const evOffsets = [
-      this.quetzalOffsets.hpEV,
-      this.quetzalOffsets.atkEV,
-      this.quetzalOffsets.defEV,
-      this.quetzalOffsets.speEV,
-      this.quetzalOffsets.spaEV,
-      this.quetzalOffsets.spdEV,
-    ]
+    const evOffsets = [this.quetzalOffsets.hpEV, this.quetzalOffsets.atkEV, this.quetzalOffsets.defEV, this.quetzalOffsets.speEV, this.quetzalOffsets.spaEV, this.quetzalOffsets.spdEV]
     const clampedValue = Math.max(0, Math.min(255, value))
     view.setUint8(evOffsets[index]!, clampedValue)
   }
@@ -279,11 +247,7 @@ export class QuetzalConfig extends GameConfigBase implements GameConfig {
       const saveblock1Data = this.extractSaveBlock1(saveData, sectorMap)
 
       // Use base class helper for Pokemon detection
-      const pokemonFound = this.parsePokemonForDetection(
-        saveblock1Data,
-        this.pokemonSize,
-        (data, view) => this.getSpeciesId(data, view)
-      )
+      const pokemonFound = this.parsePokemonForDetection(saveblock1Data, this.pokemonSize, (data, view) => this.getSpeciesId(data, view))
 
       // Return true if we found valid Pokemon data
       return pokemonFound > 0

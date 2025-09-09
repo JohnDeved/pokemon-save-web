@@ -11,10 +11,7 @@ export abstract class GameConfigBase {
   /**
    * Check if the save data has valid Emerald signature in sector footers
    */
-  protected hasValidEmeraldSignature(
-    saveData: Uint8Array,
-    expectedSignature: number = VANILLA_EMERALD_SIGNATURE
-  ): boolean {
+  protected hasValidEmeraldSignature(saveData: Uint8Array, expectedSignature: number = VANILLA_EMERALD_SIGNATURE): boolean {
     try {
       const size = saveData.length
       if (size < 131072 || size > 131200) {
@@ -44,11 +41,7 @@ export abstract class GameConfigBase {
   /**
    * Build a map of sector IDs to their physical indices
    */
-  protected buildSectorMap(
-    saveData: Uint8Array,
-    activeSlot: number,
-    expectedSignature: number = VANILLA_EMERALD_SIGNATURE
-  ): Map<number, number> {
+  protected buildSectorMap(saveData: Uint8Array, activeSlot: number, expectedSignature: number = VANILLA_EMERALD_SIGNATURE): Map<number, number> {
     const sectorMap = new Map<number, number>()
     const sectorRange = Array.from({ length: 18 }, (_, i) => i + activeSlot)
 
@@ -91,10 +84,7 @@ export abstract class GameConfigBase {
   /**
    * Helper to determine active save slot by comparing sector counters
    */
-  protected getActiveSlot(
-    saveData: Uint8Array,
-    expectedSignature: number = VANILLA_EMERALD_SIGNATURE
-  ): number {
+  protected getActiveSlot(saveData: Uint8Array, expectedSignature: number = VANILLA_EMERALD_SIGNATURE): number {
     const getCounterSum = (sectorIndices: number[]): number => {
       let sum = 0
       for (const sectorIndex of sectorIndices) {
@@ -136,11 +126,7 @@ export abstract class GameConfigBase {
   /**
    * Common helper to parse Pokemon using config-specific detection
    */
-  protected parsePokemonForDetection(
-    saveblock1Data: Uint8Array,
-    pokemonSize: number,
-    getSpeciesId: (data: Uint8Array, view: DataView) => number
-  ): number {
+  protected parsePokemonForDetection(saveblock1Data: Uint8Array, pokemonSize: number, getSpeciesId: (data: Uint8Array, view: DataView) => number): number {
     let pokemonFound = 0
 
     for (let slot = 0; slot < 6; slot++) {

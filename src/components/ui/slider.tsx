@@ -56,10 +56,7 @@ const Slider = ({
   }, [handleWheel])
 
   // Calculate percentage for the visual max
-  const visualPercent =
-    typeof maxVisualValue === 'number' && maxVisualValue > min && max > min
-      ? ((maxVisualValue - min) / (max - min)) * 100
-      : 100
+  const visualPercent = typeof maxVisualValue === 'number' && maxVisualValue > min && max > min ? ((maxVisualValue - min) / (max - min)) * 100 : 100
 
   // Clamp controlled value to maxVisualValue
   const clampedValue = !Array.isArray(value)
@@ -78,36 +75,19 @@ const Slider = ({
       max={max}
       disabled={disabled}
       onValueChange={onValueChange}
-      className={cn(
-        'group relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col',
-        className
-      )}
+      className={cn('group relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col', className)}
       ref={sliderRef}
       {...props}
     >
-      <SliderPrimitive.Track
-        data-slot="slider-track"
-        className={cn(
-          'bg-muted relative grow overflow-hidden rounded-full cursor-pointer data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5'
-        )}
-      >
+      <SliderPrimitive.Track data-slot="slider-track" className={cn('bg-muted relative grow overflow-hidden rounded-full cursor-pointer data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5')}>
         {/* Visual remaining bar */}
         {typeof maxVisualValue === 'number' && maxVisualValue > min && (
           <div
-            className={cn(
-              'absolute left-0 top-0 h-full pointer-events-none bg-[size:8px_8px] bg-top-left',
-              'dark:text-white/5 dark:bg-white/3 text-black/10 bg-black/5',
-              'bg-[image:repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_1px,transparent_50%)]'
-            )}
+            className={cn('absolute left-0 top-0 h-full pointer-events-none bg-[size:8px_8px] bg-top-left', 'dark:text-white/5 dark:bg-white/3 text-black/10 bg-black/5', 'bg-[image:repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_1px,transparent_50%)]')}
             style={{ width: `${visualPercent}%` }}
           />
         )}
-        <SliderPrimitive.Range
-          data-slot="slider-range"
-          className={cn(
-            'bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full'
-          )}
-        />
+        <SliderPrimitive.Range data-slot="slider-range" className={cn('bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full')} />
       </SliderPrimitive.Track>
       {Array.from({ length: _values.length }, (_, index) => (
         <SliderPrimitive.Thumb
@@ -115,8 +95,7 @@ const Slider = ({
           key={index}
           className={cn(
             'border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow,opacity] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
-            thumbVisibleOnHover &&
-              'opacity-0 group-hover:opacity-100 transition-opacity duration-200'
+            thumbVisibleOnHover && 'opacity-0 group-hover:opacity-100 transition-opacity duration-200'
           )}
           tabIndex={0}
         />

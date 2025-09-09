@@ -55,10 +55,7 @@ describe('mGBA Lua HTTP Server - Virtual Environment Tests', () => {
         output += data.toString()
         console.log('[mGBA Server]', data.toString().trim())
         // Look for the server startup message
-        if (
-          output.includes('🚀 mGBA HTTP Server started on port') ||
-          output.includes('HTTP server loaded successfully')
-        ) {
+        if (output.includes('🚀 mGBA HTTP Server started on port') || output.includes('HTTP server loaded successfully')) {
           clearTimeout(timeout)
           baseUrl = `http://127.0.0.1:${serverPort}`
           // Give the server time to be fully ready

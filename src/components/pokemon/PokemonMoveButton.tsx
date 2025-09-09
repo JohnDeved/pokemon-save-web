@@ -38,7 +38,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
   const activePokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
   const heldItemIdName = activePokemon?.data.itemIdName
   const { megaPreviewEnabled, megaTypes, megaAbilities } = useMegaPreview()
-  const effectiveTypes = (megaPreviewEnabled && Array.isArray(megaTypes) && megaTypes.length > 0) ? megaTypes : baseTypes
+  const effectiveTypes = megaPreviewEnabled && Array.isArray(megaTypes) && megaTypes.length > 0 ? megaTypes : baseTypes
   // Determine effective ability name (prefer Mega ability if previewing)
   const effectiveAbilityName = (() => {
     if (megaPreviewEnabled && Array.isArray(megaAbilities) && megaAbilities.length > 0) {
@@ -66,7 +66,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
         .replace(/[-_]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
-        .replace(/\b\w/g, (c) => c.toUpperCase())
+        .replace(/\b\w/g, c => c.toUpperCase())
     : '—'
 
   return (

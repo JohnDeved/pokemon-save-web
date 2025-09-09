@@ -35,30 +35,20 @@ function getBestEnglishItemDescription(apiObj: PokeAPI.Item): string {
   return 'No description available.'
 }
 
-const formatName = (name: string): string =>
-  name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatName = (name: string): string => name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 
 export function useActiveItemDetails() {
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
   const saveSessionId = useSaveFileStore(s => s.saveSessionId)
   const itemIdName = pokemon?.data.itemIdName
-  const queryKey = [
-    'pokemon',
-    'item',
-    saveSessionId,
-    pokemon?.data.speciesId ?? 'none',
-    String(pokemon?.id ?? -1),
-    itemIdName ?? 'none',
-  ] as const
+  const queryKey = ['pokemon', 'item', saveSessionId, pokemon?.data.speciesId ?? 'none', String(pokemon?.id ?? -1), itemIdName ?? 'none'] as const
 
   const { data, isFetching } = useQuery({
     queryKey,
     queryFn: async () => {
       if (!itemIdName) return null
       try {
-        const itemResp = await fetchAndValidate<PokeAPI.Item>(
-          `https://pokeapi.co/api/v2/item/${itemIdName}`
-        )
+        const itemResp = await fetchAndValidate<PokeAPI.Item>(`https://pokeapi.co/api/v2/item/${itemIdName}`)
         return {
           name: formatName(itemResp.name),
           description: getBestEnglishItemDescription(itemResp),

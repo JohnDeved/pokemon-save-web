@@ -3,13 +3,7 @@
  * Only provides ID mappings - all other behavior uses the defaults from PokemonInstance
  */
 
-import {
-  VANILLA_SAVE_LAYOUT,
-  type GameConfig,
-  type ItemMapping,
-  type MoveMapping,
-  type PokemonMapping,
-} from '../../core/types'
+import { VANILLA_SAVE_LAYOUT, type GameConfig, type ItemMapping, type MoveMapping, type PokemonMapping } from '../../core/types'
 import { GameConfigBase } from '../../core/GameConfigBase'
 import itemMapData from './data/item_map.json'
 import moveMapData from './data/move_map.json'

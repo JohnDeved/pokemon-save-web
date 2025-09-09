@@ -82,9 +82,7 @@ describe('MgbaWebSocketClient - Memory Watching API', () => {
     it('should throw error when starting watch without connection', async () => {
       const regions = [{ address: 0x20244e9, size: 4 }]
 
-      await expect(client.startWatching(regions)).rejects.toThrow(
-        'Not connected to mGBA WebSocket server'
-      )
+      await expect(client.startWatching(regions)).rejects.toThrow('Not connected to mGBA WebSocket server')
     })
 
     it('should throw error when starting watch without regions', async () => {

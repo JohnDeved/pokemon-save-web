@@ -50,10 +50,7 @@ export const TYPE_BOOST_ITEMS: Record<string, PokemonType> = {
 // Per request: use +20% for boosting items
 export const TYPE_BOOST_MULTIPLIER = 1.2
 
-export function getTypeBoostMultiplier(
-  itemIdName: string | undefined | null,
-  moveType: PokemonType
-): number {
+export function getTypeBoostMultiplier(itemIdName: string | undefined | null, moveType: PokemonType): number {
   if (!itemIdName) return 1
   const boostedType = TYPE_BOOST_ITEMS[itemIdName.toLowerCase()]
   if (boostedType && boostedType === moveType) return TYPE_BOOST_MULTIPLIER

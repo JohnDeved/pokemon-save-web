@@ -9,12 +9,9 @@ const toasterStyle: React.CSSProperties = {
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
-  const normalizedTheme: ToasterProps['theme'] =
-    theme === 'dark' || theme === 'light' || theme === 'system' ? theme : 'system'
+  const normalizedTheme: ToasterProps['theme'] = theme === 'dark' || theme === 'light' || theme === 'system' ? theme : 'system'
 
-  return (
-    <Sonner theme={normalizedTheme} className="toaster group" style={toasterStyle} {...props} />
-  )
+  return <Sonner theme={normalizedTheme} className="toaster group" style={toasterStyle} {...props} />
 }
 
 export { Toaster }

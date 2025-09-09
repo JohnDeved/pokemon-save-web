@@ -30,7 +30,7 @@ export const PokemonMovesSection: React.FC = () => {
   const totalSlots = 4
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
-      <div className="p-2 sm:p-3 grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2">
+      <div className="p-3 grid grid-cols-2 gap-2">
         {Array.from({ length: totalSlots }).map((_, i) => {
           const move = moves[i] ?? EMPTY_MOVE
           if (!isLoading && move.id === 0) {
@@ -57,13 +57,7 @@ export const PokemonMovesSection: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <PokemonMoveButton
-                  move={move}
-                  isExpanded={expandedMoveIndex === i}
-                  opensUpward={i < totalSlots / 2}
-                  onHoverStart={() => setExpandedMoveIndex(i)}
-                  onHoverEnd={() => setExpandedMoveIndex(null)}
-                />
+                <PokemonMoveButton move={move} isExpanded={expandedMoveIndex === i} opensUpward={i < totalSlots / 2} onHoverStart={() => setExpandedMoveIndex(i)} onHoverEnd={() => setExpandedMoveIndex(null)} />
               )}
             </div>
           )

@@ -60,10 +60,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
       // Load emerald test save file
       const savePath = resolve(__dirname, 'test_data', 'emerald.sav')
       const saveBuffer = readFileSync(savePath)
-      testSaveData = saveBuffer.buffer.slice(
-        saveBuffer.byteOffset,
-        saveBuffer.byteOffset + saveBuffer.byteLength
-      )
+      testSaveData = saveBuffer.buffer.slice(saveBuffer.byteOffset, saveBuffer.byteOffset + saveBuffer.byteLength)
 
       // Load emerald ground truth data
       const groundTruthPath = resolve(__dirname, 'test_data', 'emerald_ground_truth.json')
@@ -98,12 +95,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
       // Load Quetzal test data and verify detection priority
       const quetzalPath = resolve(__dirname, 'test_data', 'quetzal.sav')
       const quetzalBuffer = readFileSync(quetzalPath)
-      const quetzalData = new Uint8Array(
-        quetzalBuffer.buffer.slice(
-          quetzalBuffer.byteOffset,
-          quetzalBuffer.byteOffset + quetzalBuffer.byteLength
-        )
-      )
+      const quetzalData = new Uint8Array(quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength))
 
       const vanillaConfig = new VanillaConfig()
       const quetzalConfig = new QuetzalConfig()
@@ -118,10 +110,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
       expect(vanillaParser.gameConfig?.name).toBe('Pokemon Emerald (Vanilla)')
 
       const quetzalParser = new PokemonSaveParser()
-      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(
-        quetzalBuffer.byteOffset,
-        quetzalBuffer.byteOffset + quetzalBuffer.byteLength
-      )
+      const quetzalArrayBuffer = quetzalBuffer.buffer.slice(quetzalBuffer.byteOffset, quetzalBuffer.byteOffset + quetzalBuffer.byteLength)
       const quetzalResult = await quetzalParser.parse(quetzalArrayBuffer)
       expect(quetzalParser.gameConfig?.name).toBe('Pokemon Quetzal')
       expect(quetzalResult.party_pokemon.length).toBeGreaterThan(1) // Quetzal has multiple Pokemon
@@ -325,33 +314,7 @@ describe('Vanilla Pokemon Emerald Tests', () => {
 
         // Verify using Gen 3 formula: personality % 25
         const expectedNatureIndex = pokemon.personality % 25
-        const natures = [
-          'Hardy',
-          'Lonely',
-          'Brave',
-          'Adamant',
-          'Naughty',
-          'Bold',
-          'Docile',
-          'Relaxed',
-          'Impish',
-          'Lax',
-          'Timid',
-          'Hasty',
-          'Serious',
-          'Jolly',
-          'Naive',
-          'Modest',
-          'Mild',
-          'Quiet',
-          'Bashful',
-          'Rash',
-          'Calm',
-          'Gentle',
-          'Sassy',
-          'Careful',
-          'Quirky',
-        ]
+        const natures = ['Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax', 'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive', 'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash', 'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky']
         expect(pokemon.nature).toBe(natures[expectedNatureIndex])
       }
     })

@@ -3,13 +3,7 @@
  * All vanilla behavior is built-in, game configs only override what's different
  */
 
-import {
-  VANILLA_POKEMON_OFFSETS,
-  VANILLA_SAVE_LAYOUT,
-  type GameConfig,
-  type MoveData,
-  type PokemonMoves,
-} from './types'
+import { VANILLA_POKEMON_OFFSETS, VANILLA_SAVE_LAYOUT, type GameConfig, type MoveData, type PokemonMoves } from './types'
 import { bytesToGbaString, natureEffects, natures, statStrings } from './utils'
 
 /**
@@ -93,19 +87,11 @@ export class PokemonBase {
   }
 
   private get nicknameRaw() {
-    return new Uint8Array(
-      this.view.buffer,
-      this.view.byteOffset + this.offsets.nickname,
-      this.offsets.nicknameLength
-    )
+    return new Uint8Array(this.view.buffer, this.view.byteOffset + this.offsets.nickname, this.offsets.nicknameLength)
   }
 
   private get otNameRaw() {
-    return new Uint8Array(
-      this.view.buffer,
-      this.view.byteOffset + this.offsets.otName,
-      this.offsets.otNameLength
-    )
+    return new Uint8Array(this.view.buffer, this.view.byteOffset + this.offsets.otName, this.offsets.otNameLength)
   }
 
   // Vanilla Emerald encryption methods (can be overridden by configs)

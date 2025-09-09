@@ -93,11 +93,7 @@ const RESET = '\x1b[0m'
 const colorFor = (i: number) => `\x1b[${COLORS[i % COLORS.length]!}m`
 
 /** Display colored, labeled hex/ASCII visualization for Pokémon bytes. */
-const displayColoredBytes = (
-  raw: Uint8Array,
-  fields: [number, number, string][],
-  bytesPerLine = 32
-) => {
+const displayColoredBytes = (raw: Uint8Array, fields: [number, number, string][], bytesPerLine = 32) => {
   let pos = 0
   while (pos < raw.length) {
     let lineEnd = Math.min(pos + bytesPerLine, raw.length)
@@ -106,16 +102,9 @@ const displayColoredBytes = (
         lineEnd = s
         break
       }
-    if (lineEnd === pos)
-      lineEnd = Math.min(
-        ...fields.filter(([s, e]) => s <= pos && pos < e).map(([, e]) => e),
-        pos + 1,
-        raw.length
-      )
+    if (lineEnd === pos) lineEnd = Math.min(...fields.filter(([s, e]) => s <= pos && pos < e).map(([, e]) => e), pos + 1, raw.length)
     const lineBytes = raw.slice(pos, lineEnd)
-    const fieldForByte = Array.from(lineBytes, (_, j) =>
-      fields.find(([s, e]) => pos + j >= s && pos + j < e)
-    )
+    const fieldForByte = Array.from(lineBytes, (_, j) => fields.find(([s, e]) => pos + j >= s && pos + j < e))
     // Label line
     let labelLine = ''
     for (let i = 0; i < lineBytes.length; ) {
@@ -141,11 +130,7 @@ const displayColoredBytes = (
       const field = fieldForByte[j]
       const color = field ? colorFor(fields.indexOf(field)) : ''
       artLine += (field ? `${color}──${RESET}` : '  ') + (j < lineBytes.length - 1 ? ' ' : '')
-      hexLine +=
-        (j ? ' ' : '') +
-        (field
-          ? `${color}${lineBytes[j]!.toString(16).padStart(2, '0')}${RESET}`
-          : lineBytes[j]!.toString(16).padStart(2, '0'))
+      hexLine += (j ? ' ' : '') + (field ? `${color}${lineBytes[j]!.toString(16).padStart(2, '0')}${RESET}` : lineBytes[j]!.toString(16).padStart(2, '0'))
     }
     if (labelLine.trim()) console.log(`\n      ${labelLine}`)
     if (artLine.trim()) console.log(`      ${artLine}`)
@@ -167,10 +152,7 @@ const displayPartyPokemonGraph = (party: readonly PokemonBase[]) => {
 /**
  * Parse and display save data from either file or WebSocket
  */
-async function parseAndDisplay(
-  input: string | MgbaWebSocketClient,
-  options: { debug: boolean; graph: boolean; skipDisplay?: boolean }
-): Promise<SaveData> {
+async function parseAndDisplay(input: string | MgbaWebSocketClient, options: { debug: boolean; graph: boolean; skipDisplay?: boolean }): Promise<SaveData> {
   const parser = new PokemonSaveParser()
   let result: SaveData
   let mode: string
@@ -223,10 +205,7 @@ function clearScreen() {
 /**
  * Watch mode - continuously monitor and update display
  */
-async function watchMode(
-  input: string | MgbaWebSocketClient,
-  options: { debug: boolean; graph: boolean; interval: number }
-) {
+async function watchMode(input: string | MgbaWebSocketClient, options: { debug: boolean; graph: boolean; interval: number }) {
   if (typeof input === 'string') {
     // File-based watch mode - use polling since files don't support push notifications
     return watchModeFile(input, options)
@@ -239,10 +218,7 @@ async function watchMode(
 /**
  * File-based watch mode - polling approach for file changes
  */
-async function watchModeFile(
-  filePath: string,
-  options: { debug: boolean; graph: boolean; interval: number }
-) {
+async function watchModeFile(filePath: string, options: { debug: boolean; graph: boolean; interval: number }) {
   console.log(`🔄 Starting file watch mode (updating every ${options.interval}ms)...`)
   console.log('Press Ctrl+C to exit')
 
@@ -288,10 +264,7 @@ async function watchModeFile(
 /**
  * WebSocket-based watch mode - event-driven approach using parser watch API
  */
-async function watchModeWebSocket(
-  client: MgbaWebSocketClient,
-  options: { debug: boolean; graph: boolean; interval: number }
-) {
+async function watchModeWebSocket(client: MgbaWebSocketClient, options: { debug: boolean; graph: boolean; interval: number }) {
   console.log('🔄 Starting event-driven watch mode...')
   console.log('Press Ctrl+C to exit')
 
@@ -371,9 +344,7 @@ async function main() {
         .map(b => parseInt(b, 16))
     )
     const str = bytesToGbaString(bytes)
-    console.log(
-      `String for bytes [${[...bytes].map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`
-    )
+    console.log(`String for bytes [${[...bytes].map(b => b.toString(16).padStart(2, '0')).join(' ')}]:`)
     console.log(str)
     process.exit(0)
   }
@@ -397,10 +368,7 @@ async function main() {
         process.exit(0)
       })
     } catch (error) {
-      console.error(
-        '❌ Failed to connect to mGBA WebSocket:',
-        error instanceof Error ? error.message : 'Unknown error'
-      )
+      console.error('❌ Failed to connect to mGBA WebSocket:', error instanceof Error ? error.message : 'Unknown error')
       process.exit(1)
     }
   } else {
@@ -453,10 +421,7 @@ WebSocket Mode:
       }
     }
   } catch (err) {
-    console.error(
-      '❌ Failed to parse save data:',
-      err instanceof Error ? err.message : 'Unknown error'
-    )
+    console.error('❌ Failed to parse save data:', err instanceof Error ? err.message : 'Unknown error')
 
     // Cleanup WebSocket if used
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

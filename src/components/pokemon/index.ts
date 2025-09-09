@@ -1,4 +1,3 @@
-export { CompactPokemonSelector } from './CompactPokemonSelector'
 export { PokemonTraitsSection } from './PokemonTraitsSection'
 export { PokemonHeader } from './PokemonHeader'
 export { PokemonMoveButton } from './PokemonMoveButton'
