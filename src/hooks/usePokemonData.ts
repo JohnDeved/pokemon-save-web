@@ -1,16 +1,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { PokeAPI } from 'pokeapi-types/dist/index'
 import { useCallback, useEffect } from 'react'
 import type { z } from 'zod'
 import { buildPartyListFromSaveData, usePokemonStore, useSaveFileStore } from '../stores'
 import {
   DamageClassNameSchema,
-  type Ability as UiAbility,
   type MoveWithDetails,
   type PokemonType,
   PokemonTypeSchema,
   type UIPokemonData,
+  type Ability as UiAbility,
 } from '../types'
-import type { PokeAPI } from 'pokeapi-types/dist/index'
 
 // --- Constants ---
 const UNKNOWN_TYPE: PokemonType = 'UNKNOWN'
@@ -232,7 +232,14 @@ export const usePokemonData = () => {
       // Clear cached pokemon details to avoid stale data after loading a new file
       queryClient.removeQueries({ queryKey: ['pokemon', 'details'] })
     }
-  }, [saveData, setPartyList, resetPokemonData, queryClient, lastUpdateTransient])
+  }, [
+    saveData,
+    setPartyList,
+    resetPokemonData,
+    queryClient,
+    lastUpdateTransient,
+    setActivePokemonId,
+  ])
 
   // Get the current active Pokémon
   const activePokemon = partyList.find((p: UIPokemonData) => p.id === activePokemonId)

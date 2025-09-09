@@ -141,7 +141,8 @@ export function useCursorFollow({
   const onEnter = useCallback(
     (e: Event) => {
       // If pointerenter contains coordinates (PointerEvent), snap immediately
-      if ((e as PointerEvent).clientX != null) updateFromEvent(e as PointerEvent)
+      if ((e as PointerEvent).clientX !== null && (e as PointerEvent).clientX !== undefined)
+        updateFromEvent(e as PointerEvent)
       setHovered(true)
     },
     [updateFromEvent]
@@ -156,7 +157,7 @@ export function useCursorFollow({
     const t = flashTargetRef?.current
     if (t) {
       t.classList.add(...flashClass.split(' '))
-      window.setTimeout(() => t.classList.remove(...flashClass.split(' ')), flashDurationMs)
+      globalThis.setTimeout(() => t.classList.remove(...flashClass.split(' ')), flashDurationMs)
     }
   }, [ack, once, onAcknowledge, flashClass, flashDurationMs, flashTargetRef])
 
@@ -164,17 +165,24 @@ export function useCursorFollow({
     const root = anchorRef.current
     if (!root || !enabled) return
     // Use pointer events when available for better device support
-    const moveType = 'onpointermove' in window ? 'pointermove' : 'mousemove'
-    const enterType = 'onpointerenter' in window ? 'pointerenter' : 'mouseenter'
-    root.addEventListener(moveType as any, onMove as any)
-    root.addEventListener(enterType as any, onEnter as any)
-    root.addEventListener('mouseleave', onLeave)
-    root.addEventListener('wheel', onWheel, { passive: true })
+    const moveType = 'onpointermove' in globalThis ? 'pointermove' : 'mousemove'
+    const enterType = 'onpointerenter' in globalThis ? 'pointerenter' : 'mouseenter'
+
+    // Strongly-typed listeners
+    const moveListener = onMove as (e: Event) => void
+    const enterListener = onEnter as (e: Event) => void
+    const leaveListener = onLeave as (e: Event) => void
+    const wheelListener = onWheel as (e: Event) => void
+
+    root.addEventListener(moveType, moveListener)
+    root.addEventListener(enterType, enterListener)
+    root.addEventListener('mouseleave', leaveListener)
+    root.addEventListener('wheel', wheelListener, { passive: true })
     return () => {
-      root.removeEventListener(moveType as any, onMove as any)
-      root.removeEventListener(enterType as any, onEnter as any)
-      root.removeEventListener('mouseleave', onLeave)
-      root.removeEventListener('wheel', onWheel)
+      root.removeEventListener(moveType, moveListener)
+      root.removeEventListener(enterType, enterListener)
+      root.removeEventListener('mouseleave', leaveListener)
+      root.removeEventListener('wheel', wheelListener)
     }
   }, [anchorRef, enabled, onEnter, onLeave, onMove, onWheel])
 
