@@ -60,8 +60,8 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({
         {/* Hint rendered outside this block to ensure correct absolute positioning */}
       </div>
       <CursorFollowHint
-        anchorRef={rootRef as React.RefObject<HTMLElement | null>}
-        targetRef={scrollRef as React.RefObject<HTMLElement | null>}
+        anchorRef={rootRef}
+        targetRef={scrollRef}
         enabled={isExpanded}
       />
       <AnimatePresence>

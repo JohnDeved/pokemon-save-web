@@ -124,8 +124,8 @@ export function useSmoothWheelScroll(
       if (!willScroll) return // let the page handle it
 
       // We will handle this scroll fully to keep control and avoid page nudge
-      e.preventDefault()
-      e.stopPropagation()
+      // e.preventDefault()
+      // e.stopPropagation()
 
       // For pixel deltas: if the jump is small (trackpad-like), apply directly
       // for tight control. If the jump is large (typical mouse wheel on Windows),

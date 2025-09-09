@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useMotionValue } from 'framer-motion'
 import { Mouse as MouseIcon } from 'lucide-react'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 interface CursorFollowHintProps {
   anchorRef: React.RefObject<HTMLElement | null>
@@ -20,7 +20,7 @@ interface CursorFollowHintProps {
 
 /**
  * Lightweight cursor-follow hint that renders inside the given anchor element.
- * - Positions above the cursor with configurable offsets.
+ * - Positions above the cursor (centered) with configurable offsets.
  * - Pointer-events are disabled so it never intercepts input.
  */
 export function CursorFollowHint({
@@ -59,10 +59,10 @@ export function CursorFollowHint({
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.96 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
         >
-          {/* This wrapper centers horizontally and sits above the cursor */}
-          <div className="transform -translate-x-1/2 -translate-y-full">
+          {/* Center horizontally and sit above the cursor */}
+          <div className="-translate-x-1/2 -translate-y-full">
             <div
               className={`bg-popover/90 shadow-sm border border-border/60 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] whitespace-nowrap ${contentClassName ?? ''}`}
             >
@@ -73,7 +73,6 @@ export function CursorFollowHint({
         </motion.div>
       )}
     </AnimatePresence>
-
   )
 }
 
@@ -104,7 +103,14 @@ export function useCursorFollow({
 
   const [hovered, setHovered] = useState(false)
   const [ack, setAck] = useState(false)
-  const [overflowOk, setOverflowOk] = useState(!requireOverflow)
+  // Start false when overflow is required; set true only after confirmed.
+  const [overflowOk, setOverflowOk] = useState<boolean>(!requireOverflow)
+
+  // Keep latest ack in a ref to avoid re-subscribing listeners.
+  const ackRef = useRef(ack)
+  useEffect(() => {
+    ackRef.current = ack
+  }, [ack])
 
   const updateFromEvent = useCallback(
     (e: PointerEvent) => {
@@ -117,6 +123,23 @@ export function useCursorFollow({
     [anchorRef, offsetX, offsetY, x, y]
   )
 
+  // Compute/refresh overflow status
+  const checkOverflow = useCallback(() => {
+    if (!requireOverflow) {
+      setOverflowOk(true)
+      return true
+    }
+    const el = targetRef?.current
+    if (!el) {
+      setOverflowOk(false)
+      return false
+    }
+    const hasOverflow = el.scrollHeight - el.clientHeight > 1 // epsilon against subpixel
+    setOverflowOk(hasOverflow)
+    return hasOverflow
+  }, [requireOverflow, targetRef])
+
+  // Pointer tracking within the anchor
   useEffect(() => {
     const root = anchorRef.current
     if (!root || !enabled) return
@@ -128,10 +151,15 @@ export function useCursorFollow({
     const onEnter = (e: PointerEvent) => {
       updateFromEvent(e)
       setHovered(true)
+      // Re-check overflow on every enter to avoid stale state
+      checkOverflow()
     }
     const onLeave = () => setHovered(false)
-    const onWheel = () => {
-      if (once && !ack) {
+
+    // Acknowledge with wheel only when not requiring target overflow or no target present
+    const onWheel: EventListener = () => {
+      const shouldAckViaWheel = !requireOverflow || !targetRef?.current
+      if (once && !ackRef.current && shouldAckViaWheel) {
         setAck(true)
         onAcknowledge?.()
       }
@@ -146,12 +174,15 @@ export function useCursorFollow({
       root.removeEventListener('pointermove', onMove)
       root.removeEventListener('pointerenter', onEnter)
       root.removeEventListener('pointerleave', onLeave)
-      root.removeEventListener('wheel', onWheel as EventListener)
+      root.removeEventListener('wheel', onWheel)
     }
-  }, [anchorRef, enabled, hovered, updateFromEvent, once, ack, onAcknowledge])
+  }, [anchorRef, enabled, hovered, updateFromEvent, once, onAcknowledge, requireOverflow, targetRef, checkOverflow])
 
+  // Observe overflow changes
   useEffect(() => {
-    // If overflow isn't required, we're always okay.
+    if (!enabled) return
+
+    // If overflow isn't required, allow and skip wiring observers.
     if (!requireOverflow) {
       setOverflowOk(true)
       return
@@ -159,26 +190,52 @@ export function useCursorFollow({
 
     const el = targetRef?.current
     if (!el) {
-      // No target to check yet; allow visibility until it mounts.
-      setOverflowOk(true)
+      setOverflowOk(false)
       return
     }
 
-    const check = () => {
-      // Small epsilon to avoid off-by-one due to subpixel layout.
-      setOverflowOk(el.scrollHeight - el.clientHeight > 1)
-    }
+    const handle = () => checkOverflow()
 
-    check()
-    const ro = new ResizeObserver(check)
-    ro.observe(el)
-    window.addEventListener('resize', check)
+    // Initial measurement
+    handle()
+
+    const ro = 'ResizeObserver' in window ? new ResizeObserver(handle) : null
+    ro?.observe(el)
+
+    const mo = new MutationObserver(handle)
+    mo.observe(el, { childList: true, subtree: true, characterData: true, attributes: true })
+
+    window.addEventListener('resize', handle)
 
     return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', check)
+      ro?.disconnect()
+      mo.disconnect()
+      window.removeEventListener('resize', handle)
     }
-  }, [targetRef, requireOverflow])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, requireOverflow, targetRef, checkOverflow])
+
+  // Acknowledge when the actual scrollable target scrolls (only when required)
+  useEffect(() => {
+    if (!enabled || !requireOverflow) return
+    const el = targetRef?.current
+    if (!el) return
+
+    const onScroll: EventListener = () => {
+      if (once && !ackRef.current) {
+        setAck(true)
+        onAcknowledge?.()
+      }
+    }
+
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [enabled, requireOverflow, targetRef, once, onAcknowledge])
+
+  // Reset hover when disabled toggles off
+  useEffect(() => {
+    if (!enabled) setHovered(false)
+  }, [enabled])
 
   const visible = enabled && hovered && !ack && overflowOk
   const style = { x, y }
