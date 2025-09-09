@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
 import { ScrollableContainer } from '@/components/common'
-import { calculateTotalStatsDirect, statAbbreviations } from '@/lib/parser/core/utils'
+import { statAbbreviations } from '@/lib/parser/core/utils'
+import { computeTotalsWithHeldItem } from '@/lib/battle'
 import { usePokemonStore, useSaveFileStore } from '@/stores'
 import { useMegaPreview } from '@/hooks'
 
@@ -22,6 +23,8 @@ export const BoostSandboxTab: React.FC = () => {
   const baseStats = pokemon?.details?.baseStats
   const level = pokemon?.data.level ?? 1
   const nature = pokemon?.data.nature ?? 'Serious'
+  const itemIdName = pokemon?.data.itemIdName
+  const speciesIdName = pokemon?.data.nameId
   const ivs = useMemo(() => pokemon?.data.ivs ?? [0, 0, 0, 0, 0, 0], [pokemon?.data?.ivs])
   const evs = useMemo(() => pokemon?.data.evs ?? [0, 0, 0, 0, 0, 0], [pokemon?.data?.evs])
   const displayBaseStats = useMemo(() => {
@@ -30,8 +33,18 @@ export const BoostSandboxTab: React.FC = () => {
   }, [megaPreviewEnabled, megaBaseStats, baseStats])
   const baseTotals = useMemo(() => {
     if (!displayBaseStats) return pokemon?.data?.stats ?? [0, 0, 0, 0, 0, 0]
-    return calculateTotalStatsDirect(displayBaseStats, ivs, evs, level, nature)
-  }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data?.stats])
+    return (
+      computeTotalsWithHeldItem(
+        displayBaseStats,
+        ivs,
+        evs,
+        level,
+        nature,
+        itemIdName,
+        speciesIdName
+      ) ?? (pokemon?.data?.stats as number[] | undefined) ?? [0, 0, 0, 0, 0, 0]
+    )
+  }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data?.stats, itemIdName, speciesIdName])
 
   const [stages, setStages] = useState<number[]>([0, 0, 0, 0, 0, 0])
   useEffect(() => {
