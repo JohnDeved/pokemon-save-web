@@ -1,9 +1,5 @@
-import {
-  calculateTotalStatsDirect,
-  MAX_EV,
-  MAX_IV,
-  statAbbreviations,
-} from '@/lib/parser/core/utils'
+import { calculateTotalStatsDirect, MAX_EV, MAX_IV, statAbbreviations } from '@/lib/parser/core/utils'
+import { applyHeldItemStatBoosts, computeTotalsWithHeldItem } from '@/lib/battle'
 import { usePokemonStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { Slider } from '@/components/ui/slider'
@@ -47,6 +43,8 @@ export const PokemonStatDisplay: React.FC = () => {
   const natureModifier = pokemon?.data.natureModifiersArray
   const level = pokemon?.data.level ?? 1
   const nature = pokemon?.data.nature ?? 'Serious'
+  const itemIdName = pokemon?.data.itemIdName
+  const speciesIdName = pokemon?.data.nameId
 
   // Track which IV is being hovered for preview
   const [hoveredIvIndex, setHoveredIvIndex] = useState<number | null>(null)
@@ -71,10 +69,19 @@ export const PokemonStatDisplay: React.FC = () => {
   }, [megaPreviewEnabled, megaBaseStats, baseStats])
 
   // Calculate full totals for the current display base stats
+
   const displayTotals = useMemo(() => {
-    if (!displayBaseStats || !ivs || !evs) return pokemon?.data.stats
-    return calculateTotalStatsDirect(displayBaseStats, ivs, evs, level, nature)
-  }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data.stats])
+    const totals = computeTotalsWithHeldItem(
+      displayBaseStats,
+      ivs,
+      evs,
+      level,
+      nature,
+      itemIdName,
+      speciesIdName
+    )
+    return totals ?? pokemon?.data.stats
+  }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data.stats, itemIdName, speciesIdName])
 
   // Calculate what the total stat would be with max IV (31)
   function calculatePreviewStat(statIndex: number, currentIv: number) {
@@ -90,7 +97,8 @@ export const PokemonStatDisplay: React.FC = () => {
       pokemon.data.level,
       pokemon.data.nature
     )
-    return newStats[statIndex]
+  const boosted = applyHeldItemStatBoosts(newStats, itemIdName, speciesIdName)
+    return boosted[statIndex]
   }
 
   return (

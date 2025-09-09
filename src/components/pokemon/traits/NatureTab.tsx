@@ -2,12 +2,8 @@ import { useEffect, useState } from 'react'
 import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
 import { ScrollableContainer, Skeleton } from '@/components/common'
 import { PokemonNatureCombobox } from '@/components/pokemon/PokemonNatureCombobox'
-import {
-  calculateTotalStatsDirect,
-  findNatureForEffects,
-  getStatAbbr,
-  statAbbreviations,
-} from '@/lib/parser/core/utils'
+import { findNatureForEffects, getStatAbbr, statAbbreviations } from '@/lib/parser/core/utils'
+import { computeTotalsWithHeldItem } from '@/lib/battle'
 import { usePokemonStore, useSaveFileStore } from '@/stores'
 
 export const NatureTab: React.FC = () => {
@@ -47,18 +43,23 @@ export const NatureTab: React.FC = () => {
   const ivs = pokemon?.data?.ivs
   const evs = pokemon?.data?.evs
   const level = pokemon?.data?.level ?? 100
-  const currentTotals = pokemon?.data?.stats ?? []
+  const currentTotalsRaw = pokemon?.data?.stats ?? []
+  const itemIdName = pokemon?.data?.itemIdName
+  const speciesIdName = pokemon?.data?.nameId
 
   // Neutral totals (no nature effects). Computed directly for React Compiler friendliness.
-  const neutralTotals =
-    baseStats && ivs && evs
-      ? calculateTotalStatsDirect(baseStats, ivs, evs, level, 'Serious')
-      : null
+  const neutralTotals = baseStats && ivs && evs
+    ? computeTotalsWithHeldItem(baseStats, ivs, evs, level, 'Serious', itemIdName, speciesIdName)
+    : null
+
+  const currentTotals = baseStats && ivs && evs
+    ? computeTotalsWithHeldItem(baseStats, ivs, evs, level, natureName, itemIdName, speciesIdName)
+    : currentTotalsRaw
 
   // Current raised/lowered deltas from nature
   let raisedDelta = 0
   let loweredDelta = 0
-  if (natureMods && neutralTotals) {
+  if (natureMods && neutralTotals && currentTotals) {
     const inc = incIndex
     const dec = decIndex
     if (inc > 0) {
@@ -78,8 +79,16 @@ export const NatureTab: React.FC = () => {
     const dec = chooseMode === 'lower' ? index : decCurrent
     if (inc === dec) return 0
     const nextNature = findNatureForEffects(inc, dec)
-    const newTotals = calculateTotalStatsDirect(baseStats, ivs, evs, level, nextNature)
-    const delta = (newTotals[index] ?? 0) - (currentTotals[index] ?? 0)
+  const newTotals = computeTotalsWithHeldItem(
+      baseStats,
+      ivs,
+      evs,
+      level,
+      nextNature,
+      itemIdName,
+      speciesIdName
+    )
+  const delta = ((newTotals?.[index] ?? 0) as number) - (currentTotals?.[index] ?? 0)
     return delta
   }
 
