@@ -28,8 +28,8 @@ export function CursorFollowHint({
   targetRef,
   enabled = true,
   label = 'Scroll',
-  offsetX = 12,
-  offsetY = -36,
+  offsetX = 0,
+  offsetY = -10,
   className,
   contentClassName,
   icon,
@@ -55,21 +55,25 @@ export function CursorFollowHint({
       {visible && (
         <motion.div
           className={`pointer-events-none absolute z-[60] text-muted-foreground/90 geist-font ${className ?? ''}`}
-          style={{ ...style, left: 0, top: 0 }}
+          style={{ left: 0, top: 0, x: style.x, y: style.y }} // motion translate to cursor
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.96 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
         >
-          <div
-            className={`bg-popover/90 shadow-sm border border-border/60 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] whitespace-nowrap ${contentClassName ?? ''}`}
-          >
-            {IconEl}
-            {label}
+          {/* This wrapper centers horizontally and sits above the cursor */}
+          <div className="transform -translate-x-1/2 -translate-y-full">
+            <div
+              className={`bg-popover/90 shadow-sm border border-border/60 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] whitespace-nowrap ${contentClassName ?? ''}`}
+            >
+              {IconEl}
+              {label}
+            </div>
           </div>
         </motion.div>
       )}
     </AnimatePresence>
+
   )
 }
 
