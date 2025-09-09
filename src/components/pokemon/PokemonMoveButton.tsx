@@ -5,7 +5,7 @@ import { CursorFollowHint } from '@/components/common/CursorFollowHint'
 import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
 import { useSmoothWheelScroll } from '@/hooks/useSmoothWheelScroll'
 import { cn } from '@/lib/utils'
-import type { MoveWithDetails } from '@/types'
+import type { MoveWithDetails, PokemonType } from '@/types'
 
 const damageClassIcons: Record<'physical' | 'special' | 'status', string> = {
   physical: '/damage-type-icons/physical.png',
@@ -16,6 +16,7 @@ const damageClassIcons: Record<'physical' | 'special' | 'status', string> = {
 // Props for PokemonMoveButton
 export interface MoveButtonProps {
   move: MoveWithDetails
+  pokemonTypes?: PokemonType[]
   isExpanded: boolean
   opensUpward: boolean
   onHoverStart?: () => void
@@ -26,6 +27,7 @@ export interface MoveButtonProps {
 // Component for a single move in the list
 export const PokemonMoveButton: React.FC<MoveButtonProps> = ({
   move,
+  pokemonTypes = [],
   isExpanded,
   opensUpward,
   onHoverStart,
@@ -37,6 +39,11 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({
   const rootRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { onWheel } = useSmoothWheelScroll(scrollRef, { enabled: isExpanded })
+
+  // Calculate STAB (Same Type Attack Bonus)
+  const hasStab = pokemonTypes.some(pokemonType => pokemonType === move.type)
+  const stabMultiplier = hasStab ? 1.5 : 1
+  const adjustedPower = move.power ? Math.floor(move.power * stabMultiplier) : null
 
   return (
     <div ref={rootRef} className="relative" onWheel={onWheel}>
@@ -88,7 +95,17 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({
                         <img src={damageClassIcons[dc]} alt={dc} className="w-3 h-3" />
                       ) : null
                     })()}
-                    {move.power ?? '—'}
+                    {move.power ? (
+                      hasStab ? (
+                        <span>
+                          {move.power} → <span className="font-semibold text-green-400">{adjustedPower}</span>
+                        </span>
+                      ) : (
+                        move.power
+                      )
+                    ) : (
+                      '—'
+                    )}
                   </div>
                 </div>
               </div>

@@ -21,6 +21,7 @@ export const PokemonMovesSection: React.FC = () => {
   const activePokemonId = pokemon?.id ?? -1
   const isLoading = useActivePokemonLoading()
   const moves = pokemon?.details?.moves ?? []
+  const pokemonTypes = pokemon?.details?.types ?? []
 
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
   useEffect(() => {
@@ -59,6 +60,7 @@ export const PokemonMovesSection: React.FC = () => {
               ) : (
                 <PokemonMoveButton
                   move={move}
+                  pokemonTypes={pokemonTypes}
                   isExpanded={expandedMoveIndex === i}
                   opensUpward={i < totalSlots / 2}
                   onHoverStart={() => setExpandedMoveIndex(i)}
