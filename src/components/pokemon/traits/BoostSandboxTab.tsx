@@ -33,17 +33,7 @@ export const BoostSandboxTab: React.FC = () => {
   }, [megaPreviewEnabled, megaBaseStats, baseStats])
   const baseTotals = useMemo(() => {
     if (!displayBaseStats) return pokemon?.data?.stats ?? [0, 0, 0, 0, 0, 0]
-    return (
-      computeTotalsWithHeldItem(
-        displayBaseStats,
-        ivs,
-        evs,
-        level,
-        nature,
-        itemIdName,
-        speciesIdName
-      ) ?? (pokemon?.data?.stats as number[] | undefined) ?? [0, 0, 0, 0, 0, 0]
-    )
+    return computeTotalsWithHeldItem(displayBaseStats, ivs, evs, level, nature, itemIdName, speciesIdName) ?? (pokemon?.data?.stats as number[] | undefined) ?? [0, 0, 0, 0, 0, 0]
   }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data?.stats, itemIdName, speciesIdName])
 
   const [stages, setStages] = useState<number[]>([0, 0, 0, 0, 0, 0])

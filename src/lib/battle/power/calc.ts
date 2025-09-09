@@ -23,12 +23,7 @@ function getStabMultiplier(hasStab: boolean, abilityName?: string): number {
   return name === 'adaptability' ? 2 : 1.5
 }
 
-function getAbilityMultiplier(
-  moveType: PokemonType,
-  abilityName: string | undefined,
-  currentHp?: number,
-  maxHp?: number
-): number {
+function getAbilityMultiplier(moveType: PokemonType, abilityName: string | undefined, currentHp?: number, maxHp?: number): number {
   const name = (abilityName ?? '').toLowerCase()
   if (!name) return 1
 
