@@ -1,8 +1,8 @@
-import { FaHashtag, FaWandMagicSparkles } from 'react-icons/fa6'
-import { IoSparkles } from 'react-icons/io5'
+import { FaHashtag } from 'react-icons/fa6'
+import { useRef } from 'react'
+import { MousePointerClick } from 'lucide-react'
 import { Skeleton } from '@/components/common'
 import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useActivePokemonLoading, useMegaPreview } from '@/hooks'
 import { usePokemonStore } from '@/stores'
 import {
@@ -13,11 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select'
+import { Button } from '../ui/button'
+import { CursorFollowHint } from '@/components/common/CursorFollowHint'
 // Nature editing moved to Traits section's Nature tab
 
 export const PokemonHeader: React.FC = () => {
   const isLoading = useActivePokemonLoading()
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
+  const megaAnchorRef = useRef<HTMLElement | null>(null)
   const {
     supportsMega,
     hasMegaForms,
@@ -34,65 +37,72 @@ export const PokemonHeader: React.FC = () => {
       <div className="p-3 border-b border-border">
         {/* Row 1: Name (+ Mega controls) and Dex ID */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-h-[28px]">
             <h2 className="font-pixel text-lg sm:text-xl text-foreground leading-none flex items-center gap-2">
               {pokemon?.data.nickname}
-              {pokemon?.data.isShiny && (
-                <Tooltip disableHoverableContent>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <IoSparkles className="text-yellow-300/80" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Shiny</TooltipContent>
-                </Tooltip>
-              )}
-              {pokemon?.data.isRadiant && (
-                <Tooltip disableHoverableContent>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <FaWandMagicSparkles className="text-purple-400/80" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Radiant</TooltipContent>
-                </Tooltip>
-              )}
+              {/* Shiny/Radiant icons temporarily disabled */}
             </h2>
-            {supportsMega && hasMegaForms && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className={`cursor-pointer px-1.5 py-1.5 rounded-sm border text-[10px] leading-none ${
-                    megaPreviewEnabled
-                      ? 'dark:bg-cyan-900/50 bg-cyan-100 dark:border-cyan-800 border-cyan-300 dark:text-cyan-200 text-cyan-800'
-                      : 'bg-background/30 border-input text-muted-foreground'
-                  }`}
-                  onClick={() => setMegaPreviewEnabled(!megaPreviewEnabled)}
-                  disabled={statsLoading}
-                  title={megaPreviewEnabled ? 'Disable Mega Preview' : 'Enable Mega Preview'}
-                >
-                  {megaPreviewEnabled ? 'Mega: ON' : 'Mega: OFF'}
-                </button>
-                {forms && forms.length > 1 && (
-                  <Select
-                    value={selectedForm}
-                    onValueChange={val => setSelectedForm(val)}
-                    disabled={!megaPreviewEnabled || statsLoading}
+            {supportsMega && (
+              <span ref={megaAnchorRef} className="relative inline-flex w-7 h-7 overflow-visible">
+                {hasMegaForms ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full size-7 p-0"
+                    aria-pressed={megaPreviewEnabled}
+                    aria-label={
+                      megaPreviewEnabled ? 'Disable Mega Preview' : 'Enable Mega Preview'
+                    }
+                    onClick={() => !statsLoading && setMegaPreviewEnabled(!megaPreviewEnabled)}
+                    disabled={statsLoading}
                   >
-                    <SelectTrigger className="h-7 w-[150px] text-xs">
-                      <SelectValue placeholder="Choose Mega Form" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {forms.map((f: { value: string; label: string }) => (
-                          <SelectItem key={f.value} value={f.value} className="text-xs">
-                            {f.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                    <img
+                      src="/mega.svg"
+                      alt="Mega Evolution"
+                      className={
+                        `w-4 h-4 transition-all ${
+                          megaPreviewEnabled
+                            ? ''
+                            : 'filter grayscale contrast-75 brightness-90 opacity-70'
+                        }`
+                      }
+                      draggable={false}
+                    />
+                  </Button>
+                ) : (
+                  <span className="inline-block size-7 rounded-full opacity-0" aria-hidden />
                 )}
+                <CursorFollowHint
+                  anchorRef={megaAnchorRef}
+                  enabled={!statsLoading && hasMegaForms}
+                  once={false}
+                  requireOverflow={false}
+                  label={megaPreviewEnabled ? 'Mega Preview: On' : 'Mega Preview: Off'}
+                  icon={<MousePointerClick className="w-3.5 h-3.5" strokeWidth={2} />}
+                />
+              </span>
+            )}
+            {supportsMega && hasMegaForms && forms && forms.length > 1 && (
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedForm}
+                  onValueChange={val => setSelectedForm(val)}
+                  disabled={!megaPreviewEnabled || statsLoading}
+                >
+                  <SelectTrigger className="h-7 w-[150px] text-xs">
+                    <SelectValue placeholder="Choose Mega Form" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {forms.map((f: { value: string; label: string }) => (
+                        <SelectItem key={f.value} value={f.value} className="text-xs">
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>

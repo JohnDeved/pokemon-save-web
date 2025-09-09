@@ -10,9 +10,12 @@ interface CursorFollowHintProps {
   offsetX?: number
   offsetY?: number
   className?: string
+  contentClassName?: string
   icon?: React.ReactNode
   once?: boolean
   onAcknowledge?: () => void
+  /** If true, only show when targetRef is scrollable; otherwise ignore overflow. */
+  requireOverflow?: boolean
 }
 
 /**
@@ -29,9 +32,11 @@ export function CursorFollowHint({
   offsetX = 0,
   offsetY = -24,
   className,
+  contentClassName = 'geist-font text-[11px]',
   icon,
   once = true,
   onAcknowledge,
+  requireOverflow = true,
 }: CursorFollowHintProps) {
   const { visible, style } = useCursorFollow({
     anchorRef,
@@ -41,6 +46,7 @@ export function CursorFollowHint({
     offsetY,
     once,
     onAcknowledge,
+    requireOverflow,
   })
 
   const Icon = useMemo(() => icon ?? <MouseIcon className="w-3.5 h-3.5" strokeWidth={2} />, [icon])
@@ -49,7 +55,7 @@ export function CursorFollowHint({
     <AnimatePresence>
       {visible && (
         <motion.div
-          className={['pointer-events-none absolute z-[60] text-muted-foreground/90', className]
+          className={['pointer-events-none absolute z-[60] text-muted-foreground/90 geist-font', className]
             .filter(Boolean)
             .join(' ')}
           style={{ ...style, left: 0, top: 0 }}
@@ -63,7 +69,12 @@ export function CursorFollowHint({
             animate={{ scale: 1 }}
             exit={{ scale: 0.92 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="bg-popover/90 shadow-sm border border-border/60 rounded px-1.5 py-0.5 flex items-center gap-1 text-[10px]"
+            className={[
+              'bg-popover/90 shadow-sm border border-border/60 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] whitespace-nowrap',
+              contentClassName,
+            ]
+              .filter(Boolean)
+              .join(' ')}
           >
             {Icon}
             {label}
@@ -83,6 +94,7 @@ export interface UseCursorFollowOptions {
   offsetY?: number
   once?: boolean
   onAcknowledge?: () => void
+  requireOverflow?: boolean
 }
 
 export function useCursorFollow({
@@ -93,12 +105,14 @@ export function useCursorFollow({
   offsetY = -24,
   once = true,
   onAcknowledge,
+  requireOverflow = true,
 }: UseCursorFollowOptions) {
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const [hovered, setHovered] = useState(false)
   const [ack, setAck] = useState(false)
   const [hasOverflow, setHasOverflow] = useState<boolean>(false)
+  const [measured, setMeasured] = useState<boolean>(false)
   const [hasPosition, setHasPosition] = useState(false)
 
   const updateFromEvent = useCallback(
@@ -169,9 +183,11 @@ export function useCursorFollow({
     const el = targetRef?.current
     if (!el) {
       setHasOverflow(false)
+      setMeasured(false)
       return
     }
     setHasOverflow(el.scrollHeight - el.clientHeight > 1)
+    setMeasured(true)
   }, [targetRef])
 
   useEffect(() => {
@@ -202,7 +218,8 @@ export function useCursorFollow({
     }
   }, [enabled, computeOverflow, targetRef])
 
-  const visible = enabled && hovered && !ack && hasOverflow && hasPosition
+  const overflowOk = !requireOverflow || (!targetRef?.current ? true : measured ? hasOverflow : true)
+  const visible = enabled && hovered && !ack && overflowOk && hasPosition
   // Use raw MotionValues for immediate positioning; no spring to avoid slide-in.
   const style = { x, y }
 
