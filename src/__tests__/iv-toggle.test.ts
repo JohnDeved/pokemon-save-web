@@ -4,7 +4,7 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { usePokemonStore } from '@/stores/usePokemonStore'
 import type { UIPokemonData } from '@/types'
-import { PokemonBase } from '@/lib/parser/core/PokemonBase'
+import type { PokemonBase } from '@/lib/parser/core/PokemonBase'
 
 describe('IV Toggle Store Behavior', () => {
   beforeEach(() => {
@@ -21,20 +21,20 @@ describe('IV Toggle Store Behavior', () => {
       data: {
         ivs: [15, 20, 25, 10, 5, 30], // HP=15, others various
         evs: [0, 0, 0, 0, 0, 0],
-        setIvByIndex: function(index: number, value: number) {
+        setIvByIndex: function (index: number, value: number) {
           this.ivs[index] = value
         },
-        setStats: function() {},
+        setStats: function () {},
       } as any as PokemonBase,
       details: {
         baseStats: [45, 49, 49, 65, 65, 45], // Treecko base stats
-      } as any
+      } as any,
     }
 
     // Set up the store with our mock Pokemon
     usePokemonStore.setState({
       partyList: [mockPokemonData],
-      activePokemonId: 1
+      activePokemonId: 1,
     })
 
     // Get the setIvIndex function
@@ -57,20 +57,20 @@ describe('IV Toggle Store Behavior', () => {
       data: {
         ivs: [31, 20, 25, 10, 5, 30], // HP=31, others various
         evs: [0, 0, 0, 0, 0, 0],
-        setIvByIndex: function(index: number, value: number) {
+        setIvByIndex: function (index: number, value: number) {
           this.ivs[index] = value
         },
-        setStats: function() {},
+        setStats: function () {},
       } as any as PokemonBase,
       details: {
         baseStats: [45, 49, 49, 65, 65, 45], // Treecko base stats
-      } as any
+      } as any,
     }
 
     // Set up the store with our mock Pokemon
     usePokemonStore.setState({
       partyList: [mockPokemonData],
-      activePokemonId: 1
+      activePokemonId: 1,
     })
 
     // Get the setIvIndex function
@@ -93,19 +93,19 @@ describe('IV Toggle Store Behavior', () => {
       data: {
         ivs: [1, 30, 0, 31, 15, 16], // Various edge cases
         evs: [0, 0, 0, 0, 0, 0],
-        setIvByIndex: function(index: number, value: number) {
+        setIvByIndex: function (index: number, value: number) {
           this.ivs[index] = value
         },
-        setStats: function() {},
+        setStats: function () {},
       } as any as PokemonBase,
       details: {
         baseStats: [45, 49, 49, 65, 65, 45],
-      } as any
+      } as any,
     }
 
     usePokemonStore.setState({
       partyList: [mockPokemonData],
-      activePokemonId: 1
+      activePokemonId: 1,
     })
 
     const setIvIndex = usePokemonStore.getState().setIvIndex

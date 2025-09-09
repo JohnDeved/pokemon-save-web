@@ -1,14 +1,7 @@
 import { CheckIcon, ChevronsUpDownIcon, Pencil } from 'lucide-react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { getStatAbbr, natureEffects, natures } from '@/lib/parser/core/utils'
 import { cn } from '@/lib/utils'
@@ -24,16 +17,7 @@ export interface PokemonNatureComboboxProps {
   asText?: boolean
 }
 
-export function PokemonNatureCombobox({
-  value,
-  onChange,
-  disabled = false,
-  triggerClassName,
-  buttonVariant = 'outline',
-  buttonSize = 'sm',
-  hideIcon = false,
-  asText = false,
-}: PokemonNatureComboboxProps) {
+export function PokemonNatureCombobox({ value, onChange, disabled = false, triggerClassName, buttonVariant = 'outline', buttonSize = 'sm', hideIcon = false, asText = false }: PokemonNatureComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [side, setSide] = React.useState<'top' | 'bottom'>('top')
@@ -64,11 +48,7 @@ export function PokemonNatureCombobox({
                 setOpen(true)
               }
             }}
-            className={cn(
-              'group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-foreground/80 focus-visible:ring-0 focus-visible:border-transparent',
-              'transition-colors',
-              triggerClassName
-            )}
+            className={cn('group inline-flex items-center gap-1 cursor-pointer select-none bg-transparent p-0 m-0 rounded-none outline-none hover:text-foreground/80 focus-visible:ring-0 focus-visible:border-transparent', 'transition-colors', triggerClassName)}
             aria-label="Edit nature"
           >
             <span className="leading-none">{label ?? 'Nature'}</span>
@@ -137,25 +117,16 @@ export function PokemonNatureCombobox({
                     }}
                   >
                     <div className="flex w-full items-center">
-                      <CheckIcon
-                        className={cn(
-                          'mr-2 h-4 w-4 text-muted-foreground',
-                          isSelected ? 'opacity-100' : 'opacity-0'
-                        )}
-                      />
+                      <CheckIcon className={cn('mr-2 h-4 w-4 text-muted-foreground', isSelected ? 'opacity-100' : 'opacity-0')} />
                       <span className="mr-2 font-sans font-normal leading-5">{nature}</span>
                       <span className="ml-auto text-xs text-foreground/90 grid grid-cols-[auto_50px] items-center justify-items-end gap-2 font-sans shrink-0">
                         {effect ? (
                           <>
-                            <span className="text-emerald-400">
-                              ↑ {getStatAbbr(effect.increased)}
-                            </span>
+                            <span className="text-emerald-400">↑ {getStatAbbr(effect.increased)}</span>
                             <span className="text-rose-400">{getStatAbbr(effect.decreased)} ↓</span>
                           </>
                         ) : (
-                          <span className="text-muted-foreground col-span-2 text-right">
-                            Neutral
-                          </span>
+                          <span className="text-muted-foreground col-span-2 text-right">Neutral</span>
                         )}
                       </span>
                     </div>

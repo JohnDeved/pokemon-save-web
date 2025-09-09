@@ -4,27 +4,7 @@ import type { PokemonBase } from './lib/parser/core/PokemonBase'
 export type SpriteType = 'normal' | 'shiny'
 
 // --- Zod schemas for API validation ---
-export const PokemonTypeSchema = z.enum([
-  'NORMAL',
-  'FIRE',
-  'WATER',
-  'ELECTRIC',
-  'GRASS',
-  'ICE',
-  'FIGHTING',
-  'POISON',
-  'GROUND',
-  'FLYING',
-  'PSYCHIC',
-  'BUG',
-  'ROCK',
-  'GHOST',
-  'DRAGON',
-  'DARK',
-  'STEEL',
-  'FAIRY',
-  'UNKNOWN',
-])
+export const PokemonTypeSchema = z.enum(['NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE', 'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG', 'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'UNKNOWN'])
 export type PokemonType = z.infer<typeof PokemonTypeSchema>
 
 // Narrowed damage class name that UI cares about; used for icons and labels

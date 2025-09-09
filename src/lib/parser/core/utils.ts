@@ -108,24 +108,10 @@ export function formatPlayTime(hours: number, minutes: number, seconds: number):
   return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 }
 
-export const statStrings: string[] = [
-  'HP',
-  'Attack',
-  'Defense',
-  'Speed',
-  'Special Attack',
-  'Special Defense',
-]
+export const statStrings: string[] = ['HP', 'Attack', 'Defense', 'Speed', 'Special Attack', 'Special Defense']
 
 // Shared stat abbreviations used across UI components
-export const statAbbreviations: readonly string[] = [
-  'HP',
-  'Atk',
-  'Def',
-  'Spe',
-  'SpA',
-  'SpD',
-] as const
+export const statAbbreviations: readonly string[] = ['HP', 'Atk', 'Def', 'Spe', 'SpA', 'SpD'] as const
 
 export function getStatAbbr(index: number): string {
   return statAbbreviations[index] ?? statStrings[index] ?? ''
@@ -136,33 +122,7 @@ export const MAX_IV = 31
 export const MAX_EV = 252
 export const MAX_TOTAL_EV = 510
 
-export const natures = [
-  'Hardy',
-  'Lonely',
-  'Brave',
-  'Adamant',
-  'Naughty',
-  'Bold',
-  'Docile',
-  'Relaxed',
-  'Impish',
-  'Lax',
-  'Timid',
-  'Hasty',
-  'Serious',
-  'Jolly',
-  'Naive',
-  'Modest',
-  'Mild',
-  'Quiet',
-  'Bashful',
-  'Rash',
-  'Calm',
-  'Gentle',
-  'Sassy',
-  'Careful',
-  'Quirky',
-]
+export const natures = ['Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax', 'Timid', 'Hasty', 'Serious', 'Jolly', 'Naive', 'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash', 'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky']
 /**
  * Get Pokemon nature from the first byte of the personality value
  * Pokemon nature is determined by (personality & 0xFF) % 25
@@ -238,10 +198,7 @@ export function getNatureModifier(nature: string, statIndex: number): number {
  * @param baseStats The array of base stats in the order: HP, Atk, Def, Spe, SpA, SpD
  * @returns An array of calculated total stats
  */
-export function calculateTotalStats(
-  pokemon: PokemonBase,
-  baseStats: readonly number[]
-): readonly number[] {
+export function calculateTotalStats(pokemon: PokemonBase, baseStats: readonly number[]): readonly number[] {
   // Extract properties with type guards for safety
   const level = Number(pokemon.level)
   const nature = String(pokemon.nature)
@@ -267,16 +224,9 @@ export function calculateTotalStats(
  * @param nature Nature string
  * @returns Array of calculated total stats
  */
-export function calculateTotalStatsDirect(
-  baseStats: readonly number[],
-  ivs: readonly number[],
-  evs: readonly number[],
-  level: number,
-  nature: string
-): number[] {
+export function calculateTotalStatsDirect(baseStats: readonly number[], ivs: readonly number[], evs: readonly number[], level: number, nature: string): number[] {
   // HP calculation
-  const hp =
-    Math.floor(((2 * baseStats[0]! + ivs[0]! + Math.floor(evs[0]! / 4)) * level) / 100) + level + 10
+  const hp = Math.floor(((2 * baseStats[0]! + ivs[0]! + Math.floor(evs[0]! / 4)) * level) / 100) + level + 10
 
   // Stat order: [HP, Atk, Def, Spe, SpA, SpD]
   // Calculate non-HP stats (Atk, Def, Spe, SpA, SpD)
@@ -286,9 +236,7 @@ export function calculateTotalStatsDirect(
     const iv = ivs[i]
     const ev = evs[i]
     const natureMod = getNatureModifier(nature, i)
-    const stat = Math.floor(
-      (Math.floor(((2 * base! + iv! + Math.floor(ev! / 4)) * level) / 100) + 5) * natureMod
-    )
+    const stat = Math.floor((Math.floor(((2 * base! + iv! + Math.floor(ev! / 4)) * level) / 100) + 5) * natureMod)
     return stat
   })
 
@@ -306,14 +254,7 @@ export function calculateTotalStatsDirect(
  * @param saveblock1Size Expected size of SaveBlock1
  * @param maxPartySize Maximum party size
  */
-export function updatePartyInSaveblock1(
-  saveblock1: Uint8Array,
-  party: readonly PokemonBase[],
-  partyStartOffset: number,
-  partyPokemonSize: number,
-  saveblock1Size: number,
-  maxPartySize: number
-): Uint8Array {
+export function updatePartyInSaveblock1(saveblock1: Uint8Array, party: readonly PokemonBase[], partyStartOffset: number, partyPokemonSize: number, saveblock1Size: number, maxPartySize: number): Uint8Array {
   if (saveblock1.length < saveblock1Size) {
     throw new Error(`SaveBlock1 must be at least ${saveblock1Size} bytes`)
   }
@@ -350,9 +291,7 @@ export interface BaseMappingItem {
  * @param mapData - Raw JSON mapping data
  * @returns Map with numeric keys and validated mapping objects
  */
-export function createMapping<T extends BaseMappingItem>(
-  mapData: Record<string, unknown>
-): Map<number, T> {
+export function createMapping<T extends BaseMappingItem>(mapData: Record<string, unknown>): Map<number, T> {
   return new Map<number, T>(
     Object.entries(mapData)
       .filter(([_, v]) => typeof v === 'object' && v !== null && 'id' in v && v.id !== null)
@@ -365,9 +304,7 @@ export function createMapping<T extends BaseMappingItem>(
  * @param mappingData - Object containing different mapping data sets
  * @returns Object with the same keys but containing Map instances
  */
-export function createMappings<T extends Record<string, Record<string, unknown>>>(
-  mappingData: T
-): { [K in keyof T]: Map<number, BaseMappingItem> } {
+export function createMappings<T extends Record<string, Record<string, unknown>>>(mappingData: T): { [K in keyof T]: Map<number, BaseMappingItem> } {
   const result: { [K in keyof T]: Map<number, BaseMappingItem> } = Object.create(null)
 
   for (const [key, data] of Object.entries(mappingData)) {

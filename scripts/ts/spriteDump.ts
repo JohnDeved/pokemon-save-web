@@ -25,11 +25,7 @@ function renderProgressBar(completed: number, total: number, label = '') {
   process.stdout.write(`\r${label}[${bar}] ${completed}/${total} (${(percent * 100).toFixed(1)}%)`)
 }
 
-async function downloadSprite(
-  url: string,
-  destDir: string,
-  progress: { completed: number; total: number; label: string }
-) {
+async function downloadSprite(url: string, destDir: string, progress: { completed: number; total: number; label: string }) {
   const filename = url.split('/').pop()
   if (!filename) return
   const dest = path.join(destDir, filename)

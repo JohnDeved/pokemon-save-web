@@ -138,8 +138,6 @@ describe('CLI Event-Driven Functionality', () => {
     const client = new MgbaWebSocketClient()
 
     // This should throw, simulating the fallback behavior in the CLI
-    await expect(client.startWatching([{ address: 0x20244e9, size: 7 }])).rejects.toThrow(
-      'Watch setup failed'
-    )
+    await expect(client.startWatching([{ address: 0x20244e9, size: 7 }])).rejects.toThrow('Watch setup failed')
   })
 })

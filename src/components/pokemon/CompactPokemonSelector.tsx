@@ -15,9 +15,7 @@ export const CompactPokemonSelector: React.FC = () => {
     <Card className="p-3 lg:hidden">
       <div className="flex items-center gap-3 mb-3">
         <img
-          src={
-            megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : selectedPokemon.spriteUrl
-          }
+          src={megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : selectedPokemon.spriteUrl}
           onError={e => {
             const img = e.currentTarget
             if (img.dataset.fallbackApplied === '1') return
@@ -37,22 +35,9 @@ export const CompactPokemonSelector: React.FC = () => {
 
       <div className="flex gap-2 overflow-x-auto">
         {partyList.map(pokemon => (
-          <button
-            key={pokemon.id}
-            onClick={() => setActivePokemonId(pokemon.id)}
-            className={cn(
-              'flex-shrink-0 w-12 h-12 rounded border-2 transition-colors',
-              pokemon.id === selectedPokemon.id
-                ? 'border-cyan-400 bg-cyan-500/20'
-                : 'border-border hover:border-border'
-            )}
-          >
+          <button key={pokemon.id} onClick={() => setActivePokemonId(pokemon.id)} className={cn('flex-shrink-0 w-12 h-12 rounded border-2 transition-colors', pokemon.id === selectedPokemon.id ? 'border-cyan-400 bg-cyan-500/20' : 'border-border hover:border-border')}>
             <img
-              src={
-                pokemon.id === selectedPokemon.id && megaPreviewEnabled && megaSpriteAniUrl
-                  ? megaSpriteAniUrl
-                  : pokemon.spriteUrl
-              }
+              src={pokemon.id === selectedPokemon.id && megaPreviewEnabled && megaSpriteAniUrl ? megaSpriteAniUrl : pokemon.spriteUrl}
               onError={e => {
                 const img = e.currentTarget
                 if (img.dataset.fallbackApplied === '1') return
