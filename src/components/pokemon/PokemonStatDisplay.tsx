@@ -56,10 +56,11 @@ export const PokemonStatDisplay: React.FC = () => {
     setEvIndex(pokemon.id, statIndex, newValue)
   }
 
-  // Handler for IV clicks - set to max (31) when clicked
-  function handleIvClick(statIndex: number) {
+  // Handler for IV clicks - toggle between max (31) and 0
+  function handleIvClick(statIndex: number, currentIv: number) {
     if (typeof pokemon?.id !== 'number') return
-    setIvIndex(pokemon.id, statIndex, 31)
+    const nextIv = currentIv !== MAX_IV ? MAX_IV : 0
+    setIvIndex(pokemon.id, statIndex, nextIv)
   }
 
   // Determine which base stats to display (normal vs mega)
@@ -83,12 +84,13 @@ export const PokemonStatDisplay: React.FC = () => {
     return totals ?? pokemon?.data.stats
   }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data.stats, itemIdName, speciesIdName])
 
-  // Calculate what the total stat would be with max IV (31)
-  function calculatePreviewStat(statIndex: number, currentIv: number) {
-    if (currentIv === MAX_IV || !pokemon?.data || !displayBaseStats) return null
-    // Create a copy of IVs with the selected stat set to MAX_IV
+  // Calculate what the total stat would be when previewing a target IV value
+  function calculatePreviewStat(statIndex: number, targetIv: number) {
+    if (!pokemon?.data || !displayBaseStats) return null
+    // Create a copy of IVs with the selected stat set to targetIv
     const currentIvs = [...pokemon.data.ivs]
-    currentIvs[statIndex] = MAX_IV
+    if (currentIvs[statIndex] === targetIv) return null
+    currentIvs[statIndex] = targetIv
     // Use calculateTotalStatsDirect for stat calculation
     const newStats = calculateTotalStatsDirect(
       displayBaseStats,
@@ -97,8 +99,8 @@ export const PokemonStatDisplay: React.FC = () => {
       pokemon.data.level,
       pokemon.data.nature
     )
-  const boosted = applyHeldItemStatBoosts(newStats, itemIdName, speciesIdName)
-    return boosted[statIndex]
+    const boosted = applyHeldItemStatBoosts(newStats, itemIdName, speciesIdName)
+    return boosted?.[statIndex] ?? null
   }
 
   return (
@@ -124,8 +126,12 @@ export const PokemonStatDisplay: React.FC = () => {
           const ivClass = iv === MAX_IV ? 'text-cyan-400' : 'text-cyan-800'
           // Calculate preview stat if this IV is hovered and not at max
           const isHovered = hoveredIvIndex === index
-          const previewTotal = isHovered && iv !== MAX_IV ? calculatePreviewStat(index, iv) : null
-          const isShowingPreview = isHovered && iv !== MAX_IV && previewTotal !== null
+          const previewTotal = isHovered
+            ? iv !== MAX_IV
+              ? calculatePreviewStat(index, MAX_IV)
+              : calculatePreviewStat(index, 0)
+            : null
+          const isShowingPreview = isHovered && previewTotal !== null
           // Calculate how many more EVs can be assigned to this stat
           let maxVisualValue = MAX_EV
           if (
@@ -153,31 +159,13 @@ export const PokemonStatDisplay: React.FC = () => {
                 </span>
               </div>
               <div
-                className={`text-center text-sm ${ivClass} ${iv !== MAX_IV ? 'cursor-pointer hover:text-cyan-300 transition-colors' : ''}`}
-                onClick={
-                  iv !== MAX_IV
-                    ? () => {
-                        handleIvClick(index)
-                      }
-                    : undefined
-                }
-                onMouseEnter={
-                  iv !== MAX_IV
-                    ? () => {
-                        setHoveredIvIndex(index)
-                      }
-                    : undefined
-                }
-                onMouseLeave={
-                  iv !== MAX_IV
-                    ? () => {
-                        setHoveredIvIndex(null)
-                      }
-                    : undefined
-                }
-                title={iv !== MAX_IV ? `Click to set to max (${MAX_IV})` : undefined}
+                className={`text-center text-sm ${ivClass} cursor-pointer hover:text-cyan-300 transition-colors`}
+                onClick={() => handleIvClick(index, iv)}
+                onMouseEnter={() => setHoveredIvIndex(index)}
+                onMouseLeave={() => setHoveredIvIndex(null)}
+                title={iv !== MAX_IV ? `Click to set to max (${MAX_IV})` : 'Click to set to 0'}
               >
-                {isHovered && iv !== MAX_IV ? MAX_IV : iv}
+                {isHovered ? (iv !== MAX_IV ? MAX_IV : 0) : iv}
               </div>
               <div className="text-muted-foreground text-center text-sm">
                 <Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text>
@@ -185,9 +173,18 @@ export const PokemonStatDisplay: React.FC = () => {
               <div
                 className={`col-span-2 text-right text-sm ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}
               >
-                {isShowingPreview && previewTotal ? (
+                {isShowingPreview && previewTotal !== null ? (
                   <span>
-                    <span className="text-green-400">+{previewTotal - total}</span> {previewTotal}
+                    {(() => {
+                      const delta = (previewTotal ?? 0) - total
+                      const deltaClass = delta >= 0 ? 'text-green-400' : 'text-red-400'
+                      const deltaText = delta >= 0 ? `+${delta}` : `${delta}`
+                      return (
+                        <>
+                          <span className={deltaClass}>{deltaText}</span> {previewTotal}
+                        </>
+                      )
+                    })()}
                   </span>
                 ) : (
                   total
