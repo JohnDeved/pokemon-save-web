@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { usePokemonStore, useSaveFileStore } from '@/stores'
 import type { z } from 'zod'
 import type { PokeAPI } from 'pokeapi-types/dist/index'
+import { PokemonTypeSchema, type PokemonType } from '@/types'
 
 // Local helpers
 const formatName = (name: string): string =>
@@ -154,6 +155,13 @@ export function useMegaPreview() {
         get('special-attack'),
         get('special-defense'),
       ]
+      // Extract types and map to our enum (uppercase), fallback to UNKNOWN on mismatch
+      const types: PokemonType[] = (Array.isArray(p.types) ? p.types : [])
+        .map(t => (t?.type?.name ?? '').toUpperCase())
+        .map(name => {
+          const parsed = PokemonTypeSchema.safeParse(name)
+          return parsed.success ? parsed.data : ('UNKNOWN' as PokemonType)
+        })
       // Load ability descriptions (best-effort)
       const abilitiesRaw: PokeAPI.Pokemon['abilities'] = Array.isArray(p.abilities)
         ? p.abilities
@@ -177,12 +185,13 @@ export function useMegaPreview() {
           }
         })
       )
-      return { baseStats, abilities: abilityDetails }
+      return { baseStats, abilities: abilityDetails, types }
     },
     staleTime: 1000 * 60 * 60,
   })
   const megaBaseStats = megaDetails?.baseStats
   const megaAbilities = megaDetails?.abilities
+  const megaTypes = megaDetails?.types
 
   return {
     supportsMega,
@@ -199,6 +208,7 @@ export function useMegaPreview() {
     setMegaPreviewEnabled: (enabled: boolean) => setMegaPreviewEnabled(activePokemonId, enabled),
     megaBaseStats,
     megaAbilities,
+    megaTypes,
     // Sprite URLs for UI components
     megaSpriteAniUrl:
       pokemon && effectiveForm

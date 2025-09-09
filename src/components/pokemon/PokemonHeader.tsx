@@ -27,6 +27,7 @@ export const PokemonHeader: React.FC = () => {
     selectedForm,
     setSelectedForm,
     statsLoading,
+    megaTypes,
   } = useMegaPreview()
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
@@ -104,7 +105,10 @@ export const PokemonHeader: React.FC = () => {
         <div className="flex items-center justify-between mt-2 min-h-[25px]">
           <Skeleton.Container className="flex items-center gap-2 min-w-8">
             {isLoading && <PokemonTypeBadge type="UNKNOWN" isLarge />}
-            {pokemon?.details?.types.map(type => (
+            {(megaPreviewEnabled && megaTypes && megaTypes.length
+              ? megaTypes
+              : pokemon?.details?.types || []
+            ).map(type => (
               <PokemonTypeBadge key={type} type={type} isLarge />
             ))}
           </Skeleton.Container>
