@@ -1,9 +1,4 @@
-import {
-  calculateTotalStatsDirect,
-  MAX_EV,
-  MAX_IV,
-  statAbbreviations,
-} from '@/lib/parser/core/utils'
+import { calculateTotalStatsDirect, MAX_EV, MAX_IV, statAbbreviations } from '@/lib/parser/core/utils'
 import { usePokemonStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { Slider } from '@/components/ui/slider'
@@ -23,15 +18,7 @@ const EVSlider: React.FC<EVSliderProps> = ({ value, onChange, maxVisualValue }) 
   const handleValueChange = (val: number[]) => {
     onChange(val[0]!)
   }
-  return (
-    <Slider
-      value={[value]}
-      max={MAX_EV}
-      onValueChange={handleValueChange}
-      className="[&_[data-slot=slider-track]]:bg-input/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500"
-      maxVisualValue={maxVisualValue}
-    />
-  )
+  return <Slider value={[value]} max={MAX_EV} onValueChange={handleValueChange} className="[&_[data-slot=slider-track]]:bg-input/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500" maxVisualValue={maxVisualValue} />
 }
 
 export const PokemonStatDisplay: React.FC = () => {
@@ -83,21 +70,15 @@ export const PokemonStatDisplay: React.FC = () => {
     const currentIvs = [...pokemon.data.ivs]
     currentIvs[statIndex] = MAX_IV
     // Use calculateTotalStatsDirect for stat calculation
-    const newStats = calculateTotalStatsDirect(
-      displayBaseStats,
-      currentIvs,
-      pokemon.data.evs,
-      pokemon.data.level,
-      pokemon.data.nature
-    )
+    const newStats = calculateTotalStatsDirect(displayBaseStats, currentIvs, pokemon.data.evs, pokemon.data.level, pokemon.data.nature)
     return newStats[statIndex]
   }
 
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
-      <div className="p-3 sm:p-4 space-y-1 sm:space-y-2 text-xs w-full">
+      <div className="p-4 space-y-2 text-xs w-full">
         {/* Mega preview controls moved to PokemonHeader to prevent layout shift */}
-        <div className="grid grid-cols-10 gap-1 sm:gap-2 text-muted-foreground">
+        <div className="grid grid-cols-10 gap-2 text-muted-foreground">
           <div className="col-span-1">STAT</div>
           <div className="col-span-5 text-end">EV</div>
           <div className="text-center">IV</div>
@@ -120,19 +101,15 @@ export const PokemonStatDisplay: React.FC = () => {
           const isShowingPreview = isHovered && iv !== MAX_IV && previewTotal !== null
           // Calculate how many more EVs can be assigned to this stat
           let maxVisualValue = MAX_EV
-          if (
-            pokemon?.id !== null &&
-            pokemon?.id !== undefined &&
-            typeof getRemainingEvs === 'function'
-          ) {
+          if (pokemon?.id !== null && pokemon?.id !== undefined && typeof getRemainingEvs === 'function') {
             const remainingTotalEvs = getRemainingEvs(pokemon.id)
             maxVisualValue = Math.min(MAX_EV, (evs?.[index] ?? 0) + remainingTotalEvs)
           }
 
           return (
-            <div key={statName} className="grid grid-cols-10 gap-1 sm:gap-2 items-center">
+            <div key={statName} className="grid grid-cols-10 gap-2 items-center">
               <div className="text-foreground">{statName}</div>
-              <div className="col-span-5 flex items-center gap-1 sm:gap-2">
+              <div className="col-span-5 flex items-center gap-2">
                 <EVSlider
                   value={evs?.[index] ?? 0}
                   onChange={newValue => {
@@ -140,9 +117,7 @@ export const PokemonStatDisplay: React.FC = () => {
                   }}
                   maxVisualValue={maxVisualValue}
                 />
-                <span className="text-foreground w-6 sm:w-8 text-right text-xs flex-shrink-0">
-                  {evs?.[index] ?? 0}
-                </span>
+                <span className="text-foreground w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
               </div>
               <div
                 className={`text-center text-sm ${ivClass} ${iv !== MAX_IV ? 'cursor-pointer hover:text-cyan-300 transition-colors' : ''}`}
@@ -174,9 +149,7 @@ export const PokemonStatDisplay: React.FC = () => {
               <div className="text-muted-foreground text-center text-sm">
                 <Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text>
               </div>
-              <div
-                className={`col-span-2 text-right text-sm ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}
-              >
+              <div className={`col-span-2 text-right text-sm ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}>
                 {isShowingPreview && previewTotal ? (
                   <span>
                     <span className="text-green-400">+{previewTotal - total}</span> {previewTotal}

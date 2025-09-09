@@ -2,12 +2,7 @@ import { useEffect, useState } from 'react'
 import { IoCaretDown, IoCaretUp } from 'react-icons/io5'
 import { ScrollableContainer, Skeleton } from '@/components/common'
 import { PokemonNatureCombobox } from '@/components/pokemon/PokemonNatureCombobox'
-import {
-  calculateTotalStatsDirect,
-  findNatureForEffects,
-  getStatAbbr,
-  statAbbreviations,
-} from '@/lib/parser/core/utils'
+import { calculateTotalStatsDirect, findNatureForEffects, getStatAbbr, statAbbreviations } from '@/lib/parser/core/utils'
 import { usePokemonStore, useSaveFileStore } from '@/stores'
 
 export const NatureTab: React.FC = () => {
@@ -50,10 +45,7 @@ export const NatureTab: React.FC = () => {
   const currentTotals = pokemon?.data?.stats ?? []
 
   // Neutral totals (no nature effects). Computed directly for React Compiler friendliness.
-  const neutralTotals =
-    baseStats && ivs && evs
-      ? calculateTotalStatsDirect(baseStats, ivs, evs, level, 'Serious')
-      : null
+  const neutralTotals = baseStats && ivs && evs ? calculateTotalStatsDirect(baseStats, ivs, evs, level, 'Serious') : null
 
   // Current raised/lowered deltas from nature
   let raisedDelta = 0
@@ -89,18 +81,7 @@ export const NatureTab: React.FC = () => {
         <ScrollableContainer className="absolute inset-0 px-4 pt-3 pb-4 overflow-y-auto custom-scrollbar">
           <div className="flex flex-col gap-3">
             <div className="text-foreground">
-              {pokemon ? (
-                <PokemonNatureCombobox
-                  value={pokemon.data.nature}
-                  onChange={nature => setNature(pokemon.id, nature)}
-                  asText
-                  triggerClassName="font-pixel text-lg sm:text-xl text-foreground"
-                />
-              ) : (
-                <Skeleton.Text className="font-pixel text-lg sm:text-xl">
-                  {natureName}
-                </Skeleton.Text>
-              )}
+              {pokemon ? <PokemonNatureCombobox value={pokemon.data.nature} onChange={nature => setNature(pokemon.id, nature)} asText triggerClassName="font-pixel text-xl text-foreground" /> : <Skeleton.Text className="font-pixel text-xl">{natureName}</Skeleton.Text>}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -111,17 +92,11 @@ export const NatureTab: React.FC = () => {
                   title="Click to change raised stat"
                   aria-pressed={chooseMode === 'raise'}
                   className={`inline-flex items-center gap-1 rounded-md border dark:border-emerald-700/60 border-emerald-300 dark:bg-emerald-900/30 bg-emerald-100 dark:text-emerald-300 text-emerald-800 px-2 py-1 text-xs transition-all duration-150 ease-out cursor-pointer hover:ring-1 hover:dark:ring-emerald-300/40 hover:ring-emerald-400/40 ${
-                    chooseMode === 'raise'
-                      ? 'ring-2 ring-emerald-400/60 hover:ring-2 hover:ring-emerald-400/60 animate-glow-emerald'
-                      : ''
+                    chooseMode === 'raise' ? 'ring-2 ring-emerald-400/60 hover:ring-2 hover:ring-emerald-400/60 animate-glow-emerald' : ''
                   }`}
                 >
                   <IoCaretUp className="text-emerald-300" /> Raises {getStatAbbr(incIndex)}
-                  {raisedDelta > 0 && (
-                    <span className="ml-1 dark:text-emerald-200/90 text-emerald-700/80">
-                      +{raisedDelta}
-                    </span>
-                  )}
+                  {raisedDelta > 0 && <span className="ml-1 dark:text-emerald-200/90 text-emerald-700/80">+{raisedDelta}</span>}
                 </button>
               )}
               {decIndex >= 0 && (
@@ -131,24 +106,14 @@ export const NatureTab: React.FC = () => {
                   title="Click to change lowered stat"
                   aria-pressed={chooseMode === 'lower'}
                   className={`inline-flex items-center gap-1 rounded-md border dark:border-rose-700/60 border-rose-300 dark:bg-rose-900/30 bg-rose-100 dark:text-rose-300 text-rose-800 px-2 py-1 text-xs transition-all duration-150 ease-out cursor-pointer hover:ring-1 hover:dark:ring-rose-300/40 hover:ring-rose-400/40 ${
-                    chooseMode === 'lower'
-                      ? 'ring-2 ring-rose-400/60 hover:ring-2 hover:ring-rose-400/60 animate-glow-rose'
-                      : ''
+                    chooseMode === 'lower' ? 'ring-2 ring-rose-400/60 hover:ring-2 hover:ring-rose-400/60 animate-glow-rose' : ''
                   }`}
                 >
                   <IoCaretDown className="text-rose-300" /> Lowers {getStatAbbr(decIndex)}
-                  {loweredDelta > 0 && (
-                    <span className="ml-1 dark:text-rose-200/90 text-rose-700/80">
-                      -{loweredDelta}
-                    </span>
-                  )}
+                  {loweredDelta > 0 && <span className="ml-1 dark:text-rose-200/90 text-rose-700/80">-{loweredDelta}</span>}
                 </button>
               )}
-              {isNeutralNature && (
-                <div className="inline-flex items-center gap-1 rounded-md border bg-card/40 text-muted-foreground px-2 py-1 text-xs">
-                  Neutral nature
-                </div>
-              )}
+              {isNeutralNature && <div className="inline-flex items-center gap-1 rounded-md border bg-card/40 text-muted-foreground px-2 py-1 text-xs">Neutral nature</div>}
             </div>
 
             <div className="mt-2">
@@ -156,25 +121,16 @@ export const NatureTab: React.FC = () => {
                 let headerText = 'Affected Stats'
                 if (chooseMode === 'raise') headerText = 'Select stat to Raise'
                 else if (chooseMode === 'lower') headerText = 'Select stat to Lower'
-                return (
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                    {headerText}
-                  </div>
-                )
+                return <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">{headerText}</div>
               })()}
               <div className="flex flex-wrap gap-1.5">
                 {statAbbreviations.map((abbr, i) => {
                   const isUp = incIndex === i
                   const isDown = decIndex === i
-                  const base =
-                    'relative px-2 py-1 rounded-md border text-xs leading-none transition-[padding] duration-200 ease-out'
+                  const base = 'relative px-2 py-1 rounded-md border text-xs leading-none transition-[padding] duration-200 ease-out'
                   let color = 'bg-card/50 border text-muted-foreground'
-                  if (isUp)
-                    color =
-                      'dark:bg-emerald-900/30 bg-emerald-100 dark:border-emerald-700/60 border-emerald-300 dark:text-emerald-300 text-emerald-800'
-                  else if (isDown)
-                    color =
-                      'dark:bg-rose-900/30 bg-rose-100 dark:border-rose-700/60 border-rose-300 dark:text-rose-300 text-rose-800'
+                  if (isUp) color = 'dark:bg-emerald-900/30 bg-emerald-100 dark:border-emerald-700/60 border-emerald-300 dark:text-emerald-300 text-emerald-800'
+                  else if (isDown) color = 'dark:bg-rose-900/30 bg-rose-100 dark:border-rose-700/60 border-rose-300 dark:text-rose-300 text-rose-800'
 
                   let interactive = false
                   if (chooseMode === 'raise') interactive = i !== 0 && i !== decIndex
@@ -186,9 +142,7 @@ export const NatureTab: React.FC = () => {
 
                   let interactiveCls = 'transition-all duration-150 ease-out'
                   if (chooseMode) {
-                    interactiveCls = interactive
-                      ? `cursor-pointer hover:ring-1 ${ringColor} transition-all duration-150 ease-out`
-                      : 'opacity-40 cursor-not-allowed'
+                    interactiveCls = interactive ? `cursor-pointer hover:ring-1 ${ringColor} transition-all duration-150 ease-out` : 'opacity-40 cursor-not-allowed'
                   }
 
                   const preview = hoveredStat === i ? getPreviewDelta(i) : null
@@ -210,29 +164,14 @@ export const NatureTab: React.FC = () => {
                       key={`nature-stat-${i}`}
                       className={`${base} ${color} ${interactiveCls} ${padAnimCls}`}
                       onClick={() => chooseMode && interactive && handleSelectCounterpart(i)}
-                      onMouseEnter={() =>
-                        chooseMode && interactive ? setHoveredStat(i) : undefined
-                      }
+                      onMouseEnter={() => (chooseMode && interactive ? setHoveredStat(i) : undefined)}
                       onMouseLeave={() => (hoveredStat === i ? setHoveredStat(null) : undefined)}
                       role={chooseMode ? 'button' : undefined}
                       aria-disabled={chooseMode && !interactive ? true : undefined}
                     >
                       {abbr}
-                      <span
-                        className={`pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 whitespace-nowrap text-right transition-opacity duration-150 ease-out select-none ${displayDelta !== null ? 'opacity-100' : 'opacity-0'}`}
-                        aria-hidden={displayDelta === null ? true : undefined}
-                      >
-                        {displayDelta !== null && (
-                          <span
-                            className={
-                              displayDelta > 0
-                                ? 'dark:text-emerald-200/90 text-emerald-700/80'
-                                : 'dark:text-rose-200/90 text-rose-700/80'
-                            }
-                          >
-                            {displayDelta > 0 ? `+${displayDelta}` : `${displayDelta}`}
-                          </span>
-                        )}
+                      <span className={`pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 whitespace-nowrap text-right transition-opacity duration-150 ease-out select-none ${displayDelta !== null ? 'opacity-100' : 'opacity-0'}`} aria-hidden={displayDelta === null ? true : undefined}>
+                        {displayDelta !== null && <span className={displayDelta > 0 ? 'dark:text-emerald-200/90 text-emerald-700/80' : 'dark:text-rose-200/90 text-rose-700/80'}>{displayDelta > 0 ? `+${displayDelta}` : `${displayDelta}`}</span>}
                       </span>
                     </div>
                   )

@@ -14,10 +14,7 @@ interface AnyRef<T> {
   current: T | null
 }
 
-export function useSmoothWheelScroll(
-  scrollRef: AnyRef<HTMLDivElement>,
-  { enabled = true }: Options = {}
-) {
+export function useSmoothWheelScroll(scrollRef: AnyRef<HTMLDivElement>, { enabled = true }: Options = {}) {
   const rafRef = useRef<number | null>(null)
   const targetRef = useRef<number | null>(null)
   const prefersReducedMotionRef = useRef(false)
@@ -35,8 +32,7 @@ export function useSmoothWheelScroll(
 
   useEffect(() => {
     try {
-      prefersReducedMotionRef.current =
-        globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+      prefersReducedMotionRef.current = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
     } catch {
       prefersReducedMotionRef.current = false
     }
@@ -133,8 +129,7 @@ export function useSmoothWheelScroll(
       if (dm === 0) {
         const mag = Math.abs(dy)
         if (mag >= PIXEL_SMOOTH_MIN_PX) {
-          const step =
-            Math.sign(dy) * Math.min(PIXEL_STEP_MAX_PX, mag * SMOOTH_STEP_SCALE)
+          const step = Math.sign(dy) * Math.min(PIXEL_STEP_MAX_PX, mag * SMOOTH_STEP_SCALE)
           void smoothScroll(el, step)
         } else {
           if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -146,8 +141,7 @@ export function useSmoothWheelScroll(
       }
 
       // For wheel mice (line/page deltas), use smoothing
-      const step =
-        Math.sign(dy) * Math.min(MOUSE_STEP_MAX_PX, Math.abs(dy) * SMOOTH_STEP_SCALE)
+      const step = Math.sign(dy) * Math.min(MOUSE_STEP_MAX_PX, Math.abs(dy) * SMOOTH_STEP_SCALE)
       void smoothScroll(el, step)
     },
     [enabled, scrollRef, smoothScroll]

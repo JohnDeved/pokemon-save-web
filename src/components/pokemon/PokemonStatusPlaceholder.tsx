@@ -3,11 +3,7 @@ import { Card } from '@/components/common'
 
 export const PokemonStatusPlaceholder: React.FC = () => {
   return (
-    <Card
-      className={cn(
-        'flex items-center p-3 transition-all duration-300 border border-dashed border-border/60 bg-background/10'
-      )}
-    >
+    <Card className={cn('flex items-center p-3 transition-all duration-300 border border-dashed border-border/60 bg-background/10')}>
       <div className="w-20 h-20 flex-shrink-0 mr-2 flex items-center justify-center">
         <span className="text-muted-foreground text-3xl font-bold">?</span>
       </div>

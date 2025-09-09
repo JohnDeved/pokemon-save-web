@@ -16,16 +16,16 @@ export const PokemonTraitsSection: React.FC = () => {
             <div className="w-full border-b border-border/60">
               <div className="px-4">
                 <TabsList className="px-0">
-                  <TabsTrigger value="nature" className="font-pixel text-[10px] sm:text-xs">
+                  <TabsTrigger value="nature" className="font-pixel text-xs">
                     Nature
                   </TabsTrigger>
-                  <TabsTrigger value="ability" className="font-pixel text-[10px] sm:text-xs">
+                  <TabsTrigger value="ability" className="font-pixel text-xs">
                     Ability
                   </TabsTrigger>
-                  <TabsTrigger value="item" className="font-pixel text-[10px] sm:text-xs">
+                  <TabsTrigger value="item" className="font-pixel text-xs">
                     Held Item
                   </TabsTrigger>
-                  <TabsTrigger value="boosts" className="font-pixel text-[10px] sm:text-xs">
+                  <TabsTrigger value="boosts" className="font-pixel text-xs">
                     Boosts
                   </TabsTrigger>
                 </TabsList>

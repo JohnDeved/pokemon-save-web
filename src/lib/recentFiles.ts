@@ -58,9 +58,7 @@ export async function clearRecents(): Promise<void> {
   })
 }
 
-async function putRecord(
-  record: Omit<RecentEntry, 'id'> & Partial<Pick<RecentEntry, 'id'>>
-): Promise<number> {
+async function putRecord(record: Omit<RecentEntry, 'id'> & Partial<Pick<RecentEntry, 'id'>>): Promise<number> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite')
@@ -91,10 +89,7 @@ export async function addRecent(handle: FileSystemFileHandle, name: string): Pro
     const existing = await listRecents()
     for (const rec of existing) {
       try {
-        const same =
-          typeof rec.handle.isSameEntry === 'function'
-            ? await rec.handle.isSameEntry(handle)
-            : undefined
+        const same = typeof rec.handle.isSameEntry === 'function' ? await rec.handle.isSameEntry(handle) : undefined
         if (same === true || (rec.handle.name && rec.handle.name === handle.name)) {
           await putRecord({ id: rec.id, name: displayName, handle, updatedAt: Date.now() })
           return

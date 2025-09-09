@@ -129,10 +129,7 @@ test.describe('Pokemon Save Web - E2E Tests', () => {
     await expect(page.getByRole('menuitem', { name: 'Download' })).toBeVisible()
 
     // Check that Save is disabled (since we didn't use File System Access API)
-    await expect(page.getByRole('menuitem', { name: /Save.*Ctrl\+S/ })).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    )
+    await expect(page.getByRole('menuitem', { name: /Save.*Ctrl\+S/ })).toHaveAttribute('aria-disabled', 'true')
   })
 
   test('should handle EV slider changes', async ({ page }) => {

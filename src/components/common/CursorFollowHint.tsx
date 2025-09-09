@@ -24,20 +24,7 @@ interface CursorFollowHintProps {
  * - Uses springs for smooth following.
  * - Pointer-events are disabled so it never intercepts input.
  */
-export function CursorFollowHint({
-  anchorRef,
-  targetRef,
-  enabled = true,
-  label = 'Scroll',
-  offsetX = 12,
-  offsetY = -36,
-  className,
-  contentClassName = 'geist-font text-[11px]',
-  icon,
-  once = true,
-  onAcknowledge,
-  requireOverflow = true,
-}: CursorFollowHintProps) {
+export function CursorFollowHint({ anchorRef, targetRef, enabled = true, label = 'Scroll', offsetX = 12, offsetY = -36, className, contentClassName = 'geist-font text-[11px]', icon, once = true, onAcknowledge, requireOverflow = true }: CursorFollowHintProps) {
   const { visible, style } = useCursorFollow({
     anchorRef,
     targetRef,
@@ -54,27 +41,13 @@ export function CursorFollowHint({
   return (
     <AnimatePresence>
       {visible && (
-        <motion.div
-          className={['pointer-events-none absolute z-[60] text-muted-foreground/90 geist-font', className]
-            .filter(Boolean)
-            .join(' ')}
-          style={{ ...style, left: 0, top: 0 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
+        <motion.div className={['pointer-events-none absolute z-[60] text-muted-foreground/90 geist-font', className].filter(Boolean).join(' ')} style={{ ...style, left: 0, top: 0 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
           <motion.div
             initial={{ scale: 0.92 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.92 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className={[
-              'bg-popover/90 shadow-sm border border-border/60 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] whitespace-nowrap',
-              contentClassName,
-            ]
-              .filter(Boolean)
-              .join(' ')}
+            className={['bg-popover/90 shadow-sm border border-border/60 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] whitespace-nowrap', contentClassName].filter(Boolean).join(' ')}
           >
             {Icon}
             {label}
@@ -97,16 +70,7 @@ export interface UseCursorFollowOptions {
   requireOverflow?: boolean
 }
 
-export function useCursorFollow({
-  anchorRef,
-  targetRef,
-  enabled = true,
-  offsetX = 12,
-  offsetY = -36,
-  once = true,
-  onAcknowledge,
-  requireOverflow = true,
-}: UseCursorFollowOptions) {
+export function useCursorFollow({ anchorRef, targetRef, enabled = true, offsetX = 12, offsetY = -36, once = true, onAcknowledge, requireOverflow = true }: UseCursorFollowOptions) {
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const [hovered, setHovered] = useState(false)
@@ -140,8 +104,7 @@ export function useCursorFollow({
   const onEnter = useCallback(
     (e: Event) => {
       // If pointerenter contains coordinates (PointerEvent), snap immediately
-      if ((e as PointerEvent).clientX !== null && (e as PointerEvent).clientX !== undefined)
-        updateFromEvent(e as PointerEvent)
+      if ((e as PointerEvent).clientX !== null && (e as PointerEvent).clientX !== undefined) updateFromEvent(e as PointerEvent)
       setHovered(true)
     },
     [updateFromEvent]

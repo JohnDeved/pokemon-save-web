@@ -25,9 +25,7 @@ function printHelp() {
   console.log('  \x1b[36mrun:build\x1b[0m       Build and start the container in the foreground')
   console.log('  \x1b[36mstop\x1b[0m            Stop the running container')
   console.log('  \x1b[36mbuild\x1b[0m           Build the Docker image locally')
-  console.log(
-    '  \x1b[36mpull\x1b[0m            Pull the latest image from GitHub Container Registry'
-  )
+  console.log('  \x1b[36mpull\x1b[0m            Pull the latest image from GitHub Container Registry')
   console.log('  \x1b[36mstatus\x1b[0m          Show container status')
   console.log('  \x1b[36mlogs\x1b[0m            Show container logs')
   console.log('  \x1b[36mexec <cmd..>\x1b[0m    Run a command inside the running container')
@@ -108,9 +106,7 @@ switch (cmd) {
       console.error('Usage: tsx docker/mgba-docker.ts exec <command> [--game emerald|quetzal]')
       process.exit(1)
     }
-    const { cmd: c, env } = withGameEnv(
-      `docker exec -it ${container} ${filteredArgs.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`
-    )
+    const { cmd: c, env } = withGameEnv(`docker exec -it ${container} ${filteredArgs.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`)
     run(c, env)
     break
   }
