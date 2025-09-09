@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Crosshair } from 'lucide-react'
 import { useRef } from 'react'
 import { usePokemonStore } from '@/stores'
 import { ScrollableContainer } from '@/components/common'
@@ -60,6 +60,14 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
     currentHp: activePokemon?.data.currentHp,
     maxHp: activePokemon?.data.maxHp,
   })
+  // Human-friendly label for move target
+  const targetLabel = move.target
+    ? move.target
+        .replace(/[-_]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : '—'
 
   return (
     <div ref={rootRef} className="relative" onWheel={onWheel}>
@@ -77,7 +85,7 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
       <AnimatePresence>
         {isExpanded && (
           <motion.div layout initial={{ opacity: 0, y: animationY }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: animationY }} className={cn('absolute left-0 right-0 z-50 p-3 bg-popover border rounded-lg shadow-xl text-xs', popoverDirectionClass)}>
-            <div className="flex justify-between text-muted-foreground mb-2 pb-2 border-b border-border/50">
+            <div className="flex justify-between text-muted-foreground mb-2 pb-2 border-b border-border/50 -mx-3 px-3">
               <div>
                 <div>
                   Power:
@@ -106,7 +114,10 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
               </div>
             </div>
             <ScrollableContainer ref={scrollRef} className="max-h-[100px] overflow-y-auto mt-2 custom-scrollbar text-muted-foreground leading-relaxed text-xs">
-              Targets: {move.target ?? ''} <br />
+              <div className="flex items-center gap-1 text-foreground mb-1">
+                <Crosshair className="w-3 h-3 text-muted-foreground" />
+                <span>Target: {targetLabel}</span>
+              </div>
               {move.description || 'Loading description...'}
             </ScrollableContainer>
           </motion.div>
