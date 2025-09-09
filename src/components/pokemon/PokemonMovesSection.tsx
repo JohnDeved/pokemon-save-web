@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { usePokemonStore, useSaveFileStore } from '@/stores'
 import { Skeleton } from '@/components/common'
 import { PokemonMoveButton } from '@/components/pokemon/PokemonMoveButton'
 import { PokemonMovePlaceholder } from '@/components/pokemon/PokemonMovePlaceholder'
 import { useActivePokemonLoading } from '@/hooks'
+import { usePokemonStore, useSaveFileStore } from '@/stores'
 import type { MoveWithDetails } from '@/types'
 
 const EMPTY_MOVE: MoveWithDetails = {
@@ -24,8 +24,10 @@ export const PokemonMovesSection: React.FC = () => {
   const moves = pokemon?.details?.moves ?? []
 
   const [expandedMoveIndex, setExpandedMoveIndex] = useState<number | null>(null)
+  const [pinnedIndex, setPinnedIndex] = useState<number | null>(null)
   useEffect(() => {
     setExpandedMoveIndex(null)
+    setPinnedIndex(null)
   }, [activePokemonId, saveSessionId])
   const totalSlots = 4
   return (
@@ -62,11 +64,11 @@ export const PokemonMovesSection: React.FC = () => {
                   isExpanded={expandedMoveIndex === i}
                   opensUpward={i < totalSlots / 2}
                   onHoverStart={() => {
-                    if (isLoading) return
+                    if (isLoading || pinnedIndex !== null) return
                     setExpandedMoveIndex(i)
                   }}
                   onHoverEnd={() => {
-                    if (isLoading) return
+                    if (isLoading || pinnedIndex !== null) return
                     setExpandedMoveIndex(null)
                   }}
                 />

@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRef } from 'react'
-import { cn } from '@/lib/utils'
-import type { MoveWithDetails } from '@/types'
 import { ScrollableContainer } from '@/components/common'
+import { CursorFollowHint } from '@/components/common/CursorFollowHint'
 import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
 import { useSmoothWheelScroll } from '@/hooks/useSmoothWheelScroll'
+import { cn } from '@/lib/utils'
+import type { MoveWithDetails } from '@/types'
 
 const damageClassIcons: Record<'physical' | 'special' | 'status', string> = {
   physical: '/damage-type-icons/physical.png',
@@ -19,10 +20,11 @@ export interface MoveButtonProps {
   opensUpward: boolean
   onHoverStart?: () => void
   onHoverEnd?: () => void
+  onClick?: () => void
 }
 
 // Component for a single move in the list
-export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward, onHoverStart, onHoverEnd }) => {
+export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded, opensUpward, onHoverStart, onHoverEnd, onClick }) => {
   const popoverDirectionClass = opensUpward ? 'bottom-full mb-1' : 'top-full mt-1'
   const animationY = opensUpward ? 10 : -10
   const rootRef = useRef<HTMLDivElement>(null)
@@ -31,7 +33,14 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
 
   return (
     <div ref={rootRef} className="relative" onWheel={onWheel}>
-      <div className={cn('w-full text-left p-3 rounded-lg bg-card/50 group-hover:bg-card/70 border shadow-lg transition-all duration-200')} onMouseEnter={onHoverStart} onMouseLeave={onHoverEnd}>
+      <div
+        className={cn('w-full text-left p-3 rounded-lg bg-card/50 group-hover:bg-card/70 border shadow-lg transition-all duration-200 cursor-pointer select-none')}
+        onClick={onClick}
+        onMouseEnter={onHoverStart}
+        onMouseLeave={onHoverEnd}
+        role="button"
+        tabIndex={0}
+      >
         <div className="flex items-center justify-between">
           <span className="text-sm text-foreground truncate w-full block" title={move.name}>
             {move.name}
@@ -41,7 +50,16 @@ export const PokemonMoveButton: React.FC<MoveButtonProps> = ({ move, isExpanded,
           <PokemonTypeBadge type={move.type} />
           <span className="text-xs text-muted-foreground">{move.pp}/--</span>
         </div>
+        {/* Hint rendered outside this block to ensure correct absolute positioning */}
       </div>
+      {isExpanded && (
+        <CursorFollowHint
+          anchorRef={rootRef as React.RefObject<HTMLElement | null>}
+          targetRef={scrollRef as React.RefObject<HTMLElement | null>}
+          enabled={true}
+          flashTargetRef={scrollRef as React.RefObject<HTMLElement | null>}
+        />
+      )}
       <AnimatePresence>
         {isExpanded && (
           <motion.div layout initial={{ opacity: 0, y: animationY }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: animationY }} className={cn('absolute left-0 right-0 z-50 p-3 bg-popover border rounded-lg shadow-xl text-xs', popoverDirectionClass)}>
