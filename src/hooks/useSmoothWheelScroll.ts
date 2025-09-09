@@ -24,6 +24,10 @@ export function useSmoothWheelScroll(
 
   const LINE_HEIGHT_PX = 24
   const MOUSE_STEP_MAX_PX = 200
+  // Pixel-wheel events on Windows often come in large jumps. For small pixel
+  // deltas (trackpads), we keep direct control; for bigger jumps we ease.
+  const PIXEL_SMOOTH_MIN_PX = 28
+  const PIXEL_STEP_MAX_PX = 320
 
   useEffect(() => {
     try {
@@ -107,12 +111,20 @@ export function useSmoothWheelScroll(
       e.preventDefault()
       e.stopPropagation()
 
-      // For pixel deltas (trackpads), apply directly for tight control
+      // For pixel deltas: if the jump is small (trackpad-like), apply directly
+      // for tight control. If the jump is large (typical mouse wheel on Windows),
+      // use smoothing to avoid stuttery, stepped motion.
       if (dm === 0) {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current)
-        rafRef.current = null
-        el.scrollTop = predicted
-        targetRef.current = predicted
+        const mag = Math.abs(dy)
+        if (mag >= PIXEL_SMOOTH_MIN_PX) {
+          const step = Math.sign(dy) * Math.min(PIXEL_STEP_MAX_PX, mag)
+          void smoothScroll(el, step)
+        } else {
+          if (rafRef.current) cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
+          el.scrollTop = predicted
+          targetRef.current = predicted
+        }
         return
       }
 
