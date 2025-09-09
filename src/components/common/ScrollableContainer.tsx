@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { setRef } from '@/lib/reactRef'
 import { cn } from '../../lib/utils'
 
-interface ScrollableContainerProps {
+interface ScrollableContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   className?: string
 }
@@ -17,7 +17,7 @@ const fadeClassMap: Record<ScrollState, string> = {
 }
 
 // Scrollable container with dynamic fade effects
-export const ScrollableContainer = React.forwardRef<HTMLDivElement, ScrollableContainerProps>(function ScrollableContainer({ children, className }, forwardedRef) {
+export const ScrollableContainer = React.forwardRef<HTMLDivElement, ScrollableContainerProps>(function ScrollableContainer({ children, className, ...rest }, forwardedRef) {
   const [scrollState, setScrollState] = useState<ScrollState>('none')
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -69,6 +69,7 @@ export const ScrollableContainer = React.forwardRef<HTMLDivElement, ScrollableCo
         setRef(forwardedRef, node)
       }}
       className={cn('scroll-container geist-font', className, fadeClassMap[scrollState])}
+      {...rest}
     >
       {children}
     </div>

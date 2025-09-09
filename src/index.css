@@ -41,6 +41,17 @@
   background: #71717a; /* zinc-500 */
 }
 
+/* Prevent scroll chaining to page and reduce rubber-banding effects
+   inside our dedicated scroll containers (better Mac trackpad feel). */
+.scroll-container {
+  overscroll-behavior: none; /* stop propagation and rubber-banding */
+}
+
+/* As a safety net, also prevent the viewport itself from rubber-banding */
+html, body {
+  overscroll-behavior-y: none;
+}
+
 /* Scroll fade effects using mask-image (not animatable) */
 .scroll-fade-bottom {
   -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%), linear-gradient(to left, black 12px, transparent 12px);
@@ -231,6 +242,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Prevent momentum scroll from nudging the layout when reaching edges */
+    overscroll-behavior-y: none;
   }
 }
 
