@@ -34,6 +34,16 @@ interface HistoryActions {
 
 export type HistoryStore = HistoryState & HistoryActions
 
+function areSnapshotsEqual(a: HistorySnapshot, b: HistorySnapshot): boolean {
+  if (a.bytes.length !== b.bytes.length) return false
+  if (!a.bytes.every((value, index) => value === b.bytes[index])) return false
+  if (a.idsBySlot.length !== b.idsBySlot.length) return false
+  for (let i = 0; i < a.idsBySlot.length; i++) {
+    if (a.idsBySlot[i] !== b.idsBySlot[i]) return false
+  }
+  return true
+}
+
 // Helper to get current snapshot (save bytes + UI ids by slot)
 function getCurrentSnapshot(idsBySlotOverride?: number[]): HistorySnapshot | null {
   const { saveData, parser } = useSaveFileStore.getState()
@@ -58,43 +68,45 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
   snapshot: () => {
     const snap = getCurrentSnapshot()
     if (!snap) return
-    // Avoid duplicate snapshots if the latest past equals current
     const { past } = get()
     const last = past[past.length - 1]
-    if (last && last.bytes.length === snap.bytes.length) {
-      // Quick byte-by-byte equality check on first and last few bytes to avoid heavy comparisons
-      let same = true
-      if (snap.bytes[0] !== last.bytes[0] || snap.bytes[snap.bytes.length - 1] !== last.bytes[last.bytes.length - 1]) same = false
-      if (same) {
-        // fall back to shallow compare of small prefix
-        for (let i = 0; i < 16 && i < snap.bytes.length; i++) {
-          if (snap.bytes[i] !== last.bytes[i]) {
-            same = false
-            break
-          }
-        }
-      }
-      if (same) {
-        // still push to keep behavior predictable — but optionally skip
-      }
-    }
+    if (last && areSnapshotsEqual(last, snap)) return
     set({ past: [...past, snap], future: [] })
   },
 
   queueSnapshot: (delayMs = 350, idsBySlotOverride?: number[]) => {
     const state = get()
     if (state.isApplying) return
-    if (state.queuedSnapshot) return
     const snap = getCurrentSnapshot(idsBySlotOverride)
     if (!snap) return
+    if (state.queueTimer) {
+      clearTimeout(state.queueTimer)
+    }
     const timer = setTimeout(() => {
-      const { queuedSnapshot, past } = get()
-      if (queuedSnapshot) {
-        set({ past: [...past, queuedSnapshot], queuedSnapshot: null, queueTimer: null, future: [] })
-      } else {
+      const pending = get().queuedSnapshot
+      if (!pending) {
         set({ queueTimer: null })
+        return
       }
+      set(current => {
+        const last = current.past[current.past.length - 1]
+        if (last && areSnapshotsEqual(last, pending)) {
+          return { queuedSnapshot: null, queueTimer: null }
+        }
+        return {
+          past: [...current.past, pending],
+          queuedSnapshot: null,
+          queueTimer: null,
+          future: [],
+        }
+      })
     }, delayMs)
+
+    if (state.queuedSnapshot && areSnapshotsEqual(state.queuedSnapshot, snap)) {
+      set({ queueTimer: timer })
+      return
+    }
+
     set({ queuedSnapshot: snap, queueTimer: timer })
   },
 
