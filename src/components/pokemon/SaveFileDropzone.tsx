@@ -20,8 +20,10 @@ function isFsFileHandle(obj: unknown): obj is FileSystemFileHandle {
 
 export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, error = null, showDropzone, onOpenFilePicker }) => {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null)
-  const [lastModified, setLastModified] = useState<number | null>(null)
   const pollInterval = useRef<NodeJS.Timeout | null>(null)
+  const lastModifiedRef = useRef<number | null>(null)
+
+  const supportsFsAccessApi = typeof window !== 'undefined' && 'showOpenFilePicker' in window
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     getFilesFromEvent: async event => {
@@ -36,9 +38,9 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
           return []
         }
         setFileHandle(handle)
-        onFileLoad(handle)
+        void onFileLoad(handle)
         const file = await handle.getFile()
-        setLastModified(file.lastModified)
+        lastModifiedRef.current = file.lastModified
         return [] // we dont need to return files here, as we handle the file directly
       }
 
@@ -48,7 +50,9 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     onDrop: acceptedFiles => {
       const [file] = acceptedFiles
       if (typeof file !== 'undefined') {
-        onFileLoad(file)
+        setFileHandle(null)
+        lastModifiedRef.current = file.lastModified ?? null
+        void onFileLoad(file)
       }
     },
     accept: {
@@ -57,29 +61,35 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     maxFiles: 1,
     noKeyboard: true,
     noClick: true,
-    useFsAccessApi: true,
+    useFsAccessApi: supportsFsAccessApi,
   })
 
   // Poll for file changes if fileHandle is available
   useEffect(() => {
     if (!fileHandle) return
 
-    pollInterval.current = setInterval(async () => {
+    const refreshHandle = async () => {
       try {
         const file = await fileHandle.getFile()
-        if (file.lastModified !== lastModified) {
-          setLastModified(file.lastModified)
-          onFileLoad(file)
+        const nextModified = file.lastModified
+        if (lastModifiedRef.current !== nextModified) {
+          lastModifiedRef.current = nextModified
+          void onFileLoad(file)
         }
-      } catch (error) {
-        console.warn('Failed to poll file changes:', error)
+      } catch (pollError) {
+        console.warn('Failed to poll file changes:', pollError)
       }
-    }, 300) // Poll every 300ms
+    }
+
+    pollInterval.current = setInterval(() => {
+      void refreshHandle()
+    }, 300)
 
     return () => {
       if (pollInterval.current) clearInterval(pollInterval.current)
+      pollInterval.current = null
     }
-  }, [fileHandle, lastModified, onFileLoad])
+  }, [fileHandle, onFileLoad])
 
   // Provide open to parent for external triggering, only if function changes
   useEffect(() => {
