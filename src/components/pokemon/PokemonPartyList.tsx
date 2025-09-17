@@ -20,6 +20,7 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, 
   const activePokemonId = usePokemonStore(s => s.activePokemonId)
   const setActivePokemonId = usePokemonStore(s => s.setActivePokemonId)
   const setPartyList = usePokemonStore(s => s.setPartyList)
+  const updatePartyOrder = useSaveFileStore(s => s.updatePartyOrder)
   const emptySlots = Array.from({ length: Math.max(0, config.maxPartySize - partyList.length) })
   const constraintsRef = useRef<HTMLDivElement>(null)
   const [draggingId, setDraggingId] = useState<number | null>(null)
@@ -35,15 +36,8 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, 
 
   const syncSaveOrder = useCallback(() => {
     const currentList = usePokemonStore.getState().partyList
-    const bases = currentList.map(p => p.data)
-    useSaveFileStore.setState(state => {
-      if (!state.saveData) return state
-      return {
-        saveData: { ...state.saveData, party_pokemon: bases, __transient__: true },
-        lastUpdateTransient: true,
-      }
-    })
-  }, [])
+    updatePartyOrder(currentList.map(p => p.data))
+  }, [updatePartyOrder])
 
   return (
     <div ref={constraintsRef} className="flex flex-col gap-4">

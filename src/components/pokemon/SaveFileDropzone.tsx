@@ -91,6 +91,19 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({ onFileLoad, 
     }
   }, [fileHandle, onFileLoad])
 
+  // Clear handle and polling state when dropzone becomes active again (e.g., after unload)
+  useEffect(() => {
+    if (!showDropzone) return
+    if (pollInterval.current) {
+      clearInterval(pollInterval.current)
+      pollInterval.current = null
+    }
+    if (fileHandle) {
+      setFileHandle(null)
+    }
+    lastModifiedRef.current = null
+  }, [showDropzone, fileHandle])
+
   // Provide open to parent for external triggering, only if function changes
   useEffect(() => {
     if (onOpenFilePicker) {

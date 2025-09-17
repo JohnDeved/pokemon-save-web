@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { create } from 'zustand'
 import { addRecent } from '@/lib/recentFiles'
 import { PokemonSaveParser } from '../lib/parser/core/PokemonSaveParser'
+import type { PokemonBase } from '../lib/parser/core/PokemonBase'
 import type { SaveData } from '../lib/parser/core/types'
 import { usePokemonStore } from './usePokemonStore'
 import { useSettingsStore } from './useSettingsStore'
@@ -25,6 +26,7 @@ export interface SaveFileActions {
   parse: (input: File | ArrayBuffer | FileSystemFileHandle, options?: { transient?: boolean }) => Promise<SaveData>
   clearSaveFile: () => void
   reconstructAndDownload: (method?: 'download' | 'saveAs' | 'save') => Promise<void>
+  updatePartyOrder: (party: PokemonBase[]) => void
 }
 
 export type SaveFileStore = SaveFileState & SaveFileActions
@@ -129,11 +131,18 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
     const defaultFileName = parser.saveFileName ?? 'pokemon_save.sav'
 
     if (method === 'saveAs') {
+      if (typeof showSaveFilePicker !== 'function') {
+        toast.error('File System Access API not supported', {
+          position: 'bottom-center',
+          duration: 4000,
+        })
+        return
+      }
+
+      let handle: FileSystemFileHandle | null = null
+      let writable: FileSystemWritableFileStream | null = null
       try {
-        if (typeof showSaveFilePicker !== 'function') {
-          throw new Error('File System Access API not supported')
-        }
-        const handle = await showSaveFilePicker({
+        handle = await showSaveFilePicker({
           suggestedName: defaultFileName,
           types: [
             {
@@ -142,18 +151,14 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
             },
           ],
         })
-        const writable = await handle.createWritable()
+        writable = await handle.createWritable()
         await writable.write(blob)
-        await writable.close()
         // Persist the new handle so subsequent 'Save' is enabled
         parser.fileHandle = handle
-        // Update display name if available
         if (typeof handle.name === 'string' && handle.name) {
           parser.saveFileName = handle.name
         }
-        // Trigger store update with current parser reference
         set({ parser })
-        return
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error'
         toast.error(message, {
@@ -161,7 +166,16 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
           duration: 5000,
         })
         return
+      } finally {
+        if (writable) {
+          try {
+            await writable.close()
+          } catch (closeError) {
+            console.warn('Failed to close writable handle after Save As:', closeError)
+          }
+        }
       }
+      return
     }
 
     if (method === 'save') {
@@ -172,13 +186,39 @@ export const useSaveFileStore = create<SaveFileStore>((set, get) => ({
         })
         return
       }
-      const writable = await parser.fileHandle.createWritable()
-      await writable.write(blob)
-      await writable.close()
+      let writable: FileSystemWritableFileStream | null = null
+      try {
+        writable = await parser.fileHandle.createWritable()
+        await writable.write(blob)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to save file'
+        toast.error(message, {
+          position: 'bottom-center',
+          duration: 5000,
+        })
+      } finally {
+        if (writable) {
+          try {
+            await writable.close()
+          } catch (closeError) {
+            console.warn('Failed to close writable handle after Save:', closeError)
+          }
+        }
+      }
       return
     }
 
     // 'download' method always uses file-saver
     saveAs(blob, defaultFileName)
+  },
+
+  updatePartyOrder: (party: PokemonBase[]) => {
+    set(state => {
+      if (!state.saveData) return state
+      return {
+        saveData: { ...state.saveData, party_pokemon: party, __transient__: true },
+        lastUpdateTransient: true,
+      }
+    })
   },
 }))
