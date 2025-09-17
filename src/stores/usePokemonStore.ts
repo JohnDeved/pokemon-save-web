@@ -211,15 +211,13 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
 // Helper function to build party list from save data
 export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] => {
-  // Previous list and used id tracking help keep identities stable
-  const prevList = usePokemonStore.getState().partyList
-  const usedIds = new Set<number>()
-  const stateSnapshot = usePokemonStore.getState()
-  const pending = stateSnapshot.pendingIdsBySlot
+  const { partyList: prevList, pendingIdsBySlot: pending, nextUiId: startingNextId } = usePokemonStore.getState()
 
-  return saveData.party_pokemon.map((parsedPokemon: PokemonBase, index: number) => {
+  const usedIds = new Set<number>()
+  let nextUiId = startingNextId
+
+  const party = saveData.party_pokemon.map((parsedPokemon: PokemonBase, index: number) => {
     const { isShiny, isRadiant } = parsedPokemon
-    // Treat Radiant as using shiny sprite assets
     const useAltSprite = isShiny || isRadiant
     const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
     const spriteUrl = useAltSprite ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png` : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
@@ -227,19 +225,16 @@ export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] 
     const SPRITE_ANI_BASE_URL = '/sprites'
     const spriteAniUrl = useAltSprite ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif` : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
 
-    // 1) If history provided ids for this slot, use it
     let uiId: number | undefined = Array.isArray(pending) ? pending[index] : undefined
     if (uiId && usedIds.has(uiId)) uiId = undefined
 
-    // 2) Try to reuse previous list entry at same index (cheap heuristic)
     if (!uiId && prevList[index] && !usedIds.has(prevList[index]!.id)) {
       uiId = prevList[index]!.id
     }
 
-    // 3) Allocate new id if none found
     if (!uiId) {
-      uiId = stateSnapshot.nextUiId
-      stateSnapshot.nextUiId += 1
+      uiId = nextUiId
+      nextUiId += 1
     }
 
     usedIds.add(uiId)
@@ -250,6 +245,11 @@ export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] 
       data: parsedPokemon,
     }
   })
-  // Clear pending ids after use
-  usePokemonStore.setState({ pendingIdsBySlot: null, nextUiId: stateSnapshot.nextUiId })
+
+  usePokemonStore.setState(state => ({
+    pendingIdsBySlot: null,
+    nextUiId: Math.max(state.nextUiId, nextUiId),
+  }))
+
+  return party
 }
