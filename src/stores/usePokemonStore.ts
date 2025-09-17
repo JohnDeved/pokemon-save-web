@@ -4,6 +4,7 @@ import type { SaveData } from '@/lib/parser/core/types'
 import { calculateTotalStats, natures } from '@/lib/parser/core/utils'
 import type { UIPokemonData } from '../types'
 import { useHistoryStore } from './useHistoryStore'
+import { useSaveFileStore } from './useSaveFileStore'
 
 // Constants
 const MAX_EV_PER_STAT = 252
@@ -33,6 +34,7 @@ export interface PokemonActions {
   clearPokemonDetails: () => void
   resetUiIdentities: () => void
   setPendingIdsBySlot: (ids: number[] | null) => void
+  commitPartyReorder: (newOrder: UIPokemonData[], previousIds?: number[]) => void
 }
 
 export type PokemonStore = PokemonState & PokemonActions
@@ -206,6 +208,17 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
   setPendingIdsBySlot: (ids: number[] | null) => {
     set({ pendingIdsBySlot: ids })
+  },
+
+  commitPartyReorder: (newOrder: UIPokemonData[], previousIds?: number[]) => {
+    set({ partyList: newOrder })
+    try {
+      useHistoryStore.getState().queueSnapshot(350, previousIds)
+    } catch {}
+    try {
+      const bases = newOrder.map(p => p.data)
+      useSaveFileStore.getState().updatePartyOrder(bases)
+    } catch {}
   },
 }))
 

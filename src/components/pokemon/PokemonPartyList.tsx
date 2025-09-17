@@ -3,8 +3,7 @@ import { useCallback, useRef, useState } from 'react'
 import { PokemonStatus } from '@/components/pokemon/PokemonStatus'
 import { PokemonStatusPlaceholder } from '@/components/pokemon/PokemonStatusPlaceholder'
 import { QuetzalConfig } from '@/lib/parser/games/quetzal/config'
-import { usePokemonStore, useSaveFileStore } from '@/stores'
-import { useHistoryStore } from '@/stores/useHistoryStore'
+import { usePokemonStore } from '@/stores'
 import type { UIPokemonData } from '@/types'
 
 // Use Quetzal config for constants since that's what most users will be using
@@ -20,7 +19,7 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, 
   const activePokemonId = usePokemonStore(s => s.activePokemonId)
   const setActivePokemonId = usePokemonStore(s => s.setActivePokemonId)
   const setPartyList = usePokemonStore(s => s.setPartyList)
-  const updatePartyOrder = useSaveFileStore(s => s.updatePartyOrder)
+  const commitPartyReorder = usePokemonStore(s => s.commitPartyReorder)
   const emptySlots = Array.from({ length: Math.max(0, config.maxPartySize - partyList.length) })
   const constraintsRef = useRef<HTMLDivElement>(null)
   const [draggingId, setDraggingId] = useState<number | null>(null)
@@ -33,11 +32,6 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, 
     },
     [setPartyList]
   )
-
-  const syncSaveOrder = useCallback(() => {
-    const currentList = usePokemonStore.getState().partyList
-    updatePartyOrder(currentList.map(p => p.data))
-  }, [updatePartyOrder])
 
   return (
     <div ref={constraintsRef} className="flex flex-col gap-4">
@@ -58,12 +52,9 @@ export const PokemonPartyList: React.FC<PokemonPartyListProps> = ({ isRenaming, 
             }}
             onDragEnd={() => {
               setDraggingId(null)
-              // Snapshot the pre-change state for accurate undo (idsBySlot before reorder)
-              try {
-                const ids = preDragIdsRef.current ?? undefined
-                useHistoryStore.getState().queueSnapshot(350, ids)
-              } catch {}
-              syncSaveOrder()
+              const ids = preDragIdsRef.current ?? undefined
+              commitPartyReorder(usePokemonStore.getState().partyList, ids)
+              preDragIdsRef.current = null
             }}
             className="cursor-pointer group"
           >

@@ -18,7 +18,6 @@ export const App: React.FC = () => {
   const error = useSaveFileStore(s => s.error)
   const hasFile = useSaveFileStore(s => s.hasFile)
   const lastParseFailed = useSaveFileStore(s => s.lastParseFailed)
-  const parser = useSaveFileStore(s => s.parser)
   const saveFileName = useSaveFileStore(s => s.parser?.saveFileName)
   const suppressAutoRestore = useSettingsStore(s => s.suppressAutoRestore)
   const shaderEnabled = useSettingsStore(s => s.shaderEnabled)
@@ -30,7 +29,7 @@ export const App: React.FC = () => {
   const attemptingRestore = useAutoRestore({ parse, suppressAutoRestore })
   useThemeSync({ theme, hasFile, saveFileName, defaultTitle })
   useUndoRedoShortcuts({ undo, redo })
-  useHistorySync({ hasFile, parser, saveFileName })
+  useHistorySync()
 
   const hasSaveData = hasFile && partyList.length > 0
   const shouldShowDropzone = !hasSaveData && !lastParseFailed && !attemptingRestore

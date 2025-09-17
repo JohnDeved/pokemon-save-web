@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 import { useHistoryStore } from '@/stores/useHistoryStore'
+import { useSaveFileStore } from '@/stores/useSaveFileStore'
 
-interface UseHistorySyncOptions {
-  hasFile: boolean
-  parser: unknown
-  saveFileName?: string | null
-}
+export function useHistorySync() {
+  const hasFile = useSaveFileStore(s => s.hasFile)
+  const saveSessionId = useSaveFileStore(s => s.saveSessionId)
+  const parser = useSaveFileStore(s => s.parser)
+  const saveFileName = useSaveFileStore(s => s.parser?.saveFileName)
 
-export function useHistorySync({ hasFile, parser, saveFileName }: UseHistorySyncOptions) {
   useEffect(() => {
     const historyStore = useHistoryStore.getState()
     if (!hasFile) {
@@ -17,5 +17,5 @@ export function useHistorySync({ hasFile, parser, saveFileName }: UseHistorySync
     if (!historyStore.isApplying) {
       historyStore.initFromCurrent()
     }
-  }, [hasFile, parser, saveFileName])
+  }, [hasFile, parser, saveFileName, saveSessionId])
 }

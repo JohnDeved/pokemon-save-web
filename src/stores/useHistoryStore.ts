@@ -35,11 +35,14 @@ interface HistoryActions {
 export type HistoryStore = HistoryState & HistoryActions
 
 function areSnapshotsEqual(a: HistorySnapshot, b: HistorySnapshot): boolean {
-  if (a.bytes.length !== b.bytes.length) return false
-  if (!a.bytes.every((value, index) => value === b.bytes[index])) return false
-  if (a.idsBySlot.length !== b.idsBySlot.length) return false
-  for (let i = 0; i < a.idsBySlot.length; i++) {
-    if (a.idsBySlot[i] !== b.idsBySlot[i]) return false
+  const { bytes: bytesA, idsBySlot: idsA } = a
+  const { bytes: bytesB, idsBySlot: idsB } = b
+  if (bytesA.length !== bytesB.length || idsA.length !== idsB.length) return false
+  for (let i = 0; i < bytesA.length; i++) {
+    if (bytesA[i] !== bytesB[i]) return false
+  }
+  for (let i = 0; i < idsA.length; i++) {
+    if (idsA[i] !== idsB[i]) return false
   }
   return true
 }
