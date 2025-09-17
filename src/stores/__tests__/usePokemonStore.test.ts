@@ -13,7 +13,7 @@ const createPokemon = (overrides: Partial<PokemonBase> = {}): PokemonBase => {
       moves: {},
     },
     ...overrides,
-  } as PokemonBase
+  } as unknown as PokemonBase
 }
 
 describe('buildPartyListFromSaveData', () => {

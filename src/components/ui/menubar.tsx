@@ -5,7 +5,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { useSettingsStore } from '@/stores'
 
-const menubarThemeStyles: Record<string, { base: string; shadow: string }> = {
+const menubarThemeStyles: Record<'zinc' | 'slate' | 'light', { base: string; shadow: string }> = {
   slate: {
     base: 'bg-slate-800/50 border-slate-800',
     shadow: 'shadow-2xl',
@@ -14,7 +14,7 @@ const menubarThemeStyles: Record<string, { base: string; shadow: string }> = {
     base: 'bg-zinc-50/80 border-zinc-300',
     shadow: 'shadow-md',
   },
-  default: {
+  zinc: {
     base: 'bg-zinc-800/50 border-zinc-800',
     shadow: 'shadow-2xl',
   },
@@ -22,7 +22,7 @@ const menubarThemeStyles: Record<string, { base: string; shadow: string }> = {
 
 const Menubar = ({ className, ...props }: React.ComponentProps<typeof MenubarPrimitive.Root>) => {
   const theme = useSettingsStore(s => s.theme)
-  const { base, shadow } = menubarThemeStyles[theme] ?? menubarThemeStyles.default
+  const { base, shadow } = menubarThemeStyles[theme]
   return (
     <MenubarPrimitive.Root
       data-slot="menubar"

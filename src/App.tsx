@@ -49,16 +49,15 @@ export const App: React.FC = () => {
   const filePickerRef = useRef<() => void>(null)
   const canSaveAs = typeof showSaveFilePicker === 'function'
 
-  const backgroundByTheme: Record<string, string> = {
+  const backgroundByTheme: Record<'zinc' | 'slate' | 'light', string> = {
     slate:
       'bg-slate-900 bg-[linear-gradient(to_bottom,theme(colors.slate.900)_20%,transparent),radial-gradient(theme(colors.slate.700)_1px,transparent_1px),radial-gradient(theme(colors.slate.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]',
     light:
       'bg-zinc-100 bg-[linear-gradient(to_bottom,theme(colors.zinc.100)_20%,transparent),radial-gradient(theme(colors.zinc.300)_1px,transparent_1px),radial-gradient(theme(colors.zinc.300)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]',
-    default:
-      'bg-zinc-900 bg-[linear-gradient(to_bottom,theme(colors.zinc.900)_20%,transparent),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]',
+    zinc: 'bg-zinc-900 bg-[linear-gradient(to_bottom,theme(colors.zinc.900)_20%,transparent),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px),radial-gradient(theme(colors.zinc.700)_1px,transparent_1px)] [background-size:100%_100%,16px_16px,16px_16px] [background-position:0_0,0_0,8px_8px]',
   }
 
-  const backgroundClass = backgroundByTheme[theme] ?? backgroundByTheme.default
+  const backgroundClass = backgroundByTheme[theme]
 
   return (
     <>

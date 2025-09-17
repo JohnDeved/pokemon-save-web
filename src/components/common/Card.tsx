@@ -5,7 +5,7 @@ interface CardProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode
 }
 
-const themeStyles: Record<string, { base: string; shadow: string }> = {
+const themeStyles: Record<'zinc' | 'slate' | 'light', { base: string; shadow: string }> = {
   slate: {
     base: 'bg-slate-800/50 border-slate-800',
     shadow: 'shadow-2xl',
@@ -14,7 +14,7 @@ const themeStyles: Record<string, { base: string; shadow: string }> = {
     base: 'bg-zinc-50/80 border-zinc-300',
     shadow: 'shadow-md',
   },
-  default: {
+  zinc: {
     base: 'bg-zinc-800/50 border-zinc-800',
     shadow: 'shadow-2xl',
   },
@@ -22,7 +22,7 @@ const themeStyles: Record<string, { base: string; shadow: string }> = {
 
 export const Card: React.FC<CardProps> = ({ children, className, ...props }) => {
   const theme = useSettingsStore(s => s.theme)
-  const { base, shadow } = themeStyles[theme] ?? themeStyles.default
+  const { base, shadow } = themeStyles[theme]
   return (
     <section
       {...props}
