@@ -5,7 +5,14 @@ import { Skeleton } from '@/components/common'
 import { PokemonTypeBadge } from '@/components/pokemon/PokemonTypeBadge'
 import { useActivePokemonLoading, useMegaPreview } from '@/hooks'
 import { usePokemonStore } from '@/stores'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
 import { Button } from '../ui/button'
 import { CursorFollowHint } from '@/components/common/CursorFollowHint'
 // Nature editing moved to Traits section's Nature tab
@@ -14,7 +21,17 @@ export const PokemonHeader: React.FC = () => {
   const isLoading = useActivePokemonLoading()
   const pokemon = usePokemonStore(s => s.partyList.find(p => p.id === s.activePokemonId))
   const megaAnchorRef = useRef<HTMLElement | null>(null)
-  const { supportsMega, hasMegaForms, megaPreviewEnabled, setMegaPreviewEnabled, forms, selectedForm, setSelectedForm, statsLoading, megaTypes } = useMegaPreview()
+  const {
+    supportsMega,
+    hasMegaForms,
+    megaPreviewEnabled,
+    setMegaPreviewEnabled,
+    forms,
+    selectedForm,
+    setSelectedForm,
+    statsLoading,
+    megaTypes,
+  } = useMegaPreview()
   return (
     <Skeleton.LoadingProvider loading={isLoading}>
       <div className="p-3 border-b border-border">
@@ -38,17 +55,33 @@ export const PokemonHeader: React.FC = () => {
                     onClick={() => !statsLoading && setMegaPreviewEnabled(!megaPreviewEnabled)}
                     disabled={statsLoading}
                   >
-                    <img src="/mega.svg" alt="Mega Evolution" className={`w-4 h-4 transition-all ${megaPreviewEnabled ? '' : 'filter grayscale contrast-75 brightness-90 opacity-70'}`} draggable={false} />
+                    <img
+                      src="/mega.svg"
+                      alt="Mega Evolution"
+                      className={`w-4 h-4 transition-all ${megaPreviewEnabled ? '' : 'filter grayscale contrast-75 brightness-90 opacity-70'}`}
+                      draggable={false}
+                    />
                   </Button>
                 ) : (
                   <span className="inline-block size-7 rounded-full opacity-0" aria-hidden />
                 )}
-                <CursorFollowHint anchorRef={megaAnchorRef} enabled={!statsLoading && hasMegaForms} once={false} requireOverflow={false} label={megaPreviewEnabled ? 'Mega Preview: On' : 'Mega Preview: Off'} icon={<MousePointerClick className="w-3.5 h-3.5" strokeWidth={2} />} />
+                <CursorFollowHint
+                  anchorRef={megaAnchorRef}
+                  enabled={!statsLoading && hasMegaForms}
+                  once={false}
+                  requireOverflow={false}
+                  label={megaPreviewEnabled ? 'Mega Preview: On' : 'Mega Preview: Off'}
+                  icon={<MousePointerClick className="w-3.5 h-3.5" strokeWidth={2} />}
+                />
               </span>
             )}
             {supportsMega && hasMegaForms && forms && forms.length > 1 && (
               <div className="flex items-center gap-2">
-                <Select value={selectedForm} onValueChange={val => setSelectedForm(val)} disabled={!megaPreviewEnabled || statsLoading}>
+                <Select
+                  value={selectedForm}
+                  onValueChange={val => setSelectedForm(val)}
+                  disabled={!megaPreviewEnabled || statsLoading}
+                >
                   <SelectTrigger className="h-7 w-[150px] text-xs">
                     <SelectValue placeholder="Choose Mega Form" />
                   </SelectTrigger>
@@ -74,7 +107,10 @@ export const PokemonHeader: React.FC = () => {
         <div className="flex items-center justify-between mt-2 min-h-[25px]">
           <Skeleton.Container className="flex items-center gap-2 min-w-8">
             {isLoading && <PokemonTypeBadge type="UNKNOWN" isLarge />}
-            {(megaPreviewEnabled && megaTypes && megaTypes.length ? megaTypes : pokemon?.details?.types || []).map(type => (
+            {(megaPreviewEnabled && megaTypes && megaTypes.length
+              ? megaTypes
+              : pokemon?.details?.types || []
+            ).map(type => (
               <PokemonTypeBadge key={type} type={type} isLarge />
             ))}
           </Skeleton.Container>

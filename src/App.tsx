@@ -3,9 +3,22 @@ import { Card } from './components/common'
 import { AppMenubar } from './components/app/AppMenubar'
 import { PWAInstallPrompt } from './components/common/PWAInstallPrompt'
 import { ShaderBackground } from './components/common/ShaderBackground'
-import { PokemonHeader, PokemonMovesSection, PokemonPartyList, PokemonStatDisplay, PokemonTraitsSection, SaveFileDropzone } from './components/pokemon'
+import {
+  PokemonHeader,
+  PokemonMovesSection,
+  PokemonPartyList,
+  PokemonStatDisplay,
+  PokemonTraitsSection,
+  SaveFileDropzone,
+} from './components/pokemon'
 import { Toaster } from './components/ui/sonner'
-import { useAutoRestore, useHistorySync, usePokemonData, useThemeSync, useUndoRedoShortcuts } from './hooks'
+import {
+  useAutoRestore,
+  useHistorySync,
+  usePokemonData,
+  useThemeSync,
+  useUndoRedoShortcuts,
+} from './hooks'
 import { useSaveFileStore, useSettingsStore } from './stores'
 import { useHistoryStore } from './stores/useHistoryStore'
 

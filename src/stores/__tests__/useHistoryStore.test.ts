@@ -83,6 +83,6 @@ describe('useHistoryStore snapshots', () => {
     const { past } = useHistoryStore.getState()
     expect(past).toHaveLength(1)
     expect(past[0]?.idsBySlot).toEqual([2])
-    expect(Array.from(past[0]?.bytes ?? [])).toEqual([2])
+    expect([...(past[0]?.bytes ?? [])]).toEqual([2])
   })
 })

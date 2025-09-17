@@ -66,7 +66,10 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
         // Calculate current total EVs excluding the stat being changed
         const currentEvs = p.data.evs
-        const otherEvsTotal = currentEvs.reduce((sum, ev, index) => (index === statIndex ? sum : sum + ev), 0)
+        const otherEvsTotal = currentEvs.reduce(
+          (sum, ev, index) => (index === statIndex ? sum : sum + ev),
+          0
+        )
 
         // Ensure total EVs don't exceed limit
         const maxAllowedForThisStat = Math.min(MAX_EV_PER_STAT, MAX_TOTAL_EVS - otherEvsTotal)
@@ -146,7 +149,9 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
         // Update details immediately for name (description will refetch separately elsewhere)
         const idName = p.data.itemIdName
         if (p.details) {
-          const prettyName = idName ? idName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'None'
+          const prettyName = idName
+            ? idName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+            : 'None'
           const newDetails = {
             ...p.details,
             item: idName
@@ -224,7 +229,11 @@ export const usePokemonStore = create<PokemonStore>((set, get) => ({
 
 // Helper function to build party list from save data
 export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] => {
-  const { partyList: prevList, pendingIdsBySlot: pending, nextUiId: startingNextId } = usePokemonStore.getState()
+  const {
+    partyList: prevList,
+    pendingIdsBySlot: pending,
+    nextUiId: startingNextId,
+  } = usePokemonStore.getState()
 
   const usedIds = new Set<number>()
   let nextUiId = startingNextId
@@ -232,11 +241,16 @@ export const buildPartyListFromSaveData = (saveData: SaveData): UIPokemonData[] 
   const party = saveData.party_pokemon.map((parsedPokemon: PokemonBase, index: number) => {
     const { isShiny, isRadiant } = parsedPokemon
     const useAltSprite = isShiny || isRadiant
-    const SPRITE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
-    const spriteUrl = useAltSprite ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png` : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
+    const SPRITE_BASE_URL =
+      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
+    const spriteUrl = useAltSprite
+      ? `${SPRITE_BASE_URL}/shiny/${parsedPokemon.speciesId}.png`
+      : `${SPRITE_BASE_URL}/${parsedPokemon.speciesId}.png`
 
     const SPRITE_ANI_BASE_URL = '/sprites'
-    const spriteAniUrl = useAltSprite ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif` : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
+    const spriteAniUrl = useAltSprite
+      ? `${SPRITE_ANI_BASE_URL}/shiny/${parsedPokemon.nameId}.gif`
+      : `${SPRITE_ANI_BASE_URL}/${parsedPokemon.nameId}.gif`
 
     let uiId: number | undefined = Array.isArray(pending) ? pending[index] : undefined
     if (uiId && usedIds.has(uiId)) uiId = undefined

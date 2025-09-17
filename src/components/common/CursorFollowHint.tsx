@@ -23,7 +23,20 @@ interface CursorFollowHintProps {
  * - Positions above the cursor (centered) with configurable offsets.
  * - Pointer-events are disabled so it never intercepts input.
  */
-export function CursorFollowHint({ anchorRef, targetRef, enabled = true, label = 'Scroll', offsetX = 0, offsetY = -10, className, contentClassName, icon, once = true, onAcknowledge, requireOverflow = true }: CursorFollowHintProps) {
+export function CursorFollowHint({
+  anchorRef,
+  targetRef,
+  enabled = true,
+  label = 'Scroll',
+  offsetX = 0,
+  offsetY = -10,
+  className,
+  contentClassName,
+  icon,
+  once = true,
+  onAcknowledge,
+  requireOverflow = true,
+}: CursorFollowHintProps) {
   const { visible, style } = useCursorFollow({
     anchorRef,
     targetRef,
@@ -50,7 +63,9 @@ export function CursorFollowHint({ anchorRef, targetRef, enabled = true, label =
         >
           {/* Center horizontally and sit above the cursor */}
           <div className="-translate-x-1/2 -translate-y-full">
-            <div className={`bg-popover/90 shadow-sm border border-border/60 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] whitespace-nowrap ${contentClassName ?? ''}`}>
+            <div
+              className={`bg-popover/90 shadow-sm border border-border/60 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] whitespace-nowrap ${contentClassName ?? ''}`}
+            >
               {IconEl}
               {label}
             </div>
@@ -73,7 +88,16 @@ export interface UseCursorFollowOptions {
   requireOverflow?: boolean
 }
 
-export function useCursorFollow({ anchorRef, targetRef, enabled = true, offsetX = 12, offsetY = -36, once = true, onAcknowledge, requireOverflow = true }: UseCursorFollowOptions) {
+export function useCursorFollow({
+  anchorRef,
+  targetRef,
+  enabled = true,
+  offsetX = 12,
+  offsetY = -36,
+  once = true,
+  onAcknowledge,
+  requireOverflow = true,
+}: UseCursorFollowOptions) {
   const x = useMotionValue(0)
   const y = useMotionValue(0)
 
@@ -152,7 +176,17 @@ export function useCursorFollow({ anchorRef, targetRef, enabled = true, offsetX 
       root.removeEventListener('pointerleave', onLeave)
       root.removeEventListener('wheel', onWheel)
     }
-  }, [anchorRef, enabled, hovered, updateFromEvent, once, onAcknowledge, requireOverflow, targetRef, checkOverflow])
+  }, [
+    anchorRef,
+    enabled,
+    hovered,
+    updateFromEvent,
+    once,
+    onAcknowledge,
+    requireOverflow,
+    targetRef,
+    checkOverflow,
+  ])
 
   // Observe overflow changes
   useEffect(() => {

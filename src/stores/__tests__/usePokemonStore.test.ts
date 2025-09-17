@@ -67,7 +67,9 @@ describe('buildPartyListFromSaveData', () => {
       nextUiId: 3,
     })
 
-    const party = buildPartyListFromSaveData(baseSaveData([createPokemon({ speciesId: 2 }), createPokemon({ speciesId: 3 })]))
+    const party = buildPartyListFromSaveData(
+      baseSaveData([createPokemon({ speciesId: 2 }), createPokemon({ speciesId: 3 })])
+    )
 
     expect(party.map(p => p.id)).toEqual([3, 4])
     const state = usePokemonStore.getState()

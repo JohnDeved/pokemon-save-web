@@ -29,7 +29,8 @@ export default defineConfig({
       manifest: {
         name: 'Pokemon Save Editor',
         short_name: 'PokeSave',
-        description: 'A powerful web-based Pokemon save file editor for various Pokemon games and ROM hacks',
+        description:
+          'A powerful web-based Pokemon save file editor for various Pokemon games and ROM hacks',
         theme_color: '#09090b',
         background_color: '#09090b',
         display: 'standalone',

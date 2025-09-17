@@ -1,4 +1,9 @@
-import { calculateTotalStatsDirect, MAX_EV, MAX_IV, statAbbreviations } from '@/lib/parser/core/utils'
+import {
+  calculateTotalStatsDirect,
+  MAX_EV,
+  MAX_IV,
+  statAbbreviations,
+} from '@/lib/parser/core/utils'
 import { applyHeldItemStatBoosts, computeTotalsWithHeldItem } from '@/lib/battle'
 import { usePokemonStore } from '@/stores'
 import { Skeleton } from '@/components/common'
@@ -20,7 +25,15 @@ const EVSlider: React.FC<EVSliderProps> = ({ value, onChange, maxVisualValue }) 
   const handleValueChange = (val: number[]) => {
     onChange(val[0]!)
   }
-  return <Slider value={[value]} max={MAX_EV} onValueChange={handleValueChange} className="[&_[data-slot=slider-track]]:bg-input/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500" maxVisualValue={maxVisualValue} />
+  return (
+    <Slider
+      value={[value]}
+      max={MAX_EV}
+      onValueChange={handleValueChange}
+      className="[&_[data-slot=slider-track]]:bg-input/30 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-cyan-500 [&_[data-slot=slider-range]]:to-blue-500"
+      maxVisualValue={maxVisualValue}
+    />
+  )
 }
 
 export const PokemonStatDisplay: React.FC = () => {
@@ -45,7 +58,9 @@ export const PokemonStatDisplay: React.FC = () => {
 
   // Helper to adapt stored element to a RefObject that CursorFollowHint expects
   const getIvAnchorRef = (idx: number): React.RefObject<HTMLElement | null> => {
-    return { current: (ivCellRefs.current[idx] ?? null) as HTMLElement | null } as React.RefObject<HTMLElement | null>
+    return {
+      current: (ivCellRefs.current[idx] ?? null) as HTMLElement | null,
+    } as React.RefObject<HTMLElement | null>
   }
   // moved to store via useMegaPreview
 
@@ -71,7 +86,15 @@ export const PokemonStatDisplay: React.FC = () => {
   // Calculate full totals for the current display base stats
 
   const displayTotals = useMemo(() => {
-    const totals = computeTotalsWithHeldItem(displayBaseStats, ivs, evs, level, nature, itemIdName, speciesIdName)
+    const totals = computeTotalsWithHeldItem(
+      displayBaseStats,
+      ivs,
+      evs,
+      level,
+      nature,
+      itemIdName,
+      speciesIdName
+    )
     return totals ?? pokemon?.data.stats
   }, [displayBaseStats, ivs, evs, level, nature, pokemon?.data.stats, itemIdName, speciesIdName])
 
@@ -83,7 +106,13 @@ export const PokemonStatDisplay: React.FC = () => {
     if (currentIvs[statIndex] === targetIv) return null
     currentIvs[statIndex] = targetIv
     // Use calculateTotalStatsDirect for stat calculation
-    const newStats = calculateTotalStatsDirect(displayBaseStats, currentIvs, pokemon.data.evs, pokemon.data.level, pokemon.data.nature)
+    const newStats = calculateTotalStatsDirect(
+      displayBaseStats,
+      currentIvs,
+      pokemon.data.evs,
+      pokemon.data.level,
+      pokemon.data.nature
+    )
     const boosted = applyHeldItemStatBoosts(newStats, itemIdName, speciesIdName)
     return boosted?.[statIndex] ?? null
   }
@@ -111,11 +140,19 @@ export const PokemonStatDisplay: React.FC = () => {
           const ivClass = iv === MAX_IV ? 'text-cyan-400' : 'text-cyan-800'
           // Calculate preview stat if this IV is hovered and not at max
           const isHovered = hoveredIvIndex === index
-          const previewTotal = isHovered ? (iv !== MAX_IV ? calculatePreviewStat(index, MAX_IV) : calculatePreviewStat(index, 0)) : null
+          const previewTotal = isHovered
+            ? iv !== MAX_IV
+              ? calculatePreviewStat(index, MAX_IV)
+              : calculatePreviewStat(index, 0)
+            : null
           const isShowingPreview = isHovered && previewTotal !== null
           // Calculate how many more EVs can be assigned to this stat
           let maxVisualValue = MAX_EV
-          if (pokemon?.id !== null && pokemon?.id !== undefined && typeof getRemainingEvs === 'function') {
+          if (
+            pokemon?.id !== null &&
+            pokemon?.id !== undefined &&
+            typeof getRemainingEvs === 'function'
+          ) {
             const remainingTotalEvs = getRemainingEvs(pokemon.id)
             maxVisualValue = Math.min(MAX_EV, (evs?.[index] ?? 0) + remainingTotalEvs)
           }
@@ -131,7 +168,9 @@ export const PokemonStatDisplay: React.FC = () => {
                   }}
                   maxVisualValue={maxVisualValue}
                 />
-                <span className="text-foreground w-8 text-right text-xs flex-shrink-0">{evs?.[index] ?? 0}</span>
+                <span className="text-foreground w-8 text-right text-xs flex-shrink-0">
+                  {evs?.[index] ?? 0}
+                </span>
               </div>
               <div
                 className={`relative text-center text-sm ${ivClass} cursor-pointer hover:text-cyan-300 transition-colors`}
@@ -143,12 +182,21 @@ export const PokemonStatDisplay: React.FC = () => {
                 }}
               >
                 {isHovered ? (iv !== MAX_IV ? MAX_IV : 0) : iv}
-                <CursorFollowHint anchorRef={getIvAnchorRef(index)} enabled={isHovered} requireOverflow={false} once={false} label={iv !== MAX_IV ? `Click to set to max (${MAX_IV})` : 'Click to set to 0'} offsetY={-10} />
+                <CursorFollowHint
+                  anchorRef={getIvAnchorRef(index)}
+                  enabled={isHovered}
+                  requireOverflow={false}
+                  once={false}
+                  label={iv !== MAX_IV ? `Click to set to max (${MAX_IV})` : 'Click to set to 0'}
+                  offsetY={-10}
+                />
               </div>
               <div className="text-muted-foreground text-center text-sm">
                 <Skeleton.Text>{isLoading ? 255 : base}</Skeleton.Text>
               </div>
-              <div className={`col-span-2 text-right text-sm ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}>
+              <div
+                className={`col-span-2 text-right text-sm ${isShowingPreview ? 'text-cyan-300' : statClass} transition-colors`}
+              >
                 {isShowingPreview && previewTotal !== null ? (
                   <span>
                     {(() => {

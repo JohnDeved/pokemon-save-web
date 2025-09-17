@@ -1,7 +1,11 @@
 import { calculateTotalStatsDirect } from '@/lib/parser/core/utils'
 
 // Totals order: [HP, Atk, Def, Spe, SpA, SpD]
-export function applyHeldItemStatBoosts(totals: readonly number[], itemIdName?: string | null, speciesIdName?: string | null): number[] {
+export function applyHeldItemStatBoosts(
+  totals: readonly number[],
+  itemIdName?: string | null,
+  speciesIdName?: string | null
+): number[] {
   const item = (itemIdName ?? '').toLowerCase()
   const species = (speciesIdName ?? '').toLowerCase()
   if (!item) return [...totals]
@@ -56,7 +60,15 @@ export function applyHeldItemStatBoosts(totals: readonly number[], itemIdName?: 
   return boosted
 }
 
-export function computeTotalsWithHeldItem(baseStats: readonly number[] | undefined, ivs: readonly number[] | undefined, evs: readonly number[] | undefined, level: number, nature: string, itemIdName?: string | null, speciesIdName?: string | null): number[] | null {
+export function computeTotalsWithHeldItem(
+  baseStats: readonly number[] | undefined,
+  ivs: readonly number[] | undefined,
+  evs: readonly number[] | undefined,
+  level: number,
+  nature: string,
+  itemIdName?: string | null,
+  speciesIdName?: string | null
+): number[] | null {
   if (!baseStats || !ivs || !evs) return null
   const totals = calculateTotalStatsDirect(baseStats, ivs, evs, level, nature)
   return applyHeldItemStatBoosts(totals, itemIdName, speciesIdName)
