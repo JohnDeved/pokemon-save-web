@@ -209,18 +209,27 @@ export function useCursorFollow({
     // Initial measurement
     handle()
 
-    const ro = 'ResizeObserver' in window ? new ResizeObserver(handle) : null
+    const globalScope =
+      typeof globalThis === 'object'
+        ? (globalThis as (Window & typeof globalThis) | undefined)
+        : undefined
+
+    const ro = globalScope && 'ResizeObserver' in globalScope ? new ResizeObserver(handle) : null
     ro?.observe(el)
 
     const mo = new MutationObserver(handle)
     mo.observe(el, { childList: true, subtree: true, characterData: true, attributes: true })
 
-    window.addEventListener('resize', handle)
+    if (globalScope && typeof globalScope.addEventListener === 'function') {
+      globalScope.addEventListener('resize', handle)
+    }
 
     return () => {
       ro?.disconnect()
       mo.disconnect()
-      window.removeEventListener('resize', handle)
+      if (globalScope && typeof globalScope.removeEventListener === 'function') {
+        globalScope.removeEventListener('resize', handle)
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, requireOverflow, targetRef, checkOverflow])

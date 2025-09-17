@@ -28,7 +28,9 @@ export const SaveFileDropzone: React.FC<SaveFileDropzoneProps> = ({
   const pollInterval = useRef<NodeJS.Timeout | null>(null)
   const lastModifiedRef = useRef<number | null>(null)
 
-  const supportsFsAccessApi = typeof window !== 'undefined' && 'showOpenFilePicker' in window
+  const globalScope =
+    typeof globalThis === 'object' ? (globalThis as Window & typeof globalThis) : undefined
+  const supportsFsAccessApi = Boolean(globalScope && 'showOpenFilePicker' in globalScope)
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     getFilesFromEvent: async event => {

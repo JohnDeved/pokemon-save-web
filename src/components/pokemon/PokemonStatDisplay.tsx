@@ -140,12 +140,16 @@ export const PokemonStatDisplay: React.FC = () => {
           const ivClass = iv === MAX_IV ? 'text-cyan-400' : 'text-cyan-800'
           // Calculate preview stat if this IV is hovered and not at max
           const isHovered = hoveredIvIndex === index
-          const previewTotal = isHovered
-            ? iv !== MAX_IV
-              ? calculatePreviewStat(index, MAX_IV)
-              : calculatePreviewStat(index, 0)
-            : null
+          let previewTotal: number | null = null
+          if (isHovered) {
+            const targetIv = iv !== MAX_IV ? MAX_IV : 0
+            previewTotal = calculatePreviewStat(index, targetIv)
+          }
           const isShowingPreview = isHovered && previewTotal !== null
+          let ivDisplay = iv
+          if (isHovered) {
+            ivDisplay = iv !== MAX_IV ? MAX_IV : 0
+          }
           // Calculate how many more EVs can be assigned to this stat
           let maxVisualValue = MAX_EV
           if (
@@ -181,7 +185,7 @@ export const PokemonStatDisplay: React.FC = () => {
                   ivCellRefs.current[index] = el
                 }}
               >
-                {isHovered ? (iv !== MAX_IV ? MAX_IV : 0) : iv}
+                {ivDisplay}
                 <CursorFollowHint
                   anchorRef={getIvAnchorRef(index)}
                   enabled={isHovered}
@@ -200,7 +204,7 @@ export const PokemonStatDisplay: React.FC = () => {
                 {isShowingPreview && previewTotal !== null ? (
                   <span>
                     {(() => {
-                      const delta = (previewTotal ?? 0) - total
+                      const delta = previewTotal - total
                       const deltaClass = delta >= 0 ? 'text-green-400' : 'text-red-400'
                       const deltaText = delta >= 0 ? `+${delta}` : `${delta}`
                       return (

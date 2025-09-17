@@ -5,21 +5,30 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { useSettingsStore } from '@/stores'
 
+const menubarThemeStyles: Record<string, { base: string; shadow: string }> = {
+  slate: {
+    base: 'bg-slate-800/50 border-slate-800',
+    shadow: 'shadow-2xl',
+  },
+  light: {
+    base: 'bg-zinc-50/80 border-zinc-300',
+    shadow: 'shadow-md',
+  },
+  default: {
+    base: 'bg-zinc-800/50 border-zinc-800',
+    shadow: 'shadow-2xl',
+  },
+}
+
 const Menubar = ({ className, ...props }: React.ComponentProps<typeof MenubarPrimitive.Root>) => {
   const theme = useSettingsStore(s => s.theme)
-  const base =
-    theme === 'slate'
-      ? 'bg-slate-800/50 border-slate-800'
-      : theme === 'light'
-        ? 'bg-zinc-50/80 border-zinc-300'
-        : 'bg-zinc-800/50 border-zinc-800'
-  const shadowCls = theme === 'light' ? 'shadow-md' : 'shadow-2xl'
+  const { base, shadow } = menubarThemeStyles[theme] ?? menubarThemeStyles.default
   return (
     <MenubarPrimitive.Root
       data-slot="menubar"
       className={cn(
         base,
-        shadowCls,
+        shadow,
         'backdrop-blur-lg rounded-md border relative flex h-9 items-center gap-1 p-1',
         className
       )}

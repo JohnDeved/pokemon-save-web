@@ -11,19 +11,27 @@ interface UseThemeSyncOptions {
 
 export function useThemeSync({ theme, hasFile, saveFileName, defaultTitle }: UseThemeSyncOptions) {
   useEffect(() => {
-    const body = document.body
+    const { body } = document
+    const themeClasses: Record<string, string> = {
+      slate: 'theme-slate',
+      light: 'theme-light',
+      default: 'theme-zinc',
+    }
     body.classList.remove('theme-zinc', 'theme-slate', 'theme-light')
-    if (theme === 'slate') body.classList.add('theme-slate')
-    else if (theme === 'light') body.classList.add('theme-light')
-    else body.classList.add('theme-zinc')
+    body.classList.add(themeClasses[theme] ?? themeClasses.default)
 
     if (theme === 'light') body.classList.remove('dark')
     else body.classList.add('dark')
 
+    const themeColors: Record<string, string> = {
+      slate: '#0f172a',
+      light: '#fafafa',
+      default: '#09090b',
+    }
+
     const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
     if (meta) {
-      const color = theme === 'slate' ? '#0f172a' : theme === 'light' ? '#fafafa' : '#09090b'
-      meta.content = color
+      meta.content = themeColors[theme] ?? themeColors.default
     }
 
     if (hasFile && saveFileName) {
