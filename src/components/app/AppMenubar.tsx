@@ -1,16 +1,14 @@
-import { ExternalLinkIcon } from 'lucide-react'
+import { Copy, ExternalLinkIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { triggerPWAInstall } from '@/components/common/PWAInstallPrompt'
-import { useRecentFiles } from '@/hooks/useRecentFiles'
-import { useSaveFileStore, useSettingsStore } from '@/stores'
 import {
-  canRedoSelector,
-  canUndoSelector,
-  hasEditsSelector,
-  useHistoryStore,
-} from '@/stores/useHistoryStore'
-import { hasFsPermissions } from '@/types/fs'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Menubar,
   MenubarCheckboxItem,
@@ -26,13 +24,17 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from '@/components/ui/menubar'
+import { getPokemonDetails } from '@/hooks/usePokemonData'
+import { useRecentFiles } from '@/hooks/useRecentFiles'
+import { buildTeamClipboardText } from '@/lib/utils'
+import { usePokemonStore, useSaveFileStore, useSettingsStore } from '@/stores'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  canRedoSelector,
+  canUndoSelector,
+  hasEditsSelector,
+  useHistoryStore,
+} from '@/stores/useHistoryStore'
+import { hasFsPermissions } from '@/types/fs'
 
 interface AppMenubarProps {
   onRequestOpenFile: () => void
@@ -59,6 +61,7 @@ export const AppMenubar: React.FC<AppMenubarProps> = ({
   const parser = useSaveFileStore(s => s.parser)
   const hasFile = useSaveFileStore(s => s.hasFile)
   const playerName = useSaveFileStore(s => s.saveData?.player_name)
+  const partyList = usePokemonStore(s => s.partyList)
 
   const canUndo = useHistoryStore(canUndoSelector)
   const canRedo = useHistoryStore(canRedoSelector)
@@ -68,6 +71,74 @@ export const AppMenubar: React.FC<AppMenubarProps> = ({
   const reset = useHistoryStore(s => s.reset)
 
   const { recents, clear: clearRecents } = useRecentFiles()
+
+  const copyPartyToClipboard = useCallback(async () => {
+    if (partyList.length === 0) {
+      toast.error('No Pokemon party to copy.', {
+        position: 'bottom-center',
+        duration: 3500,
+      })
+      return
+    }
+
+    let partyWithDetails = partyList
+
+    if (partyList.some(pokemon => !pokemon.details)) {
+      const resolved = await Promise.all(
+        partyList.map(async pokemon => {
+          if (pokemon.details) return pokemon
+          try {
+            const details = await getPokemonDetails(pokemon)
+            return { ...pokemon, details }
+          } catch (error) {
+            console.error('Failed to fetch pokemon details for clipboard', error)
+            return pokemon
+          }
+        })
+      )
+
+      partyWithDetails = resolved
+
+      usePokemonStore.setState(prevState => ({
+        partyList: prevState.partyList.map(
+          existing =>
+            resolved.find(resolvedPokemon => resolvedPokemon.id === existing.id) ?? existing
+        ),
+      }))
+    }
+
+    const text = buildTeamClipboardText(partyWithDetails, playerName)
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else if (typeof document !== 'undefined') {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.setAttribute('readonly', 'true')
+        textarea.style.position = 'absolute'
+        textarea.style.left = '-9999px'
+        document.body.appendChild(textarea)
+        textarea.select()
+        const success = document.execCommand('copy')
+        document.body.removeChild(textarea)
+        if (!success) throw new Error('Legacy copy command failed')
+      } else {
+        throw new Error('Clipboard API unavailable')
+      }
+
+      toast.success('Pokemon team copied to clipboard.', {
+        position: 'bottom-center',
+        duration: 2500,
+      })
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to copy Pokemon team.', {
+        position: 'bottom-center',
+        duration: 4000,
+      })
+    }
+  }, [partyList, playerName])
 
   const openRecent = useCallback(
     async (handle: FileSystemFileHandle) => {
@@ -158,7 +229,13 @@ export const AppMenubar: React.FC<AppMenubarProps> = ({
               </MenubarSubContent>
             </MenubarSub>
             <MenubarSeparator />
-            <MenubarItem disabled>Share</MenubarItem>
+            <MenubarItem
+              disabled={partyList.length === 0}
+              onSelect={() => void copyPartyToClipboard()}
+            >
+              <Copy className="size-4" />
+              <span>Copy Pokemon Team</span>
+            </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
         <MenubarMenu>

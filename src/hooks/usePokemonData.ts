@@ -91,7 +91,7 @@ function getMoveDescription(move: PokeAPI.Move): string {
 /**
  * Fetches all details for a Pokémon, including moves and abilities.
  */
-async function getPokemonDetails(pokemon: UIPokemonData) {
+export async function getPokemonDetails(pokemon: UIPokemonData) {
   const { data } = pokemon
   const pokeData = await fetchJson<PokeAPI.Pokemon>(
     `https://pokeapi.co/api/v2/pokemon/${data.speciesId}`
